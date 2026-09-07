@@ -18,6 +18,18 @@ Copy-Item tests/performance/.env.performance.example tests/performance/.env.perf
 
 Edita `.env.performance` y reemplaza el correo, la contraseña y el identificador de sucursal. Este archivo está ignorado por Git y no debe contener datos de producción.
 
+## Preparar tres sucursales ficticias
+
+Antes de las pruebas representativas, prepara los datos locales con:
+
+```powershell
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm performance-data
+```
+
+El proceso prepara `Sucursal 1`, `Sucursal 2` y `Sucursal 3`, asociadas a ciudades y direcciones completamente ficticias. Cada una queda con una caja principal y tres lotes ficticios de 500 unidades. La ejecución muestra los identificadores generados de las sucursales, cajas y lotes para configurar los escenarios posteriores.
+
+El script es idempotente: puede ejecutarse nuevamente sin duplicar sucursales, cajas ni lotes. No restablece las existencias consumidas por pruebas transaccionales anteriores.
+
 ## Ejecutar la prueba de humo
 
 ```powershell

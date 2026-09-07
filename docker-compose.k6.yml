@@ -1,4 +1,26 @@
 services:
+  performance-data:
+    image: postgres:16-alpine
+    profiles:
+      - performance
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./tests/performance/data:/data:ro
+    command:
+      - psql
+      - -v
+      - ON_ERROR_STOP=1
+      - -f
+      - /data/prepare.sql
+
   k6-smoke:
     image: grafana/k6:2.2.0
     profiles:
