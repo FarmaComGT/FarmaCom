@@ -22,17 +22,33 @@ const etapas = (usuarios) => [
   { duration: config.carga.descenso, target: 0 },
 ];
 
-export const options = {
-  noCookiesReset: true,
-  scenarios: {
-    punto_venta: {
+const crearEscenariosPuntoVenta = () => {
+  const cantidadSucursales = config.idsSucursales.length;
+  const usuariosBase = Math.floor(config.carga.usuariosPOS / cantidadSucursales);
+  const usuariosRestantes = config.carga.usuariosPOS % cantidadSucursales;
+
+  return config.idsSucursales.reduce((escenarios, idSucursal, indice) => {
+    const usuarios = usuariosBase + (indice < usuariosRestantes ? 1 : 0);
+    if (usuarios === 0) return escenarios;
+
+    escenarios[`punto_venta_sucursal_${idSucursal}`] = {
       executor: 'ramping-vus',
       exec: 'consultarPuntoVenta',
       startVUs: 0,
-      stages: etapas(config.carga.usuariosPOS),
+      stages: etapas(usuarios),
       gracefulRampDown: '10s',
-      tags: { flujo: 'punto-venta' },
-    },
+      env: { K6_SCENARIO_BRANCH_ID: String(idSucursal) },
+      tags: { flujo: 'punto-venta', sucursal: String(idSucursal) },
+    };
+
+    return escenarios;
+  }, {});
+};
+
+export const options = {
+  noCookiesReset: true,
+  scenarios: {
+    ...crearEscenariosPuntoVenta(),
     gestion: {
       executor: 'ramping-vus',
       exec: 'consultarGestion',
@@ -73,6 +89,11 @@ const asegurarSesion = () => {
 const pausaUsuario = () => sleep(1 + Math.random() * 2);
 
 const obtenerIdSucursal = () => {
+  const idSucursalEscenario = Number(__ENV.K6_SCENARIO_BRANCH_ID);
+  if (Number.isInteger(idSucursalEscenario) && idSucursalEscenario > 0) {
+    return idSucursalEscenario;
+  }
+
   const indice = (exec.vu.idInTest - 1) % config.idsSucursales.length;
   return config.idsSucursales[indice];
 };
