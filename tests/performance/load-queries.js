@@ -1,5 +1,7 @@
 import http from 'k6/http';
+import exec from 'k6/execution';
 import { group, sleep } from 'k6';
+import { Counter } from 'k6/metrics';
 import { iniciarSesion } from './lib/auth.js';
 import {
   comprobarArregloJson,
@@ -7,6 +9,12 @@ import {
   comprobarRespuestaJson,
 } from './lib/checks.js';
 import { config } from './lib/config.js';
+
+const actividadSucursal = new Counter('actividad_sucursal');
+const umbralesSucursales = {};
+config.idsSucursales.forEach((idSucursal) => {
+  umbralesSucursales[`actividad_sucursal{sucursal:${idSucursal}}`] = ['count>0'];
+});
 
 const etapas = (usuarios) => [
   { duration: config.carga.incremento, target: usuarios },
@@ -48,6 +56,8 @@ export const options = {
     http_req_duration: ['p(95)<3000'],
     'http_req_duration{tipo:consulta}': ['p(95)<2000'],
     'http_req_duration{tipo:reporte}': ['p(95)<3000'],
+    'http_req_duration{endpoint:autocompletar-pos}': ['p(95)<5000'],
+    ...umbralesSucursales,
   },
 };
 
@@ -62,6 +72,11 @@ const asegurarSesion = () => {
 
 const pausaUsuario = () => sleep(1 + Math.random() * 2);
 
+const obtenerIdSucursal = () => {
+  const indice = (exec.vu.idInTest - 1) % config.idsSucursales.length;
+  return config.idsSucursales[indice];
+};
+
 const formatearFecha = (fecha) => fecha.toISOString().slice(0, 10);
 
 const obtenerRangoReportes = () => {
@@ -75,26 +90,28 @@ const obtenerRangoReportes = () => {
 
 export function consultarPuntoVenta() {
   asegurarSesion();
+  const idSucursal = obtenerIdSucursal();
+  actividadSucursal.add(1, { sucursal: String(idSucursal) });
 
-  group('Carga: punto de venta', () => {
+  group(`Carga: punto de venta - sucursal ${idSucursal}`, () => {
     const respuestas = http.batch([
       [
         'GET',
         `${config.apiUrl}/productos/autocompletar?busqueda=a&limite=10`,
         null,
-        { tags: { endpoint: 'autocompletar-pos', tipo: 'consulta' } },
+        { tags: { endpoint: 'autocompletar-pos', tipo: 'consulta', sucursal: String(idSucursal) } },
       ],
       [
         'GET',
-        `${config.apiUrl}/sucursales/${config.idSucursal}/inventario`,
+        `${config.apiUrl}/sucursales/${idSucursal}/inventario`,
         null,
-        { tags: { endpoint: 'inventario', tipo: 'consulta' } },
+        { tags: { endpoint: 'inventario', tipo: 'consulta', sucursal: String(idSucursal) } },
       ],
       [
         'GET',
-        `${config.apiUrl}/cajas?id_sucursal=${config.idSucursal}&activa=true`,
+        `${config.apiUrl}/cajas?id_sucursal=${idSucursal}&activa=true`,
         null,
-        { tags: { endpoint: 'cajas-activas', tipo: 'consulta' } },
+        { tags: { endpoint: 'cajas-activas', tipo: 'consulta', sucursal: String(idSucursal) } },
       ],
     ]);
 
@@ -110,26 +127,27 @@ export function consultarPuntoVenta() {
 
 export function consultarGestion() {
   asegurarSesion();
+  const idSucursal = obtenerIdSucursal();
 
-  group('Carga: gestión', () => {
+  group(`Carga: gestión - sucursal ${idSucursal}`, () => {
     const respuestas = http.batch([
       [
         'GET',
         `${config.apiUrl}/clientes`,
         null,
-        { tags: { endpoint: 'clientes', tipo: 'consulta' } },
+        { tags: { endpoint: 'clientes', tipo: 'consulta', sucursal: String(idSucursal) } },
       ],
       [
         'GET',
         `${config.apiUrl}/productos`,
         null,
-        { tags: { endpoint: 'productos', tipo: 'consulta' } },
+        { tags: { endpoint: 'productos', tipo: 'consulta', sucursal: String(idSucursal) } },
       ],
       [
         'GET',
-        `${config.apiUrl}/sucursales/${config.idSucursal}/inventario/resumen`,
+        `${config.apiUrl}/sucursales/${idSucursal}/inventario/resumen`,
         null,
-        { tags: { endpoint: 'resumen-inventario', tipo: 'consulta' } },
+        { tags: { endpoint: 'resumen-inventario', tipo: 'consulta', sucursal: String(idSucursal) } },
       ],
     ]);
 
@@ -147,7 +165,7 @@ export function consultarGestion() {
 export function consultarReportes() {
   asegurarSesion();
   const { fechaDesde, fechaHasta } = obtenerRangoReportes();
-  const filtros = `id_sucursal=${config.idSucursal}&fecha_desde=${fechaDesde}&fecha_hasta=${fechaHasta}`;
+  const filtros = `fecha_desde=${fechaDesde}&fecha_hasta=${fechaHasta}`;
 
   group('Carga: reportes', () => {
     const respuestas = http.batch([
@@ -155,25 +173,25 @@ export function consultarReportes() {
         'GET',
         `${config.apiUrl}/reportes/ventas/resumen?${filtros}`,
         null,
-        { tags: { endpoint: 'resumen-ventas', tipo: 'reporte' } },
+        { tags: { alcance: 'consolidado', endpoint: 'resumen-ventas', tipo: 'reporte' } },
       ],
       [
         'GET',
         `${config.apiUrl}/reportes/ventas/serie?${filtros}&agrupacion=dia`,
         null,
-        { tags: { endpoint: 'serie-ventas', tipo: 'reporte' } },
+        { tags: { alcance: 'consolidado', endpoint: 'serie-ventas', tipo: 'reporte' } },
       ],
       [
         'GET',
         `${config.apiUrl}/reportes/ventas/metodos-pago?${filtros}`,
         null,
-        { tags: { endpoint: 'metodos-pago', tipo: 'reporte' } },
+        { tags: { alcance: 'consolidado', endpoint: 'metodos-pago', tipo: 'reporte' } },
       ],
       [
         'GET',
         `${config.apiUrl}/reportes/productos/top?${filtros}&limite=5&criterio=cantidad`,
         null,
-        { tags: { endpoint: 'top-productos', tipo: 'reporte' } },
+        { tags: { alcance: 'consolidado', endpoint: 'top-productos', tipo: 'reporte' } },
       ],
     ]);
 

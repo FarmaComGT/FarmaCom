@@ -16,7 +16,7 @@ Desde la raíz del repositorio, crea el archivo local de configuración:
 Copy-Item tests/performance/.env.performance.example tests/performance/.env.performance
 ```
 
-Edita `.env.performance` y reemplaza el correo, la contraseña y el identificador de sucursal. Este archivo está ignorado por Git y no debe contener datos de producción.
+Edita `.env.performance` y reemplaza el correo, la contraseña y los identificadores de sucursal. `K6_BRANCH_ID` se utiliza en la prueba de humo y `K6_BRANCH_IDS` distribuye las pruebas de carga y estrés. Este archivo está ignorado por Git y no debe contener datos de producción.
 
 ## Preparar tres sucursales ficticias
 
@@ -60,9 +60,9 @@ docker compose --env-file .env --env-file tests/performance/.env.performance -f 
 
 La prueba distribuye seis usuarios virtuales de esta forma:
 
-- Tres usuarios consultan el catálogo del punto de venta, inventario y cajas.
-- Dos usuarios consultan clientes, productos y el resumen de inventario.
-- Un usuario consulta los indicadores del dashboard.
+- Tres usuarios consultan el catálogo del punto de venta, inventario y cajas; cada uno queda asociado a una sucursal distinta.
+- Dos usuarios consultan clientes, productos y el resumen de inventario de la sucursal que les corresponde.
+- Un usuario consulta indicadores consolidados de las tres sucursales.
 
 Los usuarios aumentan gradualmente durante 30 segundos, mantienen la carga durante cuatro minutos y descienden durante 30 segundos. Las cantidades y duraciones pueden modificarse en `.env.performance`.
 
@@ -72,6 +72,7 @@ Los usuarios aumentan gradualmente durante 30 segundos, mantienen la carga duran
 - La tasa de solicitudes HTTP fallidas debe ser menor al 2 %.
 - El percentil 95 de las consultas debe ser menor a 2 segundos.
 - El percentil 95 de los reportes debe ser menor a 3 segundos.
+- El percentil 95 de las búsquedas de medicamentos debe ser menor a 5 segundos.
 
 El reporte se genera en `tests/performance/results/load-queries.html`. Este escenario solo realiza consultas y no modifica la base de datos.
 
@@ -89,7 +90,7 @@ El escenario aumenta progresivamente la cantidad de usuarios virtuales:
 4. Reduce la carga a 3 usuarios para observar la recuperación.
 5. Finaliza reduciendo la carga a 0.
 
-Cada iteración consulta simultáneamente el autocompletado del POS, inventario, clientes y dos reportes. La prueba es de solo lectura.
+Cada usuario se distribuye de forma estable entre las tres sucursales. Cada iteración consulta simultáneamente el autocompletado del POS, el inventario de su sucursal, clientes y dos reportes consolidados. La prueba es de solo lectura.
 
 ### Criterios de estrés
 

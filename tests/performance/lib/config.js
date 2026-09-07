@@ -15,11 +15,29 @@ const convertirNumeroPositivo = (valor, valorPredeterminado) => {
   return Number.isFinite(numero) && numero > 0 ? numero : valorPredeterminado;
 };
 
+const convertirListaEnterosPositivos = (valor, valorPredeterminado) => {
+  const texto = String(valor || '').trim();
+  if (!texto) return Object.freeze([valorPredeterminado]);
+
+  const ids = texto.split(',').map((elemento) => Number(elemento.trim()));
+  const listaValida = ids.every((id) => Number.isInteger(id) && id > 0);
+
+  if (!listaValida) {
+    throw new Error('K6_BRANCH_IDS debe contener identificadores positivos separados por comas');
+  }
+
+  return Object.freeze([...new Set(ids)]);
+};
+
 export const config = Object.freeze({
   apiUrl: normalizarUrl(__ENV.K6_API_URL || 'http://backend:3000/api'),
   correo: String(__ENV.K6_USER_EMAIL || '').trim(),
   contrasena: String(__ENV.K6_USER_PASSWORD || ''),
   idSucursal: convertirEnteroPositivo(__ENV.K6_BRANCH_ID, 1),
+  idsSucursales: convertirListaEnterosPositivos(
+    __ENV.K6_BRANCH_IDS,
+    convertirEnteroPositivo(__ENV.K6_BRANCH_ID, 1),
+  ),
   carga: Object.freeze({
     usuariosPOS: convertirEnteroPositivo(__ENV.K6_LOAD_POS_VUS, 3),
     usuariosGestion: convertirEnteroPositivo(__ENV.K6_LOAD_MANAGEMENT_VUS, 2),

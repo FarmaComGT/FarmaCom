@@ -1,5 +1,7 @@
 import http from 'k6/http';
+import exec from 'k6/execution';
 import { group, sleep } from 'k6';
+import { Counter } from 'k6/metrics';
 import { iniciarSesion } from './lib/auth.js';
 import {
   comprobarArregloJson,
@@ -7,6 +9,12 @@ import {
   comprobarRespuestaJson,
 } from './lib/checks.js';
 import { config } from './lib/config.js';
+
+const actividadSucursal = new Counter('actividad_sucursal');
+const umbralesSucursales = {};
+config.idsSucursales.forEach((idSucursal) => {
+  umbralesSucursales[`actividad_sucursal{sucursal:${idSucursal}}`] = ['count>0'];
+});
 
 const usuariosPorProporcion = (proporcion) => Math.max(
   1,
@@ -43,6 +51,8 @@ export const options = {
     checks: ['rate>0.95'],
     http_req_failed: ['rate<0.05'],
     http_req_duration: ['p(95)<5000'],
+    'http_req_duration{endpoint:autocompletar-pos}': ['p(95)<5000'],
+    ...umbralesSucursales,
   },
 };
 
@@ -53,6 +63,11 @@ const asegurarSesion = () => {
     iniciarSesion();
     sesionIniciada = true;
   }
+};
+
+const obtenerIdSucursal = () => {
+  const indice = (exec.vu.idInTest - 1) % config.idsSucursales.length;
+  return config.idsSucursales[indice];
 };
 
 const formatearFecha = (fecha) => fecha.toISOString().slice(0, 10);
@@ -68,40 +83,42 @@ const obtenerRangoReportes = () => {
 
 export default function () {
   asegurarSesion();
+  const idSucursal = obtenerIdSucursal();
+  actividadSucursal.add(1, { sucursal: String(idSucursal) });
   const { fechaDesde, fechaHasta } = obtenerRangoReportes();
-  const filtros = `id_sucursal=${config.idSucursal}&fecha_desde=${fechaDesde}&fecha_hasta=${fechaHasta}`;
+  const filtros = `fecha_desde=${fechaDesde}&fecha_hasta=${fechaHasta}`;
 
-  group('Estrés: consultas combinadas', () => {
+  group(`Estrés: consultas combinadas - sucursal ${idSucursal}`, () => {
     const respuestas = http.batch([
       [
         'GET',
         `${config.apiUrl}/productos/autocompletar?busqueda=a&limite=10`,
         null,
-        { tags: { endpoint: 'autocompletar-pos', tipo: 'estres' } },
+        { tags: { endpoint: 'autocompletar-pos', tipo: 'estres', sucursal: String(idSucursal) } },
       ],
       [
         'GET',
-        `${config.apiUrl}/sucursales/${config.idSucursal}/inventario`,
+        `${config.apiUrl}/sucursales/${idSucursal}/inventario`,
         null,
-        { tags: { endpoint: 'inventario', tipo: 'estres' } },
+        { tags: { endpoint: 'inventario', tipo: 'estres', sucursal: String(idSucursal) } },
       ],
       [
         'GET',
         `${config.apiUrl}/clientes`,
         null,
-        { tags: { endpoint: 'clientes', tipo: 'estres' } },
+        { tags: { endpoint: 'clientes', tipo: 'estres', sucursal: String(idSucursal) } },
       ],
       [
         'GET',
         `${config.apiUrl}/reportes/ventas/resumen?${filtros}`,
         null,
-        { tags: { endpoint: 'resumen-ventas', tipo: 'estres' } },
+        { tags: { alcance: 'consolidado', endpoint: 'resumen-ventas', tipo: 'estres' } },
       ],
       [
         'GET',
         `${config.apiUrl}/reportes/productos/top?${filtros}&limite=5&criterio=cantidad`,
         null,
-        { tags: { endpoint: 'top-productos', tipo: 'estres' } },
+        { tags: { alcance: 'consolidado', endpoint: 'top-productos', tipo: 'estres' } },
       ],
     ]);
 
