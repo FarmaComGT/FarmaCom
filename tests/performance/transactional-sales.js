@@ -1,12 +1,15 @@
 import http from 'k6/http';
 import exec from 'k6/execution';
 import { check, fail, group, sleep } from 'k6';
+import { Trend } from 'k6/metrics';
 import { iniciarSesion } from './lib/auth.js';
 import {
   comprobarObjetoJson,
   comprobarRespuestaJson,
 } from './lib/checks.js';
 import { config, validarConfiguracionVentas } from './lib/config.js';
+
+const retrasoActualizacionReporte = new Trend('retraso_actualizacion_reporte', true);
 
 const obtenerCasos = (valor) => valor.split(',').map((casoSinProcesar) => {
   const caso = casoSinProcesar.trim();
@@ -26,6 +29,13 @@ const obtenerCasos = (valor) => valor.split(',').map((casoSinProcesar) => {
 
 validarConfiguracionVentas();
 const casos = obtenerCasos(config.ventas.casos);
+const idsSucursales = casos.map((caso) => caso.idSucursal);
+
+if (new Set(idsSucursales).size !== idsSucursales.length) {
+  throw new Error('K6_SALES_CASES debe contener una sola caja virtual por sucursal');
+}
+
+const tiempoMaximoReporteMs = config.ventas.tiempoMaximoReporteSegundos * 1000;
 
 export const options = {
   noCookiesReset: true,
@@ -42,6 +52,7 @@ export const options = {
     checks: ['rate>0.98'],
     http_req_failed: ['rate<0.02'],
     'http_req_duration{tipo:transaccion}': ['p(95)<2000'],
+    retraso_actualizacion_reporte: [`p(95)<${tiempoMaximoReporteMs}`],
   },
 };
 
@@ -61,6 +72,85 @@ const leerLote = (idLote, etiqueta) => {
 };
 
 const contarUsoDelLote = (idLote) => casos.filter((caso) => caso.idLote === idLote).length;
+
+const validarResumen = (respuesta, nombre) => {
+  comprobarRespuestaJson(respuesta, nombre);
+  comprobarObjetoJson(respuesta, nombre);
+
+  const totalValido = check(respuesta, {
+    [`${nombre}: contiene total de ventas`]: (resultado) => {
+      const total = Number(resultado.json('total_ventas'));
+      return Number.isInteger(total) && total >= 0;
+    },
+  });
+
+  if (respuesta.status !== 200 || !totalValido) {
+    fail(`No fue posible obtener ${nombre}. Estado recibido: ${respuesta.status}`);
+  }
+
+  return Number(respuesta.json('total_ventas'));
+};
+
+const obtenerTotalesReportes = (idSucursal) => {
+  const respuestas = http.batch([
+    [
+      'GET',
+      `${config.apiUrl}/reportes/ventas/resumen?id_sucursal=${idSucursal}`,
+      null,
+      {
+        tags: {
+          alcance: 'sucursal',
+          endpoint: 'actualizacion-reporte',
+          sucursal: String(idSucursal),
+          tipo: 'reporte',
+        },
+      },
+    ],
+    [
+      'GET',
+      `${config.apiUrl}/reportes/ventas/resumen`,
+      null,
+      {
+        tags: {
+          alcance: 'consolidado',
+          endpoint: 'actualizacion-reporte',
+          tipo: 'reporte',
+        },
+      },
+    ],
+  ]);
+
+  return {
+    sucursal: validarResumen(respuestas[0], 'reporte de sucursal'),
+    consolidado: validarResumen(respuestas[1], 'reporte consolidado'),
+  };
+};
+
+const esperarActualizacionReportes = (idSucursal, totalesAnteriores) => {
+  const inicio = Date.now();
+  let actualizado = false;
+
+  do {
+    const totalesActuales = obtenerTotalesReportes(idSucursal);
+    actualizado = totalesActuales.sucursal >= totalesAnteriores.sucursal + 1
+      && totalesActuales.consolidado >= totalesAnteriores.consolidado + 1;
+
+    if (!actualizado) sleep(config.ventas.intervaloReporte);
+  } while (!actualizado && Date.now() - inicio < tiempoMaximoReporteMs);
+
+  const retraso = Date.now() - inicio;
+  retrasoActualizacionReporte.add(retraso, { sucursal: String(idSucursal) });
+
+  const cumpleTiempo = check({ actualizado, retraso }, {
+    'reportes: reflejan la venta dentro del tiempo máximo': (resultado) => (
+      resultado.actualizado && resultado.retraso < tiempoMaximoReporteMs
+    ),
+  });
+
+  if (!cumpleTiempo) {
+    fail(`Los reportes no reflejaron la venta de la sucursal ${idSucursal} a tiempo`);
+  }
+};
 
 export function setup() {
   iniciarSesion();
@@ -107,6 +197,7 @@ export default function () {
 
   group(`Venta controlada: sucursal ${caso.idSucursal}`, () => {
     const lote = leerLote(caso.idLote, 'consulta de lote para venta');
+    const totalesAnteriores = obtenerTotalesReportes(caso.idSucursal);
     const precioTotal = Math.round(
       Number(lote.precio_venta) * config.ventas.cantidad * 100,
     ) / 100;
@@ -149,6 +240,8 @@ export default function () {
           ));
       },
     });
+
+    esperarActualizacionReportes(caso.idSucursal, totalesAnteriores);
 
     const loteActualizado = leerLote(caso.idLote, 'verificación de inventario');
     check(loteActualizado, {

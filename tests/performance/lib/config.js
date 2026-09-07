@@ -62,6 +62,11 @@ export const config = Object.freeze({
     iteracionesPorUsuario: convertirEnteroPositivo(__ENV.K6_SALES_ITERATIONS_PER_VU, 3),
     duracionMaxima: convertirTexto(__ENV.K6_SALES_MAX_DURATION, '2m'),
     pausa: convertirNumeroPositivo(__ENV.K6_SALES_THINK_TIME, 1),
+    tiempoMaximoReporteSegundos: convertirNumeroPositivo(
+      __ENV.K6_REPORT_REFRESH_TIMEOUT_SECONDS,
+      20,
+    ),
+    intervaloReporte: convertirNumeroPositivo(__ENV.K6_REPORT_POLL_INTERVAL, 0.25),
   }),
   reportes: Object.freeze({
     fechaDesde: String(__ENV.K6_REPORT_DATE_FROM || '').trim(),

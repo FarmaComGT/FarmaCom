@@ -108,10 +108,10 @@ Este escenario es opcional y modifica el inventario local. Antes de utilizarlo, 
 ```dotenv
 K6_TARGET_ENV=local
 K6_ALLOW_WRITES=true
-K6_SALES_CASES=1:15
+K6_SALES_CASES=1:5,2:6,3:7
 ```
 
-Cada par de `K6_SALES_CASES` representa una caja virtual mediante `id_sucursal:id_lote`. Para simular las tres cajas de sucursales diferentes se puede usar, por ejemplo, `1:15,2:28,3:41`. Si varias cajas consumen el mismo lote, repite el par; la prevalidación calculará las existencias necesarias para todas.
+Cada par de `K6_SALES_CASES` representa una caja virtual mediante `id_sucursal:id_lote`. Los identificadores del ejemplo corresponden a una base local recién preparada; reemplázalos por los valores mostrados por `performance-data` cuando sean diferentes. Cada caja virtual debe pertenecer a una sucursal distinta para medir correctamente la actualización de reportes.
 
 Ejecuta la prueba con:
 
@@ -119,13 +119,14 @@ Ejecuta la prueba con:
 docker compose --env-file .env --env-file tests/performance/.env.performance -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm k6-transactional-sales
 ```
 
-De forma predeterminada, cada caja virtual realiza tres ventas de una unidad. Antes de crear la primera venta, k6 comprueba que cada lote pertenezca a su sucursal, no esté vencido, tenga precio válido y posea existencias para completar todas las iteraciones.
+De forma predeterminada, cada caja virtual realiza tres ventas de una unidad. Antes de crear la primera venta, k6 comprueba que cada lote pertenezca a su sucursal, no esté vencido, tenga precio válido y posea existencias para completar todas las iteraciones. Después de cada venta consulta el reporte de la sucursal y el consolidado hasta que ambos reflejen la transacción.
 
 ### Criterios de ventas controladas
 
 - Más del 98 % de las comprobaciones debe ser satisfactorio.
 - La tasa de solicitudes HTTP fallidas debe ser menor al 2 %.
 - El percentil 95 de la creación de ventas debe ser menor a 2 segundos.
+- El percentil 95 de actualización de reportes debe ser menor a 20 segundos.
 - Cada venta debe devolver su identificador, sucursal y detalle correctos.
 - El inventario nunca debe quedar con existencias negativas.
 
