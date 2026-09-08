@@ -1,0 +1,136 @@
+services:
+  performance-data:
+    image: postgres:16-alpine
+    profiles:
+      - performance
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./tests/performance/data:/data:ro
+    command:
+      - psql
+      - -v
+      - ON_ERROR_STOP=1
+      - -f
+      - /data/prepare.sql
+
+  k6-smoke:
+    image: grafana/k6:2.2.0
+    profiles:
+      - performance
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      K6_API_URL: ${K6_API_URL:-http://backend:3000/api}
+      K6_USER_EMAIL: ${K6_USER_EMAIL:-}
+      K6_USER_PASSWORD: ${K6_USER_PASSWORD:-}
+      K6_BRANCH_ID: ${K6_BRANCH_ID:-1}
+      K6_WEB_DASHBOARD: "true"
+      K6_WEB_DASHBOARD_EXPORT: /results/smoke.html
+      K6_WEB_DASHBOARD_PERIOD: 1s
+    volumes:
+      - ./tests/performance:/scripts:ro
+      - ./tests/performance/results:/results
+    command:
+      - run
+      - /scripts/smoke.js
+
+  k6-load-queries:
+    image: grafana/k6:2.2.0
+    profiles:
+      - performance
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      K6_API_URL: ${K6_API_URL:-http://backend:3000/api}
+      K6_USER_EMAIL: ${K6_USER_EMAIL:-}
+      K6_USER_PASSWORD: ${K6_USER_PASSWORD:-}
+      K6_BRANCH_ID: ${K6_BRANCH_ID:-1}
+      K6_BRANCH_IDS: ${K6_BRANCH_IDS:-1,2,3}
+      K6_LOAD_POS_VUS: ${K6_LOAD_POS_VUS:-3}
+      K6_LOAD_MANAGEMENT_VUS: ${K6_LOAD_MANAGEMENT_VUS:-2}
+      K6_LOAD_REPORTS_VUS: ${K6_LOAD_REPORTS_VUS:-1}
+      K6_LOAD_RAMP_UP: ${K6_LOAD_RAMP_UP:-30s}
+      K6_LOAD_STEADY_DURATION: ${K6_LOAD_STEADY_DURATION:-4m}
+      K6_LOAD_RAMP_DOWN: ${K6_LOAD_RAMP_DOWN:-30s}
+      K6_REPORT_DATE_FROM: ${K6_REPORT_DATE_FROM:-}
+      K6_REPORT_DATE_TO: ${K6_REPORT_DATE_TO:-}
+      K6_WEB_DASHBOARD: "true"
+      K6_WEB_DASHBOARD_EXPORT: /results/load-queries.html
+      K6_WEB_DASHBOARD_PERIOD: 1s
+    volumes:
+      - ./tests/performance:/scripts:ro
+      - ./tests/performance/results:/results
+    command:
+      - run
+      - /scripts/load-queries.js
+
+  k6-stress:
+    image: grafana/k6:2.2.0
+    profiles:
+      - performance
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      K6_API_URL: ${K6_API_URL:-http://backend:3000/api}
+      K6_USER_EMAIL: ${K6_USER_EMAIL:-}
+      K6_USER_PASSWORD: ${K6_USER_PASSWORD:-}
+      K6_BRANCH_ID: ${K6_BRANCH_ID:-1}
+      K6_BRANCH_IDS: ${K6_BRANCH_IDS:-1,2,3}
+      K6_STRESS_MAX_VUS: ${K6_STRESS_MAX_VUS:-20}
+      K6_STRESS_RECOVERY_VUS: ${K6_STRESS_RECOVERY_VUS:-3}
+      K6_STRESS_WARM_UP: ${K6_STRESS_WARM_UP:-15s}
+      K6_STRESS_STAGE_DURATION: ${K6_STRESS_STAGE_DURATION:-30s}
+      K6_STRESS_RECOVERY_DURATION: ${K6_STRESS_RECOVERY_DURATION:-1m}
+      K6_STRESS_COOL_DOWN: ${K6_STRESS_COOL_DOWN:-15s}
+      K6_REPORT_DATE_FROM: ${K6_REPORT_DATE_FROM:-}
+      K6_REPORT_DATE_TO: ${K6_REPORT_DATE_TO:-}
+      K6_WEB_DASHBOARD: "true"
+      K6_WEB_DASHBOARD_EXPORT: /results/stress.html
+      K6_WEB_DASHBOARD_PERIOD: 1s
+    volumes:
+      - ./tests/performance:/scripts:ro
+      - ./tests/performance/results:/results
+    command:
+      - run
+      - /scripts/stress.js
+
+  k6-transactional-sales:
+    image: grafana/k6:2.2.0
+    profiles:
+      - performance
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      K6_API_URL: ${K6_API_URL:-http://backend:3000/api}
+      K6_USER_EMAIL: ${K6_USER_EMAIL:-}
+      K6_USER_PASSWORD: ${K6_USER_PASSWORD:-}
+      K6_TARGET_ENV: ${K6_TARGET_ENV:-}
+      K6_ALLOW_WRITES: ${K6_ALLOW_WRITES:-false}
+      K6_SALES_CASES: ${K6_SALES_CASES:-}
+      K6_SALES_QUANTITY: ${K6_SALES_QUANTITY:-1}
+      K6_SALES_ITERATIONS_PER_VU: ${K6_SALES_ITERATIONS_PER_VU:-3}
+      K6_SALES_MAX_DURATION: ${K6_SALES_MAX_DURATION:-2m}
+      K6_SALES_THINK_TIME: ${K6_SALES_THINK_TIME:-1}
+      K6_REPORT_REFRESH_TIMEOUT_SECONDS: ${K6_REPORT_REFRESH_TIMEOUT_SECONDS:-20}
+      K6_REPORT_POLL_INTERVAL: ${K6_REPORT_POLL_INTERVAL:-0.25}
+      K6_WEB_DASHBOARD: "true"
+      K6_WEB_DASHBOARD_EXPORT: /results/transactional-sales.html
+      K6_WEB_DASHBOARD_PERIOD: 1s
+    volumes:
+      - ./tests/performance:/scripts:ro
+      - ./tests/performance/results:/results
+    command:
+      - run
+      - /scripts/transactional-sales.js
