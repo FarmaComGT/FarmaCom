@@ -69,6 +69,12 @@ Contiene los entregables del Sprint 6, que incluyen:
 - Formulario LOGT del Sprint 6
 - Plan maestro de pruebas
 
+### Sprint 7
+Contiene los entregables del Sprint 7, que incluyen:
+- Docs del Proyecto del Sprint 7
+- Formulario LOGT del Sprint 7
+- Plan maestro de pruebas actualizado
+
 ### Integrador
 Contiene los archivos relacionados al primer documento integrador:
 - Documento Integrador
