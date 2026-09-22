@@ -603,6 +603,7 @@ CREATE TABLE IF NOT EXISTS detalle_venta (
     id_lote           INTEGER        NOT NULL,
     cantidad          INTEGER        NOT NULL CHECK (cantidad > 0),
     precio_unitario   NUMERIC(12,2)  NOT NULL CHECK (precio_unitario >= 0),
+    costo_unitario    NUMERIC(12,2)  NOT NULL CHECK (costo_unitario >= 0),
     subtotal          NUMERIC(12,2)  GENERATED ALWAYS AS (cantidad * precio_unitario) STORED,
 
     CONSTRAINT fk_detalle_venta
