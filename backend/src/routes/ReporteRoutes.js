@@ -82,4 +82,12 @@ router.get(
   ReporteController.obtenerTopProductos,
 );
 
+router.get(
+  '/rentabilidad',
+  verificarToken,
+  rolesReportes,
+  validarFiltrosReporte,
+  ReporteController.obtenerRentabilidad,
+);
+
 module.exports = router;

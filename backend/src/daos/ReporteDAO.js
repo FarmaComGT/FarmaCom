@@ -240,6 +240,59 @@ class ReporteDAO {
 
     return rows;
   }
+
+  async obtenerRentabilidad({
+    id_sucursal,
+    fecha_desde,
+    fecha_hasta,
+  } = {}) {
+    const { rows } = await pool.query(
+      `WITH rentabilidad_sucursal AS (
+         SELECT
+           v.id_sucursal,
+           SUM(dv.subtotal)::NUMERIC(14,2) AS ingresos,
+           SUM(dv.cantidad * dv.costo_unitario)::NUMERIC(14,2) AS costo
+         FROM venta v
+         JOIN detalle_venta dv ON dv.id_venta = v.id_venta
+         WHERE v.estado = 'completada'
+           AND ($1::INTEGER IS NULL OR v.id_sucursal = $1)
+           AND (
+             $2::DATE IS NULL
+             OR v.fecha_venta >= (
+               $2::DATE::TIMESTAMP AT TIME ZONE 'America/Guatemala'
+             )
+           )
+           AND (
+             $3::DATE IS NULL
+             OR v.fecha_venta < (
+               ($3::DATE + 1)::TIMESTAMP AT TIME ZONE 'America/Guatemala'
+             )
+           )
+         GROUP BY v.id_sucursal
+       )
+       SELECT
+         s.id_sucursal,
+         s.nombre_sucursal,
+         COALESCE(rs.ingresos, 0)::NUMERIC(14,2) AS ingresos,
+         COALESCE(rs.costo, 0)::NUMERIC(14,2) AS costo,
+         (COALESCE(rs.ingresos, 0) - COALESCE(rs.costo, 0))::NUMERIC(14,2)
+           AS utilidad,
+         CASE
+           WHEN COALESCE(rs.ingresos, 0) = 0 THEN 0::NUMERIC(7,2)
+           ELSE ROUND(
+             ((rs.ingresos - rs.costo) * 100) / rs.ingresos,
+             2
+           )::NUMERIC(7,2)
+         END AS margen
+       FROM sucursal s
+       LEFT JOIN rentabilidad_sucursal rs ON rs.id_sucursal = s.id_sucursal
+       WHERE ($1::INTEGER IS NULL OR s.id_sucursal = $1)
+       ORDER BY s.nombre_sucursal ASC, s.id_sucursal ASC`,
+      [id_sucursal || null, fecha_desde || null, fecha_hasta || null],
+    );
+
+    return rows;
+  }
 }
 
 module.exports = new ReporteDAO();

@@ -189,4 +189,40 @@ describe('ReporteDAO', () => {
     expect(consulta).toContain('ORDER BY ingresos_generados DESC');
     expect(valores).toEqual([null, null, null, 5]);
   });
+
+  it('calcula ingresos, costo, utilidad y margen por sucursal', async () => {
+    const rentabilidad = [{
+      id_sucursal: 2,
+      nombre_sucursal: 'Sucursal Centro',
+      ingresos: '500.00',
+      costo: '300.00',
+      utilidad: '200.00',
+      margen: '40.00',
+    }];
+    pool.query.mockResolvedValue({ rows: rentabilidad });
+
+    const resultado = await ReporteDAO.obtenerRentabilidad({
+      id_sucursal: 2,
+      fecha_desde: '2026-08-01',
+      fecha_hasta: '2026-08-31',
+    });
+
+    const [consulta, valores] = pool.query.mock.calls[0];
+    expect(consulta).toContain("v.estado = 'completada'");
+    expect(consulta).toContain('SUM(dv.subtotal)');
+    expect(consulta).toContain('SUM(dv.cantidad * dv.costo_unitario)');
+    expect(consulta).toContain('America/Guatemala');
+    expect(consulta).toContain('LEFT JOIN rentabilidad_sucursal');
+    expect(consulta).toContain('WHEN COALESCE(rs.ingresos, 0) = 0');
+    expect(valores).toEqual([2, '2026-08-01', '2026-08-31']);
+    expect(resultado).toEqual(rentabilidad);
+  });
+
+  it('permite consultar la rentabilidad de todas las sucursales', async () => {
+    pool.query.mockResolvedValue({ rows: [] });
+
+    await ReporteDAO.obtenerRentabilidad();
+
+    expect(pool.query.mock.calls[0][1]).toEqual([null, null, null]);
+  });
 });

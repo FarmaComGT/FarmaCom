@@ -54,6 +54,28 @@ describe('VentaDAO', () => {
       expect.stringContaining('FOR UPDATE OF l'),
       [[1, 2]],
     );
+    expect(client.query.mock.calls[0][0]).toContain('p.precio_compra');
+  });
+
+  it('guarda el costo unitario histórico en el detalle de venta', async () => {
+    const client = {
+      query: jest.fn().mockResolvedValue({
+        rows: [{ id_detalle_venta: 15 }],
+      }),
+    };
+
+    await VentaDAO.crearDetalle({
+      id_venta: 4,
+      id_lote: 8,
+      cantidad: 2,
+      precio_unitario: '12.50',
+      costo_unitario: '7.25',
+    }, client);
+
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining('costo_unitario'),
+      [4, 8, 2, '12.50', '7.25'],
+    );
   });
 
   it('descuenta stock únicamente cuando hay existencias suficientes', async () => {

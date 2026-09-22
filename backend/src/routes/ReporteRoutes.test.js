@@ -30,6 +30,7 @@ describe('ReporteRoutes - resumen de ventas', () => {
     ReporteService.obtenerTopProductos.mockResolvedValue([]);
     ReporteService.obtenerSerieVentas.mockResolvedValue([]);
     ReporteService.obtenerMetodosPago.mockResolvedValue([]);
+    ReporteService.obtenerRentabilidad.mockResolvedValue([]);
   });
 
   it('rechaza el acceso de un dependiente', async () => {
@@ -162,5 +163,31 @@ describe('ReporteRoutes - resumen de ventas', () => {
 
     expect(respuesta.status).toBe(400);
     expect(ReporteService.obtenerTopProductos).not.toHaveBeenCalled();
+  });
+
+  it('valida y normaliza los filtros de rentabilidad', async () => {
+    const respuesta = await request(crearApp())
+      .get('/api/reportes/rentabilidad')
+      .query({
+        id_sucursal: 2,
+        fecha_desde: '2026-08-01',
+        fecha_hasta: '2026-08-31',
+      });
+
+    expect(respuesta.status).toBe(200);
+    expect(ReporteService.obtenerRentabilidad).toHaveBeenCalledWith({
+      id_sucursal: 2,
+      fecha_desde: '2026-08-01',
+      fecha_hasta: '2026-08-31',
+    });
+  });
+
+  it('rechaza el acceso de un dependiente al reporte de rentabilidad', async () => {
+    mockUsuario = { id_usuario: 7, id_sucursal: 1, rol: 'dependiente' };
+
+    const respuesta = await request(crearApp()).get('/api/reportes/rentabilidad');
+
+    expect(respuesta.status).toBe(403);
+    expect(ReporteService.obtenerRentabilidad).not.toHaveBeenCalled();
   });
 });

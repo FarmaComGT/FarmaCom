@@ -25,6 +25,7 @@ class VentaDAO {
          l.id_sucursal,
          l.stock_actual,
          l.precio_venta,
+         p.precio_compra,
          l.fecha_vencimiento,
          (l.fecha_vencimiento < CURRENT_DATE) AS vencido,
          p.nombre_comercial,
@@ -185,17 +186,19 @@ class VentaDAO {
     id_lote,
     cantidad,
     precio_unitario,
+    costo_unitario,
   }, client) {
     const { rows } = await client.query(
       `INSERT INTO detalle_venta (
          id_venta,
          id_lote,
          cantidad,
-         precio_unitario
+         precio_unitario,
+         costo_unitario
        )
-       VALUES ($1, $2, $3, $4)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [id_venta, id_lote, cantidad, precio_unitario],
+      [id_venta, id_lote, cantidad, precio_unitario, costo_unitario],
     );
     return rows[0];
   }
@@ -277,6 +280,7 @@ class VentaDAO {
                'nombre_comercial', p.nombre_comercial,
                'cantidad', dv.cantidad,
                'precio_unitario', dv.precio_unitario,
+               'costo_unitario', dv.costo_unitario,
                'subtotal', dv.subtotal
              )
              ORDER BY dv.id_detalle_venta

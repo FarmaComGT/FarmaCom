@@ -57,9 +57,15 @@ const obtenerTopProductos = async (filtros = {}) => {
   return ReporteDAO.obtenerTopProductos(filtrosAplicados);
 };
 
+const obtenerRentabilidad = async (filtros = {}) => {
+  const filtrosAplicados = normalizarFiltrosComunes(filtros);
+  return ReporteDAO.obtenerRentabilidad(filtrosAplicados);
+};
+
 module.exports = {
   obtenerResumenVentas,
   obtenerSerieVentas,
   obtenerMetodosPago,
   obtenerTopProductos,
+  obtenerRentabilidad,
 };
