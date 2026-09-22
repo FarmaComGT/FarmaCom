@@ -53,9 +53,21 @@ const obtenerTopProductos = async (req, res) => {
   }
 };
 
+const obtenerRentabilidad = async (req, res) => {
+  if (responderErrores(req, res)) return;
+
+  try {
+    const rentabilidad = await ReporteService.obtenerRentabilidad(req.query);
+    return res.status(200).json(rentabilidad);
+  } catch (error) {
+    return res.status(error.status || 500).json({ mensaje: error.message });
+  }
+};
+
 module.exports = {
   obtenerResumenVentas,
   obtenerSerieVentas,
   obtenerMetodosPago,
   obtenerTopProductos,
+  obtenerRentabilidad,
 };

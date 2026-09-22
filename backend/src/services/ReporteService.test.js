@@ -146,4 +146,22 @@ describe('ReporteService', () => {
 
     expect(ReporteDAO.obtenerTopProductos).not.toHaveBeenCalled();
   });
+
+  it('normaliza la sucursal al solicitar la rentabilidad', async () => {
+    const rentabilidad = [{ id_sucursal: 2, utilidad: '200.00' }];
+    ReporteDAO.obtenerRentabilidad.mockResolvedValue(rentabilidad);
+
+    const resultado = await ReporteService.obtenerRentabilidad({
+      id_sucursal: '2',
+      fecha_desde: '2026-08-01',
+      fecha_hasta: '2026-08-31',
+    });
+
+    expect(ReporteDAO.obtenerRentabilidad).toHaveBeenCalledWith({
+      id_sucursal: 2,
+      fecha_desde: '2026-08-01',
+      fecha_hasta: '2026-08-31',
+    });
+    expect(resultado).toEqual(rentabilidad);
+  });
 });

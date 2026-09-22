@@ -128,4 +128,27 @@ describe('ReporteController', () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(productos);
   });
+
+  it('responde con la rentabilidad por sucursal', async () => {
+    const rentabilidad = [{
+      id_sucursal: 1,
+      ingresos: '500.00',
+      costo: '300.00',
+      utilidad: '200.00',
+      margen: '40.00',
+    }];
+    const query = {
+      fecha_desde: '2026-08-01',
+      fecha_hasta: '2026-08-31',
+    };
+    ReporteService.obtenerRentabilidad.mockResolvedValue(rentabilidad);
+    const req = { query };
+    const res = mockResponse();
+
+    await ReporteController.obtenerRentabilidad(req, res);
+
+    expect(ReporteService.obtenerRentabilidad).toHaveBeenCalledWith(query);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(rentabilidad);
+  });
 });
