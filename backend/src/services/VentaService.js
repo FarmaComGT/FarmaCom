@@ -92,6 +92,7 @@ const prepararVenta = async (datos, usuario, client) => {
     }
 
     const precioCentavos = aCentavos(lote.precio_venta);
+    const costoCentavos = aCentavos(lote.precio_compra);
     const subtotalCentavos = precioCentavos * Number(cantidad);
     if (
       !Number.isSafeInteger(subtotalCentavos)
@@ -105,6 +106,7 @@ const prepararVenta = async (datos, usuario, client) => {
       id_lote: Number(id_lote),
       cantidad: Number(cantidad),
       precio_unitario: aMonto(precioCentavos),
+      costo_unitario: aMonto(costoCentavos),
     };
   });
 

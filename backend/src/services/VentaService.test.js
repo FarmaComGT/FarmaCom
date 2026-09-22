@@ -29,6 +29,7 @@ const lotesDisponibles = [
     id_sucursal: 1,
     stock_actual: 4,
     precio_venta: '10.00',
+    precio_compra: '6.25',
     producto_activo: true,
     vencido: false,
   },
@@ -37,6 +38,7 @@ const lotesDisponibles = [
     id_sucursal: 1,
     stock_actual: 5,
     precio_venta: '7.50',
+    precio_compra: '4.10',
     producto_activo: true,
     vencido: false,
   },
@@ -83,6 +85,7 @@ describe('VentaService', () => {
         id_lote: 2,
         cantidad: 2,
         precio_unitario: '7.50',
+        costo_unitario: '4.10',
       }, {});
       expect(resultado).toEqual({ id_venta: 21, total: '25.00' });
     });
@@ -264,6 +267,13 @@ describe('VentaService', () => {
         cambio: '0.00',
       }), {});
       expect(VentaDAO.descontarStock).toHaveBeenCalledTimes(2);
+      expect(VentaDAO.crearDetalle).toHaveBeenCalledWith({
+        id_venta: 22,
+        id_lote: 2,
+        cantidad: 2,
+        precio_unitario: '7.50',
+        costo_unitario: '4.10',
+      }, {});
     });
 
     it('no vuelve a crear una venta para un webhook duplicado', async () => {
