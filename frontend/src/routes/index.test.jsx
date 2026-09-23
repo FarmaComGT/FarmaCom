@@ -26,6 +26,10 @@ vi.mock('../pages/reportes/Reportes.jsx', () => ({
   default: () => <h1>Reportes</h1>,
 }));
 
+vi.mock('../pages/caja/CajaOperativa.jsx', () => ({
+  default: () => <h1>Operación de caja</h1>,
+}));
+
 const renderizarRutaReportes = () => render(
   <MemoryRouter initialEntries={['/reports']}>
     <AppRoutes />
@@ -61,5 +65,47 @@ describe('ruta de reportes', () => {
     expect(screen.getByText('Dashboard (Próximamente)')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Reportes' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Reportes' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ruta de caja', () => {
+  beforeEach(() => {
+    estadoAuth.usuario = {
+      id_usuario: 7,
+      nombre_usuario: 'Diego Dependiente',
+      rol: 'dependiente',
+    };
+    window.localStorage.clear();
+  });
+
+  it('permite ingresar a un dependiente y muestra el acceso en el menú', async () => {
+    render(
+      <MemoryRouter initialEntries={['/caja']}>
+        <AppRoutes />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Operación de caja' }))
+      .toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Caja' })).toBeInTheDocument();
+  });
+
+  it('oculta la operación de caja para un laboratorista', () => {
+    estadoAuth.usuario = {
+      id_usuario: 12,
+      nombre_usuario: 'Laura Laboratorista',
+      rol: 'laboratorista',
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/caja']}>
+        <AppRoutes />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Dashboard (Próximamente)')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Caja' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Operación de caja' }))
+      .not.toBeInTheDocument();
   });
 });
