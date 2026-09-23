@@ -37,6 +37,12 @@ export default function useFiltrosReportes(fechaReferencia) {
     return true;
   }, [filtrosEdicion]);
 
+  const cambiarCriterio = useCallback((criterio) => {
+    if (!['cantidad', 'ingresos'].includes(criterio)) return;
+    setFiltrosEdicion((actuales) => ({ ...actuales, criterio }));
+    setFiltrosAplicados((actuales) => ({ ...actuales, criterio }));
+  }, []);
+
   const restablecerFiltros = useCallback(() => {
     const filtrosIniciales = crearFiltrosInicialesReporte(fechaReferencia);
     setFiltrosEdicion(filtrosIniciales);
@@ -50,6 +56,7 @@ export default function useFiltrosReportes(fechaReferencia) {
     errorFiltros,
     actualizarFiltro,
     aplicarFiltros,
+    cambiarCriterio,
     restablecerFiltros,
   };
 }

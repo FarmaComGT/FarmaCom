@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  obtenerRentabilidad,
   obtenerMetodosPago,
   obtenerResumenVentas,
   obtenerSerieVentas,
@@ -9,6 +10,7 @@ import {
 import useReportes from './useReportes';
 
 vi.mock('../api/reportes', () => ({
+  obtenerRentabilidad: vi.fn(),
   obtenerResumenVentas: vi.fn(),
   obtenerSerieVentas: vi.fn(),
   obtenerMetodosPago: vi.fn(),
@@ -24,7 +26,10 @@ const filtros = {
   limite: 5,
 };
 
+const filtrosComunes = { id_sucursal: 2, fecha_desde: filtros.fecha_desde, fecha_hasta: filtros.fecha_hasta };
+
 const prepararRespuestasExitosas = () => {
+  obtenerRentabilidad.mockResolvedValue([{ id_sucursal: 2, ingresos: 500, costo: 300, utilidad: 200, margen: 40 }]);
   obtenerResumenVentas.mockResolvedValue({ ingresos_totales: 500 });
   obtenerSerieVentas.mockResolvedValue([{ periodo: '2026-08-01', ingresos: 500 }]);
   obtenerMetodosPago.mockResolvedValue([{ metodo_pago: 'efectivo', ingresos: 500 }]);
@@ -32,6 +37,44 @@ const prepararRespuestasExitosas = () => {
 };
 
 describe('useReportes', () => {
+  it('actualiza solo productos al cambiar el criterio sin recargar las otras secciones', async () => {
+    const { result, rerender } = renderHook(({ actuales }) => useReportes(actuales), {
+      initialProps: { actuales: filtros },
+    });
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    const resumenAnterior = result.current.resumen;
+    const signalResumen = obtenerResumenVentas.mock.calls[0][1].signal;
+    let resolver;
+    obtenerTopProductos.mockReturnValueOnce(new Promise((resolve) => { resolver = resolve; }));
+
+    rerender({ actuales: { ...filtros, criterio: 'ingresos' } });
+
+    expect(result.current.topProductos.cargando).toBe(true);
+    expect(result.current.resumen).toBe(resumenAnterior);
+    expect(signalResumen.aborted).toBe(false);
+    for (const cargar of [obtenerResumenVentas, obtenerSerieVentas, obtenerMetodosPago]) {
+      expect(cargar).toHaveBeenCalledTimes(1);
+    }
+    expect(obtenerTopProductos).toHaveBeenLastCalledWith(
+      { ...filtrosComunes, criterio: 'ingresos', limite: 5 }, { signal: expect.any(AbortSignal) },
+    );
+    await act(async () => { resolver([{ id_producto: 9 }]); });
+    expect(result.current.topProductos.datos).toEqual([{ id_producto: 9 }]);
+  });
+
+  it('actualiza solo la serie al cambiar la agrupación', async () => {
+    const { result, rerender } = renderHook(({ actuales }) => useReportes(actuales), {
+      initialProps: { actuales: filtros },
+    });
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    rerender({ actuales: { ...filtros, agrupacion: 'mes' } });
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    expect(obtenerSerieVentas).toHaveBeenCalledTimes(2);
+    for (const cargar of [obtenerResumenVentas, obtenerMetodosPago, obtenerTopProductos]) {
+      expect(cargar).toHaveBeenCalledTimes(1);
+    }
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     prepararRespuestasExitosas();
@@ -44,19 +87,20 @@ describe('useReportes', () => {
 
     await waitFor(() => expect(result.current.cargando).toBe(false));
 
-    expect(obtenerResumenVentas).toHaveBeenCalledWith(filtros, {
+    expect(obtenerResumenVentas).toHaveBeenCalledWith(filtrosComunes, {
       signal: expect.any(AbortSignal),
     });
-    expect(obtenerSerieVentas).toHaveBeenCalledWith(filtros, {
+    expect(obtenerSerieVentas).toHaveBeenCalledWith({ ...filtrosComunes, agrupacion: 'dia' }, {
       signal: expect.any(AbortSignal),
     });
-    expect(obtenerMetodosPago).toHaveBeenCalledWith(filtros, {
+    expect(obtenerMetodosPago).toHaveBeenCalledWith(filtrosComunes, {
       signal: expect.any(AbortSignal),
     });
-    expect(obtenerTopProductos).toHaveBeenCalledWith(filtros, {
+    expect(obtenerTopProductos).toHaveBeenCalledWith({ ...filtrosComunes, criterio: 'cantidad', limite: 5 }, {
       signal: expect.any(AbortSignal),
     });
     expect(result.current.resumen.datos).toEqual({ ingresos_totales: 500 });
+    expect(obtenerRentabilidad).not.toHaveBeenCalled();
     expect(result.current.serie.error).toBeNull();
   });
 
@@ -118,7 +162,7 @@ describe('useReportes', () => {
     const primeraSignal = obtenerResumenVentas.mock.calls[0][1].signal;
 
     rerender({
-      filtrosActuales: { ...filtros, agrupacion: 'semana' },
+      filtrosActuales: { ...filtros, id_sucursal: 3, fecha_desde: '2026-08-10' },
     });
 
     expect(primeraSignal.aborted).toBe(true);
