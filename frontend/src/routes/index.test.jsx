@@ -23,16 +23,31 @@ vi.mock('../context/AuthContext', () => ({
 }));
 
 vi.mock('../pages/reportes/Reportes.jsx', () => ({
-  default: () => <h1>Reportes</h1>,
+  default: () => <h2>Resumen de ventas</h2>,
 }));
 
-const renderizarRutaReportes = () => render(
-  <MemoryRouter initialEntries={['/reports']}>
+vi.mock('../pages/reportes/Rentabilidad.jsx', () => ({
+  default: () => <h1>Rentabilidad por sucursal</h1>,
+}));
+
+const renderizarRutaReportes = (ruta = '/reports') => render(
+  <MemoryRouter initialEntries={[ruta]}>
     <AppRoutes />
   </MemoryRouter>,
 );
 
 describe('ruta de reportes', () => {
+  it('permite abrir directamente la rentabilidad como administrador', async () => {
+    renderizarRutaReportes('/reports/rentabilidad');
+    expect(await screen.findByRole('heading', { name: 'Rentabilidad por sucursal' })).toBeInTheDocument();
+  });
+
+  it('protege la ruta de rentabilidad para dependientes', () => {
+    estadoAuth.usuario = { rol: 'dependiente' };
+    renderizarRutaReportes('/reports/rentabilidad');
+    expect(screen.queryByRole('heading', { name: 'Rentabilidad por sucursal' })).not.toBeInTheDocument();
+    expect(screen.getByText('Dashboard (Próximamente)')).toBeInTheDocument();
+  });
   beforeEach(() => {
     estadoAuth.usuario = {
       id_usuario: 2,

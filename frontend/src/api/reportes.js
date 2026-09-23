@@ -1,5 +1,6 @@
 import api from './axios';
 import {
+  normalizarRentabilidad,
   normalizarMetodosPago,
   normalizarResumenVentas,
   normalizarSerieVentas,
@@ -7,6 +8,14 @@ import {
 } from '../utils/reportes';
 
 const FILTROS_COMUNES = ['id_sucursal', 'fecha_desde', 'fecha_hasta'];
+
+export const obtenerRentabilidad = async (filtros = {}, opciones = {}) => {
+  const { data } = await api.get(
+    '/reportes/rentabilidad',
+    construirConfiguracion(filtros, FILTROS_COMUNES, opciones.signal),
+  );
+  return normalizarRentabilidad(data);
+};
 
 export const construirParametrosReporte = (filtros = {}, campos = FILTROS_COMUNES) => (
   campos.reduce((parametros, campo) => {

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from './axios';
 import {
+  obtenerRentabilidad,
   construirParametrosReporte,
   obtenerMetodosPago,
   obtenerResumenVentas,
@@ -13,6 +14,15 @@ vi.mock('./axios', () => ({
 }));
 
 describe('API de reportes', () => {
+  it('consulta rentabilidad con fechas y sucursal y normaliza los decimales', async () => {
+    api.get.mockResolvedValue({ data: [{ id_sucursal: '2', nombre_sucursal: 'Centro', ingresos: '500.00', costo: '300.00', utilidad: '200.00', margen: '40.00' }] });
+    const signal = new AbortController().signal;
+    const filtros = { id_sucursal: 2, fecha_desde: '2026-08-01', fecha_hasta: '2026-08-31' };
+    const resultado = await obtenerRentabilidad({ ...filtros, agrupacion: 'dia', criterio: 'cantidad' }, { signal });
+    expect(api.get).toHaveBeenCalledWith('/reportes/rentabilidad', { params: filtros, signal });
+    expect(resultado).toEqual([{ id_sucursal: 2, nombre_sucursal: 'Centro', ingresos: 500, costo: 300, utilidad: 200, margen: 40 }]);
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
