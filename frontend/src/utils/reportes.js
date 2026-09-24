@@ -7,6 +7,38 @@ const FORMATO_MONEDA = new Intl.NumberFormat('es-GT', {
 
 const FORMATO_NUMERO = new Intl.NumberFormat('es-GT');
 
+const FORMATO_PORCENTAJE = new Intl.NumberFormat('es-GT', {
+  style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2,
+});
+
+export const formatearMargen = (valor) => (
+  FORMATO_PORCENTAJE.format(normalizarNumeroReporte(valor) / 100)
+);
+
+export const normalizarRentabilidad = (datos) => (
+  Array.isArray(datos) ? datos.map((sucursal) => ({
+    ...sucursal,
+    id_sucursal: normalizarNumeroReporte(sucursal.id_sucursal),
+    ingresos: normalizarNumeroReporte(sucursal.ingresos),
+    costo: normalizarNumeroReporte(sucursal.costo),
+    utilidad: normalizarNumeroReporte(sucursal.utilidad),
+    margen: normalizarNumeroReporte(sucursal.margen),
+  })) : []
+);
+
+export const resumirRentabilidad = (datos = []) => {
+  const totales = datos.reduce((total, sucursal) => ({
+    ingresos: total.ingresos + sucursal.ingresos,
+    costo: total.costo + sucursal.costo,
+    utilidad: total.utilidad + sucursal.utilidad,
+  }), { ingresos: 0, costo: 0, utilidad: 0 });
+
+  return {
+    ...totales,
+    margen: totales.ingresos === 0 ? 0 : totales.utilidad / totales.ingresos * 100,
+  };
+};
+
 const FORMATO_FECHA = new Intl.DateTimeFormat('es-GT', {
   day: '2-digit',
   month: '2-digit',

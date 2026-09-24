@@ -15,6 +15,7 @@ const abrirSelectorFecha = (referencia) => {
 
 export default function ReporteFiltros({
   filtros,
+  mostrarAgrupacion = true,
   sucursales,
   cargandoSucursales,
   errorSucursales,
@@ -37,7 +38,9 @@ export default function ReporteFiltros({
       onSubmit={manejarEnvio}
       className="rounded-2xl bg-surface-container-low p-4"
     >
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(180px,1.3fr)_minmax(150px,1fr)_minmax(150px,1fr)_minmax(150px,0.8fr)_auto] xl:items-end">
+      <div className={`grid gap-4 sm:grid-cols-2 xl:items-end ${mostrarAgrupacion
+        ? 'xl:grid-cols-[minmax(180px,1.3fr)_minmax(150px,1fr)_minmax(150px,1fr)_minmax(150px,0.8fr)_auto]'
+        : 'xl:grid-cols-[minmax(180px,1.3fr)_minmax(150px,1fr)_minmax(150px,1fr)_auto]'}`}>
         <label className="space-y-1.5">
           <span className="text-xs font-bold text-on-surface-variant">Sucursal</span>
           <div className="relative">
@@ -105,6 +108,7 @@ export default function ReporteFiltros({
           </div>
         </label>
 
+        {mostrarAgrupacion && (
         <label className="space-y-1.5">
           <span className="text-xs font-bold text-on-surface-variant">Agrupar por</span>
           <div className="relative">
@@ -123,6 +127,7 @@ export default function ReporteFiltros({
             />
           </div>
         </label>
+        )}
 
         <div className="flex gap-2 sm:col-span-2 xl:col-span-1">
           <button

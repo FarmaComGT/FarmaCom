@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  obtenerRentabilidad,
   obtenerMetodosPago,
   obtenerResumenVentas,
   obtenerSerieVentas,
@@ -7,6 +8,12 @@ import {
 } from '../api/reportes';
 
 const RECURSOS = [
+  {
+    clave: 'rentabilidad',
+    cargar: obtenerRentabilidad,
+    valorInicial: [],
+    mensajeError: 'No se pudo cargar la rentabilidad por sucursal.',
+  },
   {
     clave: 'resumen',
     cargar: obtenerResumenVentas,
@@ -33,13 +40,6 @@ const RECURSOS = [
   },
 ];
 
-const crearEstadoInicial = () => Object.fromEntries(
-  RECURSOS.map(({ clave, valorInicial }) => [
-    clave,
-    { datos: valorInicial, cargando: true, error: null },
-  ]),
-);
-
 const obtenerMensajeError = (error, mensajePredeterminado) => (
   error?.response?.data?.mensaje
   || error?.response?.data?.errores?.[0]?.msg
@@ -47,20 +47,18 @@ const obtenerMensajeError = (error, mensajePredeterminado) => (
   || mensajePredeterminado
 );
 
-export default function useReportes(filtros) {
-  const [estado, setEstado] = useState(crearEstadoInicial);
-  const [versionRecarga, setVersionRecarga] = useState(0);
-
-  const recargar = useCallback(() => {
-    setVersionRecarga((version) => version + 1);
-  }, []);
+function useRecursoReporte(recurso, filtros, versionRecarga) {
+  const { cargar, valorInicial, mensajeError, clave } = recurso;
+  const [estado, setEstado] = useState(() => ({
+    datos: valorInicial, cargando: true, error: null,
+  }));
 
   const idSucursal = filtros?.id_sucursal ?? '';
   const fechaDesde = filtros?.fecha_desde ?? '';
   const fechaHasta = filtros?.fecha_hasta ?? '';
-  const agrupacion = filtros?.agrupacion ?? 'dia';
-  const criterio = filtros?.criterio ?? 'cantidad';
-  const limite = filtros?.limite ?? 5;
+  const agrupacion = clave === 'serie' ? filtros?.agrupacion ?? 'dia' : undefined;
+  const criterio = clave === 'topProductos' ? filtros?.criterio ?? 'cantidad' : undefined;
+  const limite = clave === 'topProductos' ? filtros?.limite ?? 5 : undefined;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -68,47 +66,31 @@ export default function useReportes(filtros) {
       id_sucursal: idSucursal,
       fecha_desde: fechaDesde,
       fecha_hasta: fechaHasta,
-      agrupacion,
-      criterio,
-      limite,
+      ...(agrupacion !== undefined ? { agrupacion } : {}),
+      ...(criterio !== undefined ? { criterio, limite } : {}),
     };
 
-    setEstado((actual) => Object.fromEntries(
-      RECURSOS.map(({ clave }) => [
-        clave,
-        { ...actual[clave], cargando: true, error: null },
-      ]),
-    ));
+    setEstado((actual) => ({ ...actual, cargando: true, error: null }));
 
-    const cargarRecurso = async ({ clave, cargar, valorInicial, mensajeError }) => {
+    const cargarRecurso = async () => {
       try {
         const datos = await cargar(filtrosSolicitud, { signal: controller.signal });
 
         if (controller.signal.aborted) return;
 
-        setEstado((actual) => ({
-          ...actual,
-          [clave]: { datos, cargando: false, error: null },
-        }));
+        setEstado({ datos, cargando: false, error: null });
       } catch (error) {
         if (controller.signal.aborted) return;
 
-        setEstado((actual) => ({
-          ...actual,
-          [clave]: {
-            datos: valorInicial,
-            cargando: false,
-            error: obtenerMensajeError(error, mensajeError),
-          },
-        }));
+        setEstado({
+          datos: valorInicial,
+          cargando: false,
+          error: obtenerMensajeError(error, mensajeError),
+        });
       }
     };
 
-    const cargarReportes = async () => {
-      await Promise.allSettled(RECURSOS.map(cargarRecurso));
-    };
-
-    cargarReportes();
+    cargarRecurso();
 
     return () => controller.abort();
   }, [
@@ -119,11 +101,36 @@ export default function useReportes(filtros) {
     idSucursal,
     limite,
     versionRecarga,
+    cargar,
+    valorInicial,
+    mensajeError,
   ]);
+
+  return estado;
+}
+
+export default function useReportes(filtros) {
+  const [versionRecarga, setVersionRecarga] = useState(0);
+  const recargar = useCallback(() => {
+    setVersionRecarga((version) => version + 1);
+  }, []);
+
+  const resumen = useRecursoReporte(RECURSOS[1], filtros, versionRecarga);
+  const serie = useRecursoReporte(RECURSOS[2], filtros, versionRecarga);
+  const metodosPago = useRecursoReporte(RECURSOS[3], filtros, versionRecarga);
+  const topProductos = useRecursoReporte(RECURSOS[4], filtros, versionRecarga);
+  const estado = { resumen, serie, metodosPago, topProductos };
 
   return {
     ...estado,
     cargando: Object.values(estado).some((recurso) => recurso.cargando),
     recargar,
   };
+}
+
+export function useRentabilidad(filtros) {
+  const [versionRecarga, setVersionRecarga] = useState(0);
+  const recargar = useCallback(() => setVersionRecarga((version) => version + 1), []);
+  const estado = useRecursoReporte(RECURSOS[0], filtros, versionRecarga);
+  return { ...estado, recargar };
 }

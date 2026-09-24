@@ -73,7 +73,7 @@ describe('VentaDAO', () => {
     }, client);
 
     expect(client.query).toHaveBeenCalledWith(
-      expect.stringContaining('costo_unitario'),
+      expect.stringMatching(/INSERT INTO detalle_venta[\s\S]*costo_unitario[\s\S]*RETURNING \*/),
       [4, 8, 2, '12.50', '7.25'],
     );
   });
@@ -102,6 +102,41 @@ describe('VentaDAO', () => {
     expect(client.query).toHaveBeenCalledWith(
       expect.stringContaining('id_sesion_caja'),
       [1, 7, 9, null, 'efectivo', null, null, null, null, null, '25.00', '30.00', '5.00'],
+  it('guarda la fotografía calculada de los detalles del pago POS como JSON', async () => {
+    const client = {
+      query: jest.fn().mockResolvedValue({ rows: [{ id_pago_pos: 5 }] }),
+    };
+    const detalles = [{
+      id_lote: 8,
+      cantidad: 2,
+      precio_unitario: '12.50',
+      costo_unitario: '7.25',
+    }];
+
+    await VentaDAO.crearPagoPOS({
+      external_id: 'farmacom-pos-test',
+      id_sucursal: 1,
+      id_usuario: 7,
+      id_cliente: null,
+      terminal_id: 'trm_test_123',
+      total: '25.00',
+      detalles,
+    }, client);
+
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringMatching(/INSERT INTO pago_pos[\s\S]*\$7::jsonb/),
+      ['farmacom-pos-test', 1, 7, null, 'trm_test_123', '25.00', JSON.stringify(detalles)],
+    );
+  });
+
+  it('bloquea el pago POS mientras procesa un webhook', async () => {
+    const client = { query: jest.fn().mockResolvedValue({ rows: [{ id_pago_pos: 5 }] }) };
+
+    await VentaDAO.obtenerPagoPOSPorExternalId('farmacom-pos-test', client, true);
+
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining('FOR UPDATE'),
+      ['farmacom-pos-test'],
     );
   });
 

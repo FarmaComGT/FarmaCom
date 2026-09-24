@@ -5,6 +5,20 @@ import useFiltrosReportes from './useFiltrosReportes';
 describe('useFiltrosReportes', () => {
   const fechaReferencia = new Date(2026, 8, 3);
 
+  it('cambia el criterio sin aplicar las fechas o la sucursal en edición', () => {
+    const { result } = renderHook(() => useFiltrosReportes(fechaReferencia));
+    const anteriores = result.current.filtrosAplicados;
+    act(() => {
+      result.current.actualizarFiltro('id_sucursal', '3');
+      result.current.actualizarFiltro('fecha_desde', '2026-08-20');
+    });
+    act(() => { result.current.cambiarCriterio('ingresos'); });
+    expect(result.current.filtrosAplicados).toEqual({ ...anteriores, criterio: 'ingresos' });
+    expect(result.current.filtrosEdicion).toMatchObject({
+      id_sucursal: '3', fecha_desde: '2026-08-20', criterio: 'ingresos',
+    });
+  });
+
   it('mantiene separados los filtros en edición y los aplicados', () => {
     const { result } = renderHook(() => useFiltrosReportes(fechaReferencia));
 
