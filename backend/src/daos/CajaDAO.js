@@ -213,6 +213,17 @@ class CajaDAO {
     };
   }
 
+  async contarPagosPOSPendientes(id_sesion_caja, client = pool) {
+    const { rows } = await client.query(
+      `SELECT COUNT(*)::INTEGER AS cantidad
+       FROM pago_pos
+       WHERE id_sesion_caja = $1
+         AND estado IN ('pendiente', 'procesando')`,
+      [id_sesion_caja],
+    );
+    return Number(rows[0]?.cantidad || 0);
+  }
+
   async cerrarSesion(id_sesion_caja, datos, client) {
     const { rows } = await client.query(
       `UPDATE sesion_caja

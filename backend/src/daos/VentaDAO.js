@@ -51,6 +51,7 @@ class VentaDAO {
   async crearVenta({
     id_sucursal,
     id_usuario,
+    id_sesion_caja,
     id_cliente,
     metodo_pago,
     proveedor_pago,
@@ -66,6 +67,7 @@ class VentaDAO {
       `INSERT INTO venta (
          id_sucursal,
          id_usuario,
+         id_sesion_caja,
          id_cliente,
          metodo_pago,
          proveedor_pago,
@@ -77,11 +79,12 @@ class VentaDAO {
          monto_recibido,
          cambio
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING *`,
       [
         id_sucursal,
         id_usuario,
+        id_sesion_caja,
         id_cliente ?? null,
         metodo_pago,
         proveedor_pago,
@@ -101,6 +104,7 @@ class VentaDAO {
     external_id,
     id_sucursal,
     id_usuario,
+    id_sesion_caja,
     id_cliente,
     terminal_id,
     total,
@@ -111,17 +115,19 @@ class VentaDAO {
          external_id,
          id_sucursal,
          id_usuario,
+         id_sesion_caja,
          id_cliente,
          terminal_id,
          total,
          detalles
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
        RETURNING *`,
       [
         external_id,
         id_sucursal,
         id_usuario,
+        id_sesion_caja,
         id_cliente ?? null,
         terminal_id,
         total,

@@ -556,6 +556,7 @@ CREATE TABLE IF NOT EXISTS pago_pos (
     external_id           VARCHAR(120) NOT NULL UNIQUE,
     id_sucursal           INTEGER NOT NULL,
     id_usuario            INTEGER NOT NULL,
+    id_sesion_caja        INTEGER NOT NULL,
     id_cliente            INTEGER,
     terminal_id           VARCHAR(120) NOT NULL,
     total                 NUMERIC(12,2) NOT NULL CHECK (total > 0),
@@ -581,6 +582,10 @@ CREATE TABLE IF NOT EXISTS pago_pos (
         FOREIGN KEY (id_usuario)
         REFERENCES usuario(id_usuario)
         ON DELETE RESTRICT,
+    CONSTRAINT fk_pago_pos_sesion_caja
+        FOREIGN KEY (id_sesion_caja)
+        REFERENCES sesion_caja(id_sesion_caja)
+        ON DELETE RESTRICT,
     CONSTRAINT fk_pago_pos_cliente
         FOREIGN KEY (id_cliente)
         REFERENCES cliente(id_cliente)
@@ -593,6 +598,9 @@ CREATE TABLE IF NOT EXISTS pago_pos (
 
 CREATE INDEX IF NOT EXISTS idx_pago_pos_estado
     ON pago_pos (estado, creado_en DESC);
+
+CREATE INDEX IF NOT EXISTS idx_pago_pos_sesion_estado
+    ON pago_pos (id_sesion_caja, estado);
 
 -- =========================
 -- TABLA: detalle_venta
