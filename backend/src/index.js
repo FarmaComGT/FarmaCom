@@ -47,6 +47,7 @@ const ventaRoutes = require('./routes/VentaRoutes');
 const presentacionRoutes = require('./routes/PresentacionRoutes');
 const cajaRoutes = require('./routes/CajaRoutes');
 const reporteRoutes = require('./routes/ReporteRoutes');
+const pacienteRoutes = require('./routes/PacienteRoutes');
 
 app.get('/api/ping', (req, res) => {
     res.json({ status: 'ok', message: 'pong' });
@@ -67,6 +68,7 @@ app.use('/api/ventas', ventaRoutes);
 app.use('/api/presentaciones', presentacionRoutes);
 app.use('/api/cajas', cajaRoutes);
 app.use('/api/reportes', reporteRoutes);
+app.use('/api/pacientes', pacienteRoutes);
 app.use('/api/sucursales/:id_sucursal/inventario', InventarioRoutes);
 // Rutas anidadas: GET y POST bajo /api/sucursales/:id_sucursal/telefonos|correos
 app.use('/api/sucursales/:id_sucursal/telefonos', telefonoSucursalRoutes);

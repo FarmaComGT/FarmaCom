@@ -50,24 +50,176 @@ CREATE TABLE IF NOT EXISTS correo_sucursal (
 );
 
 -- =========================
+-- TABLA: laboratorio
+-- Ubicación del laboratorio. Estructura análoga a sucursal.
+-- =========================
+CREATE TABLE IF NOT EXISTS laboratorio (
+    id_laboratorio      SERIAL PRIMARY KEY,
+    id_ciudad            INTEGER      NOT NULL,
+    nombre_laboratorio   VARCHAR(100) NOT NULL UNIQUE,
+    direccion            TEXT         NOT NULL,
+    activo               BOOLEAN      NOT NULL DEFAULT TRUE,
+    fecha_creacion       TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_laboratorio_ciudad
+        FOREIGN KEY (id_ciudad)
+        REFERENCES ciudad(id_ciudad)
+        ON DELETE RESTRICT
+);
+
+-- =========================
 -- TABLA: usuario
 -- =========================
 CREATE TABLE IF NOT EXISTS usuario (
     id_usuario SERIAL PRIMARY KEY,
     id_sucursal INTEGER NOT NULL,
+    id_laboratorio INTEGER,
     nombre_usuario VARCHAR(100) NOT NULL,
     correo_usuario VARCHAR(150) NOT NULL UNIQUE,
     contrasena_hash TEXT NOT NULL,
     token_version INTEGER NOT NULL DEFAULT 0,
-    rol VARCHAR(20) NOT NULL CHECK (rol IN ('dueno', 'administrador', 'dependiente')),
+    rol VARCHAR(20) NOT NULL CHECK (rol IN ('dueno', 'administrador', 'dependiente', 'laboratorista')),
     estado_usuario VARCHAR(20) DEFAULT 'activo' CHECK (estado_usuario IN ('activo', 'inactivo')),
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_usuario_sucursal
         FOREIGN KEY (id_sucursal)
         REFERENCES sucursal(id_sucursal)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_usuario_laboratorio
+        FOREIGN KEY (id_laboratorio)
+        REFERENCES laboratorio(id_laboratorio)
+        ON DELETE RESTRICT,
+
+    -- Solo el laboratorista queda asignado a un laboratorio.
+    CONSTRAINT chk_usuario_laboratorista
+        CHECK (
+            (rol = 'laboratorista' AND id_laboratorio IS NOT NULL)
+            OR
+            (rol != 'laboratorista' AND id_laboratorio IS NULL)
+        )
+);
+
+-- =========================
+-- TABLA: paciente
+-- =========================
+CREATE TABLE IF NOT EXISTS paciente (
+    id_paciente        SERIAL        PRIMARY KEY,
+    id_laboratorio     INTEGER       NOT NULL,
+    nombre_paciente    VARCHAR(150)  NOT NULL,
+    dpi                VARCHAR(20),
+    fecha_nacimiento   DATE,
+    telefono           VARCHAR(20),
+    direccion          TEXT,
+    observaciones      TEXT,
+    estado             VARCHAR(20)   NOT NULL DEFAULT 'activo',
+    motivo_anulacion   VARCHAR(500),
+    fecha_anulacion    TIMESTAMPTZ,
+    fecha_registro     TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_paciente_laboratorio
+        FOREIGN KEY (id_laboratorio)
+        REFERENCES laboratorio(id_laboratorio)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT chk_paciente_estado
+        CHECK (estado IN ('activo', 'anulado')),
+
+    CONSTRAINT chk_paciente_anulacion
+        CHECK (
+            (estado = 'activo' AND fecha_anulacion IS NULL AND motivo_anulacion IS NULL)
+            OR
+            (estado = 'anulado' AND fecha_anulacion IS NOT NULL AND motivo_anulacion IS NOT NULL)
+        )
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_paciente_dpi
+    ON paciente (dpi)
+    WHERE dpi IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_paciente_laboratorio
+    ON paciente (id_laboratorio, estado);
+
+CREATE INDEX IF NOT EXISTS idx_paciente_nombre
+    ON paciente (LOWER(nombre_paciente));
+
+-- =========================
+-- TABLA: expediente_laboratorio
+-- Un expediente por paciente, creado junto con el paciente.
+-- =========================
+CREATE TABLE IF NOT EXISTS expediente_laboratorio (
+    id_expediente    SERIAL        PRIMARY KEY,
+    id_paciente      INTEGER       NOT NULL UNIQUE,
+    antecedentes     TEXT,
+    fecha_creacion   TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_expediente_paciente
+        FOREIGN KEY (id_paciente)
+        REFERENCES paciente(id_paciente)
         ON DELETE CASCADE
 );
+
+-- =========================
+-- TABLA: visita_laboratorio
+-- =========================
+CREATE TABLE IF NOT EXISTS visita_laboratorio (
+    id_visita         SERIAL        PRIMARY KEY,
+    id_expediente     INTEGER       NOT NULL,
+    id_usuario        INTEGER       NOT NULL,
+    motivo_visita     VARCHAR(255)  NOT NULL,
+    notas             TEXT,
+    fecha_visita      TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    estado            VARCHAR(20)   NOT NULL DEFAULT 'activa',
+    motivo_anulacion  VARCHAR(500),
+    fecha_anulacion   TIMESTAMPTZ,
+
+    CONSTRAINT fk_visita_expediente
+        FOREIGN KEY (id_expediente)
+        REFERENCES expediente_laboratorio(id_expediente)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_visita_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT chk_visita_estado
+        CHECK (estado IN ('activa', 'anulada')),
+
+    CONSTRAINT chk_visita_anulacion
+        CHECK (
+            (estado = 'activa' AND fecha_anulacion IS NULL AND motivo_anulacion IS NULL)
+            OR
+            (estado = 'anulada' AND fecha_anulacion IS NOT NULL AND motivo_anulacion IS NOT NULL)
+        )
+);
+
+CREATE INDEX IF NOT EXISTS idx_visita_expediente
+    ON visita_laboratorio (id_expediente, fecha_visita DESC);
+
+-- =========================
+-- TABLA: bitacora_laboratorio
+-- Auditoría de cambios sobre entidades del módulo de laboratorio.
+-- =========================
+CREATE TABLE IF NOT EXISTS bitacora_laboratorio (
+    id_bitacora          SERIAL        PRIMARY KEY,
+    id_usuario           INTEGER       NOT NULL,
+    entidad              VARCHAR(50)   NOT NULL,
+    id_entidad           INTEGER       NOT NULL,
+    accion               VARCHAR(50)   NOT NULL,
+    valores_anteriores   JSONB,
+    valores_nuevos       JSONB,
+    fecha_hora           TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_bitacora_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS idx_bitacora_entidad
+    ON bitacora_laboratorio (entidad, id_entidad, fecha_hora DESC);
 
 -- =========================
 -- TABLA: cliente
@@ -730,6 +882,52 @@ WHERE s.nombre_sucursal = 'Sucursal Central'
       SELECT 1
       FROM usuario u
       WHERE u.correo_usuario = 'dueno@farma.com'
+  );
+
+-- =========================
+-- DATOS SEMILLA: módulo de laboratorio
+-- =========================
+INSERT INTO laboratorio (id_ciudad, nombre_laboratorio, direccion)
+SELECT c.id_ciudad, 'Laboratorio Central', 'Zona 1, Ciudad de Guatemala'
+FROM ciudad c
+WHERE c.nombre_ciudad = 'Guatemala'
+ON CONFLICT (nombre_laboratorio) DO NOTHING;
+
+INSERT INTO usuario (id_sucursal, id_laboratorio, nombre_usuario, correo_usuario, contrasena_hash, rol)
+SELECT
+    s.id_sucursal,
+    l.id_laboratorio,
+    'Laboratorista General',
+    'laboratorista@farma.com',
+    crypt('123456', gen_salt('bf')),
+    'laboratorista'
+FROM sucursal s
+JOIN laboratorio l ON l.nombre_laboratorio = 'Laboratorio Central'
+WHERE s.nombre_sucursal = 'Sucursal Central'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM usuario u
+      WHERE u.correo_usuario = 'laboratorista@farma.com'
+  );
+
+INSERT INTO paciente (id_laboratorio, nombre_paciente, dpi, fecha_nacimiento, telefono, direccion)
+SELECT l.id_laboratorio, 'Paciente Demo Uno', '1234567890101', DATE '1990-05-14', '5555-1111', 'Zona 1, Ciudad de Guatemala'
+FROM laboratorio l
+WHERE l.nombre_laboratorio = 'Laboratorio Central'
+  AND NOT EXISTS (SELECT 1 FROM paciente WHERE dpi = '1234567890101');
+
+INSERT INTO paciente (id_laboratorio, nombre_paciente, dpi, fecha_nacimiento, telefono, direccion)
+SELECT l.id_laboratorio, 'Paciente Demo Dos', '9876543210202', DATE '1985-11-02', '5555-2222', 'Zona 10, Ciudad de Guatemala'
+FROM laboratorio l
+WHERE l.nombre_laboratorio = 'Laboratorio Central'
+  AND NOT EXISTS (SELECT 1 FROM paciente WHERE dpi = '9876543210202');
+
+INSERT INTO expediente_laboratorio (id_paciente)
+SELECT p.id_paciente
+FROM paciente p
+WHERE p.dpi IN ('1234567890101', '9876543210202')
+  AND NOT EXISTS (
+      SELECT 1 FROM expediente_laboratorio e WHERE e.id_paciente = p.id_paciente
   );
 
 INSERT INTO categoria (nombre)
