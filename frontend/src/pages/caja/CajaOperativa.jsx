@@ -23,27 +23,46 @@ const MOVIMIENTO_INICIAL = {
   motivo: '',
 };
 
+const CIERRE_INICIAL = {
+  efectivo_contado: '',
+  observaciones: '',
+};
+
 const esMontoValido = (valor) => (
   /^(0|[1-9]\d*)(\.\d{1,2})?$/.test(valor)
   && Number(valor) <= 9999999999.99
 );
-
-const calcularEfectivoEsperado = (sesion) => {
-  if (sesion?.efectivo_esperado !== undefined && sesion?.efectivo_esperado !== null) {
-    return Number(sesion.efectivo_esperado);
-  }
-
-  return Number(sesion?.fondo_inicial || 0)
-    + Number(sesion?.total_ventas_efectivo || 0)
-    + Number(sesion?.total_entradas || 0)
-    - Number(sesion?.total_salidas || 0);
-};
 
 const formatearQuetzales = (monto) => new Intl.NumberFormat('es-GT', {
   style: 'currency',
   currency: 'GTQ',
   minimumFractionDigits: 2,
 }).format(Number(monto || 0));
+
+const obtenerResultadoCierre = (cierre) => {
+  if (cierre.resultado === 'sobrante') {
+    return {
+      titulo: 'Sobrante de efectivo',
+      detalle: `Se registró un sobrante de ${formatearQuetzales(
+        Math.abs(Number(cierre.diferencia_efectivo)),
+      )}.`,
+    };
+  }
+
+  if (cierre.resultado === 'faltante') {
+    return {
+      titulo: 'Faltante de efectivo',
+      detalle: `Se registró un faltante de ${formatearQuetzales(
+        Math.abs(Number(cierre.diferencia_efectivo)),
+      )}.`,
+    };
+  }
+
+  return {
+    titulo: 'Caja cuadrada',
+    detalle: 'El efectivo contado coincide con el efectivo esperado.',
+  };
+};
 
 export default function CajaOperativa() {
   const { sucursalActivaId } = useAuth();
@@ -59,10 +78,14 @@ export default function CajaOperativa() {
     seleccionarCaja,
     abrir,
     registrar,
+    cerrar,
     limpiarError,
   } = useCaja(sucursalActivaId);
   const [formulario, setFormulario] = useState(FORMULARIO_INICIAL);
   const [movimiento, setMovimiento] = useState(MOVIMIENTO_INICIAL);
+  const [datosCierre, setDatosCierre] = useState(CIERRE_INICIAL);
+  const [ultimoCierre, setUltimoCierre] = useState(null);
+  const [confirmandoCierre, setConfirmandoCierre] = useState(false);
   const [errorFormulario, setErrorFormulario] = useState(null);
   const [mensajeExito, setMensajeExito] = useState(null);
 
@@ -70,6 +93,9 @@ export default function CajaOperativa() {
     seleccionarCaja(evento.target.value || null);
     setFormulario(FORMULARIO_INICIAL);
     setMovimiento(MOVIMIENTO_INICIAL);
+    setDatosCierre(CIERRE_INICIAL);
+    setUltimoCierre(null);
+    setConfirmandoCierre(false);
     setErrorFormulario(null);
     setMensajeExito(null);
     limpiarError();
@@ -104,6 +130,7 @@ export default function CajaOperativa() {
         turno: formulario.turno,
         fondo_inicial: fondoInicial,
       });
+      setUltimoCierre(null);
       setMensajeExito('La sesión de caja se abrió correctamente.');
     } catch {
       // El hook expone el mensaje enviado por el backend.
@@ -148,6 +175,54 @@ export default function CajaOperativa() {
     }
   };
 
+  const actualizarCierre = (evento) => {
+    setDatosCierre((actual) => ({
+      ...actual,
+      [evento.target.name]: evento.target.value,
+    }));
+    setErrorFormulario(null);
+    setMensajeExito(null);
+  };
+
+  const solicitarCierre = (evento) => {
+    evento.preventDefault();
+    const efectivoContado = datosCierre.efectivo_contado.trim();
+    const observaciones = datosCierre.observaciones.trim();
+
+    if (!esMontoValido(efectivoContado)) {
+      setErrorFormulario('Ingresa un efectivo contado válido con máximo dos decimales.');
+      return;
+    }
+
+    if (!observaciones) {
+      setErrorFormulario('Ingresa una nota de cierre antes de continuar.');
+      return;
+    }
+
+    setErrorFormulario(null);
+    setConfirmandoCierre(true);
+  };
+
+  const confirmarCierre = async () => {
+    const efectivoContado = datosCierre.efectivo_contado.trim();
+    const observaciones = datosCierre.observaciones.trim();
+
+    try {
+      setErrorFormulario(null);
+      const cierre = await cerrar({
+        efectivo_contado: efectivoContado,
+        observaciones,
+      });
+      setUltimoCierre(cierre);
+      setDatosCierre(CIERRE_INICIAL);
+      setConfirmandoCierre(false);
+      setMensajeExito('La sesión de caja se cerró correctamente.');
+    } catch {
+      setConfirmandoCierre(false);
+      // El hook expone el mensaje enviado por el backend.
+    }
+  };
+
   return (
     <div className="space-y-6">
       <header className="rounded-2xl border border-slate-200 bg-surface-container-low/70 px-5 py-5">
@@ -183,6 +258,76 @@ export default function CajaOperativa() {
         <div role="status" className="flex items-center gap-2 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
           <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
           {mensajeExito}
+        </div>
+      )}
+
+      {ultimoCierre && (() => {
+        const resultado = obtenerResultadoCierre(ultimoCierre);
+        return (
+          <section className="rounded-2xl border border-primary/15 bg-surface-container-low/70 p-5">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 flex-none text-primary" aria-hidden="true" />
+              <div>
+                <h2 className="font-headline text-lg font-bold text-primary">
+                  {resultado.titulo}
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">{resultado.detalle}</p>
+                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-500">
+                  <span>
+                    Esperado: <strong>{formatearQuetzales(ultimoCierre.efectivo_esperado)}</strong>
+                  </span>
+                  <span>
+                    Contado: <strong>{formatearQuetzales(ultimoCierre.efectivo_contado)}</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
+      {confirmandoCierre && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-confirmar-cierre"
+            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+          >
+            <h2 id="titulo-confirmar-cierre" className="font-headline text-lg font-bold text-primary">
+              Confirmar cierre de turno
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Confirma que terminaste el conteo físico. Al cerrar, el sistema calculará
+              la diferencia y esta acción no podrá deshacerse.
+            </p>
+            <div className="mt-4 rounded-xl border border-slate-200 bg-surface-container-low/60 px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Efectivo contado
+              </p>
+              <p className="mt-1 font-headline text-xl font-extrabold text-primary">
+                {formatearQuetzales(datosCierre.efectivo_contado)}
+              </p>
+            </div>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmandoCierre(false)}
+                disabled={procesando}
+                className="cursor-pointer rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Volver a contar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarCierre}
+                disabled={procesando}
+                className="cursor-pointer rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {procesando ? 'Cerrando turno...' : 'Confirmar cierre'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -235,24 +380,14 @@ export default function CajaOperativa() {
       {cajaSeleccionada && !cargandoSesion && sesionActual && (
         <div className="space-y-6">
           <section className="rounded-2xl border border-primary/15 bg-surface-container-low/70 p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3">
-                <Clock3 className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
-                <div>
-                  <h2 className="font-headline text-lg font-bold text-primary">
-                    Turno abierto en {cajaSeleccionada.nombre}
-                  </h2>
-                  <p className="mt-1 text-sm font-medium capitalize text-slate-500">
-                    Turno {sesionActual.turno}
-                  </p>
-                </div>
-              </div>
-              <div className="rounded-xl border border-primary/10 bg-white/80 px-4 py-3 sm:text-right">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Efectivo esperado
-                </p>
-                <p className="mt-1 font-headline text-xl font-extrabold text-primary">
-                  {formatearQuetzales(calcularEfectivoEsperado(sesionActual))}
+            <div className="flex items-start gap-3">
+              <Clock3 className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
+              <div>
+                <h2 className="font-headline text-lg font-bold text-primary">
+                  Turno abierto en {cajaSeleccionada.nombre}
+                </h2>
+                <p className="mt-1 text-sm font-medium capitalize text-slate-500">
+                  Turno {sesionActual.turno}
                 </p>
               </div>
             </div>
@@ -361,6 +496,71 @@ export default function CajaOperativa() {
                   className="w-full cursor-pointer rounded-xl bg-primary px-6 py-3 font-headline text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md active:translate-y-0 active:shadow-sm disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:w-auto"
                 >
                   {procesando ? 'Registrando...' : 'Registrar movimiento'}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <Banknote className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
+              <div>
+                <h2 className="font-headline text-lg font-bold text-primary">
+                  Cerrar turno
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Cuenta el efectivo físico y compáralo con el monto esperado.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={solicitarCierre} className="mt-5 space-y-4">
+              <div>
+                <label htmlFor="efectivo-contado" className="text-sm font-semibold text-slate-700">
+                  Efectivo contado
+                </label>
+                <div className="relative mt-1">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
+                    Q
+                  </span>
+                  <input
+                    id="efectivo-contado"
+                    name="efectivo_contado"
+                    type="text"
+                    inputMode="decimal"
+                    value={datosCierre.efectivo_contado}
+                    onChange={actualizarCierre}
+                    disabled={procesando}
+                    placeholder="0.00"
+                    className="w-full rounded-xl border border-slate-300 py-3 pl-9 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="observaciones-cierre" className="text-sm font-semibold text-slate-700">
+                  Nota de cierre <span className="text-red-600">(requerida)</span>
+                </label>
+                <textarea
+                  id="observaciones-cierre"
+                  name="observaciones"
+                  value={datosCierre.observaciones}
+                  onChange={actualizarCierre}
+                  disabled={procesando}
+                  maxLength={500}
+                  rows={3}
+                  placeholder="Describe el conteo o cualquier incidencia del turno"
+                  className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={procesando}
+                  className="w-full cursor-pointer rounded-xl border border-primary bg-white px-6 py-3 font-headline text-sm font-bold text-primary shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/5 hover:shadow-md active:translate-y-0 active:shadow-sm disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:w-auto"
+                >
+                  {procesando ? 'Cerrando turno...' : 'Cerrar turno'}
                 </button>
               </div>
             </form>

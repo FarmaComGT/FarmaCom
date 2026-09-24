@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import useCaja from '../../hooks/useCaja';
@@ -15,6 +15,7 @@ vi.mock('../../hooks/useCaja', () => ({
 
 const abrir = vi.fn();
 const registrar = vi.fn();
+const cerrar = vi.fn();
 const seleccionarCaja = vi.fn();
 const limpiarError = vi.fn();
 
@@ -33,6 +34,7 @@ const crearEstado = (cambios = {}) => ({
   seleccionarCaja,
   abrir,
   registrar,
+  cerrar,
   limpiarError,
   ...cambios,
 });
@@ -112,7 +114,8 @@ describe('CajaOperativa', () => {
       name: 'Turno abierto en Caja principal',
     })).toBeInTheDocument();
     expect(screen.getByText('Turno tarde')).toBeInTheDocument();
-    expect(screen.getByText(/Q\s*0\.00/)).toBeInTheDocument();
+    expect(screen.queryByText('Efectivo esperado')).not.toBeInTheDocument();
+    expect(screen.queryByText('Diferencia')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Abrir turno' })).not.toBeInTheDocument();
   });
 
@@ -181,5 +184,117 @@ describe('CajaOperativa', () => {
       'Ingresa un monto mayor que cero con máximo dos decimales.',
     );
     expect(registrar).not.toHaveBeenCalled();
+  });
+
+  it('exige una nota antes de permitir el cierre', async () => {
+    const user = userEvent.setup();
+    useCaja.mockReturnValue(crearEstado({
+      cajaSeleccionada: { id_caja: 3, nombre: 'Caja principal' },
+      idCajaSeleccionada: 3,
+      sesionActual: {
+        id_sesion_caja: 9,
+        turno: 'mañana',
+        fondo_inicial: '250.00',
+      },
+    }));
+    render(<CajaOperativa />);
+
+    await user.type(screen.getByLabelText('Efectivo contado'), '250.00');
+    await user.click(screen.getByRole('button', { name: 'Cerrar turno' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Ingresa una nota de cierre antes de continuar.',
+    );
+    expect(cerrar).not.toHaveBeenCalled();
+  });
+
+  it('solicita confirmación sin mostrar el efectivo esperado ni la diferencia', async () => {
+    const user = userEvent.setup();
+    useCaja.mockReturnValue(crearEstado({
+      cajaSeleccionada: { id_caja: 3, nombre: 'Caja principal' },
+      idCajaSeleccionada: 3,
+      sesionActual: {
+        id_sesion_caja: 9,
+        turno: 'mañana',
+        fondo_inicial: '250.00',
+      },
+    }));
+    render(<CajaOperativa />);
+
+    await user.type(screen.getByLabelText('Efectivo contado'), '250.00');
+    await user.type(screen.getByLabelText(/Nota de cierre/), 'Conteo físico completado');
+    await user.click(screen.getByRole('button', { name: 'Cerrar turno' }));
+
+    const dialogo = screen.getByRole('dialog', { name: 'Confirmar cierre de turno' });
+    expect(within(dialogo).getByText(/Q\s*250\.00/)).toBeInTheDocument();
+    expect(within(dialogo).queryByText('Efectivo esperado')).not.toBeInTheDocument();
+    expect(within(dialogo).queryByText('Diferencia')).not.toBeInTheDocument();
+    expect(cerrar).not.toHaveBeenCalled();
+  });
+
+  it('cierra una caja cuadrada después de confirmar el conteo', async () => {
+    const user = userEvent.setup();
+    cerrar.mockResolvedValue({
+      id_sesion_caja: 9,
+      resultado: 'cuadrada',
+      efectivo_esperado: '250.00',
+      efectivo_contado: '250.00',
+      diferencia_efectivo: '0.00',
+    });
+    useCaja.mockReturnValue(crearEstado({
+      cajaSeleccionada: { id_caja: 3, nombre: 'Caja principal' },
+      idCajaSeleccionada: 3,
+      sesionActual: {
+        id_sesion_caja: 9,
+        turno: 'mañana',
+        fondo_inicial: '250.00',
+      },
+    }));
+    render(<CajaOperativa />);
+
+    await user.type(screen.getByLabelText('Efectivo contado'), '250.00');
+    await user.type(screen.getByLabelText(/Nota de cierre/), 'Conteo físico completado');
+    await user.click(screen.getByRole('button', { name: 'Cerrar turno' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
+
+    expect(cerrar).toHaveBeenCalledWith({
+      efectivo_contado: '250.00',
+      observaciones: 'Conteo físico completado',
+    });
+    expect(screen.getByRole('heading', { name: 'Caja cuadrada' })).toBeInTheDocument();
+  });
+
+  it('presenta el faltante devuelto al cerrar la sesión', async () => {
+    const user = userEvent.setup();
+    cerrar.mockResolvedValue({
+      id_sesion_caja: 9,
+      resultado: 'faltante',
+      efectivo_esperado: '250.00',
+      efectivo_contado: '245.00',
+      diferencia_efectivo: '-5.00',
+    });
+    useCaja.mockReturnValue(crearEstado({
+      cajaSeleccionada: { id_caja: 3, nombre: 'Caja principal' },
+      idCajaSeleccionada: 3,
+      sesionActual: {
+        id_sesion_caja: 9,
+        turno: 'mañana',
+        fondo_inicial: '250.00',
+      },
+    }));
+    render(<CajaOperativa />);
+
+    await user.type(screen.getByLabelText('Efectivo contado'), '245.00');
+    await user.type(screen.getByLabelText(/Nota de cierre/), 'Conteo físico completado');
+    await user.click(screen.getByRole('button', { name: 'Cerrar turno' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
+
+    expect(cerrar).toHaveBeenCalledWith({
+      efectivo_contado: '245.00',
+      observaciones: 'Conteo físico completado',
+    });
+    expect(screen.getByRole('heading', { name: 'Faltante de efectivo' }))
+      .toBeInTheDocument();
+    expect(screen.getByText(/faltante de/)).toHaveTextContent(/Q\s*5\.00/);
   });
 });
