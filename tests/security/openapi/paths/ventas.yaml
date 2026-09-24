@@ -1,0 +1,48 @@
+coleccion:
+  get:
+    tags: [Ventas]
+    operationId: obtenerVentas
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    parameters:
+      - { $ref: '../components/parameters.yaml#/FiltroIdSucursal' }
+      - name: id_cliente
+        in: query
+        schema: { type: integer, minimum: 1 }
+      - name: estado
+        in: query
+        schema: { type: string, enum: [completada, anulada] }
+      - { $ref: '../components/parameters.yaml#/FechaDesde' }
+      - { $ref: '../components/parameters.yaml#/FechaHasta' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+porId:
+  get:
+    tags: [Ventas]
+    operationId: obtenerVentaPorId
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    parameters:
+      - { $ref: '../components/parameters.yaml#/Id' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+      '404': { $ref: '../components/responses.yaml#/NoEncontrado' }
+estadoPagoPos:
+  get:
+    tags: [Ventas]
+    operationId: obtenerEstadoPagoPos
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    parameters:
+      - name: externalId
+        in: path
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 120 }
+        example: pago-ficticio-001
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+      '404': { $ref: '../components/responses.yaml#/NoEncontrado' }

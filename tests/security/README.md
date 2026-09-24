@@ -42,8 +42,21 @@ mantendrá para todos los planes que realicen análisis activo.
 La comprobación inicial:
 
 1. solicita `GET /api/ping` y exige una respuesta `200`;
-2. espera a que termine el análisis pasivo;
-3. genera `results/smoke.html` y `results/smoke.json`.
+2. importa `openapi/read-only.yaml` y visita las operaciones de lectura sin
+   enviar credenciales;
+3. espera a que termine el análisis pasivo;
+4. genera `results/smoke.html` y `results/smoke.json`.
+
+El contrato OpenAPI inicial contiene únicamente operaciones de lectura. El
+archivo `openapi/read-only.yaml` funciona como índice y delega cada grupo de
+rutas a un archivo dentro de `openapi/paths`. Los parámetros, respuestas y
+esquemas de seguridad compartidos están en `openapi/components`.
+
+Las operaciones que crean, editan, anulan o eliminan información se
+documentarán en un contrato separado y solo se ejecutarán con datos
+desechables. Los campos `x-farmacom-roles` y `x-farmacom-scope` registran la
+política que posteriormente utilizarán las comprobaciones explícitas de
+autorización.
 
 Los reportes generados están ignorados porque pueden contener solicitudes y
 respuestas. Antes de versionar evidencia se debe crear un resumen sanitizado.

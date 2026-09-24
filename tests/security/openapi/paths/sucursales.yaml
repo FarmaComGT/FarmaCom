@@ -1,0 +1,36 @@
+coleccion:
+  get:
+    tags: [Sucursales]
+    operationId: obtenerSucursales
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+porId:
+  get:
+    tags: [Sucursales]
+    operationId: obtenerSucursalPorId
+    parameters:
+      - { $ref: '../components/parameters.yaml#/Id' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '404': { $ref: '../components/responses.yaml#/NoEncontrado' }
+telefonos:
+  get:
+    tags: [Sucursales]
+    operationId: obtenerTelefonosSucursal
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdSucursal' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+correos:
+  get:
+    tags: [Sucursales]
+    operationId: obtenerCorreosSucursal
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdSucursal' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }

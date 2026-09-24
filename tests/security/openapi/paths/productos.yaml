@@ -1,0 +1,64 @@
+coleccion:
+  get:
+    tags: [Productos]
+    operationId: obtenerProductos
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+autocompletar:
+  get:
+    tags: [Productos]
+    operationId: autocompletarProductos
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    parameters:
+      - name: busqueda
+        in: query
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 100 }
+        example: amoxicilina
+      - name: limite
+        in: query
+        required: false
+        schema: { type: integer, minimum: 1, maximum: 20, default: 10 }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+porId:
+  get:
+    tags: [Productos]
+    operationId: obtenerProductoPorId
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    parameters:
+      - { $ref: '../components/parameters.yaml#/Id' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+      '404': { $ref: '../components/responses.yaml#/NoEncontrado' }
+promociones:
+  get:
+    tags: [Productos]
+    operationId: obtenerPromocionesProducto
+    x-farmacom-roles: [dependiente]
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdProducto' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+promocionPorId:
+  get:
+    tags: [Productos]
+    operationId: obtenerPromocionPorId
+    x-farmacom-roles: [dependiente]
+    parameters:
+      - { $ref: '../components/parameters.yaml#/Id' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+      '404': { $ref: '../components/responses.yaml#/NoEncontrado' }

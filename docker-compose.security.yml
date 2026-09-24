@@ -12,6 +12,7 @@ services:
       ZAP_PLAN: ${ZAP_PLAN:-plans/smoke.yaml}
     volumes:
       - ./tests/security/plans:/zap/wrk/plans:ro
+      - ./tests/security/openapi:/zap/wrk/openapi:ro
       - ./tests/security/scripts:/zap/wrk/scripts:ro
       - ./tests/security/results:/zap/wrk/results
     entrypoint:

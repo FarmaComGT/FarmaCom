@@ -1,0 +1,34 @@
+RespuestaExitosa:
+  description: Operación completada correctamente.
+  content:
+    application/json:
+      schema:
+        oneOf:
+          - { type: object, additionalProperties: true }
+          - type: array
+            items: { type: object, additionalProperties: true }
+SolicitudInvalida:
+  description: Los parámetros enviados no son válidos.
+  content:
+    application/json:
+      schema: { $ref: '#/Error' }
+NoAutenticado:
+  description: No existe una sesión válida.
+  content:
+    application/json:
+      schema: { $ref: '#/Error' }
+AccesoDenegado:
+  description: El usuario autenticado no tiene permiso para la operación.
+  content:
+    application/json:
+      schema: { $ref: '#/Error' }
+NoEncontrado:
+  description: El recurso solicitado no existe.
+  content:
+    application/json:
+      schema: { $ref: '#/Error' }
+Error:
+  type: object
+  required: [mensaje]
+  properties:
+    mensaje: { type: string }

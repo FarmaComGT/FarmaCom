@@ -1,0 +1,15 @@
+ping:
+  get:
+    tags: [Sistema]
+    operationId: comprobarDisponibilidad
+    security: []
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+sesionActual:
+  get:
+    tags: [Autenticación]
+    operationId: obtenerSesionActual
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }

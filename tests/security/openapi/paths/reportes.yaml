@@ -1,0 +1,67 @@
+resumenVentas:
+  get:
+    tags: [Reportes]
+    operationId: obtenerResumenVentas
+    x-farmacom-roles: [dueno, administrador]
+    parameters: &filtros
+      - { $ref: '../components/parameters.yaml#/FiltroIdSucursal' }
+      - { $ref: '../components/parameters.yaml#/FechaDesde' }
+      - { $ref: '../components/parameters.yaml#/FechaHasta' }
+    responses: &respuestas
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+serieVentas:
+  get:
+    tags: [Reportes]
+    operationId: obtenerSerieVentas
+    x-farmacom-roles: [dueno, administrador]
+    parameters:
+      - { $ref: '../components/parameters.yaml#/FiltroIdSucursal' }
+      - name: fecha_desde
+        in: query
+        required: true
+        schema: { type: string, format: date }
+        example: '2026-09-01'
+      - name: fecha_hasta
+        in: query
+        required: true
+        schema: { type: string, format: date }
+        example: '2026-09-24'
+      - name: agrupacion
+        in: query
+        required: true
+        schema: { type: string, enum: [dia, semana, mes] }
+        example: dia
+    responses: *respuestas
+metodosPago:
+  get:
+    tags: [Reportes]
+    operationId: obtenerMetodosPago
+    x-farmacom-roles: [dueno, administrador]
+    parameters: *filtros
+    responses: *respuestas
+productosTop:
+  get:
+    tags: [Reportes]
+    operationId: obtenerProductosMasVendidos
+    x-farmacom-roles: [dueno, administrador]
+    parameters:
+      - { $ref: '../components/parameters.yaml#/FiltroIdSucursal' }
+      - { $ref: '../components/parameters.yaml#/FechaDesde' }
+      - { $ref: '../components/parameters.yaml#/FechaHasta' }
+      - name: limite
+        in: query
+        schema: { type: integer, minimum: 1, maximum: 20, default: 5 }
+      - name: criterio
+        in: query
+        schema: { type: string, enum: [cantidad, ingresos], default: cantidad }
+    responses: *respuestas
+rentabilidad:
+  get:
+    tags: [Reportes]
+    operationId: obtenerRentabilidad
+    x-farmacom-roles: [dueno, administrador]
+    parameters: *filtros
+    responses: *respuestas

@@ -20,6 +20,12 @@ jobs:
         method: GET
         responseCode: 200
 
+  - type: openapi
+    parameters:
+      apiFile: /zap/wrk/openapi/read-only.yaml
+      context: FarmaCom
+      targetUrl: ${ZAP_TARGET_URL}
+
   - type: passiveScan-wait
     parameters:
       maxDuration: 2
