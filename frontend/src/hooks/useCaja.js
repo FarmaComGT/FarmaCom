@@ -14,6 +14,27 @@ const obtenerMensajeError = (error, mensajePredeterminado) => (
   || mensajePredeterminado
 );
 
+const aCentavos = (monto) => Math.round(Number(monto || 0) * 100);
+const aMonto = (centavos) => (centavos / 100).toFixed(2);
+
+const agregarMovimientoASesion = (sesion, movimiento) => {
+  const entradas = aCentavos(sesion.total_entradas)
+    + (movimiento.tipo === 'entrada' ? aCentavos(movimiento.monto) : 0);
+  const salidas = aCentavos(sesion.total_salidas)
+    + (movimiento.tipo === 'salida' ? aCentavos(movimiento.monto) : 0);
+  const esperado = aCentavos(sesion.fondo_inicial)
+    + aCentavos(sesion.total_ventas_efectivo)
+    + entradas
+    - salidas;
+
+  return {
+    ...sesion,
+    total_entradas: aMonto(entradas),
+    total_salidas: aMonto(salidas),
+    efectivo_esperado: aMonto(esperado),
+  };
+};
+
 export default function useCaja(idSucursal) {
   const [cajas, setCajas] = useState([]);
   const [idCajaSeleccionada, setIdCajaSeleccionada] = useState(null);
@@ -158,7 +179,9 @@ export default function useCaja(idSucursal) {
       throw new Error('No hay una sesión de caja abierta.');
     }
 
-    return registrarMovimiento(sesionActual.id_sesion_caja, datos);
+    const movimiento = await registrarMovimiento(sesionActual.id_sesion_caja, datos);
+    setSesionActual((actual) => agregarMovimientoASesion(actual, movimiento));
+    return movimiento;
   }, 'No se pudo registrar el movimiento.'), [ejecutarOperacion, sesionActual]);
 
   const cerrar = useCallback((datos) => ejecutarOperacion(async () => {

@@ -124,6 +124,11 @@ describe('useCaja', () => {
       motivo: 'Cambio adicional',
     });
     expect(resultado).toEqual(movimiento);
+    expect(result.current.sesionActual).toMatchObject({
+      total_entradas: '50.00',
+      total_salidas: '0.00',
+      efectivo_esperado: '50.00',
+    });
   });
 
   it('cierra la sesión y libera la caja', async () => {

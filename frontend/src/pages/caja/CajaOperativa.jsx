@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import {
   AlertCircle,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   Banknote,
   CheckCircle2,
   ChevronDown,
@@ -15,10 +17,33 @@ const FORMULARIO_INICIAL = {
   fondo_inicial: '',
 };
 
+const MOVIMIENTO_INICIAL = {
+  tipo: 'entrada',
+  monto: '',
+  motivo: '',
+};
+
 const esMontoValido = (valor) => (
   /^(0|[1-9]\d*)(\.\d{1,2})?$/.test(valor)
   && Number(valor) <= 9999999999.99
 );
+
+const calcularEfectivoEsperado = (sesion) => {
+  if (sesion?.efectivo_esperado !== undefined && sesion?.efectivo_esperado !== null) {
+    return Number(sesion.efectivo_esperado);
+  }
+
+  return Number(sesion?.fondo_inicial || 0)
+    + Number(sesion?.total_ventas_efectivo || 0)
+    + Number(sesion?.total_entradas || 0)
+    - Number(sesion?.total_salidas || 0);
+};
+
+const formatearQuetzales = (monto) => new Intl.NumberFormat('es-GT', {
+  style: 'currency',
+  currency: 'GTQ',
+  minimumFractionDigits: 2,
+}).format(Number(monto || 0));
 
 export default function CajaOperativa() {
   const { sucursalActivaId } = useAuth();
@@ -33,15 +58,18 @@ export default function CajaOperativa() {
     error,
     seleccionarCaja,
     abrir,
+    registrar,
     limpiarError,
   } = useCaja(sucursalActivaId);
   const [formulario, setFormulario] = useState(FORMULARIO_INICIAL);
+  const [movimiento, setMovimiento] = useState(MOVIMIENTO_INICIAL);
   const [errorFormulario, setErrorFormulario] = useState(null);
   const [mensajeExito, setMensajeExito] = useState(null);
 
   const cambiarCaja = (evento) => {
     seleccionarCaja(evento.target.value || null);
     setFormulario(FORMULARIO_INICIAL);
+    setMovimiento(MOVIMIENTO_INICIAL);
     setErrorFormulario(null);
     setMensajeExito(null);
     limpiarError();
@@ -77,6 +105,44 @@ export default function CajaOperativa() {
         fondo_inicial: fondoInicial,
       });
       setMensajeExito('La sesión de caja se abrió correctamente.');
+    } catch {
+      // El hook expone el mensaje enviado por el backend.
+    }
+  };
+
+  const actualizarMovimiento = (evento) => {
+    setMovimiento((actual) => ({
+      ...actual,
+      [evento.target.name]: evento.target.value,
+    }));
+    setErrorFormulario(null);
+    setMensajeExito(null);
+  };
+
+  const guardarMovimiento = async (evento) => {
+    evento.preventDefault();
+    const monto = movimiento.monto.trim();
+    const motivo = movimiento.motivo.trim();
+
+    if (!esMontoValido(monto) || Number(monto) <= 0) {
+      setErrorFormulario('Ingresa un monto mayor que cero con máximo dos decimales.');
+      return;
+    }
+
+    if (!motivo) {
+      setErrorFormulario('Ingresa el motivo del movimiento.');
+      return;
+    }
+
+    try {
+      setErrorFormulario(null);
+      await registrar({ tipo: movimiento.tipo, monto, motivo });
+      setMovimiento(MOVIMIENTO_INICIAL);
+      setMensajeExito(
+        movimiento.tipo === 'entrada'
+          ? 'La entrada se registró correctamente.'
+          : 'La salida se registró correctamente.',
+      );
     } catch {
       // El hook expone el mensaje enviado por el backend.
     }
@@ -167,19 +233,139 @@ export default function CajaOperativa() {
       )}
 
       {cajaSeleccionada && !cargandoSesion && sesionActual && (
-        <section className="rounded-2xl border border-primary/15 bg-surface-container-low/70 p-5">
-          <div className="flex items-start gap-3">
-            <Clock3 className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
-            <div>
-              <h2 className="font-headline text-lg font-bold text-primary">
-                Turno abierto en {cajaSeleccionada.nombre}
-              </h2>
-              <p className="mt-1 text-sm font-medium capitalize text-slate-500">
-                Turno {sesionActual.turno}
-              </p>
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-primary/15 bg-surface-container-low/70 p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <Clock3 className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
+                <div>
+                  <h2 className="font-headline text-lg font-bold text-primary">
+                    Turno abierto en {cajaSeleccionada.nombre}
+                  </h2>
+                  <p className="mt-1 text-sm font-medium capitalize text-slate-500">
+                    Turno {sesionActual.turno}
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-xl border border-primary/10 bg-white/80 px-4 py-3 sm:text-right">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Efectivo esperado
+                </p>
+                <p className="mt-1 font-headline text-xl font-extrabold text-primary">
+                  {formatearQuetzales(calcularEfectivoEsperado(sesionActual))}
+                </p>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
+            <h2 className="font-headline text-lg font-bold text-primary">
+              Registrar movimiento
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Registra entradas adicionales o retiros de efectivo del turno.
+            </p>
+
+            <form onSubmit={guardarMovimiento} className="mt-5 space-y-4">
+              <fieldset>
+                <legend className="text-sm font-semibold text-slate-700">
+                  Tipo de movimiento
+                </legend>
+                <div className="mt-2 grid grid-cols-2 gap-3">
+                  <label className={`cursor-pointer rounded-xl border p-4 transition-colors ${
+                    movimiento.tipo === 'entrada'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-slate-200 text-slate-600 hover:border-primary/30'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="tipo"
+                      value="entrada"
+                      checked={movimiento.tipo === 'entrada'}
+                      onChange={actualizarMovimiento}
+                      disabled={procesando}
+                      className="sr-only"
+                    />
+                    <span className="flex items-center justify-center gap-2 text-sm font-bold">
+                      <ArrowDownToLine className="h-4 w-4" aria-hidden="true" />
+                      Entrada
+                    </span>
+                  </label>
+                  <label className={`cursor-pointer rounded-xl border p-4 transition-colors ${
+                    movimiento.tipo === 'salida'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-slate-200 text-slate-600 hover:border-primary/30'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="tipo"
+                      value="salida"
+                      checked={movimiento.tipo === 'salida'}
+                      onChange={actualizarMovimiento}
+                      disabled={procesando}
+                      className="sr-only"
+                    />
+                    <span className="flex items-center justify-center gap-2 text-sm font-bold">
+                      <ArrowUpFromLine className="h-4 w-4" aria-hidden="true" />
+                      Salida
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label htmlFor="monto-movimiento" className="text-sm font-semibold text-slate-700">
+                    Monto
+                  </label>
+                  <div className="relative mt-1">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
+                      Q
+                    </span>
+                    <input
+                      id="monto-movimiento"
+                      name="monto"
+                      type="text"
+                      inputMode="decimal"
+                      value={movimiento.monto}
+                      onChange={actualizarMovimiento}
+                      disabled={procesando}
+                      placeholder="0.00"
+                      className="w-full rounded-xl border border-slate-300 py-3 pl-9 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="motivo-movimiento" className="text-sm font-semibold text-slate-700">
+                    Motivo
+                  </label>
+                  <input
+                    id="motivo-movimiento"
+                    name="motivo"
+                    type="text"
+                    value={movimiento.motivo}
+                    onChange={actualizarMovimiento}
+                    disabled={procesando}
+                    maxLength={500}
+                    placeholder="Describe el motivo"
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={procesando}
+                  className="w-full cursor-pointer rounded-xl bg-primary px-6 py-3 font-headline text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md active:translate-y-0 active:shadow-sm disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:w-auto"
+                >
+                  {procesando ? 'Registrando...' : 'Registrar movimiento'}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
       )}
 
       {cajaSeleccionada && !cargandoSesion && !sesionActual && (

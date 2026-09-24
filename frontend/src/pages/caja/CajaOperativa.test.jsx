@@ -14,6 +14,7 @@ vi.mock('../../hooks/useCaja', () => ({
 }));
 
 const abrir = vi.fn();
+const registrar = vi.fn();
 const seleccionarCaja = vi.fn();
 const limpiarError = vi.fn();
 
@@ -31,6 +32,7 @@ const crearEstado = (cambios = {}) => ({
   error: null,
   seleccionarCaja,
   abrir,
+  registrar,
   limpiarError,
   ...cambios,
 });
@@ -110,6 +112,74 @@ describe('CajaOperativa', () => {
       name: 'Turno abierto en Caja principal',
     })).toBeInTheDocument();
     expect(screen.getByText('Turno tarde')).toBeInTheDocument();
+    expect(screen.getByText(/Q\s*0\.00/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Abrir turno' })).not.toBeInTheDocument();
+  });
+
+  it('registra una entrada de efectivo en el turno abierto', async () => {
+    const user = userEvent.setup();
+    registrar.mockResolvedValue({ id_movimiento_caja: 12 });
+    useCaja.mockReturnValue(crearEstado({
+      cajaSeleccionada: { id_caja: 3, nombre: 'Caja principal' },
+      idCajaSeleccionada: 3,
+      sesionActual: {
+        id_sesion_caja: 9,
+        turno: 'mañana',
+        fondo_inicial: '250.00',
+      },
+    }));
+    render(<CajaOperativa />);
+
+    await user.type(screen.getByLabelText('Monto'), '50.00');
+    await user.type(screen.getByLabelText('Motivo'), 'Cambio adicional');
+    await user.click(screen.getByRole('button', { name: 'Registrar movimiento' }));
+
+    expect(registrar).toHaveBeenCalledWith({
+      tipo: 'entrada',
+      monto: '50.00',
+      motivo: 'Cambio adicional',
+    });
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'La entrada se registró correctamente.',
+    );
+  });
+
+  it('permite seleccionar y registrar una salida', async () => {
+    const user = userEvent.setup();
+    registrar.mockResolvedValue({ id_movimiento_caja: 13 });
+    useCaja.mockReturnValue(crearEstado({
+      cajaSeleccionada: { id_caja: 3, nombre: 'Caja principal' },
+      idCajaSeleccionada: 3,
+      sesionActual: { id_sesion_caja: 9, turno: 'noche' },
+    }));
+    render(<CajaOperativa />);
+
+    await user.click(screen.getByRole('radio', { name: 'Salida' }));
+    await user.type(screen.getByLabelText('Monto'), '25.50');
+    await user.type(screen.getByLabelText('Motivo'), 'Compra de insumos');
+    await user.click(screen.getByRole('button', { name: 'Registrar movimiento' }));
+
+    expect(registrar).toHaveBeenCalledWith({
+      tipo: 'salida',
+      monto: '25.50',
+      motivo: 'Compra de insumos',
+    });
+  });
+
+  it('valida el monto y el motivo del movimiento', async () => {
+    const user = userEvent.setup();
+    useCaja.mockReturnValue(crearEstado({
+      cajaSeleccionada: { id_caja: 3, nombre: 'Caja principal' },
+      idCajaSeleccionada: 3,
+      sesionActual: { id_sesion_caja: 9, turno: 'mañana' },
+    }));
+    render(<CajaOperativa />);
+
+    await user.click(screen.getByRole('button', { name: 'Registrar movimiento' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Ingresa un monto mayor que cero con máximo dos decimales.',
+    );
+    expect(registrar).not.toHaveBeenCalled();
   });
 });
