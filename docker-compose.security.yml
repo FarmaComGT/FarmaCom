@@ -1,0 +1,19 @@
+services:
+  zap-security:
+    image: ghcr.io/zaproxy/zaproxy:2.17.0
+    profiles:
+      - security
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      ZAP_TARGET_ENV: ${ZAP_TARGET_ENV:-local}
+      ZAP_TARGET_URL: ${ZAP_TARGET_URL:-http://backend:3000}
+      ZAP_PLAN: ${ZAP_PLAN:-plans/smoke.yaml}
+    volumes:
+      - ./tests/security/plans:/zap/wrk/plans:ro
+      - ./tests/security/scripts:/zap/wrk/scripts:ro
+      - ./tests/security/results:/zap/wrk/results
+    entrypoint:
+      - /bin/sh
+      - /zap/wrk/scripts/run-zap.sh

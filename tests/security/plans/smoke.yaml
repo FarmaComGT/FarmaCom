@@ -1,0 +1,63 @@
+---
+env:
+  contexts:
+    - name: FarmaCom
+      urls:
+        - ${ZAP_TARGET_URL}
+      includePaths:
+        - ${ZAP_TARGET_URL}/api/.*
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    continueOnFailure: false
+    progressToStdout: true
+
+jobs:
+  - type: requestor
+    requests:
+      - name: Comprobar disponibilidad de la API
+        url: ${ZAP_TARGET_URL}/api/ping
+        method: GET
+        responseCode: 200
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 2
+
+  - type: report
+    parameters:
+      template: risk-confidence-html
+      reportDir: /zap/wrk/results
+      reportFile: smoke.html
+      reportTitle: FarmaCom - comprobación inicial de seguridad
+      reportDescription: Análisis pasivo de la ruta pública de disponibilidad.
+      displayReport: false
+    risks:
+      - high
+      - medium
+      - low
+      - info
+    confidences:
+      - high
+      - medium
+      - low
+      - falsepositive
+
+  - type: report
+    parameters:
+      template: traditional-json
+      reportDir: /zap/wrk/results
+      reportFile: smoke.json
+      reportTitle: FarmaCom - comprobación inicial de seguridad
+      reportDescription: Análisis pasivo de la ruta pública de disponibilidad.
+      displayReport: false
+    risks:
+      - high
+      - medium
+      - low
+      - info
+    confidences:
+      - high
+      - medium
+      - low
+      - falsepositive
