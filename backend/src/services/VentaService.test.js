@@ -1,7 +1,9 @@
 jest.mock('../daos/VentaDAO');
+jest.mock('../daos/CajaDAO');
 jest.mock('./RecurrenteService');
 
 const VentaDAO = require('../daos/VentaDAO');
+const CajaDAO = require('../daos/CajaDAO');
 const RecurrenteService = require('./RecurrenteService');
 const VentaService = require('./VentaService');
 const terminalOriginal = process.env.RECURRENTE_TERMINAL_ID;
@@ -14,6 +16,7 @@ const usuarioDependiente = {
 
 const datosVenta = {
   id_sucursal: 1,
+  id_sesion_caja: 9,
   id_cliente: null,
   metodo_pago: 'efectivo',
   monto_recibido: 30,
@@ -48,6 +51,11 @@ describe('VentaService', () => {
   beforeEach(() => {
     delete process.env.RECURRENTE_TERMINAL_ID;
     VentaDAO.ejecutarEnTransaccion.mockImplementation((operacion) => operacion({}));
+    CajaDAO.obtenerSesionPorId.mockResolvedValue({
+      id_sesion_caja: 9,
+      id_sucursal: 1,
+      estado: 'abierta',
+    });
   });
 
   afterAll(() => {
@@ -68,6 +76,7 @@ describe('VentaService', () => {
       expect(VentaDAO.crearVenta).toHaveBeenCalledWith({
         id_sucursal: 1,
         id_usuario: 7,
+        id_sesion_caja: 9,
         id_cliente: null,
         metodo_pago: 'efectivo',
         proveedor_pago: null,
@@ -192,6 +201,22 @@ describe('VentaService', () => {
       ).rejects.toMatchObject({
         status: 400,
         message: 'El monto recibido es insuficiente. El total es Q25.00',
+      });
+      expect(VentaDAO.crearVenta).not.toHaveBeenCalled();
+    });
+
+    it('rechaza ventas asociadas a una sesión cerrada', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        id_sesion_caja: 9,
+        id_sucursal: 1,
+        estado: 'cerrada',
+      });
+
+      await expect(
+        VentaService.crearVenta(datosVenta, usuarioDependiente),
+      ).rejects.toMatchObject({
+        status: 409,
+        message: 'La sesión de caja está cerrada',
       });
       expect(VentaDAO.crearVenta).not.toHaveBeenCalled();
     });
@@ -384,6 +409,7 @@ describe('VentaService', () => {
         external_id: 'farmacom-pos-test',
         id_sucursal: 1,
         id_usuario: 7,
+        id_sesion_caja: 9,
         id_cliente: null,
         total: '25.00',
         detalles: [
@@ -416,6 +442,7 @@ describe('VentaService', () => {
         id_venta: 22,
       });
       expect(VentaDAO.crearVenta).toHaveBeenCalledWith(expect.objectContaining({
+        id_sesion_caja: 9,
         metodo_pago: 'tarjeta',
         proveedor_pago: 'recurrente',
         referencia_pago: 'pi_test_123',

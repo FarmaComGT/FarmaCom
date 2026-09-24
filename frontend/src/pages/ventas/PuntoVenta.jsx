@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Info, X } from 'lucide-react';
+import { ChevronDown, Info, LockKeyhole, X } from 'lucide-react';
 import {
   crearPagoPOS,
   crearVenta,
@@ -16,9 +16,20 @@ import { useAuth } from '../../context/AuthContext';
 import { useCarrito } from '../../context/CarritoContext';
 import useAutocompletadoPOS from '../../hooks/useAutocompletadoPOS';
 import useClientes from '../../hooks/useClientes';
+import useCaja from '../../hooks/useCaja';
 
 export default function PuntoVenta() {
   const { sucursalActivaId } = useAuth();
+  const {
+    cajas,
+    cajaSeleccionada,
+    idCajaSeleccionada,
+    sesionActual,
+    cargandoCajas,
+    cargandoSesion,
+    error: errorCaja,
+    seleccionarCaja,
+  } = useCaja(sucursalActivaId);
   const [busquedaProducto, setBusquedaProducto] = useState('');
   const {
     items,
@@ -56,6 +67,14 @@ export default function PuntoVenta() {
   const [ventaCompletada, setVentaCompletada] = useState(null);
   const [pagoPOS, setPagoPOS] = useState(null);
   const confirmandoPagoPOS = useRef(false);
+
+  useEffect(() => {
+    if (idCajaSeleccionada || cargandoCajas) return;
+    const cajasAbiertas = cajas.filter((caja) => caja.id_sesion_abierta);
+    if (cajasAbiertas.length === 1) {
+      seleccionarCaja(cajasAbiertas[0].id_caja);
+    }
+  }, [cajas, cargandoCajas, idCajaSeleccionada, seleccionarCaja]);
 
   const agregarAlCarritoValidandoStock = useCallback((producto) => {
     const existente = items.find((item) => item.clave === producto.carritoKey);
@@ -136,6 +155,11 @@ export default function PuntoVenta() {
   }, []);
 
   const procesarVenta = () => {
+    if (!sesionActual?.id_sesion_caja) {
+      setAviso('Selecciona una caja con un turno abierto antes de procesar la venta.');
+      return;
+    }
+
     if (itemsProximosAVencer.length > 0) {
       setConfirmandoVenta(true);
       return;
@@ -180,10 +204,11 @@ export default function PuntoVenta() {
 
     return {
       id_sucursal: Number(sucursalActivaId),
+      id_sesion_caja: Number(sesionActual.id_sesion_caja),
       id_cliente: clienteSeleccionado?.id_cliente ?? null,
       detalles,
     };
-  }, [clienteSeleccionado, items, sucursalActivaId]);
+  }, [clienteSeleccionado, items, sesionActual, sucursalActivaId]);
 
   const iniciarPagoPOS = useCallback(async () => {
     if (metodoPago !== 'tarjeta') {
@@ -320,6 +345,50 @@ export default function PuntoVenta() {
 
   return (
     <div className="space-y-4">
+      <section className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <label htmlFor="caja-punto-venta" className="text-sm font-bold text-slate-700">
+              Caja para esta venta
+            </label>
+            <div className="relative mt-1 max-w-md">
+              <select
+                id="caja-punto-venta"
+                value={idCajaSeleccionada || ''}
+                onChange={(evento) => seleccionarCaja(evento.target.value || null)}
+                disabled={cargandoCajas || cajas.length === 0}
+                className="w-full cursor-pointer appearance-none rounded-xl border border-slate-300 bg-white py-2.5 pl-4 pr-12 text-sm font-medium text-slate-700 outline-none transition-colors hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100"
+              >
+                <option value="">
+                  {cargandoCajas ? 'Cargando cajas...' : 'Selecciona una caja'}
+                </option>
+                {cajas.map((caja) => (
+                  <option key={caja.id_caja} value={caja.id_caja}>
+                    {caja.nombre}{caja.id_sesion_abierta ? ' — turno abierto' : ' — sin turno'}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+            </div>
+          </div>
+          <div className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${
+            sesionActual
+              ? 'border border-primary/15 bg-primary/5 text-primary'
+              : 'border border-slate-200 bg-slate-50 text-slate-500'
+          }`}>
+            <LockKeyhole className="h-4 w-4" aria-hidden="true" />
+            {cargandoSesion
+              ? 'Verificando turno...'
+              : sesionActual
+                ? `Turno ${sesionActual.turno} activo`
+                : cajaSeleccionada
+                  ? 'Esta caja no tiene un turno abierto'
+                  : 'Selecciona una caja'}
+          </div>
+        </div>
+        {errorCaja && <p className="mt-2 text-sm font-semibold text-red-600">{errorCaja}</p>}
+      </section>
+
       {aviso && (
         <div className="flex items-center justify-between gap-4 rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary">
           <span className="flex items-center gap-2">

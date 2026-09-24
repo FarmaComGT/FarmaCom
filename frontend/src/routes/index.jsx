@@ -16,6 +16,7 @@ import Proveedores from '../pages/inventario/Proveedores.jsx';
 import Casas from '../pages/inventario/Casas.jsx';
 import Clientes from '../pages/Clientes.jsx';
 import PuntoVenta from '../pages/ventas/PuntoVenta.jsx';
+import CajaOperativa from '../pages/caja/CajaOperativa.jsx';
 
 const Reportes = lazy(() => import('../pages/reportes/Reportes.jsx'));
 const Rentabilidad = lazy(() => import('../pages/reportes/Rentabilidad.jsx'));
@@ -56,6 +57,9 @@ export default function AppRoutes() {
 
           <Route path="/patients" element={<Clientes />} />
           <Route path="/pos" element={<PuntoVenta />} />
+          <Route element={<RoleRoute allowedRoles={['dueno', 'administrador', 'dependiente']} />}>
+            <Route path="/caja" element={<CajaOperativa />} />
+          </Route>
           <Route
             path="/support"
             element={<div className="p-8 font-headline text-2xl font-bold">Ayuda (Próximamente)</div>}

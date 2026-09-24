@@ -13,6 +13,7 @@ import {
   Users,
   UserCog,
   ShoppingCart,
+  Banknote,
   BarChart3,
   HelpCircle,
   LogOut,
@@ -38,6 +39,12 @@ const sucursalSubItems = [
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: ShoppingCart, label: 'Punto de venta', path: '/pos' },
+  {
+    icon: Banknote,
+    label: 'Caja',
+    path: '/caja',
+    roles: ['dueno', 'administrador', 'dependiente'],
+  },
   { icon: UserCog, label: 'Usuarios', path: '/usuarios', roles: ['dueno', 'administrador'] },
   { icon: Users, label: 'Clientes', path: '/patients' },
   {

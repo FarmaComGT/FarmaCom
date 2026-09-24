@@ -29,6 +29,7 @@ const sesionAbierta = {
 describe('CajaService', () => {
   beforeEach(() => {
     CajaDAO.ejecutarEnTransaccion.mockImplementation((operacion) => operacion({}));
+    CajaDAO.contarPagosPOSPendientes.mockResolvedValue(0);
   });
 
   describe('crearCaja', () => {
@@ -210,6 +211,22 @@ describe('CajaService', () => {
           observaciones: null,
         }, dependiente),
       ).rejects.toMatchObject({ status: 409 });
+      expect(CajaDAO.obtenerTotalesSesion).not.toHaveBeenCalled();
+    });
+
+    it('impide cerrar mientras exista un pago POS pendiente', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue(sesionAbierta);
+      CajaDAO.contarPagosPOSPendientes.mockResolvedValue(1);
+
+      await expect(
+        CajaService.cerrarSesion(9, {
+          efectivo_contado: '100.00',
+          observaciones: 'Conteo físico completado',
+        }, dependiente),
+      ).rejects.toMatchObject({
+        status: 409,
+        message: 'No se puede cerrar la caja mientras haya pagos POS pendientes',
+      });
       expect(CajaDAO.obtenerTotalesSesion).not.toHaveBeenCalled();
     });
   });

@@ -78,6 +78,30 @@ describe('VentaDAO', () => {
     );
   });
 
+  it('vincula la venta con la sesión de caja', async () => {
+    const client = {
+      query: jest.fn().mockResolvedValue({ rows: [{ id_venta: 21 }] }),
+    };
+
+    await VentaDAO.crearVenta({
+      id_sucursal: 1,
+      id_usuario: 7,
+      id_sesion_caja: 9,
+      id_cliente: null,
+      metodo_pago: 'efectivo',
+      proveedor_pago: null,
+      referencia_pago: null,
+      estado_pago: null,
+      autorizacion_pago: null,
+      tarjeta_ultimos4: null,
+      total: '25.00',
+      monto_recibido: '30.00',
+      cambio: '5.00',
+    }, client);
+
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining('id_sesion_caja'),
+      [1, 7, 9, null, 'efectivo', null, null, null, null, null, '25.00', '30.00', '5.00'],
   it('guarda la fotografía calculada de los detalles del pago POS como JSON', async () => {
     const client = {
       query: jest.fn().mockResolvedValue({ rows: [{ id_pago_pos: 5 }] }),

@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const VentaDAO = require('../daos/VentaDAO');
+const CajaDAO = require('../daos/CajaDAO');
 const RecurrenteService = require('./RecurrenteService');
 
 const MAXIMO_CENTAVOS = 999999999999;
@@ -52,6 +53,25 @@ const validarDatosBasicosVenta = (datos, usuario) => {
   }
 
   return idsLote;
+};
+
+const validarSesionCaja = async (datos, usuario, client) => {
+  const sesion = await CajaDAO.obtenerSesionPorId(
+    Number(datos.id_sesion_caja),
+    client,
+    'share',
+  );
+
+  if (!sesion) lanzarError('Sesión de caja no encontrada', 404);
+  validarAccesoSucursal(usuario, sesion.id_sucursal);
+  if (Number(sesion.id_sucursal) !== Number(datos.id_sucursal)) {
+    lanzarError('La sesión de caja no pertenece a la sucursal de la venta', 409);
+  }
+  if (sesion.estado !== 'abierta') {
+    lanzarError('La sesión de caja está cerrada', 409);
+  }
+
+  return Number(sesion.id_sesion_caja);
 };
 
 const prepararVenta = async (datos, usuario, client) => {
@@ -135,6 +155,7 @@ const crearVenta = async (datos, usuario) => {
   validarDatosBasicosVenta(datos, usuario);
 
   const idVenta = await VentaDAO.ejecutarEnTransaccion(async (client) => {
+    const idSesionCaja = await validarSesionCaja(datos, usuario, client);
     const ventaPreparada = await prepararVenta(datos, usuario, client);
     const recibidoCentavos = aCentavos(monto_recibido);
     if (recibidoCentavos < ventaPreparada.totalCentavos) {
@@ -148,6 +169,7 @@ const crearVenta = async (datos, usuario) => {
     const venta = await VentaDAO.crearVenta({
       id_sucursal: ventaPreparada.id_sucursal,
       id_usuario: Number(usuario.id_usuario),
+      id_sesion_caja: idSesionCaja,
       id_cliente: ventaPreparada.id_cliente,
       metodo_pago,
       proveedor_pago: null,
@@ -191,11 +213,13 @@ const crearPagoPOS = async (datos, usuario) => {
 
   const externalId = `farmacom-pos-${crypto.randomUUID()}`;
   const pago = await VentaDAO.ejecutarEnTransaccion(async (client) => {
+    const idSesionCaja = await validarSesionCaja(datos, usuario, client);
     const ventaPreparada = await prepararVenta(datos, usuario, client);
     return VentaDAO.crearPagoPOS({
       external_id: externalId,
       id_sucursal: ventaPreparada.id_sucursal,
       id_usuario: Number(usuario.id_usuario),
+      id_sesion_caja: idSesionCaja,
       id_cliente: ventaPreparada.id_cliente,
       terminal_id: terminalId,
       total: aMonto(ventaPreparada.totalCentavos),
@@ -307,6 +331,7 @@ const procesarWebhookRecurrente = async (body, headers) => {
 
     const datosVenta = {
       id_sucursal: pago.id_sucursal,
+      id_sesion_caja: pago.id_sesion_caja,
       id_cliente: pago.id_cliente,
       detalles: pago.detalles,
     };
@@ -341,6 +366,7 @@ const procesarWebhookRecurrente = async (body, headers) => {
     const venta = await VentaDAO.crearVenta({
       id_sucursal: ventaPreparada.id_sucursal,
       id_usuario: Number(pago.id_usuario),
+      id_sesion_caja: Number(pago.id_sesion_caja),
       id_cliente: ventaPreparada.id_cliente,
       metodo_pago: 'tarjeta',
       proveedor_pago: 'recurrente',

@@ -9,6 +9,7 @@ import {
   obtenerEstadoPagoPOS,
   obtenerVentaPorId,
 } from '../../api/ventas';
+import useCaja from '../../hooks/useCaja';
 
 const productoNormal = {
   carritoKey: 'lote-1-presentacion-1',
@@ -97,10 +98,24 @@ vi.mock('../../hooks/useClientes', () => ({
   }),
 }));
 
+vi.mock('../../hooks/useCaja', () => ({
+  default: vi.fn(),
+}));
+
 describe('PuntoVenta', () => {
   beforeEach(() => {
     carritoItems = [];
     productosCatalogo = [];
+    useCaja.mockReturnValue({
+      cajas: [{ id_caja: 3, nombre: 'Caja principal', id_sesion_abierta: 9 }],
+      cajaSeleccionada: { id_caja: 3, nombre: 'Caja principal', id_sesion_abierta: 9 },
+      idCajaSeleccionada: 3,
+      sesionActual: { id_sesion_caja: 9, turno: 'mañana' },
+      cargandoCajas: false,
+      cargandoSesion: false,
+      error: null,
+      seleccionarCaja: vi.fn(),
+    });
     agregarAlCarrito.mockClear();
     vaciarCarrito.mockClear();
     refrescarCatalogo.mockClear();
@@ -238,6 +253,29 @@ describe('PuntoVenta', () => {
     expect(screen.getByText('Cobro de venta')).toBeInTheDocument();
   });
 
+  it('impide procesar una venta sin una sesión de caja abierta', async () => {
+    carritoItems = [{ ...productoNormal, cantidad: 1, precioUnitario: 8.5 }];
+    useCaja.mockReturnValue({
+      cajas: [{ id_caja: 3, nombre: 'Caja principal', id_sesion_abierta: null }],
+      cajaSeleccionada: { id_caja: 3, nombre: 'Caja principal' },
+      idCajaSeleccionada: 3,
+      sesionActual: null,
+      cargandoCajas: false,
+      cargandoSesion: false,
+      error: null,
+      seleccionarCaja: vi.fn(),
+    });
+    const user = userEvent.setup();
+    render(<PuntoVenta />);
+
+    await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
+
+    expect(screen.getByText(
+      'Selecciona una caja con un turno abierto antes de procesar la venta.',
+    )).toBeInTheDocument();
+    expect(screen.queryByText('Cobro de venta')).not.toBeInTheDocument();
+  });
+
   it('registra una venta en efectivo desde el modal de cobro', async () => {
     carritoItems = [{ ...productoNormal, cantidad: 2, precioUnitario: 8.5 }];
     const user = userEvent.setup();
@@ -251,6 +289,7 @@ describe('PuntoVenta', () => {
     await waitFor(() => {
       expect(crearVenta).toHaveBeenCalledWith({
         id_sucursal: 1,
+        id_sesion_caja: 9,
         id_cliente: null,
         metodo_pago: 'efectivo',
         monto_recibido: 20,
@@ -282,6 +321,7 @@ describe('PuntoVenta', () => {
     await waitFor(() => {
       expect(crearPagoPOS).toHaveBeenCalledWith({
         id_sucursal: 1,
+        id_sesion_caja: 9,
         id_cliente: null,
         detalles: [{ id_lote: 1, cantidad: 2 }],
       });

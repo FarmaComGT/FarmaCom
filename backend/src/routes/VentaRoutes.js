@@ -27,6 +27,9 @@ const validarDatosVenta = [
   body('id_sucursal')
     .isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo')
     .toInt(),
+  body('id_sesion_caja')
+    .isInt({ min: 1 }).withMessage('id_sesion_caja debe ser un entero positivo')
+    .toInt(),
   body('id_cliente')
     .optional({ nullable: true })
     .isInt({ min: 1 }).withMessage('id_cliente debe ser un entero positivo o null')

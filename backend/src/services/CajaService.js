@@ -170,6 +170,14 @@ const cerrarSesion = async (
     lanzarError('La sesión de caja ya está cerrada', 409);
   }
 
+  const pagosPendientes = await CajaDAO.contarPagosPOSPendientes(
+    id_sesion_caja,
+    client,
+  );
+  if (pagosPendientes > 0) {
+    lanzarError('No se puede cerrar la caja mientras haya pagos POS pendientes', 409);
+  }
+
   const totales = await CajaDAO.obtenerTotalesSesion(id_sesion_caja, client);
   const efectivoEsperadoCentavos = aCentavos(sesion.fondo_inicial)
     + aCentavos(totales.ventas_efectivo)
