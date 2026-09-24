@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   ArrowDownToLine,
@@ -286,7 +287,7 @@ export default function CajaOperativa() {
         );
       })()}
 
-      {confirmandoCierre && (
+      {confirmandoCierre && typeof document !== 'undefined' && createPortal((
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
           <div
             role="dialog"
@@ -329,7 +330,7 @@ export default function CajaOperativa() {
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
 
       <section className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
