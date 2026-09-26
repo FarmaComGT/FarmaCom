@@ -20,3 +20,41 @@ services:
     entrypoint:
       - /bin/sh
       - /zap/wrk/scripts/run-zap.sh
+
+  security-auth-controls:
+    image: node:22-alpine
+    profiles:
+      - security
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      SECURITY_API_URL: ${SECURITY_API_URL:-http://backend:3000/api}
+      SECURITY_TARGET_ENV: ${ZAP_TARGET_ENV:-local}
+      SECURITY_ADMIN_EMAIL: ${ZAP_ADMIN_EMAIL:-}
+      SECURITY_ADMIN_PASSWORD: ${ZAP_ADMIN_PASSWORD:-}
+      SECURITY_INACTIVE_EMAIL: ${SECURITY_INACTIVE_EMAIL:-}
+      SECURITY_INACTIVE_PASSWORD: ${SECURITY_INACTIVE_PASSWORD:-}
+      SECURITY_JWT_SECRET: ${JWT_SECRET:-}
+      SECURITY_EXPECT_SECURE_COOKIE: ${SECURITY_EXPECT_SECURE_COOKIE:-false}
+    volumes:
+      - ./tests/security/scripts/auth-controls.js:/tests/auth-controls.js:ro
+    command:
+      - node
+      - /tests/auth-controls.js
+
+  security-login-rate-limit:
+    image: node:22-alpine
+    profiles:
+      - security
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      SECURITY_API_URL: ${SECURITY_API_URL:-http://backend:3000/api}
+      SECURITY_TARGET_ENV: ${ZAP_TARGET_ENV:-local}
+    volumes:
+      - ./tests/security/scripts/login-rate-limit.js:/tests/login-rate-limit.js:ro
+    command:
+      - node
+      - /tests/login-rate-limit.js

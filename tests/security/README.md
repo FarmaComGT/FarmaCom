@@ -69,6 +69,9 @@ Configura en `.env.security` un usuario ficticio activo:
 ZAP_PLAN=plans/authenticated-read.yaml
 ZAP_ADMIN_EMAIL=administrador.pruebas@farmacom.test
 ZAP_ADMIN_PASSWORD=reemplazar_con_clave_local
+SECURITY_INACTIVE_EMAIL=inactivo.pruebas@farmacom.test
+SECURITY_INACTIVE_PASSWORD=reemplazar_con_clave_local
+SECURITY_EXPECT_SECURE_COOKIE=false
 ```
 
 Ejecuta el mismo comando de Docker Compose utilizado para la comprobación
@@ -85,6 +88,48 @@ invalide su propia sesión.
 Una ejecución es válida únicamente si la solicitud autenticada a
 `/api/auth/me` devuelve `200`. Si el plan importa rutas pero todas responden
 `401`, el resultado no demuestra cobertura autenticada y debe descartarse.
+
+## Comprobar los controles de autenticación
+
+La cuenta configurada en `SECURITY_INACTIVE_EMAIL` debe existir con estado
+`inactivo`. Ambas cuentas deben ser ficticias y exclusivas para estas pruebas.
+Luego ejecuta:
+
+```powershell
+docker compose --env-file .env --env-file tests/security/.env.security -f docker-compose.yml -f docker-compose.security.yml --profile security run --rm security-auth-controls
+```
+
+La comprobación valida automáticamente:
+
+- rechazo de una solicitud sin cookie;
+- mensaje genérico para usuario inexistente y contraseña incorrecta;
+- rechazo de una cuenta inactiva;
+- atributos `HttpOnly`, `SameSite=Strict` y `Path=/`;
+- presencia o ausencia de `Secure` según `SECURITY_EXPECT_SECURE_COOKIE`;
+- aceptación de una cookie válida;
+- rechazo de un JWT alterado y de un JWT vencido;
+- invalidación del token después del cierre de sesión;
+- ausencia de información del usuario en respuestas `401`.
+
+La prueba de expiración firma un JWT vencido utilizando el `JWT_SECRET` del
+ambiente local. El secreto se recibe como variable de entorno, no se imprime y
+no se guarda en los resultados.
+
+## Comprobar el límite de intentos
+
+El rate limit mantiene estado en memoria por dirección IP. Ejecuta esta prueba
+de forma independiente y después de reiniciar el backend local para garantizar
+una ventana limpia:
+
+```powershell
+docker compose restart backend
+docker compose --env-file .env --env-file tests/security/.env.security -f docker-compose.yml -f docker-compose.security.yml --profile security run --rm security-login-rate-limit
+```
+
+El script utiliza un correo ficticio inexistente. Los primeros diez intentos
+deben devolver `401` y el undécimo debe devolver `429` con `Retry-After`. La
+prueba también exige encabezados estándar de rate limiting. Debe ejecutarse al
+final para que la ventana de bloqueo no interfiera con otros casos.
 
 ## Objetivos
 
