@@ -10,6 +10,8 @@ services:
       ZAP_TARGET_ENV: ${ZAP_TARGET_ENV:-local}
       ZAP_TARGET_URL: ${ZAP_TARGET_URL:-http://backend:3000}
       ZAP_PLAN: ${ZAP_PLAN:-plans/smoke.yaml}
+      ZAP_ADMIN_EMAIL: ${ZAP_ADMIN_EMAIL:-}
+      ZAP_ADMIN_PASSWORD: ${ZAP_ADMIN_PASSWORD:-}
     volumes:
       - ./tests/security/plans:/zap/wrk/plans:ro
       - ./tests/security/openapi:/zap/wrk/openapi:ro

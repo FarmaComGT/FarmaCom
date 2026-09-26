@@ -1,0 +1,81 @@
+---
+env:
+  contexts:
+    - name: FarmaCom
+      urls:
+        - ${ZAP_TARGET_URL}
+      includePaths:
+        - ${ZAP_TARGET_URL}/api/.*
+      excludePaths:
+        - ${ZAP_TARGET_URL}/api/auth/logout
+      authentication:
+        method: json
+        parameters:
+          loginPageUrl: ""
+          loginRequestUrl: ${ZAP_TARGET_URL}/api/auth/login
+          loginRequestBody: >-
+            {"correo_usuario":"{%username%}","contrasena":"{%password%}"}
+        verification:
+          method: poll
+          loggedInRegex: '\Q 200 OK\E'
+          loggedOutRegex: '\Q 401 Unauthorized\E'
+          pollFrequency: 0
+          pollUnits: requests
+          pollUrl: ${ZAP_TARGET_URL}/api/auth/me
+          pollPostData: ""
+      sessionManagement:
+        method: cookie
+        parameters: {}
+      users:
+        - name: administrador-pruebas
+          credentials:
+            username: ${ZAP_ADMIN_EMAIL}
+            password: ${ZAP_ADMIN_PASSWORD}
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    continueOnFailure: false
+    progressToStdout: true
+
+jobs:
+  - type: requestor
+    parameters:
+      user: administrador-pruebas
+    requests:
+      - name: Comprobar que la sesión autenticada funciona
+        url: ${ZAP_TARGET_URL}/api/auth/me
+        method: GET
+        responseCode: 200
+
+  - type: openapi
+    parameters:
+      apiFile: /zap/wrk/openapi/read-only.yaml
+      context: FarmaCom
+      user: administrador-pruebas
+      targetUrl: ${ZAP_TARGET_URL}
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+
+  - type: report
+    parameters:
+      template: risk-confidence-html
+      reportDir: /zap/wrk/results
+      reportFile: authenticated-read.html
+      reportTitle: FarmaCom - análisis autenticado de lectura
+      reportDescription: Análisis pasivo autenticado de las operaciones de lectura.
+      displayReport: false
+    risks: [high, medium, low, info]
+    confidences: [high, medium, low, falsepositive]
+
+  - type: report
+    parameters:
+      template: traditional-json
+      reportDir: /zap/wrk/results
+      reportFile: authenticated-read.json
+      reportTitle: FarmaCom - análisis autenticado de lectura
+      reportDescription: Análisis pasivo autenticado de las operaciones de lectura.
+      displayReport: false
+    risks: [high, medium, low, info]
+    confidences: [high, medium, low, falsepositive]

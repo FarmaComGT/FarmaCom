@@ -36,6 +36,13 @@ case "$plan" in
     ;;
 esac
 
+if [ "$plan" = "plans/authenticated-read.yaml" ]; then
+  if [ -z "${ZAP_ADMIN_EMAIL:-}" ] || [ -z "${ZAP_ADMIN_PASSWORD:-}" ]; then
+    echo "Error: el plan autenticado requiere ZAP_ADMIN_EMAIL y ZAP_ADMIN_PASSWORD." >&2
+    exit 2
+  fi
+fi
+
 mkdir -p /zap/wrk/results
 
 echo "Ejecutando ZAP contra el ambiente local autorizado: $target_url"

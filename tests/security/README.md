@@ -61,6 +61,31 @@ autorización.
 Los reportes generados están ignorados porque pueden contener solicitudes y
 respuestas. Antes de versionar evidencia se debe crear un resumen sanitizado.
 
+## Ejecutar el análisis autenticado de lectura
+
+Configura en `.env.security` un usuario ficticio activo:
+
+```dotenv
+ZAP_PLAN=plans/authenticated-read.yaml
+ZAP_ADMIN_EMAIL=administrador.pruebas@farmacom.test
+ZAP_ADMIN_PASSWORD=reemplazar_con_clave_local
+```
+
+Ejecuta el mismo comando de Docker Compose utilizado para la comprobación
+inicial. El ejecutor detendrá el proceso antes de iniciar ZAP si falta alguna
+credencial.
+
+La cuenta debe tener el rol `administrador` para cubrir usuarios, cierres y
+reportes financieros. El plan utiliza `POST /api/auth/login` con un cuerpo JSON,
+conserva la cookie `auth_token` y consulta `GET /api/auth/me` para verificar la
+sesión. Después importa el contrato de lectura utilizando el mismo usuario. La
+ruta de cierre de sesión está excluida del contexto para impedir que el escaneo
+invalide su propia sesión.
+
+Una ejecución es válida únicamente si la solicitud autenticada a
+`/api/auth/me` devuelve `200`. Si el plan importa rutas pero todas responden
+`401`, el resultado no demuestra cobertura autenticada y debe descartarse.
+
 ## Objetivos
 
 - Comprobar que todos los endpoints protegidos rechacen solicitudes sin una
