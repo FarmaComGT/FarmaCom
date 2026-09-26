@@ -174,6 +174,59 @@ La prueba expresa la política esperada, no replica automáticamente el
 comportamiento actual. Por ello, un acceso cruzado que responda `200` se reporta
 como una falla de seguridad que debe clasificarse y mitigarse.
 
+## Ejecutar el análisis activo de lectura
+
+El análisis activo envía payloads de ataque reales y solo está autorizado
+contra el ambiente local desechable. Configura las credenciales ficticias del
+administrador y selecciona el plan:
+
+```dotenv
+ZAP_PLAN=plans/active-read.yaml
+ZAP_ADMIN_EMAIL=administrador.pruebas@farmacom.test
+ZAP_ADMIN_PASSWORD=reemplazar_con_clave_local
+```
+
+Antes de ejecutarlo, confirma que el objetivo siga siendo
+`http://backend:3000`, que los datos puedan restaurarse y que ninguna cuenta o
+información sea real. Luego utiliza el comando habitual de ZAP:
+
+```powershell
+docker compose --env-file .env --env-file tests/security/.env.security -f docker-compose.yml -f docker-compose.security.yml --profile security run --rm zap-security
+```
+
+El plan importa exclusivamente operaciones `GET` del contrato OpenAPI y
+excluye login y logout del ataque. La política habilita de forma explícita
+pruebas de SQL injection, XSS reflejado, manipulación de parámetros, CRLF, path
+traversal e inyección de código y comandos. No habilita reglas específicas de
+ataques temporizados ni XSS persistente.
+
+Para reducir impacto utiliza fuerza `Low`, dos hilos, una pausa de 100 ms, un
+máximo de dos minutos por regla y quince minutos para toda la exploración. Los
+resultados sin sanitizar se guardan como `results/active-read.html` y
+`results/active-read.json` y permanecen ignorados por Git.
+
+## Comprobar respuestas de error seguras
+
+Con el mismo administrador ficticio configurado, ejecuta:
+
+```powershell
+docker compose --env-file .env --env-file tests/security/.env.security -f docker-compose.yml -f docker-compose.security.yml --profile security run --rm security-error-responses
+```
+
+La comprobación envía identificadores, filtros y fechas inválidos; JSON
+incompleto y demasiado grande; una ruta inexistente y un método no permitido.
+Cada caso exige el código HTTP previsto, una respuesta JSON controlada y la
+ausencia de:
+
+- stack traces y rutas internas del servidor;
+- consultas, restricciones o detalles de PostgreSQL;
+- cookies, secretos y variables privadas;
+- campos internos como `stack`, `query`, `sql`, `detail` o `constraint`.
+
+También comprueba que la API no publique el encabezado `X-Powered-By`. La
+prueba no modifica información de negocio; los cuerpos inválidos se envían al
+login y son rechazados antes de autenticar.
+
 ## Objetivos
 
 - Comprobar que todos los endpoints protegidos rechacen solicitudes sin una
