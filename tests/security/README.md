@@ -131,6 +131,49 @@ deben devolver `401` y el undécimo debe devolver `429` con `Retry-After`. La
 prueba también exige encabezados estándar de rate limiting. Debe ejecutarse al
 final para que la ventana de bloqueo no interfiera con otros casos.
 
+## Comprobar autorización y aislamiento entre sucursales
+
+Configura una cuenta ficticia con rol `dependiente`, su sucursal y otra
+sucursal con al menos un lote, una venta y una caja. Los identificadores de los
+tres recursos ajenos deben pertenecer a `SECURITY_FOREIGN_BRANCH_ID`:
+
+```dotenv
+SECURITY_DEPENDENT_EMAIL=dependiente.pruebas@farmacom.test
+SECURITY_DEPENDENT_PASSWORD=reemplazar_con_clave_local
+SECURITY_OWN_BRANCH_ID=1
+SECURITY_FOREIGN_BRANCH_ID=2
+SECURITY_FOREIGN_LOT_ID=20
+SECURITY_FOREIGN_SALE_ID=30
+SECURITY_FOREIGN_REGISTER_ID=4
+```
+
+Ejecuta:
+
+```powershell
+docker compose --env-file .env --env-file tests/security/.env.security -f docker-compose.yml -f docker-compose.security.yml --profile security run --rm security-authorization-controls
+```
+
+Antes de probar accesos indebidos, el script usa al administrador para
+comprobar que el lote, la venta y la caja existen y pertenecen a la sucursal
+ajena. Esto evita que un `404` causado por datos incorrectos se confunda con un
+control de acceso.
+
+La matriz comprueba que:
+
+- el administrador pueda consultar usuarios, reportes financieros, cierres y
+  alertas globales de lotes;
+- el dependiente reciba `403` en esas capacidades administrativas;
+- el dependiente pueda consultar su propio usuario, además del inventario,
+  lotes, cajas y ventas de su sucursal;
+- cambiar el identificador de sucursal o utilizar identificadores directos de
+  otro usuario, un lote, una venta o una caja ajenos produzca `403`;
+- una respuesta denegada solo exponga un mensaje genérico y no datos del
+  recurso solicitado.
+
+La prueba expresa la política esperada, no replica automáticamente el
+comportamiento actual. Por ello, un acceso cruzado que responda `200` se reporta
+como una falla de seguridad que debe clasificarse y mitigarse.
+
 ## Objetivos
 
 - Comprobar que todos los endpoints protegidos rechacen solicitudes sin una
