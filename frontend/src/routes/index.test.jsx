@@ -30,8 +30,10 @@ vi.mock('../pages/caja/CajaOperativa.jsx', () => ({
   default: () => <h1>Operación de caja</h1>,
 }));
 
-const renderizarRutaReportes = () => render(
-  <MemoryRouter initialEntries={['/reports']}>
+vi.mock('../pages/laboratorio/Pacientes.jsx', () => ({
+  default: () => <h1>Pacientes de laboratorio</h1>,
+}));
+
 vi.mock('../pages/reportes/Rentabilidad.jsx', () => ({
   default: () => <h1>Rentabilidad por sucursal</h1>,
 }));
@@ -120,9 +122,43 @@ describe('ruta de caja', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Dashboard (Próximamente)')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Pacientes de laboratorio' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Caja' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Operación de caja' }))
       .not.toBeInTheDocument();
+  });
+});
+
+describe('ruta de pacientes de laboratorio', () => {
+  const renderizarRutaPacientes = () => render(
+    <MemoryRouter initialEntries={['/laboratorio/pacientes']}>
+      <AppRoutes />
+    </MemoryRouter>,
+  );
+
+  it('permite el acceso a un laboratorista y muestra el enlace en el menú', () => {
+    estadoAuth.usuario = {
+      id_usuario: 12,
+      nombre_usuario: 'Laura Laboratorista',
+      rol: 'laboratorista',
+    };
+
+    renderizarRutaPacientes();
+
+    expect(screen.getByRole('heading', { name: 'Pacientes de laboratorio' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Pacientes' })).toBeInTheDocument();
+  });
+
+  it('bloquea el acceso a un dependiente', () => {
+    estadoAuth.usuario = {
+      id_usuario: 7,
+      nombre_usuario: 'Diego Dependiente',
+      rol: 'dependiente',
+    };
+
+    renderizarRutaPacientes();
+
+    expect(screen.queryByRole('heading', { name: 'Pacientes de laboratorio' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pacientes' })).not.toBeInTheDocument();
   });
 });

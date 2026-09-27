@@ -17,6 +17,8 @@ import Casas from '../pages/inventario/Casas.jsx';
 import Clientes from '../pages/Clientes.jsx';
 import PuntoVenta from '../pages/ventas/PuntoVenta.jsx';
 import CajaOperativa from '../pages/caja/CajaOperativa.jsx';
+import Pacientes from '../pages/laboratorio/Pacientes.jsx';
+import PacientePerfil from '../pages/laboratorio/PacientePerfil.jsx';
 
 const Reportes = lazy(() => import('../pages/reportes/Reportes.jsx'));
 const Rentabilidad = lazy(() => import('../pages/reportes/Rentabilidad.jsx'));
@@ -56,6 +58,10 @@ export default function AppRoutes() {
           </Route>
 
           <Route path="/patients" element={<Clientes />} />
+          <Route element={<RoleRoute allowedRoles={['dueno', 'administrador', 'laboratorista']} />}>
+            <Route path="/laboratorio/pacientes" element={<Pacientes />} />
+            <Route path="/laboratorio/pacientes/:id" element={<PacientePerfil />} />
+          </Route>
           <Route path="/pos" element={<PuntoVenta />} />
           <Route element={<RoleRoute allowedRoles={['dueno', 'administrador', 'dependiente']} />}>
             <Route path="/caja" element={<CajaOperativa />} />

@@ -3,5 +3,9 @@ export function getDefaultRouteForRole(rol) {
     return '/usuarios';
   }
 
+  if (rol === 'laboratorista') {
+    return '/laboratorio/pacientes';
+  }
+
   return '/dashboard';
 }
