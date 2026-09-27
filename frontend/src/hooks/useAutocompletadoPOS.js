@@ -3,6 +3,7 @@ import api from '../api/axios';
 
 const normalizarProducto = (producto) => {
   const precioVenta = Number(producto.precio_venta);
+  const relevancia = Number(producto.relevancia);
 
   return {
     ...producto,
@@ -12,8 +13,28 @@ const normalizarProducto = (producto) => {
     stock_disponible: Number(producto.stock_disponible),
     precio_venta: precioVenta,
     tiene_precio: Number.isFinite(precioVenta) && precioVenta > 0,
+    relevancia: Number.isFinite(relevancia) ? relevancia : 0,
+    tipo_coincidencia: producto.tipo_coincidencia === 'aproximada'
+      ? 'aproximada'
+      : 'exacta',
   };
 };
+
+const ordenarResultados = (productos) => [...productos].sort((primero, segundo) => {
+  const primeroEsAproximado = primero.tipo_coincidencia === 'aproximada';
+  const segundoEsAproximado = segundo.tipo_coincidencia === 'aproximada';
+
+  if (primeroEsAproximado !== segundoEsAproximado) {
+    return primeroEsAproximado ? 1 : -1;
+  }
+
+  if (primeroEsAproximado) {
+    return segundo.relevancia - primero.relevancia;
+  }
+
+  // El backend ya ordena las coincidencias directas por código y prefijo.
+  return 0;
+});
 
 export default function useAutocompletadoPOS(busqueda, limite = 10) {
   const [productos, setProductos] = useState([]);
@@ -40,7 +61,7 @@ export default function useAutocompletadoPOS(busqueda, limite = 10) {
       const respuesta = await api.get('/productos/autocompletar', {
         params: { busqueda: terminoNormalizado, limite },
       });
-      const resultados = respuesta.data.map(normalizarProducto);
+      const resultados = ordenarResultados(respuesta.data.map(normalizarProducto));
 
       if (idSolicitud === solicitudActual.current) {
         setProductos(resultados);

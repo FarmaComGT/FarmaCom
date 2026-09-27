@@ -21,6 +21,9 @@ export default function AutocompletadoProductosPOS({
 }) {
   const [procesandoEnter, setProcesandoEnter] = useState(false);
   const hayBusqueda = Boolean(busqueda.trim());
+  const hayCoincidenciasAproximadas = productos.some(
+    (producto) => producto.tipo_coincidencia === 'aproximada',
+  );
 
   const manejarTecla = async (evento) => {
     if (evento.key !== 'Enter' || !hayBusqueda || procesandoEnter) return;
@@ -128,7 +131,7 @@ export default function AutocompletadoProductosPOS({
             <PackageSearch className="mb-3 h-10 w-10 text-slate-300" />
             <p className="font-headline font-bold text-slate-700">Sin coincidencias disponibles</p>
             <p className="mt-1 max-w-sm text-sm">
-              Prueba otro nombre o verifica el código del producto.
+              Prueba otra ortografía, otro nombre o verifica el código del producto.
             </p>
           </div>
         )}
@@ -144,7 +147,11 @@ export default function AutocompletadoProductosPOS({
 
       {hayBusqueda && !buscando && !error && productos.length > 0 && (
         <div className="mt-4 flex items-center justify-between border-t border-primary/5 pt-4 text-xs font-semibold text-slate-400">
-          <span>Enter agrega la primera opción</span>
+          <span>
+            {hayCoincidenciasAproximadas
+              ? 'Las coincidencias aproximadas aparecen después de las directas'
+              : 'Enter agrega la primera opción'}
+          </span>
           <span>{productos.length} {productos.length === 1 ? 'resultado' : 'resultados'}</span>
         </div>
       )}

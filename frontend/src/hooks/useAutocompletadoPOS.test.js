@@ -68,4 +68,26 @@ describe('useAutocompletadoPOS', () => {
     expect(result.current.productos).toEqual([]);
     expect(result.current.error).toBe('Servicio temporalmente no disponible');
   });
+
+  it('conserva las coincidencias directas primero y ordena las aproximadas por relevancia', async () => {
+    api.get.mockResolvedValue({
+      data: [
+        { id_producto: '3', id_lote: '3', relevancia: '0.42', tipo_coincidencia: 'aproximada' },
+        { id_producto: '1', id_lote: '1', relevancia: '1', tipo_coincidencia: 'exacta' },
+        { id_producto: '2', id_lote: '2', relevancia: '0.78', tipo_coincidencia: 'aproximada' },
+      ],
+    });
+    const { result } = renderHook(() => useAutocompletadoPOS(''));
+
+    let productos;
+    await act(async () => {
+      productos = await result.current.buscarAhora('paracetamlo');
+    });
+
+    expect(productos.map((producto) => producto.id_producto)).toEqual([1, 2, 3]);
+    expect(productos[1]).toMatchObject({
+      tipo_coincidencia: 'aproximada',
+      relevancia: 0.78,
+    });
+  });
 });

@@ -94,4 +94,15 @@ describe('AutocompletadoProductosPOS', () => {
 
     expect(screen.getByText('Sin coincidencias disponibles')).toBeInTheDocument();
   });
+
+  it('identifica visualmente una coincidencia aproximada', async () => {
+    const user = userEvent.setup();
+    render(<Escenario productos={[{ ...producto, tipo_coincidencia: 'aproximada' }]} />);
+
+    await user.type(screen.getByLabelText('Buscar productos'), 'paracetamlo');
+
+    expect(screen.getByText('Coincidencia aproximada')).toBeInTheDocument();
+    expect(screen.getByText('Las coincidencias aproximadas aparecen después de las directas'))
+      .toBeInTheDocument();
+  });
 });
