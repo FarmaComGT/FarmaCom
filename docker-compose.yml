@@ -33,8 +33,11 @@ services:
     env_file: .env
     environment:
       DB_HOST: db
+      RUTA_UPLOADS_RESULTADOS: /app/uploads/resultados
     ports:
       - "3000:3000"
+    volumes:
+      - uploads_resultados:/app/uploads/resultados
 
   frontend:
     build:
@@ -50,3 +53,4 @@ services:
 
 volumes:
   postgres_data:
+  uploads_resultados:

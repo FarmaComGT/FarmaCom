@@ -9,6 +9,7 @@ const mapUsuarioSesion = (usuario) => ({
     correo_usuario: usuario.correo_usuario,
     rol: usuario.rol,
     id_sucursal: usuario.id_sucursal,
+    id_laboratorio: usuario.id_laboratorio,
 });
 
 const login = async (correo_usuario, contrasena) => {

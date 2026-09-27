@@ -29,6 +29,44 @@ const validarFechaNacimiento = body('fecha_nacimiento')
   .optional({ nullable: true })
   .isISO8601({ strict: true }).withMessage('fecha_nacimiento debe tener formato YYYY-MM-DD');
 
+const validarEdadManual = body('edad_manual')
+  .optional({ nullable: true })
+  .isInt({ min: 0, max: 120 }).withMessage('edad_manual debe ser un entero entre 0 y 120')
+  .toInt();
+
+const validarSexoRegistro = body('sexo')
+  .isIn(['M', 'F', 'Otro']).withMessage('sexo debe ser M, F u Otro');
+
+const validarSexoActualizacion = body('sexo')
+  .optional()
+  .isIn(['M', 'F', 'Otro']).withMessage('sexo debe ser M, F u Otro');
+
+// En el alta, fecha_nacimiento/edad_manual son excluyentes y una de las dos es obligatoria.
+const validarExclusividadEdadRegistro = body().custom((_valor, { req }) => {
+  const tieneFecha = req.body.fecha_nacimiento != null && req.body.fecha_nacimiento !== '';
+  const tieneEdadManual = req.body.edad_manual != null && req.body.edad_manual !== '';
+
+  if (tieneFecha === tieneEdadManual) {
+    throw new Error('Debe indicarse exactamente uno de fecha_nacimiento o edad_manual');
+  }
+  return true;
+});
+
+// En la actualización solo se valida la exclusividad si el cliente toca alguno de los dos campos.
+const validarExclusividadEdadActualizacion = body().custom((_valor, { req }) => {
+  const incluyeFecha = Object.prototype.hasOwnProperty.call(req.body, 'fecha_nacimiento');
+  const incluyeEdadManual = Object.prototype.hasOwnProperty.call(req.body, 'edad_manual');
+  if (!incluyeFecha && !incluyeEdadManual) return true;
+
+  const tieneFecha = req.body.fecha_nacimiento != null && req.body.fecha_nacimiento !== '';
+  const tieneEdadManual = req.body.edad_manual != null && req.body.edad_manual !== '';
+
+  if (tieneFecha === tieneEdadManual) {
+    throw new Error('Debe indicarse exactamente uno de fecha_nacimiento o edad_manual, no ambos ni ninguno');
+  }
+  return true;
+});
+
 const validarDireccion = body('direccion')
   .optional({ nullable: true })
   .trim()
@@ -49,6 +87,9 @@ const validarRegistro = [
     .isLength({ max: 150 }).withMessage('nombre_paciente no puede superar los 150 caracteres'),
   validarDpi,
   validarFechaNacimiento,
+  validarEdadManual,
+  validarSexoRegistro,
+  validarExclusividadEdadRegistro,
   validarTelefono,
   validarDireccion,
   validarObservaciones,
@@ -62,6 +103,9 @@ const validarActualizacion = [
     .isLength({ max: 150 }).withMessage('nombre_paciente no puede superar los 150 caracteres'),
   validarDpi,
   validarFechaNacimiento,
+  validarEdadManual,
+  validarSexoActualizacion,
+  validarExclusividadEdadActualizacion,
   validarTelefono,
   validarDireccion,
   validarObservaciones,

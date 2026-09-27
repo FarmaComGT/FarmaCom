@@ -1,4 +1,5 @@
 const PacienteDAO = require('../daos/PacienteDAO');
+const { calcularEdad } = require('../utils/edad');
 
 const noEncontrado = () => {
   const error = new Error('Paciente no encontrado');
@@ -18,11 +19,17 @@ const normalizarDpi = (dpi) => {
   return normalizado || null;
 };
 
+const conEdad = (paciente) => (
+  paciente ? { ...paciente, edad: paciente.fecha_nacimiento ? calcularEdad(paciente.fecha_nacimiento) : paciente.edad_manual } : paciente
+);
+
 const registrarPaciente = async ({
   id_laboratorio,
   nombre_paciente,
   dpi,
   fecha_nacimiento,
+  edad_manual,
+  sexo,
   telefono,
   direccion,
   observaciones,
@@ -41,6 +48,8 @@ const registrarPaciente = async ({
           nombre_paciente,
           dpi: dpiNormalizado,
           fecha_nacimiento,
+          edad_manual,
+          sexo,
           telefono,
           direccion,
           observaciones,
@@ -48,7 +57,7 @@ const registrarPaciente = async ({
         client,
       );
       const expediente = await PacienteDAO.crearExpediente(paciente.id_paciente, client);
-      return { ...paciente, id_expediente: expediente.id_expediente };
+      return conEdad({ ...paciente, id_expediente: expediente.id_expediente });
     });
   } catch (error) {
     if (error.code === '23505') lanzarError('Ya existe un paciente con ese DPI', 409);
@@ -59,7 +68,7 @@ const registrarPaciente = async ({
 const obtenerPorId = async (id_paciente) => {
   const paciente = await PacienteDAO.obtenerPorId(id_paciente);
   if (!paciente) throw noEncontrado();
-  return paciente;
+  return conEdad(paciente);
 };
 
 const buscarPacientes = async ({ id_laboratorio, busqueda, estado, pagina, limite }) => {
@@ -75,7 +84,7 @@ const buscarPacientes = async ({ id_laboratorio, busqueda, estado, pagina, limit
   });
 
   return {
-    datos,
+    datos: datos.map(conEdad),
     paginacion: {
       pagina: paginaAplicada,
       limite: limiteAplicado,
@@ -111,7 +120,7 @@ const actualizarPaciente = async (id_paciente, campos) => {
     throw error;
   }
   if (!paciente) throw noEncontrado();
-  return paciente;
+  return conEdad(paciente);
 };
 
 const anularPaciente = async (id_paciente, motivo_anulacion) => {
@@ -122,7 +131,8 @@ const anularPaciente = async (id_paciente, motivo_anulacion) => {
       lanzarError('El paciente ya esta anulado', 409);
     }
 
-    return PacienteDAO.anular(id_paciente, motivo_anulacion, client);
+    const actualizado = await PacienteDAO.anular(id_paciente, motivo_anulacion, client);
+    return conEdad(actualizado);
   });
 };
 
