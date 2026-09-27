@@ -22,22 +22,26 @@ class PacienteDAO {
     nombre_paciente,
     dpi,
     fecha_nacimiento,
+    edad_manual,
+    sexo,
     telefono,
     direccion,
     observaciones,
   }, client) {
     const { rows } = await client.query(
       `INSERT INTO paciente (
-         id_laboratorio, nombre_paciente, dpi, fecha_nacimiento,
+         id_laboratorio, nombre_paciente, dpi, fecha_nacimiento, edad_manual, sexo,
          telefono, direccion, observaciones
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [
         id_laboratorio,
         nombre_paciente,
         dpi ?? null,
         fecha_nacimiento ?? null,
+        edad_manual ?? null,
+        sexo,
         telefono ?? null,
         direccion ?? null,
         observaciones ?? null,
@@ -124,28 +128,36 @@ class PacienteDAO {
   async actualizar(id_paciente, campos) {
     const {
       nombre_paciente,
-      fecha_nacimiento,
+      sexo,
       telefono,
       direccion,
       observaciones,
     } = campos;
     const incluyeDpi = Object.prototype.hasOwnProperty.call(campos, 'dpi');
+    const incluyeFechaNacimiento = Object.prototype.hasOwnProperty.call(campos, 'fecha_nacimiento');
+    const incluyeEdadManual = Object.prototype.hasOwnProperty.call(campos, 'edad_manual');
 
     const { rows } = await pool.query(
       `UPDATE paciente SET
          nombre_paciente  = COALESCE($1, nombre_paciente),
          dpi              = CASE WHEN $2 THEN $3 ELSE dpi END,
-         fecha_nacimiento = COALESCE($4, fecha_nacimiento),
-         telefono         = COALESCE($5, telefono),
-         direccion        = COALESCE($6, direccion),
-         observaciones    = COALESCE($7, observaciones)
-       WHERE id_paciente = $8
+         fecha_nacimiento = CASE WHEN $4 THEN $5 ELSE fecha_nacimiento END,
+         edad_manual      = CASE WHEN $6 THEN $7 ELSE edad_manual END,
+         sexo             = COALESCE($8, sexo),
+         telefono         = COALESCE($9, telefono),
+         direccion        = COALESCE($10, direccion),
+         observaciones    = COALESCE($11, observaciones)
+       WHERE id_paciente = $12
        RETURNING *`,
       [
         nombre_paciente ?? null,
         incluyeDpi,
         campos.dpi ?? null,
-        fecha_nacimiento ?? null,
+        incluyeFechaNacimiento,
+        campos.fecha_nacimiento ?? null,
+        incluyeEdadManual,
+        campos.edad_manual ?? null,
+        sexo ?? null,
         telefono ?? null,
         direccion ?? null,
         observaciones ?? null,

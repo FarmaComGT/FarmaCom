@@ -16,7 +16,10 @@
         "express-rate-limit": "^8.3.2",
         "express-validator": "7.3.2",
         "jsonwebtoken": "^9.0.2",
-        "pg": "^8.11.3"
+        "multer": "^2.4.0",
+        "pdf-lib": "^1.17.1",
+        "pg": "^8.11.3",
+        "qrcode": "^1.5.4"
     },
     "overrides": {
         "tar": "6.2.1",

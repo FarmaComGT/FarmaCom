@@ -110,6 +110,8 @@ CREATE TABLE IF NOT EXISTS paciente (
     nombre_paciente    VARCHAR(150)  NOT NULL,
     dpi                VARCHAR(20),
     fecha_nacimiento   DATE,
+    edad_manual        INTEGER,
+    sexo               VARCHAR(10)   NOT NULL,
     telefono           VARCHAR(20),
     direccion          TEXT,
     observaciones      TEXT,
@@ -131,6 +133,19 @@ CREATE TABLE IF NOT EXISTS paciente (
             (estado = 'activo' AND fecha_anulacion IS NULL AND motivo_anulacion IS NULL)
             OR
             (estado = 'anulado' AND fecha_anulacion IS NOT NULL AND motivo_anulacion IS NOT NULL)
+        ),
+
+    CONSTRAINT chk_paciente_sexo
+        CHECK (sexo IN ('M', 'F', 'Otro')),
+
+    CONSTRAINT chk_paciente_edad_manual_rango
+        CHECK (edad_manual IS NULL OR (edad_manual >= 0 AND edad_manual <= 120)),
+
+    CONSTRAINT chk_paciente_edad_dato
+        CHECK (
+            (fecha_nacimiento IS NOT NULL AND edad_manual IS NULL)
+            OR
+            (fecha_nacimiento IS NULL AND edad_manual IS NOT NULL)
         )
 );
 
@@ -197,6 +212,50 @@ CREATE TABLE IF NOT EXISTS visita_laboratorio (
 
 CREATE INDEX IF NOT EXISTS idx_visita_expediente
     ON visita_laboratorio (id_expediente, fecha_visita DESC);
+
+-- =========================
+-- TABLA: resultado_laboratorio
+-- Resultado en PDF (con QR incrustado) asociado al expediente de un paciente.
+-- =========================
+CREATE TABLE IF NOT EXISTS resultado_laboratorio (
+    id_resultado          SERIAL        PRIMARY KEY,
+    id_expediente         INTEGER       NOT NULL,
+    categoria             VARCHAR(100)  NOT NULL,
+    ruta_archivo          VARCHAR(255)  NOT NULL,
+    token_publico         UUID          NOT NULL DEFAULT gen_random_uuid(),
+    fecha_expiracion      TIMESTAMPTZ   NOT NULL,
+    estado                VARCHAR(20)   NOT NULL DEFAULT 'vigente',
+    motivo_anulacion      VARCHAR(500),
+    fecha_anulacion       TIMESTAMPTZ,
+    id_usuario_subida     INTEGER       NOT NULL,
+    fecha_subida          TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_resultado_expediente
+        FOREIGN KEY (id_expediente)
+        REFERENCES expediente_laboratorio(id_expediente)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_resultado_usuario_subida
+        FOREIGN KEY (id_usuario_subida)
+        REFERENCES usuario(id_usuario)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT uq_resultado_token
+        UNIQUE (token_publico),
+
+    CONSTRAINT chk_resultado_estado
+        CHECK (estado IN ('vigente', 'anulado')),
+
+    CONSTRAINT chk_resultado_anulacion
+        CHECK (
+            (estado = 'vigente' AND fecha_anulacion IS NULL AND motivo_anulacion IS NULL)
+            OR
+            (estado = 'anulado' AND fecha_anulacion IS NOT NULL AND motivo_anulacion IS NOT NULL)
+        )
+);
+
+CREATE INDEX IF NOT EXISTS idx_resultado_expediente
+    ON resultado_laboratorio (id_expediente, fecha_subida DESC);
 
 -- =========================
 -- TABLA: bitacora_laboratorio
@@ -910,14 +969,14 @@ WHERE s.nombre_sucursal = 'Sucursal Central'
       WHERE u.correo_usuario = 'laboratorista@farma.com'
   );
 
-INSERT INTO paciente (id_laboratorio, nombre_paciente, dpi, fecha_nacimiento, telefono, direccion)
-SELECT l.id_laboratorio, 'Paciente Demo Uno', '1234567890101', DATE '1990-05-14', '5555-1111', 'Zona 1, Ciudad de Guatemala'
+INSERT INTO paciente (id_laboratorio, nombre_paciente, dpi, fecha_nacimiento, sexo, telefono, direccion)
+SELECT l.id_laboratorio, 'Paciente Demo Uno', '1234567890101', DATE '1990-05-14', 'M', '5555-1111', 'Zona 1, Ciudad de Guatemala'
 FROM laboratorio l
 WHERE l.nombre_laboratorio = 'Laboratorio Central'
   AND NOT EXISTS (SELECT 1 FROM paciente WHERE dpi = '1234567890101');
 
-INSERT INTO paciente (id_laboratorio, nombre_paciente, dpi, fecha_nacimiento, telefono, direccion)
-SELECT l.id_laboratorio, 'Paciente Demo Dos', '9876543210202', DATE '1985-11-02', '5555-2222', 'Zona 10, Ciudad de Guatemala'
+INSERT INTO paciente (id_laboratorio, nombre_paciente, dpi, fecha_nacimiento, sexo, telefono, direccion)
+SELECT l.id_laboratorio, 'Paciente Demo Dos', '9876543210202', DATE '1985-11-02', 'F', '5555-2222', 'Zona 10, Ciudad de Guatemala'
 FROM laboratorio l
 WHERE l.nombre_laboratorio = 'Laboratorio Central'
   AND NOT EXISTS (SELECT 1 FROM paciente WHERE dpi = '9876543210202');
