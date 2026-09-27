@@ -66,6 +66,17 @@ const eliminarCasa = async (id_casa) => {
   return { mensaje: 'Casa farmacéutica eliminada correctamente' };
 };
 
+const obtenerProveedoresVinculados = async (id_casa) => {
+  const casa = await CasaFarmaceuticaDAO.obtenerPorId(id_casa);
+  if (!casa) {
+    const error = new Error('Casa farmacéutica no encontrada');
+    error.status = 404;
+    throw error;
+  }
+
+  return await CasaFarmaceuticaDAO.obtenerProveedoresVinculados(id_casa);
+};
+
 module.exports = {
   crearCasa,
   obtenerTodas,
@@ -73,4 +84,5 @@ module.exports = {
   actualizarCasa,
   cambiarEstado,
   eliminarCasa,
+  obtenerProveedoresVinculados,
 };
