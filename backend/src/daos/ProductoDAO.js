@@ -52,11 +52,11 @@ class ProductoDAO {
   }
 
   async autocompletarParaPOS(busqueda, id_sucursal, limite) {
-    // LIKE interpreta %, _ y \\ como comodines. Se escapan para que la busqueda
-    // siempre trate la entrada del usuario como texto literal.
-    const patronBusqueda = busqueda.replace(/[\\%_]/g, '\\$&');
     const query = `
-      WITH productos_coincidentes AS (
+      WITH termino AS (
+        SELECT normalizar_texto_busqueda($1) AS valor
+      ),
+      productos_coincidentes AS (
         SELECT
           p.id_producto,
           p.codigo,
@@ -65,32 +65,38 @@ class ProductoDAO {
           p.concentracion,
           p.aplica_mayoreo,
           pre.nombre AS presentacion,
-          TRANSLATE(
-            LOWER(CONCAT_WS(' ', p.codigo, p.nombre_comercial, p.nombre_generico,
-              p.concentracion, pre.nombre)),
-            'áéíóúüñ',
-            'aeiouun'
-          ) AS texto_busqueda
+          normalizar_texto_busqueda(p.codigo) AS codigo_normalizado,
+          normalizar_texto_busqueda(p.nombre_comercial) AS nombre_comercial_normalizado,
+          normalizar_texto_busqueda(p.nombre_generico) AS nombre_generico_normalizado,
+          normalizar_texto_busqueda(CONCAT_WS(' ', p.codigo, p.nombre_comercial,
+            p.nombre_generico, p.concentracion, pre.nombre)) AS texto_busqueda
         FROM producto p
         JOIN presentacion pre ON pre.id_presentacion = p.id_presentacion
         WHERE p.activo = TRUE
       ),
-      termino AS (
-        SELECT TRANSLATE(LOWER($1), 'áéíóúüñ', 'aeiouun') AS valor
-      ),
-      productos_limitados AS (
+      productos_con_relevancia AS (
         SELECT
           p.*,
           CASE
-            WHEN TRANSLATE(LOWER(p.codigo), 'áéíóúüñ', 'aeiouun') = t.valor THEN 0
-            WHEN TRANSLATE(LOWER(p.codigo), 'áéíóúüñ', 'aeiouun') LIKE TRANSLATE(LOWER($4), 'áéíóúüñ', 'aeiouun') || '%' ESCAPE '\\' THEN 1
-            WHEN TRANSLATE(LOWER(p.nombre_comercial), 'áéíóúüñ', 'aeiouun') LIKE TRANSLATE(LOWER($4), 'áéíóúüñ', 'aeiouun') || '%' ESCAPE '\\' THEN 2
-            WHEN TRANSLATE(LOWER(p.nombre_generico), 'áéíóúüñ', 'aeiouun') LIKE TRANSLATE(LOWER($4), 'áéíóúüñ', 'aeiouun') || '%' ESCAPE '\\' THEN 3
+            WHEN p.codigo_normalizado = t.valor THEN 0
+            WHEN p.codigo_normalizado LIKE t.valor || '%' THEN 1
+            WHEN p.nombre_comercial_normalizado LIKE t.valor || '%' THEN 2
+            WHEN p.nombre_generico_normalizado LIKE t.valor || '%' THEN 3
             ELSE 4
-          END AS prioridad
+          END AS prioridad,
+          GREATEST(
+            similarity(p.codigo_normalizado, t.valor),
+            similarity(p.nombre_comercial_normalizado, t.valor),
+            similarity(p.nombre_generico_normalizado, t.valor)
+          ) AS relevancia,
+          CASE
+            WHEN p.texto_busqueda LIKE '%' || t.valor || '%' THEN 'exacta'
+            ELSE 'aproximada'
+          END AS tipo_coincidencia,
+          t.valor AS termino_normalizado
         FROM productos_coincidentes p
         CROSS JOIN termino t
-        WHERE p.texto_busqueda LIKE '%' || TRANSLATE(LOWER($4), 'áéíóúüñ', 'aeiouun') || '%' ESCAPE '\\'
+        WHERE t.valor <> ''
           AND EXISTS (
             SELECT 1
             FROM lote l
@@ -100,7 +106,21 @@ class ProductoDAO {
               AND l.precio_venta > 0
               AND l.fecha_vencimiento >= CURRENT_DATE
           )
-        ORDER BY prioridad, p.nombre_comercial ASC, p.id_producto ASC
+      ),
+      productos_limitados AS (
+        SELECT *
+        FROM productos_con_relevancia
+        WHERE texto_busqueda LIKE '%' || termino_normalizado || '%'
+          OR (
+            char_length(termino_normalizado) >= 3
+            AND (
+              codigo_normalizado % termino_normalizado
+              OR nombre_comercial_normalizado % termino_normalizado
+              OR nombre_generico_normalizado % termino_normalizado
+            )
+            AND relevancia >= 0.30
+          )
+        ORDER BY prioridad, relevancia DESC, nombre_comercial ASC, id_producto ASC
         LIMIT $3
       )
       SELECT
@@ -119,7 +139,9 @@ class ProductoDAO {
         lote_pos.estado_vencimiento,
         p.aplica_mayoreo,
         lote_pos.precio_mayoreo,
-        lote_pos.cantidad_mayoreo
+        lote_pos.cantidad_mayoreo,
+        p.relevancia,
+        p.tipo_coincidencia
       FROM productos_limitados p
       JOIN v_lote_estado lote_pos
         ON lote_pos.id_producto = p.id_producto
@@ -129,12 +151,13 @@ class ProductoDAO {
        AND lote_pos.fecha_vencimiento >= CURRENT_DATE
       ORDER BY
         p.prioridad,
+        p.relevancia DESC,
         p.nombre_comercial ASC,
         p.id_producto ASC,
         lote_pos.fecha_vencimiento ASC,
         lote_pos.id_lote ASC
     `;
-    const { rows } = await pool.query(query, [busqueda, id_sucursal, limite, patronBusqueda]);
+    const { rows } = await pool.query(query, [busqueda, id_sucursal, limite]);
     return rows;
   }
 

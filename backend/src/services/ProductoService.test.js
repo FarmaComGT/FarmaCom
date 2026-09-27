@@ -120,4 +120,13 @@ describe('ProductoService - autocompletado para POS', () => {
 
     expect(ProductoDAO.autocompletarParaPOS).not.toHaveBeenCalled();
   });
+
+  it('rechaza búsquedas compuestas únicamente por caracteres especiales', async () => {
+    await expect(ProductoService.autocompletarParaPOS({
+      busqueda: '%-_',
+      id_sucursal: 4,
+    })).rejects.toMatchObject({ status: 400 });
+
+    expect(ProductoDAO.autocompletarParaPOS).not.toHaveBeenCalled();
+  });
 });
