@@ -102,6 +102,9 @@ describe('VentaDAO', () => {
     expect(client.query).toHaveBeenCalledWith(
       expect.stringContaining('id_sesion_caja'),
       [1, 7, 9, null, 'efectivo', null, null, null, null, null, '25.00', '30.00', '5.00'],
+    );
+  });
+
   it('guarda la fotografía calculada de los detalles del pago POS como JSON', async () => {
     const client = {
       query: jest.fn().mockResolvedValue({ rows: [{ id_pago_pos: 5 }] }),
@@ -117,6 +120,7 @@ describe('VentaDAO', () => {
       external_id: 'farmacom-pos-test',
       id_sucursal: 1,
       id_usuario: 7,
+      id_sesion_caja: 9,
       id_cliente: null,
       terminal_id: 'trm_test_123',
       total: '25.00',
@@ -124,8 +128,8 @@ describe('VentaDAO', () => {
     }, client);
 
     expect(client.query).toHaveBeenCalledWith(
-      expect.stringMatching(/INSERT INTO pago_pos[\s\S]*\$7::jsonb/),
-      ['farmacom-pos-test', 1, 7, null, 'trm_test_123', '25.00', JSON.stringify(detalles)],
+      expect.stringMatching(/INSERT INTO pago_pos[\s\S]*\$8::jsonb/),
+      ['farmacom-pos-test', 1, 7, 9, null, 'trm_test_123', '25.00', JSON.stringify(detalles)],
     );
   });
 
