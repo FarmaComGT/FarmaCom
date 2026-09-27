@@ -298,6 +298,7 @@ describe('VentaService', () => {
         external_id: expect.stringMatching(/^farmacom-pos-/),
         id_sucursal: 1,
         id_usuario: 7,
+        id_sesion_caja: 9,
         id_cliente: null,
         terminal_id: 'trm_test_123',
         total: '25.00',

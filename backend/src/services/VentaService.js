@@ -2,57 +2,30 @@ const crypto = require('crypto');
 const VentaDAO = require('../daos/VentaDAO');
 const CajaDAO = require('../daos/CajaDAO');
 const RecurrenteService = require('./RecurrenteService');
+const { lanzarError } = require('./VentaErrores');
+const {
+  aCentavos,
+  aMonto,
+  calcularCobroEfectivo,
+} = require('./VentaMonetariaService');
+const {
+  validarAccesoSucursal,
+  validarDatosBasicosVenta,
+  verificarCliente,
+  prepararVenta,
+} = require('./VentaPreparacionService');
+const {
+  registrarDetallesYDescontarStock,
+  restaurarExistenciasDeDetalles,
+} = require('./VentaDetalleService');
 
-const MAXIMO_CENTAVOS = 999999999999;
 const METODOS_PERMITIDOS = ['efectivo'];
-
-const lanzarError = (mensaje, status) => {
-  const error = new Error(mensaje);
-  error.status = status;
-  throw error;
-};
-
-const aCentavos = (monto) => Math.round(Number(monto) * 100);
-const aMonto = (centavos) => (centavos / 100).toFixed(2);
-
-const puedeAccederSucursal = (usuario, id_sucursal) => (
-  usuario.rol !== 'dependiente'
-  || Number(usuario.id_sucursal) === Number(id_sucursal)
-);
-
-const validarAccesoSucursal = (usuario, id_sucursal) => {
-  if (!puedeAccederSucursal(usuario, id_sucursal)) {
-    lanzarError('No tienes permiso para operar ventas de otra sucursal', 403);
-  }
-};
-
-const verificarCliente = async (id_cliente, client) => {
-  if (id_cliente == null) return;
-  const cliente = await VentaDAO.obtenerClientePorId(id_cliente, client);
-  if (!cliente) lanzarError('Cliente no encontrado', 404);
-};
 
 const obtenerVentaAutorizada = async (id_venta, usuario) => {
   const venta = await VentaDAO.obtenerPorId(id_venta);
   if (!venta) lanzarError('Venta no encontrada', 404);
   validarAccesoSucursal(usuario, venta.id_sucursal);
   return venta;
-};
-
-const validarDatosBasicosVenta = (datos, usuario) => {
-  const {
-    id_sucursal,
-    detalles,
-  } = datos;
-
-  validarAccesoSucursal(usuario, id_sucursal);
-
-  const idsLote = detalles.map(({ id_lote }) => Number(id_lote));
-  if (new Set(idsLote).size !== idsLote.length) {
-    lanzarError('Cada lote debe aparecer una sola vez en los detalles de la venta', 400);
-  }
-
-  return idsLote;
 };
 
 const validarSesionCaja = async (datos, usuario, client) => {
@@ -74,74 +47,6 @@ const validarSesionCaja = async (datos, usuario, client) => {
   return Number(sesion.id_sesion_caja);
 };
 
-const prepararVenta = async (datos, usuario, client) => {
-  const {
-    id_sucursal,
-    id_cliente = null,
-    detalles,
-  } = datos;
-  const idsLote = validarDatosBasicosVenta(datos, usuario);
-
-  await verificarCliente(id_cliente, client);
-
-  const lotes = await VentaDAO.obtenerLotesParaVenta(
-    [...idsLote].sort((a, b) => a - b),
-    client,
-  );
-
-  if (lotes.length !== idsLote.length) {
-    lanzarError('Uno o mas lotes no existen', 404);
-  }
-
-  const lotesPorId = new Map(lotes.map((lote) => [Number(lote.id_lote), lote]));
-  let totalCentavos = 0;
-  const detallesCalculados = detalles.map(({ id_lote, cantidad }) => {
-    const lote = lotesPorId.get(Number(id_lote));
-
-    if (Number(lote.id_sucursal) !== Number(id_sucursal)) {
-      lanzarError(`El lote ${id_lote} no pertenece a la sucursal indicada`, 409);
-    }
-    if (!lote.producto_activo) {
-      lanzarError(`El producto del lote ${id_lote} esta inactivo`, 409);
-    }
-    if (lote.vencido) {
-      lanzarError(`No se puede vender el lote ${id_lote} porque esta vencido`, 409);
-    }
-    if (Number(lote.stock_actual) < Number(cantidad)) {
-      lanzarError(`Stock insuficiente para el lote ${id_lote}`, 409);
-    }
-
-    const precioCentavos = aCentavos(lote.precio_venta);
-    const costoCentavos = aCentavos(lote.precio_compra);
-    const subtotalCentavos = precioCentavos * Number(cantidad);
-    if (
-      !Number.isSafeInteger(subtotalCentavos)
-      || totalCentavos + subtotalCentavos > MAXIMO_CENTAVOS
-    ) {
-      lanzarError('El total de la venta supera el monto maximo permitido', 400);
-    }
-    totalCentavos += subtotalCentavos;
-
-    return {
-      id_lote: Number(id_lote),
-      cantidad: Number(cantidad),
-      precio_unitario: aMonto(precioCentavos),
-      costo_unitario: aMonto(costoCentavos),
-    };
-  });
-
-  if (totalCentavos <= 0) {
-    lanzarError('El total de la venta debe ser mayor a cero', 400);
-  }
-
-  return {
-    id_sucursal: Number(id_sucursal),
-    id_cliente: id_cliente == null ? null : Number(id_cliente),
-    totalCentavos,
-    detallesCalculados,
-  };
-};
-
 const crearVenta = async (datos, usuario) => {
   const {
     metodo_pago,
@@ -157,14 +62,10 @@ const crearVenta = async (datos, usuario) => {
   const idVenta = await VentaDAO.ejecutarEnTransaccion(async (client) => {
     const idSesionCaja = await validarSesionCaja(datos, usuario, client);
     const ventaPreparada = await prepararVenta(datos, usuario, client);
-    const recibidoCentavos = aCentavos(monto_recibido);
-    if (recibidoCentavos < ventaPreparada.totalCentavos) {
-      lanzarError(
-        `El monto recibido es insuficiente. El total es Q${aMonto(ventaPreparada.totalCentavos)}`,
-        400,
-      );
-    }
-    const cambioCentavos = recibidoCentavos - ventaPreparada.totalCentavos;
+    const { recibidoCentavos, cambioCentavos } = calcularCobroEfectivo(
+      monto_recibido,
+      ventaPreparada.totalCentavos,
+    );
 
     const venta = await VentaDAO.crearVenta({
       id_sucursal: ventaPreparada.id_sucursal,
@@ -182,21 +83,11 @@ const crearVenta = async (datos, usuario) => {
       cambio: aMonto(cambioCentavos),
     }, client);
 
-    for (const detalle of ventaPreparada.detallesCalculados) {
-      const loteActualizado = await VentaDAO.descontarStock(
-        detalle.id_lote,
-        detalle.cantidad,
-        client,
-      );
-      if (!loteActualizado) {
-        lanzarError(`Stock insuficiente para el lote ${detalle.id_lote}`, 409);
-      }
-
-      await VentaDAO.crearDetalle({
-        id_venta: venta.id_venta,
-        ...detalle,
-      }, client);
-    }
+    await registrarDetallesYDescontarStock(
+      venta.id_venta,
+      ventaPreparada.detallesCalculados,
+      client,
+    );
 
     return venta.id_venta;
   });
@@ -379,17 +270,11 @@ const procesarWebhookRecurrente = async (body, headers) => {
       cambio: '0.00',
     }, client);
 
-    for (const detalle of ventaPreparada.detallesCalculados) {
-      const loteActualizado = await VentaDAO.descontarStock(
-        detalle.id_lote,
-        detalle.cantidad,
-        client,
-      );
-      if (!loteActualizado) {
-        lanzarError(`Stock insuficiente para el lote ${detalle.id_lote}`, 409);
-      }
-      await VentaDAO.crearDetalle({ id_venta: venta.id_venta, ...detalle }, client);
-    }
+    await registrarDetallesYDescontarStock(
+      venta.id_venta,
+      ventaPreparada.detallesCalculados,
+      client,
+    );
 
     const actualizado = await VentaDAO.actualizarPagoPOS({
       external_id: evento.externalId,
@@ -467,16 +352,7 @@ const anularVenta = async (id_venta, motivo_anulacion, usuario) => {
     }
 
     const detalles = await VentaDAO.obtenerDetallesParaAnulacion(id_venta, client);
-    for (const detalle of detalles) {
-      const lote = await VentaDAO.restaurarStock(
-        detalle.id_lote,
-        detalle.cantidad,
-        client,
-      );
-      if (!lote) {
-        lanzarError(`No se pudo restaurar el stock del lote ${detalle.id_lote}`, 500);
-      }
-    }
+    await restaurarExistenciasDeDetalles(detalles, client);
 
     await VentaDAO.anular(id_venta, motivo_anulacion, client);
   });
