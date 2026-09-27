@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CalendarClock, PackagePlus } from 'lucide-react';
+import { AlertTriangle, CalendarClock, PackagePlus, Sparkles } from 'lucide-react';
 import { formatearQuetzales } from '../../utils/pos';
 
 const formatearFecha = (fecha) => {
@@ -16,6 +16,7 @@ export default function ProductoVentaCard({ producto, onAgregar }) {
   const bajoStock = producto.estado_stock === 'poco_stock';
   const proximoAVencer = producto.estado_vencimiento === 'proximo_a_vencer';
   const deshabilitado = !producto.tiene_precio;
+  const esCoincidenciaAproximada = producto.tipo_coincidencia === 'aproximada';
 
   return (
     <button
@@ -55,6 +56,12 @@ export default function ProductoVentaCard({ producto, onAgregar }) {
         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">
           {producto.presentacion}
         </span>
+        {esCoincidenciaAproximada && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-700">
+            <Sparkles className="h-3 w-3" aria-hidden="true" />
+            Coincidencia aproximada
+          </span>
+        )}
         <span className="text-[11px] font-medium text-slate-400">
           Código: {producto.codigo}
         </span>

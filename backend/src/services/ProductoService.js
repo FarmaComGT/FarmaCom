@@ -16,6 +16,14 @@ const normalizarConcentracion = (valor) => {
   return concentracion || null;
 };
 
+const contieneCaracteresBuscables = (valor) => (
+  valor
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '')
+    .length > 0
+);
+
 // Operaciones
 
 const crearProducto = async (datos) => {
@@ -59,6 +67,9 @@ const obtenerTodos = async () => {
 const autocompletarParaPOS = async ({ busqueda, id_sucursal, limite = 10 }) => {
   const termino = typeof busqueda === 'string' ? busqueda.trim() : '';
   if (!termino) lanzarError('La busqueda es requerida', 400);
+  if (!contieneCaracteresBuscables(termino)) {
+    lanzarError('La busqueda debe incluir letras o numeros', 400);
+  }
   if (!Number.isInteger(id_sucursal) || id_sucursal <= 0) {
     lanzarError('El usuario no tiene una sucursal valida asignada', 403);
   }

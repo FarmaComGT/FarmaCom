@@ -7,6 +7,30 @@ CREATE TABLE IF NOT EXISTS ciudad (
 );
 
 -- =========================
+-- EXTENSIONES Y NORMALIZACIÓN DE BÚSQUEDA
+-- =========================
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS unaccent;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- La función se declara IMMUTABLE para poder usarla en índices de expresión.
+-- Su diccionario unaccent debe tratarse como parte de la configuración del esquema.
+CREATE OR REPLACE FUNCTION normalizar_texto_busqueda(valor TEXT)
+RETURNS TEXT
+LANGUAGE SQL
+IMMUTABLE
+PARALLEL SAFE
+STRICT
+AS $$
+  SELECT regexp_replace(
+    lower(unaccent('unaccent', valor)),
+    '[^[:alnum:]]+',
+    '',
+    'g'
+  );
+$$;
+
+-- =========================
 -- TABLA: sucursal
 -- =========================
 CREATE TABLE IF NOT EXISTS sucursal (
@@ -449,6 +473,20 @@ CREATE INDEX IF NOT EXISTS idx_producto_familia
         id_casa
     );
 
+-- Índices parciales para el catálogo vendible. Soportan coincidencias por
+-- similitud y no agregan costo a productos inactivos.
+CREATE INDEX IF NOT EXISTS idx_producto_busqueda_codigo_trgm
+    ON producto USING GIN (normalizar_texto_busqueda(codigo) gin_trgm_ops)
+    WHERE activo = TRUE;
+
+CREATE INDEX IF NOT EXISTS idx_producto_busqueda_comercial_trgm
+    ON producto USING GIN (normalizar_texto_busqueda(nombre_comercial) gin_trgm_ops)
+    WHERE activo = TRUE;
+
+CREATE INDEX IF NOT EXISTS idx_producto_busqueda_generico_trgm
+    ON producto USING GIN (normalizar_texto_busqueda(nombre_generico) gin_trgm_ops)
+    WHERE activo = TRUE;
+
 -- =========================
 -- TABLA: promocion
 -- =========================
@@ -881,11 +919,6 @@ SELECT
     END AS estado_stock
 FROM lote l
 JOIN producto p ON p.id_producto = l.id_producto;
-
--- =========================
--- EXTENSIONES
--- =========================
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- =========================
 -- DATOS SEMILLA DESARROLLO
