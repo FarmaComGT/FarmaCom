@@ -37,6 +37,7 @@ export const config = Object.freeze({
   correo: String(__ENV.K6_USER_EMAIL || '').trim(),
   contrasena: String(__ENV.K6_USER_PASSWORD || ''),
   idSucursal: convertirEnteroPositivo(__ENV.K6_BRANCH_ID, 1),
+  idLaboratorio: convertirEnteroPositivo(__ENV.K6_LAB_ID, 1),
   idsSucursales: convertirListaEnterosPositivos(
     __ENV.K6_BRANCH_IDS,
     convertirEnteroPositivo(__ENV.K6_BRANCH_ID, 1),
@@ -56,6 +57,16 @@ export const config = Object.freeze({
     duracionEtapa: convertirTexto(__ENV.K6_STRESS_STAGE_DURATION, '30s'),
     duracionRecuperacion: convertirTexto(__ENV.K6_STRESS_RECOVERY_DURATION, '1m'),
     enfriamiento: convertirTexto(__ENV.K6_STRESS_COOL_DOWN, '15s'),
+  }),
+  volumen: Object.freeze({
+    pacientesPreparados: convertirEnteroPositivo(__ENV.K6_VOLUME_PATIENTS, 1000),
+    cierresPreparados: convertirEnteroPositivo(__ENV.K6_VOLUME_CLOSURES, 1000),
+    usuariosClinicos: convertirEnteroPositivo(__ENV.K6_VOLUME_CLINICAL_VUS, 2),
+    usuariosCierres: convertirEnteroPositivo(__ENV.K6_VOLUME_CLOSURES_VUS, 1),
+    usuariosReportes: convertirEnteroPositivo(__ENV.K6_VOLUME_REPORTS_VUS, 1),
+    incremento: convertirTexto(__ENV.K6_VOLUME_RAMP_UP, '30s'),
+    duracionEstable: convertirTexto(__ENV.K6_VOLUME_STEADY_DURATION, '3m'),
+    descenso: convertirTexto(__ENV.K6_VOLUME_RAMP_DOWN, '30s'),
   }),
   ventas: Object.freeze({
     permitirEscrituras: String(__ENV.K6_ALLOW_WRITES || '').trim().toLowerCase() === 'true',

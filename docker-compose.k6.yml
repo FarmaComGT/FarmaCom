@@ -25,6 +25,46 @@ services:
         fi
         exec psql -v ON_ERROR_STOP=1 -f /data/prepare.sql
 
+  performance-volume-data:
+    image: postgres:16-alpine
+    profiles:
+      - performance
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      K6_TARGET_ENV: ${K6_TARGET_ENV:-}
+      K6_LAB_ID: ${K6_LAB_ID:-1}
+      K6_VOLUME_PATIENTS: ${K6_VOLUME_PATIENTS:-1000}
+      K6_VOLUME_CLOSURES: ${K6_VOLUME_CLOSURES:-1000}
+    volumes:
+      - ./tests/performance/data:/data:ro
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        if [ "$$K6_TARGET_ENV" != "local" ]; then
+          echo "La preparación de volumen solo puede ejecutarse con K6_TARGET_ENV=local."
+          exit 1
+        fi
+        case "$$K6_VOLUME_PATIENTS" in ''|*[!0-9]*) echo "K6_VOLUME_PATIENTS debe ser un entero positivo."; exit 1;; esac
+        case "$$K6_VOLUME_CLOSURES" in ''|*[!0-9]*) echo "K6_VOLUME_CLOSURES debe ser un entero positivo."; exit 1;; esac
+        case "$$K6_LAB_ID" in ''|*[!0-9]*) echo "K6_LAB_ID debe ser un entero positivo."; exit 1;; esac
+        if [ "$$K6_VOLUME_PATIENTS" -lt 1 ] || [ "$$K6_VOLUME_PATIENTS" -gt 100000 ]; then
+          echo "K6_VOLUME_PATIENTS debe estar entre 1 y 100000."
+          exit 1
+        fi
+        if [ "$$K6_VOLUME_CLOSURES" -lt 1 ] || [ "$$K6_VOLUME_CLOSURES" -gt 100000 ]; then
+          echo "K6_VOLUME_CLOSURES debe estar entre 1 y 100000."
+          exit 1
+        fi
+        exec psql -v ON_ERROR_STOP=1 -v lab_id="$$K6_LAB_ID" -v patient_count="$$K6_VOLUME_PATIENTS" -v closure_count="$$K6_VOLUME_CLOSURES" -f /data/prepare-volume.sql
+
   k6-smoke:
     image: grafana/k6:2.2.0
     profiles:
@@ -79,6 +119,41 @@ services:
     command:
       - run
       - /scripts/scenarios/load/queries.js
+
+  k6-volume:
+    image: grafana/k6:2.2.0
+    profiles:
+      - performance
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      K6_API_URL: ${K6_API_URL:-http://backend:3000/api}
+      K6_TARGET_ENV: ${K6_TARGET_ENV:-}
+      K6_USER_EMAIL: ${K6_USER_EMAIL:-}
+      K6_USER_PASSWORD: ${K6_USER_PASSWORD:-}
+      K6_BRANCH_ID: ${K6_BRANCH_ID:-1}
+      K6_BRANCH_IDS: ${K6_BRANCH_IDS:-1,2,3}
+      K6_LAB_ID: ${K6_LAB_ID:-1}
+      K6_VOLUME_PATIENTS: ${K6_VOLUME_PATIENTS:-1000}
+      K6_VOLUME_CLOSURES: ${K6_VOLUME_CLOSURES:-1000}
+      K6_VOLUME_CLINICAL_VUS: ${K6_VOLUME_CLINICAL_VUS:-2}
+      K6_VOLUME_CLOSURES_VUS: ${K6_VOLUME_CLOSURES_VUS:-1}
+      K6_VOLUME_REPORTS_VUS: ${K6_VOLUME_REPORTS_VUS:-1}
+      K6_VOLUME_RAMP_UP: ${K6_VOLUME_RAMP_UP:-30s}
+      K6_VOLUME_STEADY_DURATION: ${K6_VOLUME_STEADY_DURATION:-3m}
+      K6_VOLUME_RAMP_DOWN: ${K6_VOLUME_RAMP_DOWN:-30s}
+      K6_REPORT_DATE_FROM: ${K6_REPORT_DATE_FROM:-}
+      K6_REPORT_DATE_TO: ${K6_REPORT_DATE_TO:-}
+      K6_WEB_DASHBOARD: "true"
+      K6_WEB_DASHBOARD_EXPORT: /results/volume.html
+      K6_WEB_DASHBOARD_PERIOD: 1s
+    volumes:
+      - ./tests/performance:/scripts:ro
+      - ./tests/performance/results:/results
+    command:
+      - run
+      - /scripts/scenarios/volume/clinical-and-operational.js
 
   k6-stress:
     image: grafana/k6:2.2.0

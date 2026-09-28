@@ -32,6 +32,16 @@ El proceso prepara `Sucursal 1`, `Sucursal 2` y `Sucursal 3`, asociadas a ciudad
 
 El script es idempotente: puede ejecutarse nuevamente sin duplicar sucursales, cajas ni lotes. No restablece las existencias consumidas por pruebas transaccionales anteriores.
 
+## Preparar datos de volumen
+
+Después de la preparación base, crea los pacientes, expedientes y cierres ficticios del escenario de volumen:
+
+```powershell
+docker compose --env-file .env --env-file tests/performance/.env.performance -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm performance-volume-data
+```
+
+Por defecto se preparan 1000 pacientes con sus expedientes y 1000 cierres distribuidos entre las tres sucursales. Las cantidades se controlan con `K6_VOLUME_PATIENTS` y `K6_VOLUME_CLOSURES`, admiten entre 1 y 100000 registros y la preparación es idempotente. `K6_LAB_ID` debe identificar un laboratorio local activo.
+
 ## Ejecutar la prueba de humo
 
 ```powershell
@@ -77,6 +87,24 @@ Los usuarios aumentan gradualmente durante 30 segundos, mantienen la carga duran
 - El percentil 95 de las búsquedas de medicamentos debe ser menor a 5 segundos.
 
 El reporte se genera en `tests/performance/results/load-queries.html`. Este escenario solo realiza consultas y no modifica la base de datos.
+
+## Ejecutar la prueba de volumen
+
+```powershell
+docker compose --env-file .env --env-file tests/performance/.env.performance -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm k6-volume
+```
+
+El escenario distribuye cuatro usuarios entre pacientes y expedientes, cierres y reportes históricos. Las consultas clínicas recorren páginas de 100 pacientes ficticios; los cierres abarcan un año y los reportes utilizan el historial local disponible. La prueba aumenta durante 30 segundos, mantiene la carga durante tres minutos y disminuye durante 30 segundos.
+
+### Criterios de volumen
+
+- Más del 98 % de las comprobaciones debe ser satisfactorio.
+- La tasa de solicitudes HTTP fallidas debe ser menor al 2 %.
+- El percentil 95 de pacientes, expedientes y cierres debe ser menor a 2 segundos.
+- El percentil 95 de los reportes debe ser menor a 3 segundos.
+- Cada grupo debe ejecutar al menos una consulta y encontrar los datos ficticios preparados.
+
+El reporte local se genera en `tests/performance/results/volume.html` y permanece ignorado por Git.
 
 ## Ejecutar la prueba de estrés
 

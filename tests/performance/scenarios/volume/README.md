@@ -1,5 +1,5 @@
 # Escenarios de volumen
 
-Esta carpeta contiene pruebas de lectura sobre conjuntos grandes y cuantificables de datos ficticios. Los escenarios deben registrar el tamaño del conjunto utilizado para diferenciar una prueba de volumen de una prueba de carga basada únicamente en concurrencia.
+Esta carpeta contiene pruebas de lectura sobre conjuntos grandes y cuantificables de datos ficticios. `clinical-and-operational.js` cubre las búsquedas paginadas de pacientes, el detalle que contiene el identificador de expediente, los resultados asociados al expediente, los cierres históricos y los reportes de un año.
 
-La cobertura prevista incluye pacientes, expedientes, cierres y reportes cuando las rutas correspondientes estén disponibles. No se deben inventar endpoints ni utilizar datos personales reales.
+El backend no expone una ruta independiente para consultar expedientes. Por ello, el escenario comprueba el expediente mediante `GET /pacientes/:id` y sus resultados mediante `GET /resultados-laboratorio?id_paciente=...`, que son los contratos disponibles. No se utilizan datos personales reales ni se inventan endpoints.
