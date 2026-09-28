@@ -17,13 +17,9 @@ env:
           loginRequestBody: >-
             {"correo_usuario":"{%username%}","contrasena":"{%password%}"}
         verification:
-          method: poll
+          method: response
           loggedInRegex: '\Q 200 OK\E'
           loggedOutRegex: '\Q 401 Unauthorized\E'
-          pollFrequency: 0
-          pollUnits: requests
-          pollUrl: ${ZAP_TARGET_URL}/api/auth/me
-          pollPostData: ""
       sessionManagement:
         method: cookie
         parameters: {}
