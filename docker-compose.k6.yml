@@ -12,14 +12,18 @@ services:
       PGDATABASE: ${POSTGRES_DB}
       PGUSER: ${POSTGRES_USER}
       PGPASSWORD: ${POSTGRES_PASSWORD}
+      K6_TARGET_ENV: ${K6_TARGET_ENV:-}
     volumes:
       - ./tests/performance/data:/data:ro
     command:
-      - psql
-      - -v
-      - ON_ERROR_STOP=1
-      - -f
-      - /data/prepare.sql
+      - /bin/sh
+      - -ec
+      - |
+        if [ "$$K6_TARGET_ENV" != "local" ]; then
+          echo "La preparación de datos solo puede ejecutarse con K6_TARGET_ENV=local."
+          exit 1
+        fi
+        exec psql -v ON_ERROR_STOP=1 -f /data/prepare.sql
 
   k6-smoke:
     image: grafana/k6:2.2.0
@@ -30,6 +34,7 @@ services:
         condition: service_started
     environment:
       K6_API_URL: ${K6_API_URL:-http://backend:3000/api}
+      K6_TARGET_ENV: ${K6_TARGET_ENV:-}
       K6_USER_EMAIL: ${K6_USER_EMAIL:-}
       K6_USER_PASSWORD: ${K6_USER_PASSWORD:-}
       K6_BRANCH_ID: ${K6_BRANCH_ID:-1}
@@ -52,6 +57,7 @@ services:
         condition: service_started
     environment:
       K6_API_URL: ${K6_API_URL:-http://backend:3000/api}
+      K6_TARGET_ENV: ${K6_TARGET_ENV:-}
       K6_USER_EMAIL: ${K6_USER_EMAIL:-}
       K6_USER_PASSWORD: ${K6_USER_PASSWORD:-}
       K6_BRANCH_ID: ${K6_BRANCH_ID:-1}
@@ -83,6 +89,7 @@ services:
         condition: service_started
     environment:
       K6_API_URL: ${K6_API_URL:-http://backend:3000/api}
+      K6_TARGET_ENV: ${K6_TARGET_ENV:-}
       K6_USER_EMAIL: ${K6_USER_EMAIL:-}
       K6_USER_PASSWORD: ${K6_USER_PASSWORD:-}
       K6_BRANCH_ID: ${K6_BRANCH_ID:-1}

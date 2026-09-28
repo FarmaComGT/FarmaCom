@@ -1,7 +1,11 @@
 import http from 'k6/http';
 import { group, sleep } from 'k6';
 import { iniciarSesion } from './lib/auth.js';
-import { comprobarRespuestaJson } from './lib/checks.js';
+import {
+  comprobarArregloJson,
+  comprobarObjetoJson,
+  comprobarRespuestaJson,
+} from './lib/checks.js';
 import { config } from './lib/config.js';
 
 export const options = {
@@ -29,6 +33,7 @@ export default function () {
       tags: { endpoint: 'sesion-actual' },
     });
     comprobarRespuestaJson(sesion, 'sesión actual');
+    comprobarObjetoJson(sesion, 'sesión actual');
     sleep(1);
   });
 
@@ -38,6 +43,7 @@ export default function () {
       { tags: { endpoint: 'inventario' } },
     );
     comprobarRespuestaJson(inventario, 'inventario');
+    comprobarArregloJson(inventario, 'inventario');
     sleep(1);
   });
 }

@@ -16,14 +16,14 @@ Desde la raíz del repositorio, crea el archivo local de configuración:
 Copy-Item tests/performance/.env.performance.example tests/performance/.env.performance
 ```
 
-Edita `.env.performance` y reemplaza el correo, la contraseña y los identificadores de sucursal. `K6_BRANCH_ID` se utiliza en la prueba de humo y `K6_BRANCH_IDS` distribuye las pruebas de carga y estrés. Este archivo está ignorado por Git y no debe contener datos de producción.
+Edita `.env.performance` y reemplaza el correo, la contraseña y los identificadores de sucursal. Conserva `K6_TARGET_ENV=local`: todos los escenarios rechazan otro entorno y también comprueban que `K6_API_URL` apunte a `backend`, `localhost`, `127.0.0.1` o `host.docker.internal`. `K6_BRANCH_ID` se utiliza en la prueba de humo y `K6_BRANCH_IDS` distribuye las pruebas de carga y estrés. Este archivo está ignorado por Git y no debe contener datos de producción.
 
 ## Preparar tres sucursales ficticias
 
 Antes de las pruebas representativas, prepara los datos locales con:
 
 ```powershell
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm performance-data
+docker compose --env-file .env --env-file tests/performance/.env.performance -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm performance-data
 ```
 
 El proceso prepara `Sucursal 1`, `Sucursal 2` y `Sucursal 3`, asociadas a ciudades y direcciones completamente ficticias. Cada una queda con una caja principal y tres lotes ficticios de 500 unidades. La ejecución muestra los identificadores generados de las sucursales, cajas y lotes para configurar los escenarios posteriores.
@@ -36,7 +36,7 @@ El script es idempotente: puede ejecutarse nuevamente sin duplicar sucursales, c
 docker compose --env-file .env --env-file tests/performance/.env.performance -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm k6-smoke
 ```
 
-La ejecución realiza tres solicitudes:
+La ejecución realiza tres solicitudes y valida la estructura básica de sus respuestas:
 
 1. Inicia sesión mediante `POST /api/auth/login`.
 2. Verifica la sesión mediante `GET /api/auth/me`.
