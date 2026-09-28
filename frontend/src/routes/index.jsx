@@ -8,6 +8,7 @@ import ReportesLayout from '../layouts/ReportesLayout.jsx';
 import Login from '../pages/Login.jsx';
 import Ciudades from '../pages/Ciudades.jsx';
 import Sucursales from '../pages/Sucursales.jsx';
+import Laboratorios from '../pages/Laboratorios.jsx';
 import Usuarios from '../pages/Usuarios.jsx';
 import Productos from '../pages/inventario/Productos.jsx';
 import InventarioSucursal from '../pages/inventario/InventarioSucursal.jsx';
@@ -49,6 +50,7 @@ export default function AppRoutes() {
           {/* Admin */}
           <Route element={<RoleRoute allowedRoles={['dueno', 'administrador']} />}>
             <Route path="/sucursales" element={<Sucursales />} />
+            <Route path="/laboratorios" element={<Laboratorios />} />
             <Route path="/ciudades" element={<Ciudades />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/reports" element={<ReportesLayout />}>
