@@ -34,6 +34,10 @@ vi.mock('../pages/laboratorio/Pacientes.jsx', () => ({
   default: () => <h1>Pacientes de laboratorio</h1>,
 }));
 
+vi.mock('../pages/Laboratorios.jsx', () => ({
+  default: () => <h1>Administración de laboratorios</h1>,
+}));
+
 vi.mock('../pages/reportes/Rentabilidad.jsx', () => ({
   default: () => <h1>Rentabilidad por sucursal</h1>,
 }));
@@ -160,5 +164,32 @@ describe('ruta de pacientes de laboratorio', () => {
 
     expect(screen.queryByRole('heading', { name: 'Pacientes de laboratorio' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Pacientes' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ruta de administración de laboratorios', () => {
+  const renderizar = () => render(
+    <MemoryRouter initialEntries={['/laboratorios']}>
+      <AppRoutes />
+    </MemoryRouter>,
+  );
+
+  beforeEach(() => {
+    estadoAuth.usuario = { rol: 'administrador' };
+  });
+
+  it('permite el acceso al administrador y muestra el enlace', () => {
+    renderizar();
+
+    expect(screen.getByRole('heading', { name: 'Administración de laboratorios' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Laboratorios' })).toBeInTheDocument();
+  });
+
+  it('bloquea la pantalla y oculta el enlace al laboratorista', () => {
+    estadoAuth.usuario = { rol: 'laboratorista' };
+    renderizar();
+
+    expect(screen.queryByRole('heading', { name: 'Administración de laboratorios' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Laboratorios' })).not.toBeInTheDocument();
   });
 });

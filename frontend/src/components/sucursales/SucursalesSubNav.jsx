@@ -1,10 +1,11 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { MapPin, Store } from 'lucide-react';
+import { FlaskConical, MapPin, Store } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const tabs = [
   { label: 'Sucursales', path: '/sucursales', icon: Store },
+  { label: 'Laboratorios', path: '/laboratorios', icon: FlaskConical },
   { label: 'Ciudades', path: '/ciudades', icon: MapPin },
 ];
 

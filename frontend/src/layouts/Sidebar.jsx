@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
+  BadgePlus,
+  BedSingle,
   Package,
   ChevronDown,
   Tag,
@@ -34,6 +36,7 @@ const inventarioSubItems = [
 
 const sucursalSubItems = [
   { icon: Store, label: 'Sucursales', path: '/sucursales' },
+  { icon: FlaskConical, label: 'Laboratorios', path: '/laboratorios' },
   { icon: Building2, label: 'Ciudades', path: '/ciudades' },
 ];
 
@@ -49,7 +52,7 @@ const navItems = [
   { icon: UserCog, label: 'Usuarios', path: '/usuarios', roles: ['dueno', 'administrador'] },
   { icon: Users, label: 'Clientes', path: '/patients' },
   {
-    icon: FlaskConical,
+    icon: PacienteIcon,
     label: 'Pacientes',
     path: '/laboratorio/pacientes',
     roles: ['dueno', 'administrador', 'laboratorista'],
@@ -65,6 +68,18 @@ const navItems = [
 const bottomNavItems = [
   { icon: HelpCircle, label: 'Ayuda', path: '/support' },
 ];
+
+function PacienteIcon({ className = '' }) {
+  return (
+    <span className={`relative inline-flex flex-shrink-0 ${className}`} aria-hidden="true">
+      <BedSingle className="h-full w-full" strokeWidth={2} />
+      <BadgePlus
+        className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-slate-50"
+        strokeWidth={2.5}
+      />
+    </span>
+  );
+}
 
 const topLevelItemClass = (isActive) =>
   `group flex items-center gap-3 rounded-xl px-4 py-3 outline-none select-none transition-colors duration-150 ${
@@ -87,7 +102,8 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
 
   const inventarioActivo = location.pathname.startsWith('/inventario');
   const [inventarioAbierto, setInventarioAbierto] = useState(inventarioActivo);
-  const sucursalesActivo = location.pathname.startsWith('/sucursales') || location.pathname.startsWith('/ciudades');
+  const sucursalesActivo = ['/sucursales', '/laboratorios', '/ciudades']
+    .some((ruta) => location.pathname.startsWith(ruta));
   const [sucursalesAbierto, setSucursalesAbierto] = useState(sucursalesActivo);
   const puedeVerSucursales = ['dueno', 'administrador'].includes(usuario?.rol);
 
