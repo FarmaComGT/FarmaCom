@@ -65,6 +65,20 @@ class CasaFarmaceuticaDAO {
     const { rows } = await pool.query(query, [id_casa]);
     return rows[0] || null;
   }
+
+  // ─── RELACIONES ────
+
+  async obtenerProveedoresVinculados(id_casa) {
+    const query = `
+      SELECT p.id_proveedor, p.nombre, p.activo
+      FROM proveedor p
+      JOIN casa_proveedor cp ON cp.id_proveedor = p.id_proveedor
+      WHERE cp.id_casa = $1
+      ORDER BY p.nombre ASC
+    `;
+    const { rows } = await pool.query(query, [id_casa]);
+    return rows;
+  }
 }
 
 module.exports = new CasaFarmaceuticaDAO();
