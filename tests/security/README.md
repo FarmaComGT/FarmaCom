@@ -227,6 +227,55 @@ También comprueba que la API no publique el encabezado `X-Powered-By`. La
 prueba no modifica información de negocio; los cuerpos inválidos se envían al
 login y son rechazados antes de autenticar.
 
+## Generar la evidencia de ejecución
+
+Después de ejecutar `plans/active-read.yaml`, registra en `.env.security` el
+commit realmente evaluado y la duración observada:
+
+```dotenv
+SECURITY_COMMIT=abcdef1
+SECURITY_SCAN_DURATION=12m 34s
+```
+
+Evalúa `results/active-read.json` y genera el comprobante versionable:
+
+```powershell
+docker compose --env-file .env --env-file tests/security/.env.security -f docker-compose.yml -f docker-compose.security.yml --profile security run --rm security-zap-gate
+```
+
+El gate utiliza los códigos de riesgo del reporte JSON de ZAP y descarta las
+alertas que ya tengan confianza de falso positivo. El archivo
+`results/execution-evidence.md` contiene únicamente fecha, commit, versión de
+ZAP, ambiente, perfil, plan, cobertura, duración, conteos por riesgo, resultado
+del gate y la huella SHA-256 del reporte crudo.
+
+El comprobante no incluye nombres de hallazgos, rutas afectadas, payloads,
+evidencia técnica, solicitudes, respuestas, credenciales, mitigaciones ni
+decisiones de riesgo. Las alertas altas o medias hacen que el gate termine con
+error y marque la ejecución como `REQUIERE REVISIÓN`.
+
+El informe detallado se prepara fuera del repositorio a partir de los reportes
+crudos locales. Debe incluir la clasificación, evidencia sanitizada, impacto,
+referencias CWE y OWASP, mitigación, responsable, estado y reevaluación que
+solicita la guía del sprint.
+
+## Orden de ejecución
+
+Con el backend y los datos ficticios preparados, ejecuta en este orden:
+
+1. `zap-security` con `plans/smoke.yaml`.
+2. `zap-security` con `plans/authenticated-read.yaml`.
+3. `security-auth-controls`.
+4. `security-authorization-controls`.
+5. `security-error-responses`.
+6. `zap-security` con `plans/active-read.yaml`.
+7. `security-zap-gate` y revisión de `execution-evidence.md`.
+8. `security-login-rate-limit`, siempre al final y con el backend reiniciado.
+
+Si una comprobación explícita falla, inclúyela en el informe externo aunque ZAP
+no genere una alerta equivalente. Los reportes crudos y el informe detallado
+permanecen fuera de Git; solo se versiona el comprobante mínimo de ejecución.
+
 ## Objetivos
 
 - Comprobar que todos los endpoints protegidos rechacen solicitudes sin una

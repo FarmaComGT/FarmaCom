@@ -101,3 +101,20 @@ services:
     command:
       - node
       - /tests/error-responses.js
+
+  security-zap-gate:
+    image: node:22-alpine
+    profiles:
+      - security
+    environment:
+      SECURITY_TARGET_ENV: ${ZAP_TARGET_ENV:-local}
+      SECURITY_ZAP_REPORT: /results/active-read.json
+      SECURITY_EVIDENCE_FILE: /results/execution-evidence.md
+      SECURITY_COMMIT: ${SECURITY_COMMIT:-}
+      SECURITY_SCAN_DURATION: ${SECURITY_SCAN_DURATION:-}
+    volumes:
+      - ./tests/security/scripts/evaluate-zap-report.js:/tests/evaluate-zap-report.js:ro
+      - ./tests/security/results:/results
+    command:
+      - node
+      - /tests/evaluate-zap-report.js
