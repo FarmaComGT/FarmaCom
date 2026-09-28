@@ -1,3 +1,5 @@
+jest.mock('./BitacoraLaboratorioService');
+const BitacoraLaboratorioService = require('./BitacoraLaboratorioService');
 jest.mock('../daos/ResultadoLaboratorioDAO');
 jest.mock('../config/almacenamiento', () => ({
   RUTA_UPLOADS_RESULTADOS: '/tmp/uploads',
@@ -35,7 +37,7 @@ describe('ResultadoLaboratorioService', () => {
       const clienteFalso = {};
       ResultadoLaboratorioDAO.ejecutarEnTransaccion.mockImplementation((op) => op(clienteFalso));
       ResultadoLaboratorioDAO.crear.mockResolvedValue({ id_resultado: 1, token_publico: 'token-fijo' });
-      ResultadoLaboratorioDAO.registrarBitacora.mockResolvedValue();
+      BitacoraLaboratorioService.registrarCambio.mockResolvedValue();
 
       const resultado = await ResultadoLaboratorioService.subirResultado({
         id_paciente: 3,
@@ -57,7 +59,7 @@ describe('ResultadoLaboratorioService', () => {
         }),
         clienteFalso,
       );
-      expect(ResultadoLaboratorioDAO.registrarBitacora).toHaveBeenCalledWith(
+      expect(BitacoraLaboratorioService.registrarCambio).toHaveBeenCalledWith(
         expect.objectContaining({ entidad: 'resultado_laboratorio', accion: 'crear' }),
         clienteFalso,
       );
@@ -111,6 +113,21 @@ describe('ResultadoLaboratorioService', () => {
   });
 
   describe('anularResultado', () => {
+    it('audita la anulacion con el usuario y los valores persistidos', async () => {
+      const client = {};
+      const anterior = { id_resultado: 1, estado: 'vigente', motivo_anulacion: null };
+      const nuevo = { ...anterior, estado: 'anulado', motivo_anulacion: 'Duplicado' };
+      ResultadoLaboratorioDAO.ejecutarEnTransaccion.mockImplementation((op) => op(client));
+      ResultadoLaboratorioDAO.obtenerParaActualizar.mockResolvedValue(anterior);
+      ResultadoLaboratorioDAO.anular.mockResolvedValue(nuevo);
+      await expect(ResultadoLaboratorioService.anularResultado(1, 'Duplicado', 9))
+        .resolves.toEqual(nuevo);
+      expect(BitacoraLaboratorioService.registrarCambio).toHaveBeenCalledWith({
+        id_usuario: 9, entidad: 'resultado_laboratorio', id_entidad: 1,
+        accion: 'anular', anterior, nuevo,
+      }, client);
+    });
+
     it('rechaza anular un resultado ya anulado', async () => {
       const clienteFalso = {};
       ResultadoLaboratorioDAO.ejecutarEnTransaccion.mockImplementation((op) => op(clienteFalso));

@@ -1,3 +1,4 @@
+const BitacoraLaboratorioService = require('./BitacoraLaboratorioService');
 const PacienteDAO = require('../daos/PacienteDAO');
 const { calcularEdad } = require('../utils/edad');
 
@@ -33,7 +34,7 @@ const registrarPaciente = async ({
   telefono,
   direccion,
   observaciones,
-}) => {
+}, id_usuario) => {
   const dpiNormalizado = normalizarDpi(dpi);
   if (dpiNormalizado) {
     const existente = await PacienteDAO.obtenerPorDpi(dpiNormalizado);
@@ -57,6 +58,14 @@ const registrarPaciente = async ({
         client,
       );
       const expediente = await PacienteDAO.crearExpediente(paciente.id_paciente, client);
+      await BitacoraLaboratorioService.registrarCambio({
+        id_usuario, entidad: 'paciente', id_entidad: paciente.id_paciente,
+        accion: 'crear', nuevo: paciente,
+      }, client);
+      await BitacoraLaboratorioService.registrarCambio({
+        id_usuario, entidad: 'expediente_laboratorio', id_entidad: expediente.id_expediente,
+        accion: 'crear', nuevo: expediente,
+      }, client);
       return conEdad({ ...paciente, id_expediente: expediente.id_expediente });
     });
   } catch (error) {
@@ -94,36 +103,39 @@ const buscarPacientes = async ({ id_laboratorio, busqueda, estado, pagina, limit
   };
 };
 
-const actualizarPaciente = async (id_paciente, campos) => {
-  const existente = await PacienteDAO.obtenerPorId(id_paciente);
-  if (!existente) throw noEncontrado();
-  if (existente.estado === 'anulado') {
-    lanzarError('No se puede editar un paciente anulado', 409);
-  }
-
-  const datos = { ...campos };
-  if (Object.prototype.hasOwnProperty.call(datos, 'dpi')) {
-    datos.dpi = normalizarDpi(datos.dpi);
-    if (datos.dpi && datos.dpi !== existente.dpi) {
-      const duplicado = await PacienteDAO.obtenerPorDpi(datos.dpi);
-      if (duplicado && duplicado.id_paciente !== id_paciente) {
-        lanzarError('Ya existe un paciente con ese DPI', 409);
-      }
-    }
-  }
-
-  let paciente;
+const actualizarPaciente = async (id_paciente, campos, id_usuario) => {
   try {
-    paciente = await PacienteDAO.actualizar(id_paciente, datos);
+    return await PacienteDAO.ejecutarEnTransaccion(async (client) => {
+      const existente = await PacienteDAO.obtenerParaActualizar(id_paciente, client);
+      if (!existente) throw noEncontrado();
+      if (existente.estado === 'anulado') {
+        lanzarError('No se puede editar un paciente anulado', 409);
+      }
+      const datos = { ...campos };
+      if (Object.prototype.hasOwnProperty.call(datos, 'dpi')) {
+        datos.dpi = normalizarDpi(datos.dpi);
+        if (datos.dpi && datos.dpi !== existente.dpi) {
+          const duplicado = await PacienteDAO.obtenerPorDpi(datos.dpi, client);
+          if (duplicado && duplicado.id_paciente !== id_paciente) {
+            lanzarError('Ya existe un paciente con ese DPI', 409);
+          }
+        }
+      }
+      const paciente = await PacienteDAO.actualizar(id_paciente, datos, client);
+      if (!paciente) throw noEncontrado();
+      await BitacoraLaboratorioService.registrarCambio({
+        id_usuario, entidad: 'paciente', id_entidad: id_paciente,
+        accion: 'actualizar', anterior: existente, nuevo: paciente,
+      }, client);
+      return conEdad(paciente);
+    });
   } catch (error) {
     if (error.code === '23505') lanzarError('Ya existe un paciente con ese DPI', 409);
     throw error;
   }
-  if (!paciente) throw noEncontrado();
-  return conEdad(paciente);
 };
 
-const anularPaciente = async (id_paciente, motivo_anulacion) => {
+const anularPaciente = async (id_paciente, motivo_anulacion, id_usuario) => {
   return PacienteDAO.ejecutarEnTransaccion(async (client) => {
     const paciente = await PacienteDAO.obtenerParaActualizar(id_paciente, client);
     if (!paciente) throw noEncontrado();
@@ -132,6 +144,10 @@ const anularPaciente = async (id_paciente, motivo_anulacion) => {
     }
 
     const actualizado = await PacienteDAO.anular(id_paciente, motivo_anulacion, client);
+    await BitacoraLaboratorioService.registrarCambio({
+      id_usuario, entidad: 'paciente', id_entidad: id_paciente,
+      accion: 'anular', anterior: paciente, nuevo: actualizado,
+    }, client);
     return conEdad(actualizado);
   });
 };

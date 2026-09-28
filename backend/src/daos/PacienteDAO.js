@@ -125,7 +125,7 @@ class PacienteDAO {
     return { datos, total };
   }
 
-  async actualizar(id_paciente, campos) {
+  async actualizar(id_paciente, campos, client = pool) {
     const {
       nombre_paciente,
       sexo,
@@ -137,7 +137,7 @@ class PacienteDAO {
     const incluyeFechaNacimiento = Object.prototype.hasOwnProperty.call(campos, 'fecha_nacimiento');
     const incluyeEdadManual = Object.prototype.hasOwnProperty.call(campos, 'edad_manual');
 
-    const { rows } = await pool.query(
+    const { rows } = await client.query(
       `UPDATE paciente SET
          nombre_paciente  = COALESCE($1, nombre_paciente),
          dpi              = CASE WHEN $2 THEN $3 ELSE dpi END,

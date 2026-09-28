@@ -1,3 +1,4 @@
+const BitacoraLaboratorioService = require('./BitacoraLaboratorioService');
 const crypto = require('crypto');
 const fs = require('fs/promises');
 const path = require('path');
@@ -77,12 +78,12 @@ const subirResultado = async ({ id_paciente, categoria, buffer, id_usuario }) =>
       id_usuario_subida: id_usuario,
     }, client);
 
-    await ResultadoLaboratorioDAO.registrarBitacora({
+    await BitacoraLaboratorioService.registrarCambio({
       id_usuario,
       entidad: 'resultado_laboratorio',
       id_entidad: resultado.id_resultado,
       accion: 'crear',
-      valores_nuevos: { categoria, id_paciente },
+      nuevo: resultado,
     }, client);
 
     return resultado;
@@ -107,13 +108,13 @@ const anularResultado = async (id_resultado, motivo_anulacion, id_usuario) => Re
 
   const actualizado = await ResultadoLaboratorioDAO.anular(id_resultado, motivo_anulacion, client);
 
-  await ResultadoLaboratorioDAO.registrarBitacora({
+  await BitacoraLaboratorioService.registrarCambio({
     id_usuario,
     entidad: 'resultado_laboratorio',
     id_entidad: id_resultado,
     accion: 'anular',
-    valores_anteriores: { estado: resultado.estado },
-    valores_nuevos: { estado: 'anulado', motivo_anulacion },
+    anterior: resultado,
+    nuevo: actualizado,
   }, client);
 
   return actualizado;
