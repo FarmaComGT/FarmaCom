@@ -1,4 +1,4 @@
-jest.mock('../middlewares/verificarToken', () => (_req, _res, next) => next());
+jest.mock('../middlewares/verificarToken', () => (req, _res, next) => { req.usuario = { id_usuario: 9 }; next(); });
 jest.mock('../middlewares/verificarRol', () => () => (_req, _res, next) => next());
 jest.mock('../services/PacienteService');
 
@@ -77,7 +77,7 @@ describe('PacienteRoutes - sexo y edad', () => {
       .send({ telefono: '5555-0000' });
 
     expect(respuesta.status).toBe(200);
-    expect(PacienteService.actualizarPaciente).toHaveBeenCalledWith(4, { telefono: '5555-0000' });
+    expect(PacienteService.actualizarPaciente).toHaveBeenCalledWith(4, { telefono: '5555-0000' }, 9);
   });
 
   it('rechaza actualizar enviando ambos, fecha_nacimiento y edad_manual', async () => {
@@ -88,4 +88,11 @@ describe('PacienteRoutes - sexo y edad', () => {
     expect(respuesta.status).toBe(400);
     expect(PacienteService.actualizarPaciente).not.toHaveBeenCalled();
   });
+});
+
+ it('atribuye el alta al usuario autenticado aunque el body indique otro', async () => {
+  const respuesta = await request(crearApp()).post('/api/pacientes')
+    .send({ ...datosBase, edad_manual: 30, id_usuario: 123 });
+  expect(respuesta.status).toBe(201);
+  expect(PacienteService.registrarPaciente).toHaveBeenCalledWith(expect.any(Object), 9);
 });

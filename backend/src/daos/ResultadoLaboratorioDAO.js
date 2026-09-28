@@ -48,16 +48,6 @@ class ResultadoLaboratorioDAO {
     return rows[0];
   }
 
-  async registrarBitacora({ id_usuario, entidad, id_entidad, accion, valores_nuevos = null, valores_anteriores = null }, client) {
-    await client.query(
-      `INSERT INTO bitacora_laboratorio (
-         id_usuario, entidad, id_entidad, accion, valores_anteriores, valores_nuevos
-       )
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [id_usuario, entidad, id_entidad, accion, valores_anteriores, valores_nuevos],
-    );
-  }
-
   async obtenerPorId(id_resultado, client = pool) {
     const { rows } = await client.query(
       `SELECT * FROM resultado_laboratorio WHERE id_resultado = $1`,

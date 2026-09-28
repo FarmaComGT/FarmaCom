@@ -11,7 +11,7 @@ const responderErrores = (req, res) => {
 const registrar = async (req, res) => {
   if (responderErrores(req, res)) return;
   try {
-    const paciente = await PacienteService.registrarPaciente(req.body);
+    const paciente = await PacienteService.registrarPaciente(req.body, req.usuario.id_usuario);
     res.status(201).json(paciente);
   } catch (error) {
     res.status(error.status || 500).json({ mensaje: error.message });
@@ -46,7 +46,7 @@ const obtenerPorId = async (req, res) => {
 const actualizar = async (req, res) => {
   if (responderErrores(req, res)) return;
   try {
-    const paciente = await PacienteService.actualizarPaciente(Number(req.params.id), req.body);
+    const paciente = await PacienteService.actualizarPaciente(Number(req.params.id), req.body, req.usuario.id_usuario);
     res.status(200).json(paciente);
   } catch (error) {
     res.status(error.status || 500).json({ mensaje: error.message });
@@ -59,6 +59,7 @@ const anular = async (req, res) => {
     const paciente = await PacienteService.anularPaciente(
       Number(req.params.id),
       req.body.motivo_anulacion,
+      req.usuario.id_usuario,
     );
     res.status(200).json(paciente);
   } catch (error) {
