@@ -120,14 +120,15 @@ El escenario aumenta progresivamente la cantidad de usuarios virtuales:
 4. Reduce la carga a 3 usuarios para observar la recuperación.
 5. Finaliza reduciendo la carga a 0.
 
-Cada usuario se distribuye de forma estable entre las tres sucursales. Cada iteración consulta simultáneamente el autocompletado del POS, el inventario de su sucursal, clientes y dos reportes consolidados. La prueba es de solo lectura.
+Cada usuario se distribuye de forma estable entre las tres sucursales. Cada iteración consulta simultáneamente el autocompletado del POS, el inventario de su sucursal, clientes y dos reportes consolidados. Para no concentrar la prueba en módulos que pueden cambiar próximamente, pacientes, categorías de laboratorio y cierres se consultan una vez cada cuatro iteraciones; esta frecuencia se controla con `K6_STRESS_SECONDARY_EVERY`. La prueba es de solo lectura.
 
 ### Criterios de estrés
 
 - Más del 95 % de las comprobaciones debe ser satisfactorio.
 - La tasa de solicitudes HTTP fallidas debe ser menor al 5 %.
 - El percentil 95 general debe mantenerse por debajo de 5 segundos.
-- El sistema debe continuar disponible y recuperar sus tiempos al disminuir la carga.
+- El sistema debe continuar disponible.
+- Durante la fase estable de recuperación, el percentil 95 debe volver a estar por debajo de 2 segundos y los errores deben ser menores al 2 %.
 
 El reporte se genera en `tests/performance/results/stress.html`. La gráfica temporal debe utilizarse para identificar la degradación durante el pico y la recuperación posterior.
 

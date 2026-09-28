@@ -53,6 +53,7 @@ export const config = Object.freeze({
   estres: Object.freeze({
     usuariosMaximos: convertirEnteroPositivo(__ENV.K6_STRESS_MAX_VUS, 20),
     usuariosRecuperacion: convertirEnteroPositivo(__ENV.K6_STRESS_RECOVERY_VUS, 3),
+    frecuenciaModulosSecundarios: convertirEnteroPositivo(__ENV.K6_STRESS_SECONDARY_EVERY, 4),
     calentamiento: convertirTexto(__ENV.K6_STRESS_WARM_UP, '15s'),
     duracionEtapa: convertirTexto(__ENV.K6_STRESS_STAGE_DURATION, '30s'),
     duracionRecuperacion: convertirTexto(__ENV.K6_STRESS_RECOVERY_DURATION, '1m'),
