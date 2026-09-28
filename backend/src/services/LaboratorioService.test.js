@@ -10,4 +10,20 @@ describe('LaboratorioService', () => {
 
     await expect(LaboratorioService.listarActivos()).resolves.toEqual(laboratorios);
   });
+
+  it('crea un laboratorio cuando el nombre está disponible', async () => {
+    const datos = { id_ciudad: 2, nombre_laboratorio: 'Norte', direccion: 'Zona 17' };
+    LaboratorioDAO.obtenerPorNombre.mockResolvedValue(null);
+    LaboratorioDAO.crear.mockResolvedValue({ id_laboratorio: 3, ...datos });
+
+    await expect(LaboratorioService.crear(datos)).resolves.toEqual({ id_laboratorio: 3, ...datos });
+  });
+
+  it('rechaza editar un laboratorio inexistente', async () => {
+    LaboratorioDAO.obtenerPorId.mockResolvedValue(null);
+
+    await expect(LaboratorioService.actualizar(99, {
+      id_ciudad: 2, nombre_laboratorio: 'Norte', direccion: 'Zona 17',
+    })).rejects.toMatchObject({ status: 404 });
+  });
 });
