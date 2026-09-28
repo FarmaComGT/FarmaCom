@@ -1,0 +1,39 @@
+categorias:
+  get:
+    tags: [Catálogos]
+    operationId: obtenerCategorias
+    responses: &lista
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+categoriaPorId:
+  get:
+    tags: [Catálogos]
+    operationId: obtenerCategoriaPorId
+    parameters: &id
+      - { $ref: '../components/parameters.yaml#/Id' }
+    responses: &detalle
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '404': { $ref: '../components/responses.yaml#/NoEncontrado' }
+ciudades:
+  get:
+    tags: [Catálogos]
+    operationId: obtenerCiudades
+    responses: *lista
+ciudadPorId:
+  get:
+    tags: [Catálogos]
+    operationId: obtenerCiudadPorId
+    parameters: *id
+    responses: *detalle
+presentaciones:
+  get:
+    tags: [Catálogos]
+    operationId: obtenerPresentaciones
+    responses: *lista
+presentacionPorId:
+  get:
+    tags: [Catálogos]
+    operationId: obtenerPresentacionPorId
+    parameters: *id
+    responses: *detalle

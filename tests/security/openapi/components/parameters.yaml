@@ -1,0 +1,48 @@
+Id:
+  name: id
+  in: path
+  required: true
+  schema: { type: integer, minimum: 1 }
+  example: 1
+IdSucursal:
+  name: id_sucursal
+  in: path
+  required: true
+  schema: { type: integer, minimum: 1 }
+  example: 1
+IdProducto:
+  name: id_producto
+  in: path
+  required: true
+  schema: { type: integer, minimum: 1 }
+  example: 1
+IdCasa:
+  name: id_casa
+  in: path
+  required: true
+  schema: { type: integer, minimum: 1 }
+  example: 1
+IdProveedor:
+  name: id_proveedor
+  in: path
+  required: true
+  schema: { type: integer, minimum: 1 }
+  example: 1
+FiltroIdSucursal:
+  name: id_sucursal
+  in: query
+  required: false
+  schema: { type: integer, minimum: 1 }
+  example: 1
+FechaDesde:
+  name: fecha_desde
+  in: query
+  required: false
+  schema: { type: string, format: date }
+  example: '2026-09-01'
+FechaHasta:
+  name: fecha_hasta
+  in: query
+  required: false
+  schema: { type: string, format: date }
+  example: '2026-09-24'

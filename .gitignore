@@ -5,3 +5,7 @@ node_modules/
 tests/performance/.env.performance
 tests/performance/results/*
 !tests/performance/results/.gitkeep
+tests/security/.env.security
+tests/security/results/*
+!tests/security/results/.gitkeep
+!tests/security/results/execution-evidence.md

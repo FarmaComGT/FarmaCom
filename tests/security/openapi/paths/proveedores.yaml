@@ -1,0 +1,62 @@
+casas:
+  get:
+    tags: [Proveedores]
+    operationId: obtenerCasasFarmaceuticas
+    responses: &lista
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+casaPorId:
+  get:
+    tags: [Proveedores]
+    operationId: obtenerCasaFarmaceuticaPorId
+    parameters: &id
+      - { $ref: '../components/parameters.yaml#/Id' }
+    responses: &detalle
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '404': { $ref: '../components/responses.yaml#/NoEncontrado' }
+proveedoresCasa:
+  get:
+    tags: [Proveedores]
+    operationId: obtenerProveedoresCasaFarmaceutica
+    parameters: *id
+    responses: *lista
+telefonosCasa:
+  get:
+    tags: [Proveedores]
+    operationId: obtenerTelefonosCasaFarmaceutica
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdCasa' }
+    responses: *lista
+correosCasa:
+  get:
+    tags: [Proveedores]
+    operationId: obtenerCorreosCasaFarmaceutica
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdCasa' }
+    responses: *lista
+proveedores:
+  get:
+    tags: [Proveedores]
+    operationId: obtenerProveedores
+    responses: *lista
+proveedorPorId:
+  get:
+    tags: [Proveedores]
+    operationId: obtenerProveedorPorId
+    parameters: *id
+    responses: *detalle
+telefonosProveedor:
+  get:
+    tags: [Proveedores]
+    operationId: obtenerTelefonosProveedor
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdProveedor' }
+    responses: *lista
+correosProveedor:
+  get:
+    tags: [Proveedores]
+    operationId: obtenerCorreosProveedor
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdProveedor' }
+    responses: *lista

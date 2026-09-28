@@ -1,0 +1,134 @@
+openapi: 3.0.3
+info:
+  title: FarmaCom - superficie de lectura para pruebas de seguridad
+  version: 1.0.0
+  description: >-
+    Contrato limitado a operaciones sin efectos de escritura. Los valores de
+    ejemplo son ficticios y el plan de ZAP reemplaza la URL del servidor con el
+    objetivo local autorizado.
+servers:
+  - url: http://localhost:3000
+security:
+  - cookieAuth: []
+tags:
+  - name: Sistema
+  - name: Autenticación
+  - name: Usuarios
+  - name: Sucursales
+  - name: Productos
+  - name: Inventario
+  - name: Ventas
+  - name: Caja
+  - name: Reportes
+  - name: Clientes
+  - name: Catálogos
+  - name: Proveedores
+
+paths:
+  /api/ping:
+    $ref: './paths/system-auth.yaml#/ping'
+  /api/auth/me:
+    $ref: './paths/system-auth.yaml#/sesionActual'
+  /api/usuarios:
+    $ref: './paths/usuarios.yaml#/coleccion'
+  /api/usuarios/sucursal/{id_sucursal}:
+    $ref: './paths/usuarios.yaml#/porSucursal'
+  /api/usuarios/{id}:
+    $ref: './paths/usuarios.yaml#/porId'
+  /api/sucursales:
+    $ref: './paths/sucursales.yaml#/coleccion'
+  /api/sucursales/{id}:
+    $ref: './paths/sucursales.yaml#/porId'
+  /api/sucursales/{id_sucursal}/telefonos:
+    $ref: './paths/sucursales.yaml#/telefonos'
+  /api/sucursales/{id_sucursal}/correos:
+    $ref: './paths/sucursales.yaml#/correos'
+  /api/productos:
+    $ref: './paths/productos.yaml#/coleccion'
+  /api/productos/autocompletar:
+    $ref: './paths/productos.yaml#/autocompletar'
+  /api/productos/{id}:
+    $ref: './paths/productos.yaml#/porId'
+  /api/productos/{id_producto}/promociones:
+    $ref: './paths/productos.yaml#/promociones'
+  /api/promociones/{id}:
+    $ref: './paths/productos.yaml#/promocionPorId'
+  /api/sucursales/{id_sucursal}/inventario:
+    $ref: './paths/inventario.yaml#/inventarioSucursal'
+  /api/sucursales/{id_sucursal}/inventario/resumen:
+    $ref: './paths/inventario.yaml#/resumenInventario'
+  /api/lotes/alertas:
+    $ref: './paths/inventario.yaml#/alertas'
+  /api/lotes/{id}:
+    $ref: './paths/inventario.yaml#/lotePorId'
+  /api/lotes/sucursal/{id_sucursal}:
+    $ref: './paths/inventario.yaml#/lotesPorSucursal'
+  /api/lotes/producto/{id_producto}:
+    $ref: './paths/inventario.yaml#/lotesPorProducto'
+  /api/lotes/sucursal/{id_sucursal}/alertas:
+    $ref: './paths/inventario.yaml#/alertasPorSucursal'
+  /api/ventas:
+    $ref: './paths/ventas.yaml#/coleccion'
+  /api/ventas/{id}:
+    $ref: './paths/ventas.yaml#/porId'
+  /api/ventas/tarjeta/pos/{externalId}:
+    $ref: './paths/ventas.yaml#/estadoPagoPos'
+  /api/cajas:
+    $ref: './paths/caja.yaml#/coleccion'
+  /api/cajas/{id}/sesion-actual:
+    $ref: './paths/caja.yaml#/sesionActual'
+  /api/cajas/cierres:
+    $ref: './paths/caja.yaml#/cierres'
+  /api/cajas/cierres/resumen-diario:
+    $ref: './paths/caja.yaml#/resumenDiario'
+  /api/reportes/ventas/resumen:
+    $ref: './paths/reportes.yaml#/resumenVentas'
+  /api/reportes/ventas/serie:
+    $ref: './paths/reportes.yaml#/serieVentas'
+  /api/reportes/ventas/metodos-pago:
+    $ref: './paths/reportes.yaml#/metodosPago'
+  /api/reportes/productos/top:
+    $ref: './paths/reportes.yaml#/productosTop'
+  /api/reportes/rentabilidad:
+    $ref: './paths/reportes.yaml#/rentabilidad'
+  /api/clientes:
+    $ref: './paths/clientes.yaml#/coleccion'
+  /api/clientes/{id}:
+    $ref: './paths/clientes.yaml#/porId'
+  /api/clientes/{id}/historial-compras:
+    $ref: './paths/clientes.yaml#/historialCompras'
+  /api/categorias:
+    $ref: './paths/catalogos.yaml#/categorias'
+  /api/categorias/{id}:
+    $ref: './paths/catalogos.yaml#/categoriaPorId'
+  /api/ciudades:
+    $ref: './paths/catalogos.yaml#/ciudades'
+  /api/ciudades/{id}:
+    $ref: './paths/catalogos.yaml#/ciudadPorId'
+  /api/presentaciones:
+    $ref: './paths/catalogos.yaml#/presentaciones'
+  /api/presentaciones/{id}:
+    $ref: './paths/catalogos.yaml#/presentacionPorId'
+  /api/casas:
+    $ref: './paths/proveedores.yaml#/casas'
+  /api/casas/{id}:
+    $ref: './paths/proveedores.yaml#/casaPorId'
+  /api/casas/{id}/proveedores:
+    $ref: './paths/proveedores.yaml#/proveedoresCasa'
+  /api/casas/{id_casa}/telefonos:
+    $ref: './paths/proveedores.yaml#/telefonosCasa'
+  /api/casas/{id_casa}/correos:
+    $ref: './paths/proveedores.yaml#/correosCasa'
+  /api/proveedores:
+    $ref: './paths/proveedores.yaml#/proveedores'
+  /api/proveedores/{id}:
+    $ref: './paths/proveedores.yaml#/proveedorPorId'
+  /api/proveedores/{id_proveedor}/telefonos:
+    $ref: './paths/proveedores.yaml#/telefonosProveedor'
+  /api/proveedores/{id_proveedor}/correos:
+    $ref: './paths/proveedores.yaml#/correosProveedor'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      $ref: './components/security-schemes.yaml#/cookieAuth'

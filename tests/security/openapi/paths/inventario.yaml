@@ -1,0 +1,82 @@
+inventarioSucursal:
+  get:
+    tags: [Inventario]
+    operationId: obtenerInventarioSucursal
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    x-farmacom-scope: sucursal
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdSucursal' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+resumenInventario:
+  get:
+    tags: [Inventario]
+    operationId: obtenerResumenInventarioSucursal
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    x-farmacom-scope: sucursal
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdSucursal' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+alertas:
+  get:
+    tags: [Inventario]
+    operationId: obtenerAlertasLotes
+    x-farmacom-roles: [dueno, administrador]
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+lotePorId:
+  get:
+    tags: [Inventario]
+    operationId: obtenerLotePorId
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    parameters:
+      - { $ref: '../components/parameters.yaml#/Id' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+      '404': { $ref: '../components/responses.yaml#/NoEncontrado' }
+lotesPorSucursal:
+  get:
+    tags: [Inventario]
+    operationId: obtenerLotesPorSucursal
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    x-farmacom-scope: sucursal
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdSucursal' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+lotesPorProducto:
+  get:
+    tags: [Inventario]
+    operationId: obtenerLotesPorProducto
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdProducto' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+alertasPorSucursal:
+  get:
+    tags: [Inventario]
+    operationId: obtenerAlertasLotesPorSucursal
+    x-farmacom-roles: [dueno, administrador]
+    x-farmacom-scope: sucursal
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdSucursal' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }

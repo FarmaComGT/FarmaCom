@@ -1,0 +1,120 @@
+services:
+  zap-security:
+    image: ghcr.io/zaproxy/zaproxy:2.17.0
+    profiles:
+      - security
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      ZAP_TARGET_ENV: ${ZAP_TARGET_ENV:-local}
+      ZAP_TARGET_URL: ${ZAP_TARGET_URL:-http://backend:3000}
+      ZAP_PLAN: ${ZAP_PLAN:-plans/smoke.yaml}
+      ZAP_ADMIN_EMAIL: ${ZAP_ADMIN_EMAIL:-}
+      ZAP_ADMIN_PASSWORD: ${ZAP_ADMIN_PASSWORD:-}
+    volumes:
+      - ./tests/security/plans:/zap/wrk/plans:ro
+      - ./tests/security/openapi:/zap/wrk/openapi:ro
+      - ./tests/security/scripts:/zap/wrk/scripts:ro
+      - ./tests/security/results:/zap/wrk/results
+    entrypoint:
+      - /bin/sh
+      - /zap/wrk/scripts/run-zap.sh
+
+  security-auth-controls:
+    image: node:22-alpine
+    profiles:
+      - security
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      SECURITY_API_URL: ${SECURITY_API_URL:-http://backend:3000/api}
+      SECURITY_TARGET_ENV: ${ZAP_TARGET_ENV:-local}
+      SECURITY_ADMIN_EMAIL: ${ZAP_ADMIN_EMAIL:-}
+      SECURITY_ADMIN_PASSWORD: ${ZAP_ADMIN_PASSWORD:-}
+      SECURITY_INACTIVE_EMAIL: ${SECURITY_INACTIVE_EMAIL:-}
+      SECURITY_INACTIVE_PASSWORD: ${SECURITY_INACTIVE_PASSWORD:-}
+      SECURITY_JWT_SECRET: ${JWT_SECRET:-}
+      SECURITY_EXPECT_SECURE_COOKIE: ${SECURITY_EXPECT_SECURE_COOKIE:-false}
+    volumes:
+      - ./tests/security/scripts/auth-controls.js:/tests/auth-controls.js:ro
+    command:
+      - node
+      - /tests/auth-controls.js
+
+  security-login-rate-limit:
+    image: node:22-alpine
+    profiles:
+      - security
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      SECURITY_API_URL: ${SECURITY_API_URL:-http://backend:3000/api}
+      SECURITY_TARGET_ENV: ${ZAP_TARGET_ENV:-local}
+    volumes:
+      - ./tests/security/scripts/login-rate-limit.js:/tests/login-rate-limit.js:ro
+    command:
+      - node
+      - /tests/login-rate-limit.js
+
+  security-authorization-controls:
+    image: node:22-alpine
+    profiles:
+      - security
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      SECURITY_API_URL: ${SECURITY_API_URL:-http://backend:3000/api}
+      SECURITY_TARGET_ENV: ${ZAP_TARGET_ENV:-local}
+      SECURITY_ADMIN_EMAIL: ${ZAP_ADMIN_EMAIL:-}
+      SECURITY_ADMIN_PASSWORD: ${ZAP_ADMIN_PASSWORD:-}
+      SECURITY_DEPENDENT_EMAIL: ${SECURITY_DEPENDENT_EMAIL:-}
+      SECURITY_DEPENDENT_PASSWORD: ${SECURITY_DEPENDENT_PASSWORD:-}
+      SECURITY_OWN_BRANCH_ID: ${SECURITY_OWN_BRANCH_ID:-}
+      SECURITY_FOREIGN_BRANCH_ID: ${SECURITY_FOREIGN_BRANCH_ID:-}
+      SECURITY_FOREIGN_LOT_ID: ${SECURITY_FOREIGN_LOT_ID:-}
+      SECURITY_FOREIGN_SALE_ID: ${SECURITY_FOREIGN_SALE_ID:-}
+      SECURITY_FOREIGN_REGISTER_ID: ${SECURITY_FOREIGN_REGISTER_ID:-}
+    volumes:
+      - ./tests/security/scripts/authorization-controls.js:/tests/authorization-controls.js:ro
+    command:
+      - node
+      - /tests/authorization-controls.js
+
+  security-error-responses:
+    image: node:22-alpine
+    profiles:
+      - security
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      SECURITY_API_URL: ${SECURITY_API_URL:-http://backend:3000/api}
+      SECURITY_TARGET_ENV: ${ZAP_TARGET_ENV:-local}
+      SECURITY_ADMIN_EMAIL: ${ZAP_ADMIN_EMAIL:-}
+      SECURITY_ADMIN_PASSWORD: ${ZAP_ADMIN_PASSWORD:-}
+    volumes:
+      - ./tests/security/scripts/error-responses.js:/tests/error-responses.js:ro
+    command:
+      - node
+      - /tests/error-responses.js
+
+  security-zap-gate:
+    image: node:22-alpine
+    profiles:
+      - security
+    environment:
+      SECURITY_TARGET_ENV: ${ZAP_TARGET_ENV:-local}
+      SECURITY_ZAP_REPORT: /results/active-read.json
+      SECURITY_EVIDENCE_FILE: /results/execution-evidence.md
+      SECURITY_COMMIT: ${SECURITY_COMMIT:-}
+      SECURITY_SCAN_DURATION: ${SECURITY_SCAN_DURATION:-}
+    volumes:
+      - ./tests/security/scripts/evaluate-zap-report.js:/tests/evaluate-zap-report.js:ro
+      - ./tests/security/results:/results
+    command:
+      - node
+      - /tests/evaluate-zap-report.js

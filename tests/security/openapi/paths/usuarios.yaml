@@ -1,0 +1,32 @@
+coleccion:
+  get:
+    tags: [Usuarios]
+    operationId: obtenerUsuarios
+    x-farmacom-roles: [dueno, administrador]
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+porSucursal:
+  get:
+    tags: [Usuarios]
+    operationId: obtenerUsuariosPorSucursal
+    x-farmacom-roles: [dueno, administrador]
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdSucursal' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+porId:
+  get:
+    tags: [Usuarios]
+    operationId: obtenerUsuarioPorId
+    parameters:
+      - { $ref: '../components/parameters.yaml#/Id' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '404': { $ref: '../components/responses.yaml#/NoEncontrado' }
