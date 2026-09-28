@@ -1,12 +1,12 @@
 import http from 'k6/http';
 import { group, sleep } from 'k6';
-import { iniciarSesion } from './lib/auth.js';
+import { iniciarSesion } from '../lib/auth.js';
 import {
   comprobarArregloJson,
   comprobarObjetoJson,
   comprobarRespuestaJson,
-} from './lib/checks.js';
-import { config } from './lib/config.js';
+} from '../lib/checks.js';
+import { config } from '../lib/config.js';
 
 export const options = {
   scenarios: {

@@ -2,13 +2,13 @@ import http from 'k6/http';
 import exec from 'k6/execution';
 import { group, sleep } from 'k6';
 import { Counter } from 'k6/metrics';
-import { iniciarSesion } from './lib/auth.js';
+import { iniciarSesion } from '../../lib/auth.js';
 import {
   comprobarArregloJson,
   comprobarObjetoJson,
   comprobarRespuestaJson,
-} from './lib/checks.js';
-import { config } from './lib/config.js';
+} from '../../lib/checks.js';
+import { config } from '../../lib/config.js';
 
 const actividadSucursal = new Counter('actividad_sucursal');
 const umbralesSucursales = {};

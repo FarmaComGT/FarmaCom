@@ -2,6 +2,8 @@
 
 Este directorio contiene las pruebas de carga y estrés ejecutadas con Grafana k6. La prueba de humo comprueba primero que k6 puede autenticarse mediante la cookie `auth_token` y consultar una ruta protegida.
 
+Los scripts se organizan por propósito dentro de `scenarios/`: `load/` representa la operación habitual, `stress/` incrementa la concurrencia hasta observar degradación, `volume/` se reserva para consultas sobre conjuntos grandes de datos ficticios y `writes/` contiene las operaciones controladas que modifican información.
+
 ## Requisitos
 
 - Docker Desktop en ejecución.

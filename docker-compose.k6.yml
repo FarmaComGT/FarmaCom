@@ -46,7 +46,7 @@ services:
       - ./tests/performance/results:/results
     command:
       - run
-      - /scripts/smoke.js
+      - /scripts/scenarios/smoke.js
 
   k6-load-queries:
     image: grafana/k6:2.2.0
@@ -78,7 +78,7 @@ services:
       - ./tests/performance/results:/results
     command:
       - run
-      - /scripts/load-queries.js
+      - /scripts/scenarios/load/queries.js
 
   k6-stress:
     image: grafana/k6:2.2.0
@@ -110,7 +110,7 @@ services:
       - ./tests/performance/results:/results
     command:
       - run
-      - /scripts/stress.js
+      - /scripts/scenarios/stress/queries.js
 
   k6-transactional-sales:
     image: grafana/k6:2.2.0
@@ -140,4 +140,4 @@ services:
       - ./tests/performance/results:/results
     command:
       - run
-      - /scripts/transactional-sales.js
+      - /scripts/scenarios/writes/transactional-sales.js
