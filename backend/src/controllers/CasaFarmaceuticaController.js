@@ -72,24 +72,4 @@ const eliminar = async (req, res) => {
   }
 };
 
-// GET /api/casas/:id/proveedores
-const obtenerProveedoresVinculados = async (req, res) => {
-  try {
-    const proveedores = await CasaFarmaceuticaService.obtenerProveedoresVinculados(
-      Number(req.params.id),
-    );
-    return res.status(200).json(proveedores);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-module.exports = {
-  crear,
-  obtenerTodas,
-  obtenerPorId,
-  actualizar,
-  cambiarEstado,
-  eliminar,
-  obtenerProveedoresVinculados,
-};
+module.exports = { crear, obtenerTodas, obtenerPorId, actualizar, cambiarEstado, eliminar };

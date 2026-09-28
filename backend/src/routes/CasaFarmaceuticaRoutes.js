@@ -5,6 +5,7 @@ const CasaTelefonoController = require('../controllers/CasaTelefonoController');
 const CasaEmailController = require('../controllers/CasaEmailController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const pool = require('../database/db');
 
 const router = Router();
 
@@ -105,7 +106,34 @@ router.get(
   '/:id/proveedores',
   verificarToken,
   validarParamId,
-  CasaFarmaceuticaController.obtenerProveedoresVinculados,
+  async (req, res) => {
+    try {
+      const id_casa = Number(req.params.id);
+ 
+      // Verificar que la casa exista
+      const { rows: casaRows } = await pool.query(
+        'SELECT id_casa FROM casa_farmaceutica WHERE id_casa = $1',
+        [id_casa],
+      );
+      if (casaRows.length === 0) {
+        return res.status(404).json({ mensaje: 'Casa farmacéutica no encontrada' });
+      }
+ 
+      // Obtener proveedores vinculados con su estado
+      const { rows } = await pool.query(
+        `SELECT p.id_proveedor, p.nombre, p.activo
+         FROM proveedor p
+         JOIN casa_proveedor cp ON cp.id_proveedor = p.id_proveedor
+         WHERE cp.id_casa = $1
+         ORDER BY p.nombre ASC`,
+        [id_casa],
+      );
+ 
+      return res.status(200).json(rows);
+    } catch (error) {
+      return res.status(500).json({ mensaje: error.message });
+    }
+  },
 );
 
 // Rutas anidadas: Teléfonos
