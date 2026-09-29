@@ -19,6 +19,7 @@ import Clientes from '../pages/Clientes.jsx';
 import PuntoVenta from '../pages/ventas/PuntoVenta.jsx';
 import CajaOperativa from '../pages/caja/CajaOperativa.jsx';
 import HistorialCaja from '../pages/caja/HistorialCaja.jsx';
+import AdministracionCajas from '../pages/caja/AdministracionCajas.jsx';
 import Pacientes from '../pages/laboratorio/Pacientes.jsx';
 import PacientePerfil from '../pages/laboratorio/PacientePerfil.jsx';
 
@@ -61,6 +62,7 @@ export default function AppRoutes() {
             <Route path="/ciudades" element={<Ciudades />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/caja/historial" element={<HistorialCaja />} />
+            <Route path="/caja/administracion" element={<AdministracionCajas />} />
             <Route path="/reports" element={<ReportesLayout />}>
               <Route index element={<Reportes />} />
               <Route path="rentabilidad" element={<Rentabilidad />} />

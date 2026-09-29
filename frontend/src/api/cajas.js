@@ -35,6 +35,16 @@ export const obtenerCajas = async (filtros = {}, opciones = {}) => {
   return data;
 };
 
+export const crearCaja = async (datos) => {
+  const { data } = await api.post('/cajas', datos);
+  return data;
+};
+
+export const actualizarCaja = async (idCaja, datos) => {
+  const { data } = await api.patch(`/cajas/${idCaja}`, datos);
+  return data;
+};
+
 export const obtenerSesionActual = async (idCaja, opciones = {}) => {
   const configuracion = opciones.signal ? { signal: opciones.signal } : undefined;
   const { data } = await api.get(

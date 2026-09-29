@@ -34,6 +34,10 @@ vi.mock('../pages/caja/HistorialCaja.jsx', () => ({
   default: () => <h1>Historial de cierres</h1>,
 }));
 
+vi.mock('../pages/caja/AdministracionCajas.jsx', () => ({
+  default: () => <h1>Administración de cajas</h1>,
+}));
+
 vi.mock('../pages/laboratorio/Pacientes.jsx', () => ({
   default: () => <h1>Pacientes de laboratorio</h1>,
 }));
@@ -149,6 +153,18 @@ describe('ruta de caja', () => {
     expect(screen.queryByRole('heading', { name: 'Historial de cierres' }))
       .not.toBeInTheDocument();
     expect(screen.getByText('Dashboard (Próximamente)')).toBeInTheDocument();
+  });
+
+  it('permite administrar cajas solamente a roles administrativos', () => {
+    estadoAuth.usuario = { rol: 'administrador' };
+    const { unmount } = renderizarRutaReportes('/caja/administracion');
+    expect(screen.getByRole('heading', { name: 'Administración de cajas' })).toBeInTheDocument();
+    unmount();
+
+    estadoAuth.usuario = { rol: 'dependiente' };
+    renderizarRutaReportes('/caja/administracion');
+    expect(screen.queryByRole('heading', { name: 'Administración de cajas' }))
+      .not.toBeInTheDocument();
   });
 });
 

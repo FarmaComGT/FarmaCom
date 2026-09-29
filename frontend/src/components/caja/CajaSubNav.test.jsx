@@ -11,11 +11,12 @@ const renderizar = (rol, ruta = '/caja') => render(
 );
 
 describe('CajaSubNav', () => {
-  it('muestra operación e historial a un administrador', () => {
+  it('muestra operación, historial y administración a un administrador', () => {
     renderizar('administrador');
 
     expect(screen.getByRole('link', { name: 'Operación' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Historial' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Administración' })).toBeInTheDocument();
   });
 
   it('oculta el historial a un dependiente', () => {
@@ -23,5 +24,6 @@ describe('CajaSubNav', () => {
 
     expect(screen.getByRole('link', { name: 'Operación' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Historial' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Administración' })).not.toBeInTheDocument();
   });
 });

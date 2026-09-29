@@ -1,5 +1,5 @@
 import React from 'react';
-import { History, Landmark } from 'lucide-react';
+import { History, Landmark, Settings } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const clasesPestana = ({ isActive }) => (
@@ -21,10 +21,16 @@ export default function CajaSubNav({ rol }) {
           Operación
         </NavLink>
         {puedeVerHistorial && (
-          <NavLink to="/caja/historial" className={clasesPestana}>
-            <History className="h-4 w-4" aria-hidden="true" />
-            Historial
-          </NavLink>
+          <>
+            <NavLink to="/caja/historial" className={clasesPestana}>
+              <History className="h-4 w-4" aria-hidden="true" />
+              Historial
+            </NavLink>
+            <NavLink to="/caja/administracion" className={clasesPestana}>
+              <Settings className="h-4 w-4" aria-hidden="true" />
+              Administración
+            </NavLink>
+          </>
         )}
       </div>
     </nav>
