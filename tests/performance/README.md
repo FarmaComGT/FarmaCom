@@ -2,6 +2,8 @@
 
 Este directorio contiene las pruebas de carga y estrés ejecutadas con Grafana k6. La prueba de humo comprueba primero que k6 puede autenticarse mediante la cookie `auth_token` y consultar una ruta protegida.
 
+Los scripts se organizan por propósito dentro de `scenarios/`: `load/` representa la operación habitual, `stress/` incrementa la concurrencia hasta observar degradación, `volume/` se reserva para consultas sobre conjuntos grandes de datos ficticios y `writes/` contiene las operaciones controladas que modifican información.
+
 ## Requisitos
 
 - Docker Desktop en ejecución.
@@ -16,19 +18,29 @@ Desde la raíz del repositorio, crea el archivo local de configuración:
 Copy-Item tests/performance/.env.performance.example tests/performance/.env.performance
 ```
 
-Edita `.env.performance` y reemplaza el correo, la contraseña y los identificadores de sucursal. `K6_BRANCH_ID` se utiliza en la prueba de humo y `K6_BRANCH_IDS` distribuye las pruebas de carga y estrés. Este archivo está ignorado por Git y no debe contener datos de producción.
+Edita `.env.performance` y reemplaza el correo, la contraseña y los identificadores de sucursal. Conserva `K6_TARGET_ENV=local`: todos los escenarios rechazan otro entorno y también comprueban que `K6_API_URL` apunte a `backend`, `localhost`, `127.0.0.1` o `host.docker.internal`. `K6_BRANCH_ID` se utiliza en la prueba de humo y `K6_BRANCH_IDS` distribuye las pruebas de carga y estrés. Este archivo está ignorado por Git y no debe contener datos de producción.
 
 ## Preparar tres sucursales ficticias
 
 Antes de las pruebas representativas, prepara los datos locales con:
 
 ```powershell
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm performance-data
+docker compose --env-file .env --env-file tests/performance/.env.performance -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm performance-data
 ```
 
 El proceso prepara `Sucursal 1`, `Sucursal 2` y `Sucursal 3`, asociadas a ciudades y direcciones completamente ficticias. Cada una queda con una caja principal y tres lotes ficticios de 500 unidades. La ejecución muestra los identificadores generados de las sucursales, cajas y lotes para configurar los escenarios posteriores.
 
 El script es idempotente: puede ejecutarse nuevamente sin duplicar sucursales, cajas ni lotes. No restablece las existencias consumidas por pruebas transaccionales anteriores.
+
+## Preparar datos de volumen
+
+Después de la preparación base, crea los pacientes, expedientes y cierres ficticios del escenario de volumen:
+
+```powershell
+docker compose --env-file .env --env-file tests/performance/.env.performance -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm performance-volume-data
+```
+
+Por defecto se preparan 10000 pacientes con sus expedientes y 10000 cierres distribuidos entre las tres sucursales. Las cantidades se controlan con `K6_VOLUME_PATIENTS` y `K6_VOLUME_CLOSURES`, admiten entre 1 y 100000 registros y la preparación es idempotente. `K6_LAB_ID` debe identificar un laboratorio local activo.
 
 ## Ejecutar la prueba de humo
 
@@ -36,7 +48,7 @@ El script es idempotente: puede ejecutarse nuevamente sin duplicar sucursales, c
 docker compose --env-file .env --env-file tests/performance/.env.performance -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm k6-smoke
 ```
 
-La ejecución realiza tres solicitudes:
+La ejecución realiza tres solicitudes y valida la estructura básica de sus respuestas:
 
 1. Inicia sesión mediante `POST /api/auth/login`.
 2. Verifica la sesión mediante `GET /api/auth/me`.
@@ -76,6 +88,24 @@ Los usuarios aumentan gradualmente durante 30 segundos, mantienen la carga duran
 
 El reporte se genera en `tests/performance/results/load-queries.html`. Este escenario solo realiza consultas y no modifica la base de datos.
 
+## Ejecutar la prueba de volumen
+
+```powershell
+docker compose --env-file .env --env-file tests/performance/.env.performance -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm k6-volume
+```
+
+El escenario distribuye cuatro usuarios entre pacientes y expedientes, cierres y reportes históricos. Las consultas clínicas recorren páginas de 100 pacientes ficticios; los cierres abarcan un año y los reportes utilizan el historial local disponible. La prueba aumenta durante 30 segundos, mantiene la carga durante tres minutos y disminuye durante 30 segundos. El resumen incluye los percentiles 90, 95 y 99 para facilitar la comparación con la línea base.
+
+### Criterios de volumen
+
+- Más del 98 % de las comprobaciones debe ser satisfactorio.
+- La tasa de solicitudes HTTP fallidas debe ser menor al 2 %.
+- El percentil 95 de pacientes, expedientes y cierres debe ser menor a 2 segundos.
+- El percentil 95 de los reportes debe ser menor a 3 segundos.
+- Cada grupo debe ejecutar al menos una consulta y encontrar los datos ficticios preparados.
+
+El reporte local se genera en `tests/performance/results/volume.html` y permanece ignorado por Git.
+
 ## Ejecutar la prueba de estrés
 
 ```powershell
@@ -90,14 +120,15 @@ El escenario aumenta progresivamente la cantidad de usuarios virtuales:
 4. Reduce la carga a 3 usuarios para observar la recuperación.
 5. Finaliza reduciendo la carga a 0.
 
-Cada usuario se distribuye de forma estable entre las tres sucursales. Cada iteración consulta simultáneamente el autocompletado del POS, el inventario de su sucursal, clientes y dos reportes consolidados. La prueba es de solo lectura.
+Cada usuario se distribuye de forma estable entre las tres sucursales. Cada iteración consulta simultáneamente el autocompletado del POS, el inventario de su sucursal, clientes y dos reportes consolidados. Para no concentrar la prueba en módulos que pueden cambiar próximamente, pacientes, categorías de laboratorio y cierres se consultan una vez cada cuatro iteraciones; esta frecuencia se controla con `K6_STRESS_SECONDARY_EVERY`. La prueba es de solo lectura.
 
 ### Criterios de estrés
 
 - Más del 95 % de las comprobaciones debe ser satisfactorio.
 - La tasa de solicitudes HTTP fallidas debe ser menor al 5 %.
 - El percentil 95 general debe mantenerse por debajo de 5 segundos.
-- El sistema debe continuar disponible y recuperar sus tiempos al disminuir la carga.
+- El sistema debe continuar disponible.
+- Durante la fase estable de recuperación, el percentil 95 debe volver a estar por debajo de 2 segundos y los errores deben ser menores al 2 %.
 
 El reporte se genera en `tests/performance/results/stress.html`. La gráfica temporal debe utilizarse para identificar la degradación durante el pico y la recuperación posterior.
 

@@ -29,11 +29,15 @@ const convertirListaEnterosPositivos = (valor, valorPredeterminado) => {
   return Object.freeze([...new Set(ids)]);
 };
 
+const urlLocal = /^https?:\/\/(backend|localhost|127\.0\.0\.1|host\.docker\.internal)(:\d+)?(\/|$)/i;
+
 export const config = Object.freeze({
   apiUrl: normalizarUrl(__ENV.K6_API_URL || 'http://backend:3000/api'),
+  entornoObjetivo: convertirTexto(__ENV.K6_TARGET_ENV, ''),
   correo: String(__ENV.K6_USER_EMAIL || '').trim(),
   contrasena: String(__ENV.K6_USER_PASSWORD || ''),
   idSucursal: convertirEnteroPositivo(__ENV.K6_BRANCH_ID, 1),
+  idLaboratorio: convertirEnteroPositivo(__ENV.K6_LAB_ID, 1),
   idsSucursales: convertirListaEnterosPositivos(
     __ENV.K6_BRANCH_IDS,
     convertirEnteroPositivo(__ENV.K6_BRANCH_ID, 1),
@@ -49,13 +53,23 @@ export const config = Object.freeze({
   estres: Object.freeze({
     usuariosMaximos: convertirEnteroPositivo(__ENV.K6_STRESS_MAX_VUS, 20),
     usuariosRecuperacion: convertirEnteroPositivo(__ENV.K6_STRESS_RECOVERY_VUS, 3),
+    frecuenciaModulosSecundarios: convertirEnteroPositivo(__ENV.K6_STRESS_SECONDARY_EVERY, 4),
     calentamiento: convertirTexto(__ENV.K6_STRESS_WARM_UP, '15s'),
     duracionEtapa: convertirTexto(__ENV.K6_STRESS_STAGE_DURATION, '30s'),
     duracionRecuperacion: convertirTexto(__ENV.K6_STRESS_RECOVERY_DURATION, '1m'),
     enfriamiento: convertirTexto(__ENV.K6_STRESS_COOL_DOWN, '15s'),
   }),
+  volumen: Object.freeze({
+    pacientesPreparados: convertirEnteroPositivo(__ENV.K6_VOLUME_PATIENTS, 10000),
+    cierresPreparados: convertirEnteroPositivo(__ENV.K6_VOLUME_CLOSURES, 10000),
+    usuariosClinicos: convertirEnteroPositivo(__ENV.K6_VOLUME_CLINICAL_VUS, 2),
+    usuariosCierres: convertirEnteroPositivo(__ENV.K6_VOLUME_CLOSURES_VUS, 1),
+    usuariosReportes: convertirEnteroPositivo(__ENV.K6_VOLUME_REPORTS_VUS, 1),
+    incremento: convertirTexto(__ENV.K6_VOLUME_RAMP_UP, '30s'),
+    duracionEstable: convertirTexto(__ENV.K6_VOLUME_STEADY_DURATION, '3m'),
+    descenso: convertirTexto(__ENV.K6_VOLUME_RAMP_DOWN, '30s'),
+  }),
   ventas: Object.freeze({
-    entorno: convertirTexto(__ENV.K6_TARGET_ENV, ''),
     permitirEscrituras: String(__ENV.K6_ALLOW_WRITES || '').trim().toLowerCase() === 'true',
     casos: String(__ENV.K6_SALES_CASES || '').trim(),
     cantidad: convertirEnteroPositivo(__ENV.K6_SALES_QUANTITY, 1),
@@ -83,22 +97,21 @@ export const validarConfiguracion = () => {
   if (faltantes.length > 0) {
     throw new Error(`Faltan variables requeridas: ${faltantes.join(', ')}`);
   }
+
+  if (config.entornoObjetivo.toLowerCase() !== 'local') {
+    throw new Error('Las pruebas de rendimiento solo pueden ejecutarse con K6_TARGET_ENV=local');
+  }
+
+  if (!urlLocal.test(config.apiUrl)) {
+    throw new Error('Las pruebas de rendimiento solo admiten una URL local para K6_API_URL');
+  }
 };
 
 export const validarConfiguracionVentas = () => {
   validarConfiguracion();
-  const urlLocal = /^https?:\/\/(backend|localhost|127\.0\.0\.1|host\.docker\.internal)(:\d+)?(\/|$)/i;
 
   if (!config.ventas.permitirEscrituras) {
     throw new Error('La prueba de ventas requiere K6_ALLOW_WRITES=true');
-  }
-
-  if (config.ventas.entorno.toLowerCase() !== 'local') {
-    throw new Error('La prueba de ventas solo puede ejecutarse con K6_TARGET_ENV=local');
-  }
-
-  if (!urlLocal.test(config.apiUrl)) {
-    throw new Error('La prueba de ventas solo admite una URL local para K6_API_URL');
   }
 
   if (!config.ventas.casos) {

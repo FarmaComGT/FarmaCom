@@ -2,12 +2,12 @@ import http from 'k6/http';
 import exec from 'k6/execution';
 import { check, fail, group, sleep } from 'k6';
 import { Trend } from 'k6/metrics';
-import { iniciarSesion } from './lib/auth.js';
+import { iniciarSesion } from '../../lib/auth.js';
 import {
   comprobarObjetoJson,
   comprobarRespuestaJson,
-} from './lib/checks.js';
-import { config, validarConfiguracionVentas } from './lib/config.js';
+} from '../../lib/checks.js';
+import { config, validarConfiguracionVentas } from '../../lib/config.js';
 
 const retrasoActualizacionReporte = new Trend('retraso_actualizacion_reporte', true);
 
