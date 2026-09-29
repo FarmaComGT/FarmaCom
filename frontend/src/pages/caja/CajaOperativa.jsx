@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import useCaja from '../../hooks/useCaja';
+import CajaSubNav from '../../components/caja/CajaSubNav';
 
 const FORMULARIO_INICIAL = {
   turno: '',
@@ -66,7 +67,7 @@ const obtenerResultadoCierre = (cierre) => {
 };
 
 export default function CajaOperativa() {
-  const { sucursalActivaId } = useAuth();
+  const { sucursalActivaId, usuario } = useAuth();
   const {
     cajas,
     cajaSeleccionada,
@@ -226,6 +227,8 @@ export default function CajaOperativa() {
 
   return (
     <div className="space-y-6">
+      <CajaSubNav rol={usuario?.rol} />
+
       <header className="rounded-2xl border border-slate-200 bg-surface-container-low/70 px-5 py-5">
         <div className="flex items-center gap-3">
           <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">

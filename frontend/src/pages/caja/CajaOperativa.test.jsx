@@ -6,11 +6,18 @@ import useCaja from '../../hooks/useCaja';
 import CajaOperativa from './CajaOperativa';
 
 vi.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({ sucursalActivaId: 2 }),
+  useAuth: () => ({
+    sucursalActivaId: 2,
+    usuario: { rol: 'administrador' },
+  }),
 }));
 
 vi.mock('../../hooks/useCaja', () => ({
   default: vi.fn(),
+}));
+
+vi.mock('../../components/caja/CajaSubNav', () => ({
+  default: () => <nav>Pestañas de caja</nav>,
 }));
 
 const abrir = vi.fn();
