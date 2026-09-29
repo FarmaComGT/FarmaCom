@@ -7,7 +7,7 @@ const CAMPOS_CIERRES = [
   'fecha_desde',
   'fecha_hasta',
 ];
-const CAMPOS_RESUMEN = ['fecha', 'id_sucursal'];
+const CAMPOS_RESUMEN = ['fecha', 'id_sucursal', 'id_caja'];
 
 export const construirParametrosCaja = (filtros = {}, campos = []) => (
   campos.reduce((parametros, campo) => {

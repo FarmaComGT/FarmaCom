@@ -81,6 +81,7 @@ const obtenerResumenDiario = responder(async (req, res) => {
   const resumen = await CajaService.obtenerResumenDiario(
     req.query.fecha,
     req.query.id_sucursal,
+    req.query.id_caja,
   );
   res.status(200).json(resumen);
 });

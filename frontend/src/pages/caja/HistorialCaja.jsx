@@ -5,6 +5,7 @@ import useHistorialCaja from '../../hooks/useHistorialCaja';
 import useSucursales from '../../hooks/useSucursales';
 import { useAuth } from '../../context/AuthContext';
 import CajaSubNav from '../../components/caja/CajaSubNav';
+import ResumenDiarioCaja from '../../components/caja/ResumenDiarioCaja';
 
 const FILTROS_INICIALES = {
   id_sucursal: '',
@@ -102,17 +103,18 @@ export default function HistorialCaja() {
             <h1 className="font-headline text-xl font-extrabold text-primary">
               Historial de cierres
             </h1>
-            <p className="text-sm font-medium text-slate-500">
-              Consulta los arqueos realizados por fecha, sucursal y caja.
-            </p>
           </div>
         </div>
       </header>
 
+      <ResumenDiarioCaja idSucursalInicial={usuario?.id_sucursal} />
+
       <section className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-primary" aria-hidden="true" />
-          <h2 className="font-headline text-lg font-bold text-primary">Filtros</h2>
+          <h2 className="font-headline text-lg font-bold text-primary">
+            Filtros para el historial
+          </h2>
         </div>
         <form onSubmit={aplicarFiltros} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div>
@@ -174,7 +176,7 @@ export default function HistorialCaja() {
               value={borrador.fecha_desde}
               onChange={cambiarFiltro}
               max={borrador.fecha_hasta || undefined}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="mt-1 w-full cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
@@ -189,7 +191,7 @@ export default function HistorialCaja() {
               value={borrador.fecha_hasta}
               onChange={cambiarFiltro}
               min={borrador.fecha_desde || undefined}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="mt-1 w-full cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
 

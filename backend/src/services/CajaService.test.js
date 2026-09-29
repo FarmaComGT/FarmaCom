@@ -230,4 +230,36 @@ describe('CajaService', () => {
       expect(CajaDAO.obtenerTotalesSesion).not.toHaveBeenCalled();
     });
   });
+
+  describe('obtenerResumenDiario', () => {
+    it('consulta todas las cajas de la sucursal cuando no se especifica una', async () => {
+      CajaDAO.obtenerResumenDiario.mockResolvedValue([]);
+
+      await CajaService.obtenerResumenDiario('2026-09-28', 2);
+
+      expect(CajaDAO.obtenerResumenDiario).toHaveBeenCalledWith('2026-09-28', 2, undefined);
+      expect(CajaDAO.obtenerCajaPorId).not.toHaveBeenCalled();
+    });
+
+    it('consulta una caja cuando pertenece a la sucursal seleccionada', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 3, id_sucursal: 2 });
+      CajaDAO.obtenerResumenDiario.mockResolvedValue([]);
+
+      await CajaService.obtenerResumenDiario('2026-09-28', 2, 3);
+
+      expect(CajaDAO.obtenerResumenDiario).toHaveBeenCalledWith('2026-09-28', 2, 3);
+    });
+
+    it('rechaza una caja que no pertenece a la sucursal seleccionada', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 3, id_sucursal: 1 });
+
+      await expect(
+        CajaService.obtenerResumenDiario('2026-09-28', 2, 3),
+      ).rejects.toMatchObject({
+        status: 400,
+        message: 'La caja no pertenece a la sucursal seleccionada',
+      });
+      expect(CajaDAO.obtenerResumenDiario).not.toHaveBeenCalled();
+    });
+  });
 });

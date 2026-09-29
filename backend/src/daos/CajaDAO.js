@@ -293,10 +293,11 @@ class CajaDAO {
     return rows;
   }
 
-  async obtenerResumenDiario(fecha, id_sucursal = null) {
+  async obtenerResumenDiario(fecha, id_sucursal, id_caja = null) {
     const valores = [fecha];
-    const filtroSucursal = id_sucursal
-      ? `AND c.id_sucursal = $${valores.push(id_sucursal)}`
+    const filtroSucursal = `AND c.id_sucursal = $${valores.push(id_sucursal)}`;
+    const filtroCaja = id_caja
+      ? `AND sc.id_caja = $${valores.push(id_caja)}`
       : '';
     const { rows } = await pool.query(
       `SELECT
@@ -324,6 +325,7 @@ class CajaDAO {
        JOIN sucursal s ON s.id_sucursal = c.id_sucursal
        WHERE sc.fecha_operacion = $1::date
        ${filtroSucursal}
+       ${filtroCaja}
        GROUP BY c.id_sucursal, s.nombre_sucursal
        ORDER BY s.nombre_sucursal`,
       valores,

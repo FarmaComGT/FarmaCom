@@ -52,4 +52,18 @@ describe('useHistorialCaja', () => {
 
     await waitFor(() => expect(obtenerCierres).toHaveBeenCalledTimes(2));
   });
+
+  it('cancela la consulta anterior al cambiar los filtros', () => {
+    obtenerCierres.mockImplementation(() => new Promise(() => {}));
+    const { rerender } = renderHook(
+      ({ valores }) => useHistorialCaja(valores),
+      { initialProps: { valores: filtros } },
+    );
+    const primeraSenal = obtenerCierres.mock.calls[0][1].signal;
+
+    rerender({ valores: { ...filtros, id_caja: 4 } });
+
+    expect(primeraSenal.aborted).toBe(true);
+    expect(obtenerCierres).toHaveBeenCalledTimes(2);
+  });
 });

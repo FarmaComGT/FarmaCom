@@ -222,8 +222,16 @@ const obtenerCierres = async (filtros) => {
   return cierres.map(agregarTotalVentas);
 };
 
-const obtenerResumenDiario = async (fecha, id_sucursal) => {
-  const resumen = await CajaDAO.obtenerResumenDiario(fecha, id_sucursal);
+const obtenerResumenDiario = async (fecha, id_sucursal, id_caja) => {
+  if (id_caja) {
+    const cajaResumen = await CajaDAO.obtenerCajaPorId(id_caja);
+    if (!cajaResumen) lanzarError('Caja no encontrada', 404);
+    if (Number(cajaResumen.id_sucursal) !== Number(id_sucursal)) {
+      lanzarError('La caja no pertenece a la sucursal seleccionada', 400);
+    }
+  }
+
+  const resumen = await CajaDAO.obtenerResumenDiario(fecha, id_sucursal, id_caja);
   return resumen.map(agregarTotalVentas);
 };
 

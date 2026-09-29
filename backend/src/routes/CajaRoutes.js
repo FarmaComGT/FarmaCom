@@ -119,8 +119,11 @@ const validarResumen = [
     .matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('fecha debe tener formato YYYY-MM-DD')
     .isISO8601({ strict: true }).withMessage('fecha debe ser una fecha válida'),
   query('id_sucursal')
-    .optional()
     .isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo')
+    .toInt(),
+  query('id_caja')
+    .optional()
+    .isInt({ min: 1 }).withMessage('id_caja debe ser un entero positivo')
     .toInt(),
 ];
 

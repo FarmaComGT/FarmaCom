@@ -18,6 +18,10 @@ const crearApp = () => {
 };
 
 describe('CajaRoutes', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('acepta una apertura con turno de mañana y fondo válido', async () => {
     CajaService.abrirSesion.mockResolvedValue({ id_sesion_caja: 9 });
 
@@ -68,5 +72,25 @@ describe('CajaRoutes', () => {
 
     expect(respuesta.status).toBe(400);
     expect(CajaService.cerrarSesion).not.toHaveBeenCalled();
+  });
+
+  it('envía la sucursal y la caja opcional al resumen diario', async () => {
+    CajaService.obtenerResumenDiario.mockResolvedValue([]);
+
+    const respuesta = await request(crearApp())
+      .get('/api/cajas/cierres/resumen-diario')
+      .query({ fecha: '2026-09-28', id_sucursal: 2, id_caja: 3 });
+
+    expect(respuesta.status).toBe(200);
+    expect(CajaService.obtenerResumenDiario).toHaveBeenCalledWith('2026-09-28', 2, 3);
+  });
+
+  it('exige una sucursal para consultar el resumen diario', async () => {
+    const respuesta = await request(crearApp())
+      .get('/api/cajas/cierres/resumen-diario')
+      .query({ fecha: '2026-09-28' });
+
+    expect(respuesta.status).toBe(400);
+    expect(CajaService.obtenerResumenDiario).not.toHaveBeenCalled();
   });
 });

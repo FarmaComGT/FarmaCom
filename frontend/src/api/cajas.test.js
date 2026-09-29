@@ -119,7 +119,7 @@ describe('API de caja', () => {
     });
   });
 
-  it('consulta el resumen diario por fecha y sucursal', async () => {
+  it('consulta el resumen diario por fecha, sucursal y caja', async () => {
     const resumen = [{ id_sucursal: 2, sesiones_cerradas: 4 }];
     api.get.mockResolvedValue({ data: resumen });
 
@@ -130,7 +130,7 @@ describe('API de caja', () => {
     });
 
     expect(api.get).toHaveBeenCalledWith('/cajas/cierres/resumen-diario', {
-      params: { fecha: '2026-09-22', id_sucursal: 2 },
+      params: { fecha: '2026-09-22', id_sucursal: 2, id_caja: 3 },
     });
     expect(resultado).toBe(resumen);
   });

@@ -16,6 +16,22 @@ const obtenerMensajeError = (error, mensajePredeterminado) => (
 
 const aCentavos = (monto) => Math.round(Number(monto || 0) * 100);
 const aMonto = (centavos) => (centavos / 100).toFixed(2);
+const CLAVE_CAJA_SELECCIONADA = 'farmacom:caja-seleccionada';
+
+const obtenerClaveCaja = (idSucursal) => (
+  idSucursal ? `${CLAVE_CAJA_SELECCIONADA}:${idSucursal}` : null
+);
+
+const leerCajaSeleccionada = (idSucursal) => {
+  const clave = obtenerClaveCaja(idSucursal);
+  if (!clave || typeof window === 'undefined') return null;
+
+  try {
+    return window.sessionStorage.getItem(clave);
+  } catch {
+    return null;
+  }
+};
 
 const agregarMovimientoASesion = (sesion, movimiento) => {
   const entradas = aCentavos(sesion.total_entradas)
@@ -37,7 +53,9 @@ const agregarMovimientoASesion = (sesion, movimiento) => {
 
 export default function useCaja(idSucursal) {
   const [cajas, setCajas] = useState([]);
-  const [idCajaSeleccionada, setIdCajaSeleccionada] = useState(null);
+  const [idCajaSeleccionada, setIdCajaSeleccionada] = useState(
+    () => leerCajaSeleccionada(idSucursal),
+  );
   const [sesionActual, setSesionActual] = useState(null);
   const [cargandoCajas, setCargandoCajas] = useState(true);
   const [cargandoSesion, setCargandoSesion] = useState(false);
@@ -54,6 +72,11 @@ export default function useCaja(idSucursal) {
   const refrescarCajas = useCallback(() => {
     setVersionCajas((version) => version + 1);
   }, []);
+
+  useEffect(() => {
+    setIdCajaSeleccionada(leerCajaSeleccionada(idSucursal));
+    setSesionActual(null);
+  }, [idSucursal]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -90,6 +113,26 @@ export default function useCaja(idSucursal) {
 
     return () => controller.abort();
   }, [idSucursal, versionCajas]);
+
+  useEffect(() => {
+    if (
+      cargandoCajas
+      || !idCajaSeleccionada
+      || cajas.some((caja) => String(caja.id_caja) === String(idCajaSeleccionada))
+    ) {
+      return;
+    }
+
+    const clave = obtenerClaveCaja(idSucursal);
+    if (clave) {
+      try {
+        window.sessionStorage.removeItem(clave);
+      } catch {
+        // La selección inválida se limpia en memoria aunque falle el almacenamiento.
+      }
+    }
+    setIdCajaSeleccionada(null);
+  }, [cajas, cargandoCajas, idCajaSeleccionada, idSucursal]);
 
   useEffect(() => {
     if (!idCajaSeleccionada) {
@@ -135,9 +178,21 @@ export default function useCaja(idSucursal) {
   }, [idCajaSeleccionada]);
 
   const seleccionarCaja = useCallback((idCaja) => {
-    setIdCajaSeleccionada(idCaja || null);
+    const siguienteId = idCaja || null;
+    const clave = obtenerClaveCaja(idSucursal);
+
+    if (clave) {
+      try {
+        if (siguienteId) window.sessionStorage.setItem(clave, String(siguienteId));
+        else window.sessionStorage.removeItem(clave);
+      } catch {
+        // La selección sigue funcionando aunque el navegador bloquee el almacenamiento.
+      }
+    }
+
+    setIdCajaSeleccionada(siguienteId);
     setSesionActual(null);
-  }, []);
+  }, [idSucursal]);
 
   const ejecutarOperacion = useCallback(async (operacion, mensajePredeterminado) => {
     setProcesando(true);

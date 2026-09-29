@@ -17,6 +17,9 @@ vi.mock('../../hooks/useSucursales', () => ({ default: vi.fn() }));
 vi.mock('../../components/caja/CajaSubNav', () => ({
   default: () => <nav>Pestañas de caja</nav>,
 }));
+vi.mock('../../components/caja/ResumenDiarioCaja', () => ({
+  default: () => <section data-testid="resumen-diario">Resumen diario</section>,
+}));
 
 const cierres = [{
   id_sesion_caja: 9,
@@ -51,6 +54,16 @@ describe('HistorialCaja', () => {
     expect(within(fila).getByText('Caja principal')).toBeInTheDocument();
     expect(within(fila).getByText(/Q\s*500\.00/)).toBeInTheDocument();
     expect(within(fila).getByText(/-Q\s*5\.00/)).toBeInTheDocument();
+  });
+
+  it('coloca el resumen diario antes de los filtros', () => {
+    render(<HistorialCaja />);
+
+    const resumen = screen.getByTestId('resumen-diario');
+    const filtros = screen.getByRole('heading', { name: 'Filtros para el historial' })
+      .closest('section');
+    expect(resumen.compareDocumentPosition(filtros) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
   });
 
   it('carga las cajas de la sucursal y aplica los filtros elegidos', async () => {
