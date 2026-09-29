@@ -7,6 +7,7 @@ const ROLES = [
   { value: 'dueno', label: 'Dueño' },
   { value: 'administrador', label: 'Administrador' },
   { value: 'dependiente', label: 'Dependiente' },
+  { value: 'laboratorista', label: 'Laboratorista' },
 ];
 
 export default function UsuarioFormModal({
@@ -15,6 +16,8 @@ export default function UsuarioFormModal({
   formulario,
   sucursales,
   cargandoSucursales,
+  laboratorios = [],
+  cargandoLaboratorios,
   guardando,
   errorFormulario,
   onClose,
@@ -85,10 +88,11 @@ export default function UsuarioFormModal({
           )}
 
           <div className="space-y-1">
-            <label className="text-sm font-semibold text-slate-700">Rol</label>
+            <label htmlFor="rol" className="text-sm font-semibold text-slate-700">Rol</label>
             <div className="relative">
               <select
                 name="rol"
+                id="rol"
                 value={formulario.rol}
                 onChange={onChange}
                 className="w-full appearance-none rounded-xl border border-slate-300 px-4 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
@@ -106,10 +110,11 @@ export default function UsuarioFormModal({
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-semibold text-slate-700">Sucursal</label>
+            <label htmlFor="id_sucursal" className="text-sm font-semibold text-slate-700">Sucursal</label>
             <div className="relative">
               <select
                 name="id_sucursal"
+                id="id_sucursal"
                 value={formulario.id_sucursal}
                 onChange={onChange}
                 className="w-full appearance-none rounded-xl border border-slate-300 px-4 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
@@ -130,6 +135,36 @@ export default function UsuarioFormModal({
             )}
           </div>
 
+          {formulario.rol === 'laboratorista' && (
+            <div className="space-y-1">
+              <label htmlFor="id_laboratorio" className="text-sm font-semibold text-slate-700">
+                Laboratorio
+              </label>
+              <div className="relative">
+                <select
+                  name="id_laboratorio"
+                  id="id_laboratorio"
+                  value={formulario.id_laboratorio}
+                  onChange={onChange}
+                  className="w-full appearance-none rounded-xl border border-slate-300 px-4 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                  disabled={cargandoLaboratorios}
+                  required
+                >
+                  <option value="">Selecciona un laboratorio</option>
+                  {laboratorios.map((laboratorio) => (
+                    <option key={laboratorio.id_laboratorio} value={laboratorio.id_laboratorio}>
+                      {laboratorio.nombre_laboratorio}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              </div>
+              {!cargandoLaboratorios && laboratorios.length === 0 && (
+                <p className="text-xs text-error font-medium">No hay laboratorios activos registrados.</p>
+              )}
+            </div>
+          )}
+
           {errorFormulario && (
             <p className="text-sm text-error font-semibold">{errorFormulario}</p>
           )}
@@ -144,7 +179,9 @@ export default function UsuarioFormModal({
             </button>
             <button
               type="submit"
-              disabled={guardando || cargandoSucursales || sucursales.length === 0}
+              disabled={guardando || cargandoSucursales || sucursales.length === 0 || (
+                formulario.rol === 'laboratorista' && (cargandoLaboratorios || laboratorios.length === 0)
+              )}
               className="px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-60"
             >
               {guardando ? 'Guardando...' : modoEdicion ? 'Guardar cambios' : 'Crear usuario'}

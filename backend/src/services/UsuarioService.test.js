@@ -1,8 +1,10 @@
 jest.mock('../daos/UsuarioDAO');
+jest.mock('../daos/LaboratorioDAO');
 jest.mock('bcrypt');
 
 const bcrypt = require('bcrypt');
 const UsuarioDAO = require('../daos/UsuarioDAO');
+const LaboratorioDAO = require('../daos/LaboratorioDAO');
 const UsuarioService = require('./UsuarioService');
 
 describe('UsuarioService', () => {
@@ -38,6 +40,41 @@ describe('UsuarioService', () => {
         UsuarioService.crearUsuario({ correo_usuario: 'ana@x.com', contrasena: 'x' }),
       ).rejects.toMatchObject({ status: 409 });
       expect(UsuarioDAO.crear).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('asignacion de laboratorio', () => {
+    it('asigna un laboratorio activo al crear un laboratorista', async () => {
+      UsuarioDAO.obtenerPorCorreo.mockResolvedValue(null);
+      LaboratorioDAO.obtenerPorId.mockResolvedValue({ id_laboratorio: 3, activo: true });
+      bcrypt.hash.mockResolvedValue('hash-seguro');
+      UsuarioDAO.crear.mockResolvedValue({ id_usuario: 3, contrasena_hash: 'hash-seguro' });
+
+      await UsuarioService.crearUsuario({
+        id_sucursal: 1,
+        id_laboratorio: 3,
+        nombre_usuario: 'Laura',
+        correo_usuario: 'laura@x.com',
+        contrasena: 'clave123',
+        rol: 'laboratorista',
+      });
+
+      expect(UsuarioDAO.crear).toHaveBeenCalledWith(expect.objectContaining({
+        rol: 'laboratorista',
+        id_laboratorio: 3,
+      }));
+    });
+
+    it('rechaza un laboratorista sin laboratorio asignado', async () => {
+      UsuarioDAO.obtenerPorCorreo.mockResolvedValue(null);
+
+      await expect(UsuarioService.crearUsuario({
+        id_sucursal: 1,
+        nombre_usuario: 'Laura',
+        correo_usuario: 'laura@x.com',
+        contrasena: 'clave123',
+        rol: 'laboratorista',
+      })).rejects.toMatchObject({ status: 400 });
     });
   });
 
@@ -87,6 +124,25 @@ describe('UsuarioService', () => {
         UsuarioService.actualizarUsuario(1, { correo_usuario: 'b@x.com' }),
       ).rejects.toMatchObject({ status: 409 });
       expect(UsuarioDAO.actualizar).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('actualizar asignacion de laboratorio', () => {
+    it('elimina la asignacion al cambiar a un rol de farmacia', async () => {
+      UsuarioDAO.obtenerPorId.mockResolvedValue({
+        id_usuario: 1,
+        correo_usuario: 'laura@x.com',
+        rol: 'laboratorista',
+        id_laboratorio: 3,
+      });
+      UsuarioDAO.actualizar.mockResolvedValue({ id_usuario: 1, contrasena_hash: 'hash' });
+
+      await UsuarioService.actualizarUsuario(1, { rol: 'dependiente' });
+
+      expect(UsuarioDAO.actualizar).toHaveBeenCalledWith(1, expect.objectContaining({
+        rol: 'dependiente',
+        id_laboratorio: null,
+      }));
     });
   });
 

@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
-  BadgePlus,
-  BedSingle,
   Package,
   ChevronDown,
   Tag,
@@ -34,6 +32,8 @@ const inventarioSubItems = [
   { icon: Building2, label: 'Casas', path: '/inventario/casas' },
 ];
 
+const ROLES_FARMACIA = ['dueno', 'administrador', 'dependiente'];
+
 const sucursalSubItems = [
   { icon: Store, label: 'Sucursales', path: '/sucursales' },
   { icon: FlaskConical, label: 'Laboratorios', path: '/laboratorios' },
@@ -42,7 +42,7 @@ const sucursalSubItems = [
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: ShoppingCart, label: 'Punto de venta', path: '/pos' },
+  { icon: ShoppingCart, label: 'Punto de venta', path: '/pos', roles: ROLES_FARMACIA },
   {
     icon: Banknote,
     label: 'Caja',
@@ -50,10 +50,10 @@ const navItems = [
     roles: ['dueno', 'administrador', 'dependiente'],
   },
   { icon: UserCog, label: 'Usuarios', path: '/usuarios', roles: ['dueno', 'administrador'] },
-  { icon: Users, label: 'Clientes', path: '/patients' },
+  { icon: Users, label: 'Clientes', path: '/patients', roles: ROLES_FARMACIA },
   {
-    icon: PacienteIcon,
-    label: 'Pacientes',
+    icon: FlaskConical,
+    label: 'Laboratorio',
     path: '/laboratorio/pacientes',
     roles: ['dueno', 'administrador', 'laboratorista'],
   },
@@ -68,18 +68,6 @@ const navItems = [
 const bottomNavItems = [
   { icon: HelpCircle, label: 'Ayuda', path: '/support' },
 ];
-
-function PacienteIcon({ className = '' }) {
-  return (
-    <span className={`relative inline-flex flex-shrink-0 ${className}`} aria-hidden="true">
-      <BedSingle className="h-full w-full" strokeWidth={2} />
-      <BadgePlus
-        className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-slate-50"
-        strokeWidth={2.5}
-      />
-    </span>
-  );
-}
 
 const topLevelItemClass = (isActive) =>
   `group flex items-center gap-3 rounded-xl px-4 py-3 outline-none select-none transition-colors duration-150 ${
@@ -106,6 +94,7 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
     .some((ruta) => location.pathname.startsWith(ruta));
   const [sucursalesAbierto, setSucursalesAbierto] = useState(sucursalesActivo);
   const puedeVerSucursales = ['dueno', 'administrador'].includes(usuario?.rol);
+  const puedeVerInventario = ROLES_FARMACIA.includes(usuario?.rol);
 
   useEffect(() => {
     if (inventarioActivo) {
@@ -186,7 +175,7 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
           <span className="text-sm font-headline">Dashboard</span>
         </NavLink>
 
-        <div>
+        {puedeVerInventario && <div>
           <button
             type="button"
             onClick={() => setInventarioAbierto((prev) => !prev)}
@@ -215,7 +204,7 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
         {puedeVerSucursales && (
           <div>

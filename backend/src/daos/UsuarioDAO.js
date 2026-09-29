@@ -4,14 +4,14 @@ class UsuarioDAO {
     // ─── CREATE ────
 
     async crear(usuario) {
-        const { id_sucursal, nombre_usuario, correo_usuario, contrasena_hash, rol } = usuario;
+        const { id_sucursal, id_laboratorio, nombre_usuario, correo_usuario, contrasena_hash, rol } = usuario;
 
         const query = `
-      INSERT INTO usuario (id_sucursal, nombre_usuario, correo_usuario, contrasena_hash, rol)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO usuario (id_sucursal, id_laboratorio, nombre_usuario, correo_usuario, contrasena_hash, rol)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `;
-        const valores = [id_sucursal, nombre_usuario, correo_usuario, contrasena_hash, rol];
+        const valores = [id_sucursal, id_laboratorio, nombre_usuario, correo_usuario, contrasena_hash, rol];
         const { rows } = await pool.query(query, valores);
         return rows[0];
     }
@@ -47,7 +47,7 @@ class UsuarioDAO {
     // ─── UPDATE ────
 
     async actualizar(id_usuario, campos) {
-        const { nombre_usuario, correo_usuario, rol, id_sucursal } = campos;
+        const { nombre_usuario, correo_usuario, rol, id_sucursal, id_laboratorio } = campos;
 
         const query = `
       UPDATE usuario
@@ -55,11 +55,12 @@ class UsuarioDAO {
         nombre_usuario  = COALESCE($1, nombre_usuario),
         correo_usuario  = COALESCE($2, correo_usuario),
         rol             = COALESCE($3, rol),
-        id_sucursal     = COALESCE($4, id_sucursal)
-      WHERE id_usuario = $5
+        id_sucursal     = COALESCE($4, id_sucursal),
+        id_laboratorio  = $5
+      WHERE id_usuario = $6
       RETURNING *
     `;
-        const valores = [nombre_usuario, correo_usuario, rol, id_sucursal, id_usuario];
+        const valores = [nombre_usuario, correo_usuario, rol, id_sucursal, id_laboratorio, id_usuario];
         const { rows } = await pool.query(query, valores);
         return rows[0] || null;
     }

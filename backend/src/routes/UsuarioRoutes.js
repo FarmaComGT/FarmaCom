@@ -27,7 +27,11 @@ const validarCreacion = [
     body('nombre_usuario').trim().notEmpty().withMessage('nombre_usuario es requerido').isLength({ max: 100 }).withMessage('nombre_usuario no puede superar los 100 caracteres'),
     body('correo_usuario').isEmail().withMessage('correo_usuario no es válido').normalizeEmail(),
     body('contrasena').trim().isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
-    body('rol').isIn(['dueno', 'administrador', 'dependiente']).withMessage('Rol no válido'),
+    body('rol').isIn(['dueno', 'administrador', 'dependiente', 'laboratorista']).withMessage('Rol no válido'),
+    body('id_laboratorio')
+        .if(body('rol').equals('laboratorista'))
+        .isInt({ min: 1 }).withMessage('id_laboratorio debe ser un entero positivo')
+        .toInt(),
 ];
 
 const validarActualizacion = [
@@ -42,10 +46,14 @@ const validarActualizacion = [
         .isLength({ max: 100 }).withMessage('nombre_usuario no puede superar los 100 caracteres'),
     body('rol')
         .optional()
-        .isIn(['dueno', 'administrador', 'dependiente']).withMessage('Rol no válido'),
+        .isIn(['dueno', 'administrador', 'dependiente', 'laboratorista']).withMessage('Rol no válido'),
     body('id_sucursal')
         .optional()
         .isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo'),
+    body('id_laboratorio')
+        .optional({ nullable: true })
+        .isInt({ min: 1 }).withMessage('id_laboratorio debe ser un entero positivo')
+        .toInt(),
 ];
 
 const validarCambioContrasena = [

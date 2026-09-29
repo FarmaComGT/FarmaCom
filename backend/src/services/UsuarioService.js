@@ -1,9 +1,34 @@
 const bcrypt = require('bcrypt');
 const UsuarioDAO = require('../daos/UsuarioDAO');
+const LaboratorioDAO = require('../daos/LaboratorioDAO');
 
 const SALT_ROUNDS = 10;
 
-const crearUsuario = async({ id_sucursal, nombre_usuario, correo_usuario, contrasena, rol }) => {
+const errorConEstado = (mensaje, status) => {
+    const error = new Error(mensaje);
+    error.status = status;
+    return error;
+};
+
+const resolverLaboratorio = async(rol, id_laboratorio) => {
+    if (rol !== 'laboratorista') {
+        return null;
+    }
+
+    const id = Number(id_laboratorio);
+    if (!Number.isInteger(id) || id < 1) {
+        throw errorConEstado('Un laboratorista debe tener un laboratorio asignado', 400);
+    }
+
+    const laboratorio = await LaboratorioDAO.obtenerPorId(id);
+    if (!laboratorio || !laboratorio.activo) {
+        throw errorConEstado('Laboratorio no encontrado o inactivo', 400);
+    }
+
+    return id;
+};
+
+const crearUsuario = async({ id_sucursal, id_laboratorio, nombre_usuario, correo_usuario, contrasena, rol }) => {
     const existente = await UsuarioDAO.obtenerPorCorreo(correo_usuario);
     if (existente) {
         const error = new Error('El correo ya está registrado');
@@ -11,8 +36,16 @@ const crearUsuario = async({ id_sucursal, nombre_usuario, correo_usuario, contra
         throw error;
     }
 
+    const laboratorioAsignado = await resolverLaboratorio(rol, id_laboratorio);
     const contrasena_hash = await bcrypt.hash(contrasena, SALT_ROUNDS);
-    const usuario = await UsuarioDAO.crear({ id_sucursal, nombre_usuario, correo_usuario, contrasena_hash, rol });
+    const usuario = await UsuarioDAO.crear({
+        id_sucursal,
+        id_laboratorio: laboratorioAsignado,
+        nombre_usuario,
+        correo_usuario,
+        contrasena_hash,
+        rol,
+    });
 
     delete usuario.contrasena_hash;
     return usuario;
@@ -56,7 +89,17 @@ const actualizarUsuario = async(id_usuario, campos) => {
         }
     }
 
-    const usuario = await UsuarioDAO.actualizar(id_usuario, campos);
+    const rolFinal = campos.rol ?? existente.rol;
+    const laboratorioSolicitado = Object.prototype.hasOwnProperty.call(campos, 'id_laboratorio')
+        ? campos.id_laboratorio
+        : existente.id_laboratorio;
+    const id_laboratorio = await resolverLaboratorio(rolFinal, laboratorioSolicitado);
+
+    const usuario = await UsuarioDAO.actualizar(id_usuario, {
+        ...campos,
+        rol: rolFinal,
+        id_laboratorio,
+    });
     delete usuario.contrasena_hash;
     return usuario;
 };
