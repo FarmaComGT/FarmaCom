@@ -53,7 +53,7 @@ const navItems = [
   { icon: Users, label: 'Clientes', path: '/patients', roles: ROLES_FARMACIA },
   {
     icon: FlaskConical,
-    label: 'Laboratorio',
+    label: 'Pacientes',
     path: '/laboratorio/pacientes',
     roles: ['dueno', 'administrador', 'laboratorista'],
   },
