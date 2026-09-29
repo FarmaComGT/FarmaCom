@@ -40,7 +40,7 @@ Después de la preparación base, crea los pacientes, expedientes y cierres fict
 docker compose --env-file .env --env-file tests/performance/.env.performance -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm performance-volume-data
 ```
 
-Por defecto se preparan 1000 pacientes con sus expedientes y 1000 cierres distribuidos entre las tres sucursales. Las cantidades se controlan con `K6_VOLUME_PATIENTS` y `K6_VOLUME_CLOSURES`, admiten entre 1 y 100000 registros y la preparación es idempotente. `K6_LAB_ID` debe identificar un laboratorio local activo.
+Por defecto se preparan 10000 pacientes con sus expedientes y 10000 cierres distribuidos entre las tres sucursales. Las cantidades se controlan con `K6_VOLUME_PATIENTS` y `K6_VOLUME_CLOSURES`, admiten entre 1 y 100000 registros y la preparación es idempotente. `K6_LAB_ID` debe identificar un laboratorio local activo.
 
 ## Ejecutar la prueba de humo
 
@@ -94,7 +94,7 @@ El reporte se genera en `tests/performance/results/load-queries.html`. Este esce
 docker compose --env-file .env --env-file tests/performance/.env.performance -f docker-compose.yml -f docker-compose.k6.yml --profile performance run --rm k6-volume
 ```
 
-El escenario distribuye cuatro usuarios entre pacientes y expedientes, cierres y reportes históricos. Las consultas clínicas recorren páginas de 100 pacientes ficticios; los cierres abarcan un año y los reportes utilizan el historial local disponible. La prueba aumenta durante 30 segundos, mantiene la carga durante tres minutos y disminuye durante 30 segundos.
+El escenario distribuye cuatro usuarios entre pacientes y expedientes, cierres y reportes históricos. Las consultas clínicas recorren páginas de 100 pacientes ficticios; los cierres abarcan un año y los reportes utilizan el historial local disponible. La prueba aumenta durante 30 segundos, mantiene la carga durante tres minutos y disminuye durante 30 segundos. El resumen incluye los percentiles 90, 95 y 99 para facilitar la comparación con la línea base.
 
 ### Criterios de volumen
 

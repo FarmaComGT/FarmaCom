@@ -60,8 +60,8 @@ export const config = Object.freeze({
     enfriamiento: convertirTexto(__ENV.K6_STRESS_COOL_DOWN, '15s'),
   }),
   volumen: Object.freeze({
-    pacientesPreparados: convertirEnteroPositivo(__ENV.K6_VOLUME_PATIENTS, 1000),
-    cierresPreparados: convertirEnteroPositivo(__ENV.K6_VOLUME_CLOSURES, 1000),
+    pacientesPreparados: convertirEnteroPositivo(__ENV.K6_VOLUME_PATIENTS, 10000),
+    cierresPreparados: convertirEnteroPositivo(__ENV.K6_VOLUME_CLOSURES, 10000),
     usuariosClinicos: convertirEnteroPositivo(__ENV.K6_VOLUME_CLINICAL_VUS, 2),
     usuariosCierres: convertirEnteroPositivo(__ENV.K6_VOLUME_CLOSURES_VUS, 1),
     usuariosReportes: convertirEnteroPositivo(__ENV.K6_VOLUME_REPORTS_VUS, 1),

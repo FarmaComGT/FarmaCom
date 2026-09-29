@@ -22,6 +22,7 @@ const etapas = (usuarios) => [
 
 export const options = {
   noCookiesReset: true,
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
   scenarios: {
     volumen_clinico: {
       executor: 'ramping-vus',
