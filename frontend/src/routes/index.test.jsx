@@ -171,7 +171,7 @@ describe('ruta de pacientes de laboratorio', () => {
     renderizarRutaPacientes();
 
     expect(screen.getByRole('heading', { name: 'Pacientes de laboratorio' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Laboratorio' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Pacientes' })).toBeInTheDocument();
   });
 
   it('bloquea el acceso a un dependiente', () => {
@@ -184,7 +184,7 @@ describe('ruta de pacientes de laboratorio', () => {
     renderizarRutaPacientes();
 
     expect(screen.queryByRole('heading', { name: 'Pacientes de laboratorio' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Laboratorio' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pacientes' })).not.toBeInTheDocument();
   });
 });
 
