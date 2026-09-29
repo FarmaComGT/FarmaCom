@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from './axios';
 import {
   abrirSesion,
+  actualizarCaja,
   cerrarSesion,
   construirParametrosCaja,
   obtenerCajas,
   obtenerCierres,
   obtenerResumenDiario,
   obtenerSesionActual,
+  crearCaja,
   registrarMovimiento,
 } from './cajas';
 
@@ -15,6 +17,7 @@ vi.mock('./axios', () => ({
   default: {
     get: vi.fn(),
     post: vi.fn(),
+    patch: vi.fn(),
   },
 }));
 
@@ -60,6 +63,20 @@ describe('API de caja', () => {
 
     expect(api.get).toHaveBeenCalledWith('/cajas/3/sesion-actual', undefined);
     expect(resultado).toBe(sesion);
+  });
+
+  it('crea y actualiza cajas', async () => {
+    api.post.mockResolvedValue({ data: { id_caja: 3 } });
+    api.patch.mockResolvedValue({ data: { id_caja: 3, activa: false } });
+
+    await crearCaja({ id_sucursal: 2, nombre: 'Caja auxiliar' });
+    await actualizarCaja(3, { activa: false });
+
+    expect(api.post).toHaveBeenCalledWith('/cajas', {
+      id_sucursal: 2,
+      nombre: 'Caja auxiliar',
+    });
+    expect(api.patch).toHaveBeenCalledWith('/cajas/3', { activa: false });
   });
 
   it('abre una sesión de caja', async () => {
@@ -119,7 +136,7 @@ describe('API de caja', () => {
     });
   });
 
-  it('consulta el resumen diario por fecha y sucursal', async () => {
+  it('consulta el resumen diario por fecha, sucursal y caja', async () => {
     const resumen = [{ id_sucursal: 2, sesiones_cerradas: 4 }];
     api.get.mockResolvedValue({ data: resumen });
 
@@ -130,7 +147,7 @@ describe('API de caja', () => {
     });
 
     expect(api.get).toHaveBeenCalledWith('/cajas/cierres/resumen-diario', {
-      params: { fecha: '2026-09-22', id_sucursal: 2 },
+      params: { fecha: '2026-09-22', id_sucursal: 2, id_caja: 3 },
     });
     expect(resultado).toBe(resumen);
   });

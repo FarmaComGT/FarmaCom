@@ -7,7 +7,7 @@ const CAMPOS_CIERRES = [
   'fecha_desde',
   'fecha_hasta',
 ];
-const CAMPOS_RESUMEN = ['fecha', 'id_sucursal'];
+const CAMPOS_RESUMEN = ['fecha', 'id_sucursal', 'id_caja'];
 
 export const construirParametrosCaja = (filtros = {}, campos = []) => (
   campos.reduce((parametros, campo) => {
@@ -32,6 +32,16 @@ export const obtenerCajas = async (filtros = {}, opciones = {}) => {
     construirConfiguracion(filtros, CAMPOS_CAJAS, opciones.signal),
   );
 
+  return data;
+};
+
+export const crearCaja = async (datos) => {
+  const { data } = await api.post('/cajas', datos);
+  return data;
+};
+
+export const actualizarCaja = async (idCaja, datos) => {
+  const { data } = await api.patch(`/cajas/${idCaja}`, datos);
   return data;
 };
 

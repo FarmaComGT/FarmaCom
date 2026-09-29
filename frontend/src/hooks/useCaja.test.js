@@ -25,6 +25,7 @@ const cajasEjemplo = [
 describe('useCaja', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.sessionStorage.clear();
     obtenerCajas.mockResolvedValue(cajasEjemplo);
   });
 
@@ -58,6 +59,31 @@ describe('useCaja', () => {
     });
     expect(result.current.cajaSeleccionada).toEqual(cajasEjemplo[0]);
     expect(result.current.sesionActual).toEqual(sesion);
+  });
+
+  it('restaura la caja seleccionada al volver a montar el módulo', async () => {
+    window.sessionStorage.setItem('farmacom:caja-seleccionada:2', '3');
+    const sesion = { id_sesion_caja: 9, id_caja: 3, estado: 'abierta' };
+    obtenerSesionActual.mockResolvedValue(sesion);
+
+    const { result } = renderHook(() => useCaja(2));
+
+    await waitFor(() => expect(result.current.cargandoCajas).toBe(false));
+    await waitFor(() => expect(result.current.sesionActual).toEqual(sesion));
+
+    expect(result.current.idCajaSeleccionada).toBe('3');
+    expect(result.current.cajaSeleccionada).toEqual(cajasEjemplo[0]);
+  });
+
+  it('descarta una caja guardada que ya no está disponible', async () => {
+    window.sessionStorage.setItem('farmacom:caja-seleccionada:2', '99');
+    const { result } = renderHook(() => useCaja(2));
+
+    await waitFor(() => expect(result.current.cargandoCajas).toBe(false));
+    await waitFor(() => expect(result.current.idCajaSeleccionada).toBeNull());
+
+    expect(result.current.cajaSeleccionada).toBeNull();
+    expect(window.sessionStorage.getItem('farmacom:caja-seleccionada:2')).toBeNull();
   });
 
   it('interpreta un 404 como una caja sin sesión abierta', async () => {
