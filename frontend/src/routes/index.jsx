@@ -24,6 +24,8 @@ import PacientePerfil from '../pages/laboratorio/PacientePerfil.jsx';
 const Reportes = lazy(() => import('../pages/reportes/Reportes.jsx'));
 const Rentabilidad = lazy(() => import('../pages/reportes/Rentabilidad.jsx'));
 
+const ROLES_FARMACIA = ['dueno', 'administrador', 'dependiente'];
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -38,13 +40,17 @@ export default function AppRoutes() {
             element={<div className="p-8 font-headline text-2xl font-bold">Dashboard (Próximamente)</div>}
           />
 
-          <Route path="/inventario">
-            <Route index element={<Navigate to="productos" replace />} />
-            <Route path="productos" element={<Productos />} />
-            <Route path="stock" element={<InventarioSucursal />} />
-            <Route path="categorias" element={<Categorias />} />
-            <Route path="proveedores" element={<Proveedores />} />
-            <Route path="casas" element={<Casas />} />
+          <Route element={<RoleRoute allowedRoles={ROLES_FARMACIA} />}>
+            <Route path="/inventario">
+              <Route index element={<Navigate to="productos" replace />} />
+              <Route path="productos" element={<Productos />} />
+              <Route path="stock" element={<InventarioSucursal />} />
+              <Route path="categorias" element={<Categorias />} />
+              <Route path="proveedores" element={<Proveedores />} />
+              <Route path="casas" element={<Casas />} />
+            </Route>
+            <Route path="/patients" element={<Clientes />} />
+            <Route path="/pos" element={<PuntoVenta />} />
           </Route>
 
           {/* Admin */}
@@ -59,12 +65,10 @@ export default function AppRoutes() {
             </Route>
           </Route>
 
-          <Route path="/patients" element={<Clientes />} />
           <Route element={<RoleRoute allowedRoles={['dueno', 'administrador', 'laboratorista']} />}>
             <Route path="/laboratorio/pacientes" element={<Pacientes />} />
             <Route path="/laboratorio/pacientes/:id" element={<PacientePerfil />} />
           </Route>
-          <Route path="/pos" element={<PuntoVenta />} />
           <Route element={<RoleRoute allowedRoles={['dueno', 'administrador', 'dependiente']} />}>
             <Route path="/caja" element={<CajaOperativa />} />
           </Route>

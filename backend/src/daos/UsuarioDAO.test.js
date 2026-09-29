@@ -10,12 +10,13 @@ describe('UsuarioDAO', () => {
 
     await expect(UsuarioDAO.crear({
       id_sucursal: 1,
+      id_laboratorio: null,
       nombre_usuario: 'Ana',
       correo_usuario: 'ana@x.com',
       contrasena_hash: 'hash',
       rol: 'dependiente',
     })).resolves.toEqual(fila);
-    expect(pool.query).toHaveBeenCalledWith(expect.any(String), [1, 'Ana', 'ana@x.com', 'hash', 'dependiente']);
+    expect(pool.query).toHaveBeenCalledWith(expect.any(String), [1, null, 'Ana', 'ana@x.com', 'hash', 'dependiente']);
   });
 
   it('obtiene todos los usuarios', async () => {

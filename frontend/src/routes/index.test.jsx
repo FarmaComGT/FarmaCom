@@ -133,6 +133,27 @@ describe('ruta de caja', () => {
   });
 });
 
+describe('proteccion de farmacia para laboratorista', () => {
+  it('bloquea inventario y oculta los accesos de farmacia', () => {
+    estadoAuth.usuario = {
+      id_usuario: 12,
+      nombre_usuario: 'Laura Laboratorista',
+      rol: 'laboratorista',
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/inventario/productos']}>
+        <AppRoutes />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Pacientes de laboratorio' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Inventario' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Punto de venta' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Clientes' })).not.toBeInTheDocument();
+  });
+});
+
 describe('ruta de pacientes de laboratorio', () => {
   const renderizarRutaPacientes = () => render(
     <MemoryRouter initialEntries={['/laboratorio/pacientes']}>
@@ -150,7 +171,7 @@ describe('ruta de pacientes de laboratorio', () => {
     renderizarRutaPacientes();
 
     expect(screen.getByRole('heading', { name: 'Pacientes de laboratorio' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Pacientes' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Laboratorio' })).toBeInTheDocument();
   });
 
   it('bloquea el acceso a un dependiente', () => {
@@ -163,7 +184,7 @@ describe('ruta de pacientes de laboratorio', () => {
     renderizarRutaPacientes();
 
     expect(screen.queryByRole('heading', { name: 'Pacientes de laboratorio' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Pacientes' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Laboratorio' })).not.toBeInTheDocument();
   });
 });
 

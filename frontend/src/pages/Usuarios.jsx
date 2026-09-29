@@ -7,6 +7,7 @@ import UsuarioActionBar from '../components/usuarios/UsuarioActionBar.jsx';
 import UsuarioAlert from '../components/usuarios/UsuarioAlert.jsx';
 import useUsuarios from '../hooks/useUsuarios';
 import useSucursales from '../hooks/useSucursales';
+import useLaboratorios from '../hooks/useLaboratorios';
 
 const estadoInicialFormulario = {
   nombre_usuario: '',
@@ -14,11 +15,13 @@ const estadoInicialFormulario = {
   contrasena: '',
   rol: '',
   id_sucursal: '',
+  id_laboratorio: '',
 };
 
 export default function Usuarios() {
   const { usuarios, cargando, error, crear, actualizar, cambiarEstado } = useUsuarios();
   const { sucursales, cargando: cargandoSucursales } = useSucursales();
+  const { laboratorios, cargando: cargandoLaboratorios } = useLaboratorios();
 
   const [busqueda, setBusqueda] = useState('');
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -76,6 +79,7 @@ export default function Usuarios() {
       contrasena: '',
       rol: usuario.rol || '',
       id_sucursal: String(usuario.id_sucursal || ''),
+      id_laboratorio: String(usuario.id_laboratorio || ''),
     });
     setErrorFormulario(null);
     setMostrarModal(true);
@@ -88,7 +92,11 @@ export default function Usuarios() {
 
   const manejarCambio = (evento) => {
     const { name, value } = evento.target;
-    setFormulario((prev) => ({ ...prev, [name]: value }));
+    setFormulario((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'rol' && value !== 'laboratorista' ? { id_laboratorio: '' } : {}),
+    }));
   };
 
   const manejarGuardar = async (evento) => {
@@ -99,9 +107,15 @@ export default function Usuarios() {
     const correo = formulario.correo_usuario.trim();
     const rol = formulario.rol;
     const idSucursal = Number(formulario.id_sucursal);
+    const idLaboratorio = Number(formulario.id_laboratorio);
 
     if (!nombre || !correo || !rol || !idSucursal) {
       setErrorFormulario('Completa todos los campos del formulario.');
+      return;
+    }
+
+    if (rol === 'laboratorista' && !idLaboratorio) {
+      setErrorFormulario('Selecciona el laboratorio asignado al laboratorista.');
       return;
     }
 
@@ -129,6 +143,7 @@ export default function Usuarios() {
           correo_usuario: correo,
           rol,
           id_sucursal: idSucursal,
+          id_laboratorio: rol === 'laboratorista' ? idLaboratorio : null,
         });
       } else {
         await crear({
@@ -137,6 +152,7 @@ export default function Usuarios() {
           contrasena: formulario.contrasena.trim(),
           rol,
           id_sucursal: idSucursal,
+          id_laboratorio: rol === 'laboratorista' ? idLaboratorio : null,
         });
       }
       setMostrarModal(false);
@@ -208,6 +224,8 @@ export default function Usuarios() {
         formulario={formulario}
         sucursales={sucursales}
         cargandoSucursales={cargandoSucursales}
+        laboratorios={laboratorios}
+        cargandoLaboratorios={cargandoLaboratorios}
         guardando={guardando}
         errorFormulario={errorFormulario}
         onClose={cerrarModal}

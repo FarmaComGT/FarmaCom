@@ -32,7 +32,10 @@ export default function Login() {
         },
       });
 
-      const destination = location.state?.from?.pathname || getDefaultRouteForRole(data.usuario?.rol);
+      const rutaPredeterminada = getDefaultRouteForRole(data.usuario?.rol);
+      const destination = data.usuario?.rol === 'laboratorista'
+        ? rutaPredeterminada
+        : location.state?.from?.pathname || rutaPredeterminada;
       navigate(destination, { replace: true });
     } catch (err) {
       setError(err.response?.data?.mensaje || 'Credenciales incorrectas');
