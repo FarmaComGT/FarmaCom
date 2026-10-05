@@ -1,6 +1,6 @@
 jest.mock('../daos/BitacoraLaboratorioDAO');
 const DAO = require('../daos/BitacoraLaboratorioDAO');
-const { registrarCambio } = require('./BitacoraLaboratorioService');
+const { registrarCambio, obtenerPorExpediente } = require('./BitacoraLaboratorioService');
 const client = { query: jest.fn() };
 const datos = { id_usuario: 9, entidad: 'paciente', id_entidad: 1, accion: 'actualizar' };
 
@@ -34,4 +34,29 @@ it('propaga fallos de escritura para revertir la transaccion', async () => {
   DAO.crear.mockRejectedValueOnce(new Error('fallo bitacora'));
   await expect(registrarCambio({ ...datos, nuevo: { nombre: 'Ana' } }, client))
     .rejects.toThrow('fallo bitacora');
+});
+
+describe('obtenerPorExpediente', () => {
+  it('devuelve la bitacora consolidada de un expediente existente', async () => {
+    const historial = [{
+      id_bitacora: 4,
+      nombre_usuario: 'Administrador',
+      accion: 'actualizar',
+    }];
+    DAO.obtenerExpedientePorId.mockResolvedValue({ id_expediente: 7, id_paciente: 2 });
+    DAO.obtenerPorExpediente.mockResolvedValue(historial);
+
+    await expect(obtenerPorExpediente(7)).resolves.toEqual(historial);
+    expect(DAO.obtenerPorExpediente).toHaveBeenCalledWith(7);
+  });
+
+  it('devuelve 404 cuando el expediente no existe', async () => {
+    DAO.obtenerExpedientePorId.mockResolvedValue(null);
+
+    await expect(obtenerPorExpediente(99)).rejects.toMatchObject({
+      message: 'Expediente no encontrado',
+      status: 404,
+    });
+    expect(DAO.obtenerPorExpediente).not.toHaveBeenCalled();
+  });
 });
