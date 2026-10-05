@@ -543,6 +543,7 @@ CREATE TABLE IF NOT EXISTS lote (
     fecha_vencimiento     DATE          NOT NULL,
     cantidad_ingresada    INTEGER       NOT NULL CHECK (cantidad_ingresada > 0),
     stock_actual          INTEGER       NOT NULL CHECK (stock_actual >= 0),
+    precio_compra         NUMERIC(10,2) NOT NULL CHECK (precio_compra >= 0),
     precio_venta          NUMERIC(10,2) NOT NULL CHECK (precio_venta >= 0),
     margen_ganancia       NUMERIC(8,4)  NOT NULL CHECK (margen_ganancia >= 0),
     precio_mayoreo        NUMERIC(10,2)          CHECK (precio_mayoreo >= 0),
@@ -575,6 +576,42 @@ CREATE TABLE IF NOT EXISTS lote (
     CONSTRAINT uq_lote_numero_producto_sucursal
         UNIQUE (numero_lote, id_producto, id_sucursal)
 );
+
+-- =========================
+-- TABLA: historial_precio_lote
+-- Auditoria de cambios en los precios efectivos de compra y venta de un lote.
+-- =========================
+CREATE TABLE IF NOT EXISTS historial_precio_lote (
+    id_historial_precio BIGSERIAL PRIMARY KEY,
+    id_lote             INTEGER       NOT NULL,
+    tipo_precio         VARCHAR(10)   NOT NULL,
+    valor_anterior      NUMERIC(10,2) NOT NULL,
+    valor_nuevo         NUMERIC(10,2) NOT NULL,
+    id_usuario          INTEGER       NOT NULL,
+    fecha_cambio        TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_historial_precio_lote
+        FOREIGN KEY (id_lote)
+        REFERENCES lote(id_lote)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_historial_precio_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT chk_historial_tipo_precio
+        CHECK (tipo_precio IN ('compra', 'venta')),
+
+    CONSTRAINT chk_historial_valores_no_negativos
+        CHECK (valor_anterior >= 0 AND valor_nuevo >= 0),
+
+    CONSTRAINT chk_historial_valores_distintos
+        CHECK (valor_anterior <> valor_nuevo)
+);
+
+CREATE INDEX IF NOT EXISTS idx_historial_precio_lote_fecha
+    ON historial_precio_lote (id_lote, fecha_cambio DESC, id_historial_precio DESC);
 
 -- =========================
 -- TABLA: caja
@@ -1106,6 +1143,7 @@ INSERT INTO lote (
     fecha_vencimiento,
     cantidad_ingresada,
     stock_actual,
+    precio_compra,
     precio_venta,
     margen_ganancia,
     precio_mayoreo,
@@ -1119,6 +1157,7 @@ SELECT
     CURRENT_DATE + INTERVAL '12 months',
     30,
     30,
+    p.precio_compra,
     1.00,
     0.30,
     NULL,
@@ -1188,6 +1227,7 @@ INSERT INTO lote (
     fecha_vencimiento,
     cantidad_ingresada,
     stock_actual,
+    precio_compra,
     precio_venta,
     margen_ganancia,
     precio_mayoreo,
@@ -1201,6 +1241,7 @@ SELECT
     CURRENT_DATE + INTERVAL '12 months',
     30,
     30,
+    p.precio_compra,
     1.00,
     0.30,
     NULL,
@@ -1227,6 +1268,7 @@ INSERT INTO lote (
     fecha_vencimiento,
     cantidad_ingresada,
     stock_actual,
+    precio_compra,
     precio_venta,
     margen_ganancia,
     precio_mayoreo,
@@ -1240,6 +1282,7 @@ SELECT
     CURRENT_DATE - 1,
     12,
     12,
+    p.precio_compra,
     1.35,
     0.25,
     NULL,
@@ -1266,6 +1309,7 @@ INSERT INTO lote (
     fecha_vencimiento,
     cantidad_ingresada,
     stock_actual,
+    precio_compra,
     precio_venta,
     margen_ganancia,
     precio_mayoreo,
@@ -1279,6 +1323,7 @@ SELECT
     CURRENT_DATE + INTERVAL '2 months',
     18,
     18,
+    p.precio_compra,
     1.05,
     0.28,
     NULL,

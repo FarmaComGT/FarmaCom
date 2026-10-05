@@ -4,6 +4,42 @@ const pool = require('../database/db');
 const LoteDAO = require('./LoteDAO');
 
 describe('LoteDAO', () => {
+  describe('ejecutarEnTransaccion', () => {
+    it('confirma y libera la conexion cuando la operacion termina', async () => {
+      const client = {
+        query: jest.fn().mockResolvedValue({ rows: [] }),
+        release: jest.fn(),
+      };
+      pool.connect.mockResolvedValue(client);
+
+      await expect(
+        LoteDAO.ejecutarEnTransaccion(async () => 'resultado'),
+      ).resolves.toBe('resultado');
+
+      expect(client.query).toHaveBeenNthCalledWith(1, 'BEGIN');
+      expect(client.query).toHaveBeenNthCalledWith(2, 'COMMIT');
+      expect(client.release).toHaveBeenCalled();
+    });
+
+    it('revierte y libera la conexion cuando falla la operacion', async () => {
+      const client = {
+        query: jest.fn().mockResolvedValue({ rows: [] }),
+        release: jest.fn(),
+      };
+      pool.connect.mockResolvedValue(client);
+
+      await expect(
+        LoteDAO.ejecutarEnTransaccion(async () => {
+          throw new Error('fallo');
+        }),
+      ).rejects.toThrow('fallo');
+
+      expect(client.query).toHaveBeenNthCalledWith(1, 'BEGIN');
+      expect(client.query).toHaveBeenNthCalledWith(2, 'ROLLBACK');
+      expect(client.release).toHaveBeenCalled();
+    });
+  });
+
   describe('obtenerPorNumeroLote', () => {
     it('permite excluir el lote que se esta editando', async () => {
       pool.query.mockResolvedValue({ rows: [] });
@@ -28,7 +64,7 @@ describe('LoteDAO', () => {
 
       expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
         2, null, null, 'LT-02', null, null, null,
-        null, null, null, null, true, 7,
+        null, null, null, null, null, true, 7,
       ]);
       expect(resultado).toEqual(fila);
     });

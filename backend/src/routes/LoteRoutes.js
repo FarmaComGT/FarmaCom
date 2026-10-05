@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const { body, param } = require('express-validator');
 const LoteController = require('../controllers/LoteController');
+const HistorialPrecioLoteController = require('../controllers/HistorialPrecioLoteController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol   = require('../middlewares/verificarRol');
 
@@ -56,6 +57,11 @@ const validarCreacion = [
 
   body('precio_venta')
     .isFloat({ min: 0 }).withMessage('precio_venta debe ser mayor o igual a 0')
+    .toFloat(),
+
+  body('precio_compra')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('precio_compra debe ser mayor o igual a 0')
     .toFloat(),
 
   body('margen_ganancia')
@@ -115,6 +121,11 @@ const validarActualizacion = [
     .isFloat({ min: 0 }).withMessage('precio_venta debe ser mayor o igual a 0')
     .toFloat(),
 
+  body('precio_compra')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('precio_compra debe ser mayor o igual a 0')
+    .toFloat(),
+
   body('margen_ganancia')
     .optional()
     .isFloat({ min: 0, max: 9999.9999 }).withMessage('margen_ganancia debe estar entre 0 y 9999.9999')
@@ -152,6 +163,14 @@ router.get('/alertas',
   verificarToken,
   verificarRol('dueno', 'administrador'),
   LoteController.obtenerAlertas,
+);
+
+// GET    /api/lotes/:id/historial-precios
+router.get('/:id/historial-precios',
+  verificarToken,
+  verificarRol('dueno', 'administrador'),
+  validarParamId,
+  HistorialPrecioLoteController.obtenerPorLote,
 );
 
 // PATCH  /api/lotes/:id
