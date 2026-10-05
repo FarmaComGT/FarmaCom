@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const { body, param } = require('express-validator');
 const LoteController = require('../controllers/LoteController');
+const HistorialPrecioLoteController = require('../controllers/HistorialPrecioLoteController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol   = require('../middlewares/verificarRol');
 
@@ -162,6 +163,14 @@ router.get('/alertas',
   verificarToken,
   verificarRol('dueno', 'administrador'),
   LoteController.obtenerAlertas,
+);
+
+// GET    /api/lotes/:id/historial-precios
+router.get('/:id/historial-precios',
+  verificarToken,
+  verificarRol('dueno', 'administrador'),
+  validarParamId,
+  HistorialPrecioLoteController.obtenerPorLote,
 );
 
 // PATCH  /api/lotes/:id
