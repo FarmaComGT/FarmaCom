@@ -1,5 +1,6 @@
 const LoteDAO = require('../daos/LoteDAO');
 const ProductoDAO = require('../daos/ProductoDAO');
+const HistorialPrecioLoteDAO = require('../daos/HistorialPrecioLoteDAO');
 
 //  Helpers 
 
@@ -19,6 +20,7 @@ const crearLote = async (datos) => {
     numero_lote,
     fecha_vencimiento,
     cantidad_ingresada,
+    precio_compra,
     precio_venta,
     margen_ganancia,
     precio_mayoreo,
@@ -29,6 +31,10 @@ const crearLote = async (datos) => {
   const producto = await ProductoDAO.obtenerPorId(id_producto);
   if (!producto)        lanzarError('Producto no encontrado', 404);
   if (!producto.activo) lanzarError('No se puede agregar un lote a un producto inactivo', 409);
+
+  const precioCompraEfectivo = precio_compra ?? Number(producto.precio_compra);
+  if (!Number.isFinite(Number(precioCompraEfectivo)) || Number(precioCompraEfectivo) < 0)
+    lanzarError('El precio de compra no puede ser negativo', 400);
 
   // Verificar fecha de vencimiento, no puede ser pasada
   const hoy = new Date();
@@ -70,6 +76,7 @@ const crearLote = async (datos) => {
     numero_lote,
     fecha_vencimiento,
     cantidad_ingresada,
+    precio_compra: Number(precioCompraEfectivo),
     precio_venta,
     margen_ganancia,
     precio_mayoreo:   precio_mayoreo   ?? null,
@@ -99,14 +106,14 @@ const obtenerPorId = async (id_lote) => {
  * Permite actualizar los datos propios del lote.
  * El stock no puede quedar negativo ni superar la cantidad ingresada.
  */
-const actualizarLote = async (id_lote, campos) => {
-  const lote = await LoteDAO.obtenerPorId(id_lote);
+const actualizarLoteEnTransaccion = async (id_lote, campos, id_usuario, client) => {
+  const lote = await LoteDAO.obtenerFilaPorId(id_lote, client, true);
   if (!lote) lanzarError('Lote no encontrado', 404);
 
   const camposPermitidos = [
     'id_producto', 'id_proveedor', 'id_sucursal', 'numero_lote',
     'fecha_vencimiento', 'cantidad_ingresada', 'stock_actual',
-    'precio_venta', 'margen_ganancia', 'precio_mayoreo',
+    'precio_compra', 'precio_venta', 'margen_ganancia', 'precio_mayoreo',
     'cantidad_mayoreo', 'limpiar_mayoreo',
   ];
   const datos = Object.fromEntries(
@@ -118,7 +125,7 @@ const actualizarLote = async (id_lote, campos) => {
     lanzarError('Debe proporcionar al menos un campo válido para actualizar', 400);
 
   if (datos.id_producto !== undefined && datos.id_producto !== lote.id_producto) {
-    const producto = await ProductoDAO.obtenerPorId(datos.id_producto);
+    const producto = await ProductoDAO.obtenerPorId(datos.id_producto, client);
     if (!producto) lanzarError('Producto no encontrado', 404);
     if (!producto.activo) lanzarError('No se puede asignar el lote a un producto inactivo', 409);
   }
@@ -136,6 +143,7 @@ const actualizarLote = async (id_lote, campos) => {
       idProducto,
       idSucursal,
       id_lote,
+      client,
     );
     if (duplicado) {
       lanzarError(
@@ -162,6 +170,9 @@ const actualizarLote = async (id_lote, campos) => {
   if (stockActual > cantidadIngresada)
     lanzarError('El stock actual no puede superar la cantidad ingresada del lote', 400);
 
+  if (datos.precio_compra !== undefined && datos.precio_compra < 0)
+    lanzarError('El precio de compra no puede ser negativo', 400);
+
   if (datos.precio_venta !== undefined && datos.precio_venta < 0)
     lanzarError('El precio de venta no puede ser negativo', 400);
 
@@ -184,7 +195,7 @@ const actualizarLote = async (id_lote, campos) => {
 
   let actualizado;
   try {
-    actualizado = await LoteDAO.actualizar(id_lote, datos);
+    actualizado = await LoteDAO.actualizar(id_lote, datos, client);
   } catch (error) {
     if (error.code === '23505') {
       lanzarError('Ya existe un lote con ese número para este producto en esta sucursal', 409);
@@ -195,8 +206,32 @@ const actualizarLote = async (id_lote, campos) => {
     throw error;
   }
   if (!actualizado) lanzarError('No se pudo actualizar el lote', 500);
-  return await obtenerPorId(id_lote);
+
+  const cambioPrecio = (
+    Number(lote.precio_compra) !== Number(actualizado.precio_compra)
+    || Number(lote.precio_venta) !== Number(actualizado.precio_venta)
+  );
+  if (cambioPrecio) {
+    if (!Number.isInteger(Number(id_usuario)) || Number(id_usuario) <= 0) {
+      lanzarError('Se requiere un usuario valido para cambiar precios', 400);
+    }
+    await HistorialPrecioLoteDAO.registrarCambios(
+      id_lote,
+      Number(id_usuario),
+      lote,
+      actualizado,
+      client,
+    );
+  }
+
+  return await LoteDAO.obtenerPorId(id_lote, client);
 };
+
+const actualizarLote = async (id_lote, campos, id_usuario) => (
+  LoteDAO.ejecutarEnTransaccion(
+    (client) => actualizarLoteEnTransaccion(id_lote, campos, id_usuario, client),
+  )
+);
 
 const eliminarLote = async (id_lote) => {
   const existente = await LoteDAO.obtenerPorId(id_lote);
@@ -208,7 +243,7 @@ const eliminarLote = async (id_lote) => {
     return { mensaje: 'Lote eliminado correctamente' };
   } catch (error) {
     if (error.code === '23503') {
-      lanzarError('No se puede eliminar un lote asociado a ventas', 409);
+      lanzarError('No se puede eliminar un lote asociado a ventas o a un historial de precios', 409);
     }
     throw error;
   }

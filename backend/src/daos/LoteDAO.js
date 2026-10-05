@@ -2,6 +2,22 @@ const pool = require('../database/db');
 
 class LoteDAO {
 
+  async ejecutarEnTransaccion(operacion) {
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+      const resultado = await operacion(client);
+      await client.query('COMMIT');
+      return resultado;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   // CREATE
 
   async crear({
@@ -11,6 +27,7 @@ class LoteDAO {
     numero_lote,
     fecha_vencimiento,
     cantidad_ingresada,
+    precio_compra,
     precio_venta,
     margen_ganancia,
     precio_mayoreo,
@@ -21,9 +38,9 @@ class LoteDAO {
         id_producto, id_proveedor, id_sucursal,
         numero_lote, fecha_vencimiento,
         cantidad_ingresada, stock_actual,
-        precio_venta, margen_ganancia, precio_mayoreo, cantidad_mayoreo
+        precio_compra, precio_venta, margen_ganancia, precio_mayoreo, cantidad_mayoreo
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $9, $10)
+      VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `;
     const { rows } = await pool.query(query, [
@@ -33,6 +50,7 @@ class LoteDAO {
       numero_lote,
       fecha_vencimiento,
       cantidad_ingresada,
+      precio_compra,
       precio_venta,
       margen_ganancia,
       precio_mayoreo   ?? null,
@@ -85,7 +103,7 @@ class LoteDAO {
     return rows;
   }
 
-  async obtenerPorId(id_lote) {
+  async obtenerPorId(id_lote, client = pool) {
     const query = `
       SELECT
         v.*,
@@ -102,12 +120,30 @@ class LoteDAO {
       JOIN proveedor pr ON pr.id_proveedor = v.id_proveedor
       WHERE v.id_lote = $1
     `;
-    const { rows } = await pool.query(query, [id_lote]);
+    const { rows } = await client.query(query, [id_lote]);
+    return rows[0] || null;
+  }
+
+  async obtenerFilaPorId(id_lote, client = pool, bloquear = false) {
+    const bloqueo = bloquear ? 'FOR UPDATE' : '';
+    const { rows } = await client.query(
+      `SELECT *
+       FROM lote
+       WHERE id_lote = $1
+       ${bloqueo}`,
+      [id_lote],
+    );
     return rows[0] || null;
   }
 
   // Busca si ya existe el mismo número de lote para ese producto y sucursal
-  async obtenerPorNumeroLote(numero_lote, id_producto, id_sucursal, excluir_id = null) {
+  async obtenerPorNumeroLote(
+    numero_lote,
+    id_producto,
+    id_sucursal,
+    excluir_id = null,
+    client = pool,
+  ) {
     const query = `
       SELECT * FROM lote
       WHERE LOWER(numero_lote) = LOWER($1)
@@ -115,14 +151,17 @@ class LoteDAO {
         AND id_sucursal  = $3
         AND ($4::INTEGER IS NULL OR id_lote != $4)
     `;
-    const { rows } = await pool.query(query, [numero_lote, id_producto, id_sucursal, excluir_id]);
+    const { rows } = await client.query(
+      query,
+      [numero_lote, id_producto, id_sucursal, excluir_id],
+    );
     return rows[0] || null;
   }
 
   // UPDATE
 
   // Permite editar los datos propios del lote.
-  async actualizar(id_lote, campos) {
+  async actualizar(id_lote, campos, client = pool) {
     const {
       id_producto,
       id_proveedor,
@@ -131,6 +170,7 @@ class LoteDAO {
       fecha_vencimiento,
       cantidad_ingresada,
       stock_actual,
+      precio_compra,
       precio_venta,
       margen_ganancia,
       precio_mayoreo,
@@ -147,14 +187,15 @@ class LoteDAO {
         fecha_vencimiento  = COALESCE($5, fecha_vencimiento),
         cantidad_ingresada = COALESCE($6, cantidad_ingresada),
         stock_actual       = COALESCE($7, stock_actual),
-        precio_venta       = COALESCE($8, precio_venta),
-        margen_ganancia    = COALESCE($9, margen_ganancia),
-        precio_mayoreo     = CASE WHEN $12 THEN NULL ELSE COALESCE($10, precio_mayoreo) END,
-        cantidad_mayoreo   = CASE WHEN $12 THEN NULL ELSE COALESCE($11, cantidad_mayoreo) END
-      WHERE id_lote = $13
+        precio_compra      = COALESCE($8, precio_compra),
+        precio_venta       = COALESCE($9, precio_venta),
+        margen_ganancia    = COALESCE($10, margen_ganancia),
+        precio_mayoreo     = CASE WHEN $13 THEN NULL ELSE COALESCE($11, precio_mayoreo) END,
+        cantidad_mayoreo   = CASE WHEN $13 THEN NULL ELSE COALESCE($12, cantidad_mayoreo) END
+      WHERE id_lote = $14
       RETURNING *
     `;
-    const { rows } = await pool.query(query, [
+    const { rows } = await client.query(query, [
       id_producto        ?? null,
       id_proveedor       ?? null,
       id_sucursal        ?? null,
@@ -162,6 +203,7 @@ class LoteDAO {
       fecha_vencimiento  ?? null,
       cantidad_ingresada ?? null,
       stock_actual       ?? null,
+      precio_compra      ?? null,
       precio_venta       ?? null,
       margen_ganancia    ?? null,
       precio_mayoreo     ?? null,

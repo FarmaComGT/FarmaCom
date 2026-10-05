@@ -58,6 +58,11 @@ const validarCreacion = [
     .isFloat({ min: 0 }).withMessage('precio_venta debe ser mayor o igual a 0')
     .toFloat(),
 
+  body('precio_compra')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('precio_compra debe ser mayor o igual a 0')
+    .toFloat(),
+
   body('margen_ganancia')
     .isFloat({ min: 0, max: 9999.9999 }).withMessage('margen_ganancia debe estar entre 0 y 9999.9999')
     .toFloat(),
@@ -113,6 +118,11 @@ const validarActualizacion = [
   body('precio_venta')
     .optional()
     .isFloat({ min: 0 }).withMessage('precio_venta debe ser mayor o igual a 0')
+    .toFloat(),
+
+  body('precio_compra')
+    .optional()
+    .isFloat({ min: 0 }).withMessage('precio_compra debe ser mayor o igual a 0')
     .toFloat(),
 
   body('margen_ganancia')

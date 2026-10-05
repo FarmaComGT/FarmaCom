@@ -161,7 +161,7 @@ class ProductoDAO {
     return rows;
   }
 
-  async obtenerPorId(id_producto) {
+  async obtenerPorId(id_producto, client = pool) {
     const query = `
       SELECT
         p.*,
@@ -176,7 +176,7 @@ class ProductoDAO {
       LEFT JOIN proveedor    pr ON pr.id_proveedor  = p.id_proveedor
       WHERE p.id_producto = $1
     `;
-    const { rows } = await pool.query(query, [id_producto]);
+    const { rows } = await client.query(query, [id_producto]);
     return rows[0] || null;
   }
 

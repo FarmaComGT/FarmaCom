@@ -25,7 +25,7 @@ class VentaDAO {
          l.id_sucursal,
          l.stock_actual,
          l.precio_venta,
-         p.precio_compra,
+         l.precio_compra,
          l.fecha_vencimiento,
          (l.fecha_vencimiento < CURRENT_DATE) AS vencido,
          p.nombre_comercial,

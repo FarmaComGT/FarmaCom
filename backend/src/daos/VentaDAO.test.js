@@ -54,7 +54,7 @@ describe('VentaDAO', () => {
       expect.stringContaining('FOR UPDATE OF l'),
       [[1, 2]],
     );
-    expect(client.query.mock.calls[0][0]).toContain('p.precio_compra');
+    expect(client.query.mock.calls[0][0]).toContain('l.precio_compra');
   });
 
   it('guarda el costo unitario histórico en el detalle de venta', async () => {

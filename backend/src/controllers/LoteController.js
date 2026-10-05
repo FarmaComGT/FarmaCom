@@ -52,7 +52,11 @@ const actualizar = async (req, res) => {
   }
 
   try {
-    const lote = await LoteService.actualizarLote(Number(req.params.id), req.body);
+    const lote = await LoteService.actualizarLote(
+      Number(req.params.id),
+      req.body,
+      req.usuario.id_usuario,
+    );
     return res.status(200).json(lote);
   } catch (error) {
     return res.status(error.status || 500).json({ mensaje: error.message });
