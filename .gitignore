@@ -1,6 +1,7 @@
 .env
 node_modules/
 coverage/
+dist/
 
 # Configuración local y resultados de pruebas de rendimiento
 tests/performance/.env.performance
