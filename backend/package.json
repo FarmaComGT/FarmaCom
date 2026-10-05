@@ -1,6 +1,9 @@
 {
     "name": "farmacias-backend",
     "version": "1.0.0",
+    "engines": {
+        "node": ">=24 <25"
+    },
     "main": "src/index.js",
     "scripts": {
         "test": "jest",
