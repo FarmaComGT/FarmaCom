@@ -1,4 +1,8 @@
 const pool = require('../database/db');
+const { reordenarCandidatos } = require('../utils/busquedaTolerante');
+
+const MULTIPLICADOR_CANDIDATOS_BUSQUEDA = 5;
+const MAXIMO_CANDIDATOS_BUSQUEDA = 100;
 
 class ProductoDAO {
 
@@ -52,6 +56,10 @@ class ProductoDAO {
   }
 
   async autocompletarParaPOS(busqueda, id_sucursal, limite) {
+    const limiteCandidatos = Math.min(
+      limite * MULTIPLICADOR_CANDIDATOS_BUSQUEDA,
+      MAXIMO_CANDIDATOS_BUSQUEDA,
+    );
     const query = `
       WITH termino AS (
         SELECT normalizar_texto_busqueda($1) AS valor
@@ -157,8 +165,8 @@ class ProductoDAO {
         lote_pos.fecha_vencimiento ASC,
         lote_pos.id_lote ASC
     `;
-    const { rows } = await pool.query(query, [busqueda, id_sucursal, limite]);
-    return rows;
+    const { rows } = await pool.query(query, [busqueda, id_sucursal, limiteCandidatos]);
+    return reordenarCandidatos(rows, busqueda, limite);
   }
 
   async obtenerPorId(id_producto, client = pool) {

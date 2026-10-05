@@ -74,10 +74,37 @@ describe('ProductoDAO - autocompletado para POS', () => {
     expect(consulta).toContain('LIMIT $3');
     expect(consulta).not.toContain('JOIN LATERAL');
     expect(consulta).not.toContain('LIMIT 1');
-    expect(valores).toEqual(['Pará_50%', 2, 8]);
+    expect(valores).toEqual(['Pará_50%', 2, 40]);
     expect(resultado).toEqual([
       { id_producto: 3, id_lote: 9 },
       { id_producto: 3, id_lote: 10 },
     ]);
+  });
+
+  it('reordena los candidatos aproximados con Damerau-Levenshtein', async () => {
+    pool.query.mockResolvedValue({ rows: [
+      {
+        id_producto: 1,
+        id_lote: 10,
+        nombre_comercial: 'Acetaminofem',
+        tipo_coincidencia: 'aproximada',
+        relevancia: '0.85',
+      },
+      {
+        id_producto: 2,
+        id_lote: 20,
+        nombre_comercial: 'Acetaminofén',
+        tipo_coincidencia: 'aproximada',
+        relevancia: '0.70',
+      },
+    ] });
+
+    const resultado = await ProductoDAO.autocompletarParaPOS('acetaminofne', 2, 8);
+
+    expect(resultado.map(({ id_producto }) => id_producto)).toEqual([2, 1]);
+    expect(resultado[0]).toEqual(expect.objectContaining({
+      tipo_coincidencia: 'aproximada',
+      relevancia: '0.70',
+    }));
   });
 });
