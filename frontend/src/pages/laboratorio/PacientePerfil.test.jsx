@@ -5,14 +5,23 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PacientePerfil from './PacientePerfil';
 
-const { mockObtenerPaciente, mockSubir, mockAnular } = vi.hoisted(() => ({
+const { mockObtenerPaciente, mockSubir, mockAnular, mockUseAuth } = vi.hoisted(() => ({
   mockObtenerPaciente: vi.fn(),
   mockSubir: vi.fn(),
   mockAnular: vi.fn(),
+  mockUseAuth: vi.fn(),
 }));
 
 vi.mock('../../api/pacientes', () => ({
   obtenerPaciente: mockObtenerPaciente,
+}));
+
+vi.mock('../../context/AuthContext.jsx', () => ({
+  useAuth: mockUseAuth,
+}));
+
+vi.mock('../../components/laboratorio/pacientes/HistorialExpediente.jsx', () => ({
+  default: ({ idExpediente }) => <div>Bitácora del expediente {idExpediente}</div>,
 }));
 
 vi.mock('../../hooks/useCategoriasSugeridas', () => ({
@@ -41,6 +50,7 @@ const paciente = {
   telefono: '5555-1111',
   fecha_registro: '2026-01-10T00:00:00.000Z',
   estado: 'activo',
+  id_expediente: 8,
 };
 
 const renderizar = () => render(
@@ -57,6 +67,7 @@ describe('PacientePerfil', () => {
     mockObtenerPaciente.mockResolvedValue(paciente);
     mockSubir.mockReset();
     mockAnular.mockReset();
+    mockUseAuth.mockReturnValue({ usuario: { rol: 'administrador' } });
     resultadosSimulados = [];
   });
 
@@ -82,6 +93,17 @@ describe('PacientePerfil', () => {
 
     expect(await screen.findByText('Hematología')).toBeInTheDocument();
     expect(screen.getByText('Vigente')).toBeInTheDocument();
+  });
+
+  it('muestra la bitácora solamente a dueño y administrador', async () => {
+    const { unmount } = renderizar();
+    expect(await screen.findByText('Bitácora del expediente 8')).toBeInTheDocument();
+    unmount();
+
+    mockUseAuth.mockReturnValue({ usuario: { rol: 'laboratorista' } });
+    renderizar();
+    await screen.findByText('Ana López');
+    expect(screen.queryByText('Bitácora del expediente 8')).not.toBeInTheDocument();
   });
 
   it('sube un nuevo resultado y muestra la alerta de éxito', async () => {

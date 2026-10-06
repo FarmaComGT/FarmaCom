@@ -9,6 +9,8 @@ import ResultadoCard from '../../components/laboratorio/resultados/ResultadoCard
 import ResultadoEmptyState from '../../components/laboratorio/resultados/ResultadoEmptyState.jsx';
 import ResultadoUploadModal from '../../components/laboratorio/resultados/ResultadoUploadModal.jsx';
 import ResultadoAnularModal from '../../components/laboratorio/resultados/ResultadoAnularModal.jsx';
+import HistorialExpediente from '../../components/laboratorio/pacientes/HistorialExpediente.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 const ETIQUETAS_SEXO = { M: 'Masculino', F: 'Femenino', Otro: 'Otro' };
 
@@ -17,6 +19,7 @@ const formatearFecha = (fecha) => (fecha ? new Date(fecha).toLocaleDateString('e
 export default function PacientePerfil() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { usuario } = useAuth();
   const [paciente, setPaciente] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -46,6 +49,7 @@ export default function PacientePerfil() {
     anular: anularResultado,
   } = useResultadosLaboratorio(id);
   const categoriasSugeridas = useCategoriasSugeridas(paciente?.id_laboratorio);
+  const puedeVerHistorial = ['dueno', 'administrador'].includes(usuario?.rol);
 
   const [mostrarModalSubida, setMostrarModalSubida] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
@@ -182,6 +186,10 @@ export default function PacientePerfil() {
       <PacienteAlert mensaje={mensajeExito} variante="success" />
       <PacienteAlert mensaje={errorResultados} />
       <PacienteAlert mensaje={errorAnulacion} />
+
+      {puedeVerHistorial && paciente.id_expediente && (
+        <HistorialExpediente idExpediente={paciente.id_expediente} />
+      )}
 
       {cargandoResultados ? (
         <div className="p-8 text-center text-slate-500 font-medium">Cargando resultados...</div>
