@@ -411,7 +411,7 @@ export default function ProductoFormModal({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm font-semibold text-slate-700">
-                  Precio compra (Q) <span className="text-error">*</span>
+                  Precio sugerido de compra (Q) <span className="text-error">*</span>
                 </label>
                 <input
                   type="number"
@@ -424,6 +424,9 @@ export default function ProductoFormModal({
                   required
                   className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
                 />
+                <p className="text-xs text-slate-500">
+                  Se usa como valor inicial en lotes nuevos; los lotes existentes conservan su propio costo.
+                </p>
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-semibold text-slate-700">Stock mínimo</label>
