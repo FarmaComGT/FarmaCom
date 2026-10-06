@@ -1,7 +1,14 @@
 import React from 'react';
-import { Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
+import { History, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
 
-export default function ProductoTableRow({ producto, onEditar, onCambiarEstado, cambiandoEstado }) {
+export default function ProductoTableRow({
+  producto,
+  onEditar,
+  onCambiarEstado,
+  onVerHistorial,
+  puedeVerHistorial,
+  cambiandoEstado,
+}) {
   const esActivo = producto.activo;
 
   return (
@@ -68,7 +75,19 @@ export default function ProductoTableRow({ producto, onEditar, onCambiarEstado, 
 
       {/* Acciones */}
       <div className="col-span-1 flex justify-center gap-1.5">
+        {puedeVerHistorial && (
+          <button
+            type="button"
+            onClick={() => onVerHistorial(producto)}
+            title="Historial de precios"
+            aria-label={`Ver historial de precios de ${producto.nombre_comercial}`}
+            className="p-1.5 rounded-lg text-slate-500 hover:bg-primary/10 hover:text-primary transition-colors"
+          >
+            <History className="w-4 h-4" />
+          </button>
+        )}
         <button
+          type="button"
           onClick={() => onEditar(producto)}
           title="Editar"
           className="p-1.5 rounded-lg text-slate-500 hover:bg-surface-container-high hover:text-primary transition-colors"
@@ -76,6 +95,7 @@ export default function ProductoTableRow({ producto, onEditar, onCambiarEstado, 
           <Pencil className="w-4 h-4" />
         </button>
         <button
+          type="button"
           onClick={() => onCambiarEstado(producto)}
           disabled={cambiandoEstado}
           title={esActivo ? 'Desactivar' : 'Activar'}

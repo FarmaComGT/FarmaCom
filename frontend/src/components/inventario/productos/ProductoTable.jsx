@@ -3,7 +3,15 @@ import { motion } from 'motion/react';
 import ProductoTableHeader from './ProductoTableHeader.jsx';
 import ProductoTableRow from './ProductoTableRow.jsx';
 
-export default function ProductoTable({ cargando, productos, onEditar, onCambiarEstado, cambiandoEstadoId }) {
+export default function ProductoTable({
+  cargando,
+  productos,
+  onEditar,
+  onCambiarEstado,
+  onVerHistorial,
+  puedeVerHistorial,
+  cambiandoEstadoId,
+}) {
   return (
     <motion.section
       initial={{ opacity: 0, y: 8 }}
@@ -31,6 +39,8 @@ export default function ProductoTable({ cargando, productos, onEditar, onCambiar
                   producto={producto}
                   onEditar={onEditar}
                   onCambiarEstado={onCambiarEstado}
+                  onVerHistorial={onVerHistorial}
+                  puedeVerHistorial={puedeVerHistorial}
                   cambiandoEstado={cambiandoEstadoId === producto.id_producto}
                 />
               ))}

@@ -6,6 +6,7 @@ import ProductoActionBar from '../../components/inventario/productos/ProductoAct
 import ProductoFilterPanel from '../../components/inventario/productos/ProductoFilterPanel.jsx';
 import ProductoTable from '../../components/inventario/productos/ProductoTable.jsx';
 import ProductoFormModal from '../../components/inventario/productos/ProductoFormModal.jsx';
+import HistorialPrecioProductoModal from '../../components/inventario/productos/HistorialPrecioProductoModal.jsx';
 import useProductos from '../../hooks/useProductos.js';
 import useCategorias from '../../hooks/useCategorias.js';
 import useCasas from '../../hooks/useCasas.js';
@@ -56,6 +57,7 @@ export default function Productos() {
   const [productoEditando, setProductoEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [errorFormulario, setErrorFormulario] = useState(null);
+  const [productoHistorial, setProductoHistorial] = useState(null);
 
   const cargandoDatos = cargandoCategorias || cargandoCasas || cargandoProveedores || cargandoPresentaciones;
   const codigoSugerido = useMemo(() => siguienteCodigoMed(productos), [productos]);
@@ -172,6 +174,7 @@ export default function Productos() {
   const totalActivos = useMemo(() => productos.filter((p) => p.activo).length, [productos]);
   const totalInactivos = useMemo(() => productos.filter((p) => !p.activo).length, [productos]);
   const totalConMayoreo = useMemo(() => productos.filter((p) => p.aplica_mayoreo).length, [productos]);
+  const puedeVerHistorial = ['dueno', 'administrador'].includes(usuario?.rol);
   
 
   return (
@@ -222,6 +225,8 @@ export default function Productos() {
         productos={productosFiltrados}
         onEditar={handleEditar}
         onCambiarEstado={handleCambiarEstado}
+        onVerHistorial={setProductoHistorial}
+        puedeVerHistorial={puedeVerHistorial}
         cambiandoEstadoId={cambiandoEstadoId}
       />
 
@@ -244,6 +249,12 @@ export default function Productos() {
         onEliminarPresentacion={eliminarPresentacion}
         puedeGestionarPresentaciones={['dueno', 'administrador'].includes(usuario?.rol)}
         puedeEliminarPresentaciones={usuario?.rol === 'dueno'}
+      />
+
+      <HistorialPrecioProductoModal
+        isOpen={Boolean(productoHistorial)}
+        producto={productoHistorial}
+        onClose={() => setProductoHistorial(null)}
       />
     </div>
   );
