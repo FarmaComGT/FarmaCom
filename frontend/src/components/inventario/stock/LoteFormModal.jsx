@@ -10,6 +10,7 @@ const ESTADO_INICIAL = {
   fecha_vencimiento: '',
   cantidad_ingresada: '',
   stock_actual: '',
+  precio_compra: '',
   margen_ganancia: '',
   precio_venta: '',
   precio_mayoreo: '',
@@ -62,7 +63,6 @@ export default function LoteFormModal({
     [productosActivos, formulario.id_producto],
   );
 
-  const precioCompra = Number(productoSeleccionado?.precio_compra ?? 0);
   const presentacionEtiqueta = productoSeleccionado?.presentacion;
 
   useEffect(() => {
@@ -76,6 +76,7 @@ export default function LoteFormModal({
       fecha_vencimiento: String(lote.fecha_vencimiento ?? '').slice(0, 10),
       cantidad_ingresada: String(lote.cantidad_ingresada ?? ''),
       stock_actual: String(lote.stock_actual ?? ''),
+      precio_compra: String(lote.precio_compra ?? ''),
       margen_ganancia: String(lote.margen_ganancia ?? ''),
       precio_venta: String(lote.precio_venta ?? ''),
       precio_mayoreo: lote.precio_mayoreo == null ? '' : String(lote.precio_mayoreo),
@@ -92,6 +93,32 @@ export default function LoteFormModal({
   const manejarCambio = (e) => {
     const { name, value } = e.target;
     setErrorLocal(null);
+
+    if (name === 'id_producto') {
+      const producto = productosActivos.find(
+        (item) => String(item.id_producto) === value,
+      );
+      const precioCompraProducto = producto?.precio_compra == null
+        ? ''
+        : String(producto.precio_compra);
+
+      setFormulario((prev) => {
+        const compra = Number(precioCompraProducto);
+        const venta = Number(prev.precio_venta);
+        const margen = prev.precio_venta === '' || compra <= 0
+          ? ''
+          : formatoDecimal(((venta / compra) - 1) * 100, 4);
+
+        return {
+          ...prev,
+          id_producto: value,
+          precio_compra: precioCompraProducto,
+          margen_ganancia: margen,
+        };
+      });
+      return;
+    }
+
     setFormulario((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -101,16 +128,27 @@ export default function LoteFormModal({
     setFormulario((prev) => {
       if (campo === 'margen_ganancia') {
         const margen = Number(valor);
+        const precioCompra = Number(prev.precio_compra);
         const precio = valor === '' ? '' : formatoDecimal(precioCompra * (1 + margen / 100), 2);
         return { ...prev, margen_ganancia: valor, precio_venta: precio };
       }
 
       if (campo === 'precio_venta') {
         const precio = Number(valor);
+        const precioCompra = Number(prev.precio_compra);
         const margen = valor === '' || precioCompra <= 0
           ? ''
           : formatoDecimal(((precio / precioCompra) - 1) * 100, 4);
         return { ...prev, precio_venta: valor, margen_ganancia: margen };
+      }
+
+      if (campo === 'precio_compra') {
+        const precioCompra = Number(valor);
+        const precioVenta = Number(prev.precio_venta);
+        const margen = valor === '' || prev.precio_venta === '' || precioCompra <= 0
+          ? ''
+          : formatoDecimal(((precioVenta / precioCompra) - 1) * 100, 4);
+        return { ...prev, precio_compra: valor, margen_ganancia: margen };
       }
 
       return { ...prev, [campo]: valor };
@@ -136,6 +174,9 @@ export default function LoteFormModal({
       }
     }
     
+    if (formulario.precio_compra === '' || Number(formulario.precio_compra) < 0) {
+      return 'Ingresa un precio de compra válido.';
+    }
     if (formulario.precio_venta === '' || Number(formulario.precio_venta) < 0) {
       return 'Ingresa un precio de venta válido.';
     }
@@ -176,6 +217,7 @@ export default function LoteFormModal({
       numero_lote: formulario.numero_lote.trim(),
       fecha_vencimiento: formulario.fecha_vencimiento,
       cantidad_ingresada: Number(formulario.cantidad_ingresada),
+      precio_compra: Number(formulario.precio_compra),
       precio_venta: Number(formulario.precio_venta),
       margen_ganancia: Number(formulario.margen_ganancia),
       precio_mayoreo: formulario.precio_mayoreo === '' ? null : Number(formulario.precio_mayoreo),
@@ -263,13 +305,23 @@ export default function LoteFormModal({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1">
-                <label className="text-sm font-semibold text-slate-700">Precio compra</label>
+                <label htmlFor="precio_compra_lote" className="text-sm font-semibold text-slate-700">
+                  Precio compra <span className="text-error">*</span>
+                </label>
                 <input
-                  type="text"
-                  value={productoSeleccionado ? `Q${Number(productoSeleccionado.precio_compra).toFixed(2)}` : 'Q0.00'}
-                  disabled
-                  className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm text-slate-500"
+                  id="precio_compra_lote"
+                  type="number"
+                  value={formulario.precio_compra}
+                  onChange={(e) => manejarPrecioChange('precio_compra', e.target.value)}
+                  min="0"
+                  step="0.01"
+                  required
+                  placeholder="0.00"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                 />
+                <p className="text-xs text-slate-500">
+                  Se precarga con el valor sugerido del producto y se guarda para este lote.
+                </p>
               </div>
 
               <div className="space-y-1">
@@ -410,7 +462,7 @@ export default function LoteFormModal({
 
           <section className="space-y-4">
             <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">
-              Precio de venta del lote
+              Precios del lote
             </p>
 
             <div className="rounded-2xl border border-slate-200 bg-white/70 px-4 py-4">

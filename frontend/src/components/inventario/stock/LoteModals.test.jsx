@@ -14,6 +14,7 @@ const lote = {
   fecha_vencimiento: '2099-12-31',
   cantidad_ingresada: 20,
   stock_actual: 12,
+  precio_compra: 10,
   margen_ganancia: 25,
   precio_venta: 12.5,
   precio_mayoreo: 10,
@@ -59,7 +60,34 @@ describe('modales de lote', () => {
       id_producto: 2,
       numero_lote: 'LT-001',
       stock_actual: 12,
+      precio_compra: 10,
       limpiar_mayoreo: false,
+    }));
+  });
+
+  it('permite cambiar y enviar el precio de compra del lote', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(
+      <LoteFormModal
+        isOpen
+        {...catalogos}
+        lote={lote}
+        cargandoDatos={false}
+        onClose={() => {}}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    const precioCompra = screen.getByLabelText('Precio compra *');
+    await user.clear(precioCompra);
+    await user.type(precioCompra, '11.50');
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      precio_compra: 11.5,
+      precio_venta: 12.5,
     }));
   });
 
