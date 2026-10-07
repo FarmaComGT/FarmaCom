@@ -95,10 +95,68 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  backend-integration:
+    name: Backend - integración y regresión con PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: farmacom_integration
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: contrasena-ficticia-integracion
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      POSTGRES_DB: farmacom_integration
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: contrasena-ficticia-integracion
+      JWT_SECRET: secreto-ficticio-exclusivo-para-integracion
+      JWT_EXPIRES_IN: 1h
+
+    steps:
+      - name: Obtener el repositorio
+        uses: actions/checkout@v7
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar pruebas de integración y regresión
+        run: |
+          mkdir -p reports
+          npm run test:integration -- --json --outputFile=reports/integration.json
+
+      - name: Guardar resultados de integración y regresión
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: resultados-integracion-${{ github.run_attempt }}
+          path: backend/reports/integration.json
+          if-no-files-found: warn
+          retention-days: 14
+
   ci-required:
     name: CI requerido
     if: ${{ always() }}
-    needs: [backend-unit, frontend-unit-build]
+    needs: [backend-unit, frontend-unit-build, backend-integration]
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -107,8 +165,9 @@ jobs:
         env:
           BACKEND_RESULT: ${{ needs.backend-unit.result }}
           FRONTEND_RESULT: ${{ needs.frontend-unit-build.result }}
+          INTEGRATION_RESULT: ${{ needs.backend-integration.result }}
         run: |
-          if [ "$BACKEND_RESULT" != "success" ] || [ "$FRONTEND_RESULT" != "success" ]; then
+          if [ "$BACKEND_RESULT" != "success" ] || [ "$FRONTEND_RESULT" != "success" ] || [ "$INTEGRATION_RESULT" != "success" ]; then
             echo "Uno o más controles obligatorios no finalizaron correctamente."
             exit 1
           fi

@@ -23,7 +23,7 @@ PARALLEL SAFE
 STRICT
 AS $$
   SELECT regexp_replace(
-    lower(unaccent('unaccent', valor)),
+    lower(public.unaccent('public.unaccent'::regdictionary, valor)),
     '[^[:alnum:]]+',
     '',
     'g'
