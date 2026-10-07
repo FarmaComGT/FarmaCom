@@ -39,7 +39,7 @@ const TOKEN_EXPIRY_MS = parseDurationToMs(TOKEN_EXPIRY) ?? parseDurationToMs(DEF
 const COOKIE_NAME = 'auth_token';
 
 const buildAuthCookieOptions = () => ({
-    httpOnly: false,
+    httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     path: '/',
