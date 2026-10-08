@@ -1,11 +1,14 @@
 jest.mock('../daos/VentaDAO');
+jest.mock('../daos/CajaDAO');
 
 const VentaDAO = require('../daos/VentaDAO');
+const CajaDAO = require('../daos/CajaDAO');
 const {
   puedeAccederSucursal,
   validarAccesoSucursal,
   verificarCliente,
   validarDatosBasicosVenta,
+  validarSesionCaja,
   prepararVenta,
 } = require('./VentaPreparacionService');
 
@@ -79,6 +82,35 @@ describe('VentaPreparacionService', () => {
       };
 
       expect(validarDatosBasicosVenta(datos, usuarioDueno)).toEqual([1, 2]);
+    });
+  });
+
+  describe('validarSesionCaja', () => {
+    const datos = { id_sesion_caja: 9, id_sucursal: 1 };
+
+    it('devuelve la sesión abierta que pertenece a la sucursal', async () => {
+      const client = {};
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        id_sesion_caja: 9,
+        id_sucursal: 1,
+        estado: 'abierta',
+      });
+
+      await expect(validarSesionCaja(datos, usuarioDependiente, client)).resolves.toBe(9);
+      expect(CajaDAO.obtenerSesionPorId).toHaveBeenCalledWith(9, client, 'share');
+    });
+
+    it('rechaza una sesión de caja cerrada', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        id_sesion_caja: 9,
+        id_sucursal: 1,
+        estado: 'cerrada',
+      });
+
+      await expect(validarSesionCaja(datos, usuarioDependiente, {})).rejects.toMatchObject({
+        status: 409,
+        message: 'La sesión de caja está cerrada',
+      });
     });
   });
 

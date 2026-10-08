@@ -1,7 +1,10 @@
 const crypto = require('crypto');
+const {
+  ESTADOS_RECURRENTE,
+  MONEDA_PAGO_POS,
+} = require('./VentaPagoConstantes');
 
 const API_URL = process.env.RECURRENTE_API_URL || 'https://app.recurrente.com/api';
-const MONEDA = 'GTQ';
 const MINIMO_GTQ_CENTAVOS = 500;
 const TOLERANCIA_FIRMA_SEGUNDOS = 300;
 
@@ -86,7 +89,7 @@ const crearComandoTerminal = async ({ terminalId, totalCentavos, externalId }) =
     body: JSON.stringify({
       terminal_id: terminalId,
       amount_in_cents: totalCentavos,
-      currency: MONEDA,
+      currency: MONEDA_PAGO_POS,
       external_id: externalId,
     }),
   });
@@ -174,13 +177,13 @@ const normalizarEventoWebhook = (body) => {
   const detalles = datos.details || {};
   const eventType = datos.event_type || payload.event_type || payload.event;
   const estado = datos.status || (
-    eventType?.endsWith('.succeeded') || eventType === 'intent.succeeded'
-      ? 'succeeded'
-      : eventType?.endsWith('.failed') || eventType === 'intent.failed'
-        ? 'failed'
-        : eventType?.endsWith('.canceled') || eventType === 'intent.canceled'
-          ? 'canceled'
-          : 'pending'
+    eventType?.endsWith(`.${ESTADOS_RECURRENTE.EXITOSO}`)
+      ? ESTADOS_RECURRENTE.EXITOSO
+      : eventType?.endsWith(`.${ESTADOS_RECURRENTE.FALLIDO}`)
+        ? ESTADOS_RECURRENTE.FALLIDO
+        : eventType?.endsWith(`.${ESTADOS_RECURRENTE.CANCELADO}`)
+          ? ESTADOS_RECURRENTE.CANCELADO
+          : ESTADOS_RECURRENTE.PENDIENTE
   );
 
   return {

@@ -1,4 +1,5 @@
 const VentaDAO = require('../daos/VentaDAO');
+const CajaDAO = require('../daos/CajaDAO');
 const { lanzarError } = require('./VentaErrores');
 const { calcularDetalles } = require('./VentaMonetariaService');
 
@@ -30,6 +31,25 @@ const validarDatosBasicosVenta = (datos, usuario) => {
   }
 
   return idsLote;
+};
+
+const validarSesionCaja = async (datos, usuario, client) => {
+  const sesion = await CajaDAO.obtenerSesionPorId(
+    Number(datos.id_sesion_caja),
+    client,
+    'share',
+  );
+
+  if (!sesion) lanzarError('Sesión de caja no encontrada', 404);
+  validarAccesoSucursal(usuario, sesion.id_sucursal);
+  if (Number(sesion.id_sucursal) !== Number(datos.id_sucursal)) {
+    lanzarError('La sesión de caja no pertenece a la sucursal de la venta', 409);
+  }
+  if (sesion.estado !== 'abierta') {
+    lanzarError('La sesión de caja está cerrada', 409);
+  }
+
+  return Number(sesion.id_sesion_caja);
 };
 
 const prepararVenta = async (datos, usuario, client) => {
@@ -84,5 +104,6 @@ module.exports = {
   validarAccesoSucursal,
   verificarCliente,
   validarDatosBasicosVenta,
+  validarSesionCaja,
   prepararVenta,
 };
