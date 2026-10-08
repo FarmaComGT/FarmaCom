@@ -34,3 +34,29 @@ describe('PacienteService - edad calculada', () => {
     await expect(PacienteService.obtenerPorId(99)).rejects.toMatchObject({ status: 404 });
   });
 });
+
+describe('PacienteService.registrarPaciente - nombre duplicado', () => {
+  it('lanza 409 si ya existe un paciente con ese nombre', async () => {
+    PacienteDAO.obtenerPorNombre.mockResolvedValue({ id_paciente: 1, nombre_paciente: 'Juan Pérez' });
+
+    await expect(
+      PacienteService.registrarPaciente({ nombre_paciente: 'juan pérez', edad_manual: 30 }, 9),
+    ).rejects.toMatchObject({ status: 409 });
+
+    expect(PacienteDAO.ejecutarEnTransaccion).not.toHaveBeenCalled();
+  });
+
+  it('distingue el mensaje de nombre duplicado del de DPI duplicado en condicion de carrera', async () => {
+    PacienteDAO.obtenerPorNombre.mockResolvedValue(null);
+    PacienteDAO.obtenerPorDpi.mockResolvedValue(null);
+    const errorConstraint = Object.assign(new Error('duplicate key'), {
+      code: '23505',
+      constraint: 'uq_paciente_nombre',
+    });
+    PacienteDAO.ejecutarEnTransaccion.mockRejectedValue(errorConstraint);
+
+    await expect(
+      PacienteService.registrarPaciente({ nombre_paciente: 'Juan Pérez', dpi: '123', edad_manual: 30 }, 9),
+    ).rejects.toMatchObject({ status: 409, message: expect.stringContaining('nombre') });
+  });
+});

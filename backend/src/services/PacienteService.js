@@ -41,6 +41,11 @@ const registrarPaciente = async ({
     if (existente) lanzarError('Ya existe un paciente con ese DPI', 409);
   }
 
+  const existentePorNombre = await PacienteDAO.obtenerPorNombre(nombre_paciente);
+  if (existentePorNombre) {
+    lanzarError('Ya existe un paciente con ese nombre. Ingresa el nombre completo (o un apellido adicional) para diferenciarlo.', 409);
+  }
+
   try {
     return await PacienteDAO.ejecutarEnTransaccion(async (client) => {
       const paciente = await PacienteDAO.crear(
@@ -69,7 +74,12 @@ const registrarPaciente = async ({
       return conEdad({ ...paciente, id_expediente: expediente.id_expediente });
     });
   } catch (error) {
-    if (error.code === '23505') lanzarError('Ya existe un paciente con ese DPI', 409);
+    if (error.code === '23505') {
+      if (error.constraint === 'uq_paciente_nombre') {
+        lanzarError('Ya existe un paciente con ese nombre. Ingresa el nombre completo (o un apellido adicional) para diferenciarlo.', 409);
+      }
+      lanzarError('Ya existe un paciente con ese DPI', 409);
+    }
     throw error;
   }
 };
@@ -121,6 +131,13 @@ const actualizarPaciente = async (id_paciente, campos, id_usuario) => {
           }
         }
       }
+      if (Object.prototype.hasOwnProperty.call(datos, 'nombre_paciente')
+        && datos.nombre_paciente.trim().toLowerCase() !== existente.nombre_paciente.trim().toLowerCase()) {
+        const duplicadoNombre = await PacienteDAO.obtenerPorNombre(datos.nombre_paciente, client);
+        if (duplicadoNombre && duplicadoNombre.id_paciente !== id_paciente) {
+          lanzarError('Ya existe un paciente con ese nombre. Ingresa el nombre completo (o un apellido adicional) para diferenciarlo.', 409);
+        }
+      }
       const paciente = await PacienteDAO.actualizar(id_paciente, datos, client);
       if (!paciente) throw noEncontrado();
       await BitacoraLaboratorioService.registrarCambio({
@@ -130,7 +147,12 @@ const actualizarPaciente = async (id_paciente, campos, id_usuario) => {
       return conEdad(paciente);
     });
   } catch (error) {
-    if (error.code === '23505') lanzarError('Ya existe un paciente con ese DPI', 409);
+    if (error.code === '23505') {
+      if (error.constraint === 'uq_paciente_nombre') {
+        lanzarError('Ya existe un paciente con ese nombre. Ingresa el nombre completo (o un apellido adicional) para diferenciarlo.', 409);
+      }
+      lanzarError('Ya existe un paciente con ese DPI', 409);
+    }
     throw error;
   }
 };

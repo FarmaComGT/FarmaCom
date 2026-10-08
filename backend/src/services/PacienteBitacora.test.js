@@ -5,6 +5,8 @@ let client;
 beforeEach(() => {
   client = { query: jest.fn(), release: jest.fn() };
   pool.connect.mockResolvedValue(client);
+  // registrarPaciente/actualizarPaciente consultan duplicados de nombre vía pool (fuera de la transaccion).
+  pool.query.mockResolvedValue({ rows: [] });
 });
 
 it('crea paciente y expediente con dos entradas y un solo commit', async () => {

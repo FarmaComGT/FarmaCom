@@ -1,11 +1,15 @@
 jest.mock('./BitacoraLaboratorioService');
 const BitacoraLaboratorioService = require('./BitacoraLaboratorioService');
 jest.mock('../daos/ResultadoLaboratorioDAO');
+jest.mock('../daos/UsuarioDAO');
 jest.mock('../config/almacenamiento', () => ({
   RUTA_UPLOADS_RESULTADOS: '/tmp/uploads',
   PUBLIC_API_BASE_URL: 'http://localhost:3000',
 }));
-jest.mock('fs/promises', () => ({ writeFile: jest.fn().mockResolvedValue() }));
+jest.mock('fs/promises', () => ({
+  writeFile: jest.fn().mockResolvedValue(),
+  unlink: jest.fn().mockResolvedValue(),
+}));
 jest.mock('qrcode', () => ({ toBuffer: jest.fn().mockResolvedValue(Buffer.from('qr')) }));
 jest.mock('pdf-lib', () => ({
   PDFDocument: {
@@ -20,6 +24,7 @@ jest.mock('pdf-lib', () => ({
 const crypto = require('crypto');
 const fs = require('fs/promises');
 const ResultadoLaboratorioDAO = require('../daos/ResultadoLaboratorioDAO');
+const UsuarioDAO = require('../daos/UsuarioDAO');
 const ResultadoLaboratorioService = require('./ResultadoLaboratorioService');
 
 describe('ResultadoLaboratorioService', () => {
@@ -95,6 +100,15 @@ describe('ResultadoLaboratorioService', () => {
       await expect(ResultadoLaboratorioService.obtenerPublico('token')).rejects.toMatchObject({ status: 404 });
     });
 
+    it('rechaza un resultado vencido (purgado automáticamente)', async () => {
+      ResultadoLaboratorioDAO.obtenerPorToken.mockResolvedValue({
+        estado: 'vencido',
+        fecha_expiracion: new Date(Date.now() - 1000 * 60 * 60 * 24),
+      });
+
+      await expect(ResultadoLaboratorioService.obtenerPublico('token')).rejects.toMatchObject({ status: 404 });
+    });
+
     it('rechaza un resultado expirado', async () => {
       ResultadoLaboratorioDAO.obtenerPorToken.mockResolvedValue({
         estado: 'vigente',
@@ -146,6 +160,72 @@ describe('ResultadoLaboratorioService', () => {
       await expect(
         ResultadoLaboratorioService.anularResultado(1, 'motivo', 9),
       ).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  describe('purgarResultadosVencidos', () => {
+    it('lanza un error si no existe el usuario de sistema', async () => {
+      UsuarioDAO.obtenerPorCorreo.mockResolvedValue(null);
+
+      await expect(ResultadoLaboratorioService.purgarResultadosVencidos()).rejects.toThrow(/usuario de sistema/);
+    });
+
+    it('marca vencido y borra del disco cada resultado pendiente, auditando con el usuario de sistema', async () => {
+      UsuarioDAO.obtenerPorCorreo.mockResolvedValue({ id_usuario: 55 });
+      const clienteFalso = {};
+      ResultadoLaboratorioDAO.ejecutarEnTransaccion.mockImplementation((op) => op(clienteFalso));
+      ResultadoLaboratorioDAO.listarVencidosPendientes.mockResolvedValue([
+        { id_resultado: 1, ruta_archivo: 'a.pdf' },
+        { id_resultado: 2, ruta_archivo: 'b.pdf' },
+      ]);
+      ResultadoLaboratorioDAO.obtenerParaActualizar
+        .mockResolvedValueOnce({ id_resultado: 1, estado: 'vigente', ruta_archivo: 'a.pdf' })
+        .mockResolvedValueOnce({ id_resultado: 2, estado: 'vigente', ruta_archivo: 'b.pdf' });
+      ResultadoLaboratorioDAO.marcarVencido
+        .mockResolvedValueOnce({ id_resultado: 1, estado: 'vencido', ruta_archivo: 'a.pdf' })
+        .mockResolvedValueOnce({ id_resultado: 2, estado: 'vencido', ruta_archivo: 'b.pdf' });
+
+      const purgados = await ResultadoLaboratorioService.purgarResultadosVencidos();
+
+      expect(purgados).toBe(2);
+      expect(ResultadoLaboratorioDAO.marcarVencido).toHaveBeenCalledWith(1, expect.stringContaining('Vencimiento'), clienteFalso);
+      expect(ResultadoLaboratorioDAO.marcarVencido).toHaveBeenCalledWith(2, expect.stringContaining('Vencimiento'), clienteFalso);
+      expect(BitacoraLaboratorioService.registrarCambio).toHaveBeenCalledWith(
+        expect.objectContaining({ id_usuario: 55, entidad: 'resultado_laboratorio', accion: 'vencer', id_entidad: 1 }),
+        clienteFalso,
+      );
+      expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining('a.pdf'));
+      expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining('b.pdf'));
+    });
+
+    it('omite un resultado que ya no esta vigente por una condicion de carrera', async () => {
+      UsuarioDAO.obtenerPorCorreo.mockResolvedValue({ id_usuario: 55 });
+      const clienteFalso = {};
+      ResultadoLaboratorioDAO.ejecutarEnTransaccion.mockImplementation((op) => op(clienteFalso));
+      ResultadoLaboratorioDAO.listarVencidosPendientes.mockResolvedValue([
+        { id_resultado: 1, ruta_archivo: 'a.pdf' },
+      ]);
+      ResultadoLaboratorioDAO.obtenerParaActualizar.mockResolvedValue({ id_resultado: 1, estado: 'anulado' });
+
+      const purgados = await ResultadoLaboratorioService.purgarResultadosVencidos();
+
+      expect(purgados).toBe(0);
+      expect(ResultadoLaboratorioDAO.marcarVencido).not.toHaveBeenCalled();
+      expect(fs.unlink).not.toHaveBeenCalled();
+    });
+
+    it('no falla si el archivo ya no existe en disco', async () => {
+      UsuarioDAO.obtenerPorCorreo.mockResolvedValue({ id_usuario: 55 });
+      const clienteFalso = {};
+      ResultadoLaboratorioDAO.ejecutarEnTransaccion.mockImplementation((op) => op(clienteFalso));
+      ResultadoLaboratorioDAO.listarVencidosPendientes.mockResolvedValue([
+        { id_resultado: 1, ruta_archivo: 'a.pdf' },
+      ]);
+      ResultadoLaboratorioDAO.obtenerParaActualizar.mockResolvedValue({ id_resultado: 1, estado: 'vigente', ruta_archivo: 'a.pdf' });
+      ResultadoLaboratorioDAO.marcarVencido.mockResolvedValue({ id_resultado: 1, estado: 'vencido', ruta_archivo: 'a.pdf' });
+      fs.unlink.mockRejectedValueOnce(Object.assign(new Error('no existe'), { code: 'ENOENT' }));
+
+      await expect(ResultadoLaboratorioService.purgarResultadosVencidos()).resolves.toBe(1);
     });
   });
 });

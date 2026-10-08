@@ -97,6 +97,27 @@ class ResultadoLaboratorioDAO {
     return rows[0] || null;
   }
 
+  async listarVencidosPendientes(client = pool) {
+    const { rows } = await client.query(
+      `SELECT * FROM resultado_laboratorio
+       WHERE estado = 'vigente' AND fecha_expiracion <= CURRENT_TIMESTAMP`,
+    );
+    return rows;
+  }
+
+  async marcarVencido(id_resultado, motivo_anulacion, client) {
+    const { rows } = await client.query(
+      `UPDATE resultado_laboratorio
+       SET estado = 'vencido',
+           motivo_anulacion = $1,
+           fecha_anulacion = CURRENT_TIMESTAMP
+       WHERE id_resultado = $2
+       RETURNING *`,
+      [motivo_anulacion, id_resultado],
+    );
+    return rows[0] || null;
+  }
+
   async obtenerCategoriasSugeridas(id_laboratorio) {
     const { rows } = await pool.query(
       `SELECT DISTINCT r.categoria

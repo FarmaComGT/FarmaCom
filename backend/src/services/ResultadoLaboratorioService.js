@@ -5,11 +5,14 @@ const path = require('path');
 const QRCode = require('qrcode');
 const { PDFDocument } = require('pdf-lib');
 const ResultadoLaboratorioDAO = require('../daos/ResultadoLaboratorioDAO');
+const UsuarioDAO = require('../daos/UsuarioDAO');
 const { RUTA_UPLOADS_RESULTADOS, PUBLIC_API_BASE_URL } = require('../config/almacenamiento');
 
 const MESES_VIGENCIA = 6;
 const TAMANO_QR_PUNTOS = 100;
 const MARGEN_QR_PUNTOS = 24;
+const MOTIVO_VENCIMIENTO_AUTOMATICO = 'Vencimiento automático (6 meses)';
+const CORREO_USUARIO_SISTEMA = 'sistema.laboratorio@farmacom.local';
 
 const noEncontrado = (mensaje = 'Resultado no encontrado') => {
   const error = new Error(mensaje);
@@ -130,10 +133,68 @@ const obtenerPublico = async (token) => {
   return resultado;
 };
 
+let idUsuarioSistemaCache = null;
+const obtenerIdUsuarioSistema = async () => {
+  if (idUsuarioSistemaCache) return idUsuarioSistemaCache;
+  const usuario = await UsuarioDAO.obtenerPorCorreo(CORREO_USUARIO_SISTEMA);
+  if (!usuario) {
+    throw new Error(
+      'No existe el usuario de sistema para el vencimiento automatico de resultados. '
+      + 'Ejecuta la migracion usuario_sistema.sql.',
+    );
+  }
+  idUsuarioSistemaCache = usuario.id_usuario;
+  return idUsuarioSistemaCache;
+};
+
+// Marca como 'vencido' (y borra el archivo físico) cada resultado cuya
+// fecha_expiracion ya pasó. Pensado para correr periódicamente (ver cron en
+// backend/src/index.js). Devuelve cuántos resultados se purgaron.
+const purgarResultadosVencidos = async () => {
+  const idUsuarioSistema = await obtenerIdUsuarioSistema();
+  const pendientes = await ResultadoLaboratorioDAO.listarVencidosPendientes();
+
+  let purgados = 0;
+  for (const resultado of pendientes) {
+    const actualizado = await ResultadoLaboratorioDAO.ejecutarEnTransaccion(async (client) => {
+      const fila = await ResultadoLaboratorioDAO.obtenerParaActualizar(resultado.id_resultado, client);
+      if (!fila || fila.estado !== 'vigente') return null;
+
+      const vencido = await ResultadoLaboratorioDAO.marcarVencido(
+        resultado.id_resultado,
+        MOTIVO_VENCIMIENTO_AUTOMATICO,
+        client,
+      );
+
+      await BitacoraLaboratorioService.registrarCambio({
+        id_usuario: idUsuarioSistema,
+        entidad: 'resultado_laboratorio',
+        id_entidad: resultado.id_resultado,
+        accion: 'vencer',
+        anterior: fila,
+        nuevo: vencido,
+      }, client);
+
+      return vencido;
+    });
+
+    if (actualizado) {
+      purgados += 1;
+      try {
+        await fs.unlink(path.join(RUTA_UPLOADS_RESULTADOS, actualizado.ruta_archivo));
+      } catch {
+        // Archivo ya ausente o inaccesible: aceptable, ya no es alcanzable vía BD.
+      }
+    }
+  }
+  return purgados;
+};
+
 module.exports = {
   subirResultado,
   listarPorPaciente,
   anularResultado,
   obtenerCategoriasSugeridas,
   obtenerPublico,
+  purgarResultadosVencidos,
 };

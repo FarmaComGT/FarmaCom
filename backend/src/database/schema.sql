@@ -177,6 +177,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_paciente_dpi
     ON paciente (dpi)
     WHERE dpi IS NOT NULL;
 
+-- Evita nombres duplicados: el nombre se usa para nombrar la carpeta de
+-- respaldo local de cada paciente en el modulo de laboratorio.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_paciente_nombre
+    ON paciente (LOWER(TRIM(nombre_paciente)));
+
 CREATE INDEX IF NOT EXISTS idx_paciente_laboratorio
     ON paciente (id_laboratorio, estado);
 
@@ -267,14 +272,16 @@ CREATE TABLE IF NOT EXISTS resultado_laboratorio (
     CONSTRAINT uq_resultado_token
         UNIQUE (token_publico),
 
+    -- 'vencido' se asigna automaticamente cuando pasan los MESES_VIGENCIA (6 meses)
+    -- sin intervencion humana; reutiliza motivo_anulacion/fecha_anulacion igual que 'anulado'.
     CONSTRAINT chk_resultado_estado
-        CHECK (estado IN ('vigente', 'anulado')),
+        CHECK (estado IN ('vigente', 'anulado', 'vencido')),
 
     CONSTRAINT chk_resultado_anulacion
         CHECK (
             (estado = 'vigente' AND fecha_anulacion IS NULL AND motivo_anulacion IS NULL)
             OR
-            (estado = 'anulado' AND fecha_anulacion IS NOT NULL AND motivo_anulacion IS NOT NULL)
+            (estado IN ('anulado', 'vencido') AND fecha_anulacion IS NOT NULL AND motivo_anulacion IS NOT NULL)
         )
 );
 
@@ -1037,6 +1044,26 @@ WHERE s.nombre_sucursal = 'Sucursal Central'
       SELECT 1
       FROM usuario u
       WHERE u.correo_usuario = 'laboratorista@farma.com'
+  );
+
+-- Usuario tecnico usado por el job automatico de vencimiento de resultados
+-- (purgarResultadosVencidos) para dejar registro en bitacora_laboratorio,
+-- que exige un id_usuario responsable. estado_usuario='inactivo' bloquea
+-- cualquier intento de inicio de sesion con esta cuenta.
+INSERT INTO usuario (id_sucursal, nombre_usuario, correo_usuario, contrasena_hash, rol, estado_usuario)
+SELECT
+    s.id_sucursal,
+    'Sistema (vencimiento automatico)',
+    'sistema.laboratorio@farmacom.local',
+    crypt(gen_random_uuid()::text, gen_salt('bf')),
+    'administrador',
+    'inactivo'
+FROM sucursal s
+WHERE s.nombre_sucursal = 'Sucursal Central'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM usuario u
+      WHERE u.correo_usuario = 'sistema.laboratorio@farmacom.local'
   );
 
 INSERT INTO paciente (id_laboratorio, nombre_paciente, dpi, fecha_nacimiento, sexo, telefono, direccion)

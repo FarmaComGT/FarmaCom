@@ -69,4 +69,25 @@ describe('ResultadoLaboratorioDAO', () => {
       ['Archivo incorrecto', 10],
     );
   });
+
+  it('lista los resultados vigentes cuya fecha_expiracion ya paso', async () => {
+    const filas = [{ id_resultado: 1, estado: 'vigente' }];
+    pool.query.mockResolvedValue({ rows: filas });
+
+    await expect(ResultadoLaboratorioDAO.listarVencidosPendientes()).resolves.toEqual(filas);
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining("estado = 'vigente'"));
+  });
+
+  it('marca un resultado como vencido', async () => {
+    const clienteFalso = { query: jest.fn() };
+    clienteFalso.query.mockResolvedValue({ rows: [{ id_resultado: 10, estado: 'vencido' }] });
+
+    const resultado = await ResultadoLaboratorioDAO.marcarVencido(10, 'Vencimiento automático (6 meses)', clienteFalso);
+
+    expect(resultado).toEqual({ id_resultado: 10, estado: 'vencido' });
+    expect(clienteFalso.query).toHaveBeenCalledWith(
+      expect.stringContaining("SET estado = 'vencido'"),
+      ['Vencimiento automático (6 meses)', 10],
+    );
+  });
 });

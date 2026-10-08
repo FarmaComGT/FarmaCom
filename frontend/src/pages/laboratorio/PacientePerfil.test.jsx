@@ -1,19 +1,30 @@
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PacientePerfil from './PacientePerfil';
 
-const { mockObtenerPaciente, mockSubir, mockAnular, mockUseAuth } = vi.hoisted(() => ({
+const {
+  mockObtenerPaciente, mockSubir, mockAnular, mockUseAuth, mockUseAlmacenamientoLocal,
+} = vi.hoisted(() => ({
   mockObtenerPaciente: vi.fn(),
   mockSubir: vi.fn(),
   mockAnular: vi.fn(),
   mockUseAuth: vi.fn(),
+  mockUseAlmacenamientoLocal: vi.fn(),
 }));
 
 vi.mock('../../api/pacientes', () => ({
   obtenerPaciente: mockObtenerPaciente,
+}));
+
+vi.mock('../../api/resultadosLaboratorio', () => ({
+  construirUrlPublica: (token) => `http://localhost:3000/api/resultados-laboratorio/publico/${token}`,
+}));
+
+vi.mock('../../hooks/useAlmacenamientoLocal', () => ({
+  default: mockUseAlmacenamientoLocal,
 }));
 
 vi.mock('../../context/AuthContext.jsx', () => ({
@@ -69,6 +80,24 @@ describe('PacientePerfil', () => {
     mockAnular.mockReset();
     mockUseAuth.mockReturnValue({ usuario: { rol: 'administrador' } });
     resultadosSimulados = [];
+
+    mockUseAlmacenamientoLocal.mockReset();
+    mockUseAlmacenamientoLocal.mockReturnValue({
+      soportado: true,
+      carpetaConfigurada: true,
+      permisoOk: true,
+      elegirCarpeta: vi.fn(),
+      reconectar: vi.fn(),
+      guardarRespaldo: vi.fn().mockResolvedValue(true),
+      respaldosDe: vi.fn().mockResolvedValue([]),
+      abrirArchivoLocal: vi.fn(),
+    });
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ arrayBuffer: async () => new ArrayBuffer(0) }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('muestra el encabezado del paciente y un estado vacío sin resultados', async () => {
@@ -121,5 +150,58 @@ describe('PacientePerfil', () => {
 
     expect(mockSubir).toHaveBeenCalledWith({ categoria: 'Orina', archivo });
     expect(await screen.findByText('Resultado subido correctamente.')).toBeInTheDocument();
+  });
+
+  it('guarda un respaldo local del resultado recién subido', async () => {
+    const guardarRespaldo = vi.fn().mockResolvedValue(true);
+    mockUseAlmacenamientoLocal.mockReturnValue({
+      soportado: true,
+      carpetaConfigurada: true,
+      permisoOk: true,
+      elegirCarpeta: vi.fn(),
+      reconectar: vi.fn(),
+      guardarRespaldo,
+      respaldosDe: vi.fn().mockResolvedValue([]),
+      abrirArchivoLocal: vi.fn(),
+    });
+    mockSubir.mockResolvedValue({ id_resultado: 2, token_publico: 'token-2', categoria: 'Orina' });
+    const user = userEvent.setup();
+    renderizar();
+
+    await screen.findByText('Ana López');
+    await user.click(screen.getByRole('button', { name: 'Nuevo resultado' }));
+    await user.type(screen.getByLabelText(/Categoría del examen/), 'Orina');
+    const archivo = new File(['contenido'], 'resultado.pdf', { type: 'application/pdf' });
+    await user.upload(document.querySelector('input[type="file"]'), archivo);
+    await user.click(screen.getByRole('button', { name: 'Subir resultado' }));
+
+    await screen.findByText('Resultado subido correctamente.');
+    expect(guardarRespaldo).toHaveBeenCalledWith(
+      paciente,
+      { id_resultado: 2, token_publico: 'token-2', categoria: 'Orina' },
+      expect.any(ArrayBuffer),
+    );
+  });
+
+  it('bloquea la subida y explica por qué si no hay carpeta local configurada', async () => {
+    mockUseAlmacenamientoLocal.mockReturnValue({
+      soportado: true,
+      carpetaConfigurada: false,
+      permisoOk: false,
+      elegirCarpeta: vi.fn(),
+      reconectar: vi.fn(),
+      guardarRespaldo: vi.fn(),
+      respaldosDe: vi.fn().mockResolvedValue([]),
+      abrirArchivoLocal: vi.fn(),
+    });
+    const user = userEvent.setup();
+    renderizar();
+
+    await screen.findByText('Ana López');
+    await user.click(screen.getByRole('button', { name: 'Nuevo resultado' }));
+
+    expect(screen.getByText('Configura el respaldo local')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Categoría del examen/)).not.toBeInTheDocument();
+    expect(mockSubir).not.toHaveBeenCalled();
   });
 });
