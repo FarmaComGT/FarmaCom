@@ -60,9 +60,10 @@ describe('ProductoDAO - autocompletado para POS', () => {
     expect(consulta).toContain('p.activo = TRUE');
     expect(consulta).toContain('normalizar_texto_busqueda');
     expect(consulta).toContain('similarity(');
+    expect(consulta).toContain("set_config('pg_trgm.similarity_threshold', $4, TRUE)");
     expect(consulta).toContain('codigo_normalizado % termino_normalizado');
     expect(consulta).toContain('char_length(termino_normalizado) >= 3');
-    expect(consulta).toContain('relevancia >= 0.30');
+    expect(consulta).not.toContain('relevancia >= 0.30');
     expect(consulta).toContain('l.id_sucursal = $2');
     expect(consulta).toContain('l.stock_actual > 0');
     expect(consulta).toContain('l.precio_venta > 0');
@@ -74,7 +75,7 @@ describe('ProductoDAO - autocompletado para POS', () => {
     expect(consulta).toContain('LIMIT $3');
     expect(consulta).not.toContain('JOIN LATERAL');
     expect(consulta).not.toContain('LIMIT 1');
-    expect(valores).toEqual(['Pará_50%', 2, 40]);
+    expect(valores).toEqual(['Pará_50%', 2, 40, '0.1']);
     expect(resultado).toEqual([
       { id_producto: 3, id_lote: 9 },
       { id_producto: 3, id_lote: 10 },
@@ -106,5 +107,29 @@ describe('ProductoDAO - autocompletado para POS', () => {
       tipo_coincidencia: 'aproximada',
       relevancia: '0.70',
     }));
+  });
+
+  it('acepta Tylenol cuando la búsqueda tilenal tiene dos sustituciones', async () => {
+    pool.query.mockResolvedValue({ rows: [
+      {
+        id_producto: 1,
+        id_lote: 10,
+        codigo: 'MED001-UN',
+        nombre_comercial: 'Tylenol',
+        nombre_generico: 'Paracetamol',
+        tipo_coincidencia: 'aproximada',
+        relevancia: '0.142857',
+      },
+    ] });
+
+    const resultado = await ProductoDAO.autocompletarParaPOS('tilenal', 1, 8);
+
+    expect(resultado).toEqual([
+      expect.objectContaining({
+        nombre_comercial: 'Tylenol',
+        tipo_coincidencia: 'aproximada',
+        relevancia: '0.142857',
+      }),
+    ]);
   });
 });
