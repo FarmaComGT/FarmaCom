@@ -46,3 +46,22 @@ describe('PacienteDAO.actualizar', () => {
     ]);
   });
 });
+
+describe('PacienteDAO.obtenerPorNombre', () => {
+  it('busca por nombre normalizado (minusculas y sin espacios en los extremos)', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_paciente: 7, nombre_paciente: 'Ana Pérez' }] });
+
+    const paciente = await PacienteDAO.obtenerPorNombre('  Ana Pérez  ');
+
+    expect(pool.query).toHaveBeenCalledWith(expect.any(String), ['  Ana Pérez  ']);
+    expect(paciente).toEqual({ id_paciente: 7, nombre_paciente: 'Ana Pérez' });
+  });
+
+  it('devuelve null cuando no existe ningun paciente con ese nombre', async () => {
+    pool.query.mockResolvedValue({ rows: [] });
+
+    const paciente = await PacienteDAO.obtenerPorNombre('Nombre Inexistente');
+
+    expect(paciente).toBeNull();
+  });
+});

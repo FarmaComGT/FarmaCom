@@ -88,6 +88,14 @@ class PacienteDAO {
     return rows[0] || null;
   }
 
+  async obtenerPorNombre(nombre_paciente, client = pool) {
+    const { rows } = await client.query(
+      `SELECT * FROM paciente WHERE lower(trim(nombre_paciente)) = lower(trim($1))`,
+      [nombre_paciente],
+    );
+    return rows[0] || null;
+  }
+
   async buscar({ id_laboratorio, busqueda, estado, pagina, limite }) {
     const condiciones = ['p.id_laboratorio = $1'];
     const valores = [id_laboratorio];

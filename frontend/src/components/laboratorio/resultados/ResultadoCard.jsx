@@ -4,11 +4,16 @@ import { construirUrlPublica } from '../../../api/resultadosLaboratorio';
 
 const formatearFecha = (fecha) => new Date(fecha).toLocaleDateString('es-GT');
 
-export default function ResultadoCard({ resultado, onAnular }) {
+export default function ResultadoCard({ resultado, origen = 'servidor', onAnular, onVerLocal }) {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const anulado = resultado.estado === 'anulado';
+  const soloLocal = origen === 'solo-local';
 
   const verDescargar = () => {
+    if (soloLocal) {
+      onVerLocal?.();
+      return;
+    }
     window.open(construirUrlPublica(resultado.token_publico), '_blank', 'noopener');
   };
 
@@ -30,17 +35,25 @@ export default function ResultadoCard({ resultado, onAnular }) {
 
       <span
         className={`absolute left-3 top-3 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-          anulado
-            ? 'bg-slate-200 text-slate-600'
-            : resultado.vigente
-              ? 'bg-green-100 text-green-700'
-              : 'bg-amber-100 text-amber-700'
+          soloLocal
+            ? 'bg-blue-100 text-blue-700'
+            : anulado
+              ? 'bg-slate-200 text-slate-600'
+              : resultado.vigente
+                ? 'bg-green-100 text-green-700'
+                : 'bg-amber-100 text-amber-700'
         }`}
       >
-        {anulado ? 'Anulado' : resultado.vigente ? 'Vigente' : 'Expirado'}
+        {soloLocal ? 'Solo local' : anulado ? 'Anulado' : resultado.vigente ? 'Vigente' : 'Expirado'}
       </span>
 
-      {!anulado && (
+      {origen === 'servidor-local' && (
+        <span className="absolute left-3 top-9 inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[9px] font-bold uppercase text-blue-600">
+          + Local
+        </span>
+      )}
+
+      {!anulado && !soloLocal && (
         <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
           <button
             type="button"

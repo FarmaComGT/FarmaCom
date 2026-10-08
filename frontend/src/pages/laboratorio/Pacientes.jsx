@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import useLaboratorios from '../../hooks/useLaboratorios';
 import usePacientes from '../../hooks/usePacientes';
+import useAlmacenamientoLocal from '../../hooks/useAlmacenamientoLocal';
 import PacienteActionBar from '../../components/laboratorio/pacientes/PacienteActionBar.jsx';
 import PacienteStatsGrid from '../../components/laboratorio/pacientes/PacienteStatsGrid.jsx';
 import PacienteAlert from '../../components/laboratorio/pacientes/PacienteAlert.jsx';
 import PacienteTable from '../../components/laboratorio/pacientes/PacienteTable.jsx';
 import PacienteFormModal from '../../components/laboratorio/pacientes/PacienteFormModal.jsx';
 import PacienteAnularModal from '../../components/laboratorio/pacientes/PacienteAnularModal.jsx';
+import ConfiguracionAlmacenamientoModal from '../../components/laboratorio/ConfiguracionAlmacenamientoModal.jsx';
 
 export default function Pacientes() {
   const { usuario } = useAuth();
@@ -49,6 +51,23 @@ export default function Pacientes() {
   const [errorAccion, setErrorAccion] = useState(null);
   const [mensajeExito, setMensajeExito] = useState(null);
 
+  const {
+    soportado: almacenamientoSoportado,
+    cargando: cargandoAlmacenamiento,
+    carpetaConfigurada,
+    permisoOk,
+    elegirCarpeta,
+    reconectar,
+    crearCarpetaDePaciente,
+  } = useAlmacenamientoLocal();
+  const [mostrarModalAlmacenamiento, setMostrarModalAlmacenamiento] = useState(false);
+
+  useEffect(() => {
+    if (cargandoAlmacenamiento) return;
+    if (!almacenamientoSoportado) return;
+    setMostrarModalAlmacenamiento(!carpetaConfigurada || !permisoOk);
+  }, [cargandoAlmacenamiento, almacenamientoSoportado, carpetaConfigurada, permisoOk]);
+
   useEffect(() => {
     if (!mensajeExito) return undefined;
     const temporizador = setTimeout(() => setMensajeExito(null), 4000);
@@ -87,7 +106,8 @@ export default function Pacientes() {
         await actualizar(pacienteEditando.id_paciente, datos);
         setMensajeExito('Paciente actualizado correctamente.');
       } else {
-        await crear(datos);
+        const paciente = await crear(datos);
+        await crearCarpetaDePaciente(paciente.id_paciente, paciente.nombre_paciente);
         setMensajeExito('Paciente registrado correctamente.');
       }
       setMostrarModal(false);
@@ -208,6 +228,15 @@ export default function Pacientes() {
         anulando={anulando}
         onClose={cerrarModalAnular}
         onConfirm={confirmarAnular}
+      />
+
+      <ConfiguracionAlmacenamientoModal
+        isOpen={mostrarModalAlmacenamiento}
+        soportado={almacenamientoSoportado}
+        carpetaConfigurada={carpetaConfigurada}
+        onElegir={elegirCarpeta}
+        onReconectar={reconectar}
+        onClose={() => setMostrarModalAlmacenamiento(false)}
       />
     </div>
   );
