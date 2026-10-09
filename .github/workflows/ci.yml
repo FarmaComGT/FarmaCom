@@ -97,25 +97,11 @@ jobs:
 
   backend-integration:
     name: Backend - integración y regresión con PostgreSQL
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: farmacom_integration
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: contrasena-ficticia-integracion
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     env:
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
@@ -135,6 +121,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: backend/package-lock.json
+
+      - name: Preparar PostgreSQL 16 desechable
+        run: |
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql --set=ON_ERROR_STOP=1 --command="ALTER USER postgres WITH PASSWORD 'contrasena-ficticia-integracion';"
+          sudo -u postgres createdb farmacom_integration
+          pg_isready --host=127.0.0.1 --port=5432 --username=postgres
 
       - name: Instalar dependencias
         run: npm ci
