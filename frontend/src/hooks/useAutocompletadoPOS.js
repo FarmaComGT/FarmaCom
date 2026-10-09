@@ -20,22 +20,6 @@ const normalizarProducto = (producto) => {
   };
 };
 
-const ordenarResultados = (productos) => [...productos].sort((primero, segundo) => {
-  const primeroEsAproximado = primero.tipo_coincidencia === 'aproximada';
-  const segundoEsAproximado = segundo.tipo_coincidencia === 'aproximada';
-
-  if (primeroEsAproximado !== segundoEsAproximado) {
-    return primeroEsAproximado ? 1 : -1;
-  }
-
-  if (primeroEsAproximado) {
-    return segundo.relevancia - primero.relevancia;
-  }
-
-  // El backend ya ordena las coincidencias directas por código y prefijo.
-  return 0;
-});
-
 export default function useAutocompletadoPOS(busqueda, limite = 10) {
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(false);
@@ -61,7 +45,8 @@ export default function useAutocompletadoPOS(busqueda, limite = 10) {
       const respuesta = await api.get('/productos/autocompletar', {
         params: { busqueda: terminoNormalizado, limite },
       });
-      const resultados = ordenarResultados(respuesta.data.map(normalizarProducto));
+      // El backend ya aplica prioridad directa y Damerau-Levenshtein a las aproximadas.
+      const resultados = respuesta.data.map(normalizarProducto);
 
       if (idSolicitud === solicitudActual.current) {
         setProductos(resultados);
