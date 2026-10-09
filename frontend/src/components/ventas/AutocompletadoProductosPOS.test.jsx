@@ -59,7 +59,8 @@ describe('AutocompletadoProductosPOS', () => {
     const buscador = screen.getByLabelText('Buscar productos');
     await user.type(buscador, 'para');
 
-    expect(screen.getByText('Paracetamol')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Agregar Paracetamol, lote L-001' }))
+      .toBeInTheDocument();
     expect(screen.getByText('1 resultado')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Limpiar búsqueda' }));
@@ -93,16 +94,81 @@ describe('AutocompletadoProductosPOS', () => {
     await user.type(screen.getByLabelText('Buscar productos'), 'inexistente');
 
     expect(screen.getByText('Sin coincidencias disponibles')).toBeInTheDocument();
+    expect(screen.getByText('¿Quiso decir…?')).toBeInTheDocument();
+    expect(screen.getByText(
+      'Prueba con el nombre genérico, una presentación o menos caracteres.',
+    )).toBeInTheDocument();
   });
 
-  it('identifica visualmente una coincidencia aproximada', async () => {
+  it('sugiere el mejor nombre cuando solo existen coincidencias aproximadas', async () => {
     const user = userEvent.setup();
     render(<Escenario productos={[{ ...producto, tipo_coincidencia: 'aproximada' }]} />);
 
     await user.type(screen.getByLabelText('Buscar productos'), 'paracetamlo');
 
     expect(screen.getByText('Coincidencia aproximada')).toBeInTheDocument();
+    expect(screen.getByText('¿Quiso decir…?')).toBeInTheDocument();
+    expect(screen.getByText('Mostrando las opciones más cercanas')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Buscar Paracetamol' }));
+    expect(screen.getByLabelText('Buscar productos')).toHaveValue('Paracetamol');
+  });
+
+  it('no muestra la sugerencia cuando existe una coincidencia directa', async () => {
+    const user = userEvent.setup();
+    render(<Escenario productos={[
+      { ...producto, tipo_coincidencia: 'exacta' },
+      {
+        ...producto,
+        id_producto: 2,
+        id_lote: 2,
+        carritoKey: 'lote-2',
+        numero_lote: 'L-002',
+        nombre_comercial: 'Paracetamol Forte',
+        tipo_coincidencia: 'aproximada',
+      },
+    ]} />);
+
+    await user.type(screen.getByLabelText('Buscar productos'), 'paracetamol');
+
+    expect(screen.queryByText('¿Quiso decir…?')).not.toBeInTheDocument();
     expect(screen.getByText('Las coincidencias aproximadas aparecen después de las directas'))
       .toBeInTheDocument();
+  });
+
+  it('resalta la parte coincidente aunque la búsqueda tenga una transposición', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <Escenario productos={[{ ...producto, tipo_coincidencia: 'aproximada' }]} />,
+    );
+
+    await user.type(screen.getByLabelText('Buscar productos'), 'paracetamlo');
+
+    expect(container.querySelector('mark')).toHaveTextContent('Paracetam');
+  });
+
+  it('mantiene la selección del lote al agregar un resultado', async () => {
+    const user = userEvent.setup();
+    const onAgregar = vi.fn();
+    const segundoLote = {
+      ...producto,
+      id_lote: 2,
+      carritoKey: 'lote-2',
+      numero_lote: 'L-002',
+      stock_disponible: 3,
+    };
+    render(<Escenario productos={[producto, segundoLote]} onAgregar={onAgregar} />);
+
+    await user.type(screen.getByLabelText('Buscar productos'), 'para');
+    await user.click(screen.getByRole('button', {
+      name: 'Agregar Paracetamol, lote L-002',
+    }));
+
+    expect(onAgregar).toHaveBeenCalledWith(segundoLote);
+    expect(onAgregar.mock.calls[0][0]).toMatchObject({
+      id_lote: 2,
+      carritoKey: 'lote-2',
+      stock_disponible: 3,
+    });
   });
 });
