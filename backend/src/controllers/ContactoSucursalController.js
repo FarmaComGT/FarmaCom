@@ -1,62 +1,43 @@
 const ContactoSucursalService = require('../services/ContactoSucursalService');
+const asyncHandler = require('../middlewares/asyncHandler');
 
 class ContactoSucursalController {
-  async obtener(req, res) {
-    try {
-      const data = await ContactoSucursalService.obtenerPorSucursal(Number(req.params.id));
-      res.json(data);
-    } catch (err) {
-      res.status(500).json({ mensaje: err.message });
-    }
-  }
+  obtener = asyncHandler(async (req, res) => {
+    const data = await ContactoSucursalService.obtenerPorSucursal(Number(req.params.id));
+    return res.json(data);
+  });
 
-  async agregarTelefono(req, res) {
-    try {
-      const telefono = await ContactoSucursalService.agregarTelefono(
-        Number(req.params.id),
-        req.body.numero,
-      );
-      res.status(201).json(telefono);
-    } catch (err) {
-      res.status(400).json({ mensaje: err.message });
-    }
-  }
+  agregarTelefono = asyncHandler(async (req, res) => {
+    const telefono = await ContactoSucursalService.agregarTelefono(
+      Number(req.params.id),
+      req.body.numero,
+    );
+    return res.status(201).json(telefono);
+  });
 
-  async eliminarTelefono(req, res) {
-    try {
-      const eliminado = await ContactoSucursalService.eliminarTelefono(
-        Number(req.params.idTelefono),
-        Number(req.params.id),
-      );
-      res.json(eliminado);
-    } catch (err) {
-      res.status(404).json({ mensaje: err.message });
-    }
-  }
+  eliminarTelefono = asyncHandler(async (req, res) => {
+    const eliminado = await ContactoSucursalService.eliminarTelefono(
+      Number(req.params.idTelefono),
+      Number(req.params.id),
+    );
+    return res.json(eliminado);
+  });
 
-  async agregarCorreo(req, res) {
-    try {
-      const correo = await ContactoSucursalService.agregarCorreo(
-        Number(req.params.id),
-        req.body.correo,
-      );
-      res.status(201).json(correo);
-    } catch (err) {
-      res.status(400).json({ mensaje: err.message });
-    }
-  }
+  agregarCorreo = asyncHandler(async (req, res) => {
+    const correo = await ContactoSucursalService.agregarCorreo(
+      Number(req.params.id),
+      req.body.correo,
+    );
+    return res.status(201).json(correo);
+  });
 
-  async eliminarCorreo(req, res) {
-    try {
-      const eliminado = await ContactoSucursalService.eliminarCorreo(
-        Number(req.params.idCorreo),
-        Number(req.params.id),
-      );
-      res.json(eliminado);
-    } catch (err) {
-      res.status(404).json({ mensaje: err.message });
-    }
-  }
+  eliminarCorreo = asyncHandler(async (req, res) => {
+    const eliminado = await ContactoSucursalService.eliminarCorreo(
+      Number(req.params.idCorreo),
+      Number(req.params.id),
+    );
+    return res.json(eliminado);
+  });
 }
 
 module.exports = new ContactoSucursalController();

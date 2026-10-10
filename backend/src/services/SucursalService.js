@@ -1,11 +1,10 @@
 const SucursalDAO = require('../daos/SucursalDAO');
+const AppError = require('../errors/AppError');
 
 const crearSucursal = async ({ id_ciudad, nombre_sucursal, direccion }) => {
   const existente = await SucursalDAO.obtenerPorNombre(nombre_sucursal);
   if (existente) {
-    const error = new Error('Ya existe una sucursal con ese nombre');
-    error.status = 409;
-    throw error;
+    throw new AppError('Ya existe una sucursal con ese nombre', 409);
   }
 
   return await SucursalDAO.crear({ id_ciudad, nombre_sucursal, direccion });
@@ -18,9 +17,7 @@ const obtenerTodas = async () => {
 const obtenerPorId = async (id_sucursal) => {
   const sucursal = await SucursalDAO.obtenerPorId(id_sucursal);
   if (!sucursal) {
-    const error = new Error('Sucursal no encontrada');
-    error.status = 404;
-    throw error;
+    throw new AppError('Sucursal no encontrada', 404);
   }
   return sucursal;
 };
@@ -28,18 +25,14 @@ const obtenerPorId = async (id_sucursal) => {
 const actualizarSucursal = async (id_sucursal, campos) => {
   const existente = await SucursalDAO.obtenerPorId(id_sucursal);
   if (!existente) {
-    const error = new Error('Sucursal no encontrada');
-    error.status = 404;
-    throw error;
+    throw new AppError('Sucursal no encontrada', 404);
   }
 
   if (campos.nombre_sucursal && 
       campos.nombre_sucursal.toLowerCase() !== existente.nombre_sucursal.toLowerCase()) {
     const duplicado = await SucursalDAO.obtenerPorNombre(campos.nombre_sucursal);
     if (duplicado) {
-      const error = new Error('Ya existe una sucursal con ese nombre');
-      error.status = 409;
-      throw error;
+      throw new AppError('Ya existe una sucursal con ese nombre', 409);
     }
   }
 
@@ -49,9 +42,7 @@ const actualizarSucursal = async (id_sucursal, campos) => {
 const eliminarSucursal = async (id_sucursal) => {
   const eliminado = await SucursalDAO.eliminar(id_sucursal);
   if (!eliminado) {
-    const error = new Error('Sucursal no encontrada');
-    error.status = 404;
-    throw error;
+    throw new AppError('Sucursal no encontrada', 404);
   }
   return { mensaje: 'Sucursal eliminada correctamente' };
 };

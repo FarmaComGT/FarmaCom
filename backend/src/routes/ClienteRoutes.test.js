@@ -6,11 +6,13 @@ const express = require('express');
 const request = require('supertest');
 const ClienteService = require('../services/ClienteService');
 const ClienteRoutes = require('./ClienteRoutes');
+const errorHandler = require('../middlewares/errorHandler');
 
 const crearApp = () => {
   const app = express();
   app.use(express.json());
   app.use('/api/clientes', ClienteRoutes);
+  app.use(errorHandler);
   return app;
 };
 
@@ -49,5 +51,21 @@ describe('ClienteRoutes - NIT', () => {
 
     expect(respuesta.status).toBe(200);
     expect(ClienteService.actualizarCliente).toHaveBeenCalledWith(4, { nit: null });
+  });
+
+  it('rechaza un ID inválido antes de llamar al servicio', async () => {
+    const respuesta = await request(crearApp()).get('/api/clientes/no-es-id');
+
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body).toEqual({
+      mensaje: 'La solicitud contiene datos inválidos.',
+      errores: expect.arrayContaining([
+        expect.objectContaining({
+          path: 'id',
+          msg: 'El id debe ser un entero positivo',
+        }),
+      ]),
+    });
+    expect(ClienteService.obtenerPorId).not.toHaveBeenCalled();
   });
 });

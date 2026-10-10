@@ -3,6 +3,7 @@ const { body, param } = require('express-validator');
 const PromocionController = require('../controllers/PromocionController');
 const verificarToken      = require('../middlewares/verificarToken');
 const verificarRol        = require('../middlewares/verificarRol');
+const validateRequest     = require('../middlewares/validateRequest');
 
 const router = Router();
 
@@ -49,6 +50,7 @@ router.get('/:id',
   verificarToken,
   verificarRol('dependiente'),
   validarParamId,
+  validateRequest,
   PromocionController.obtenerPorId,
 );
 
@@ -58,6 +60,7 @@ router.put('/:id',
   verificarRol('dependiente'),
   validarParamId,
   validarActualizacion,
+  validateRequest,
   PromocionController.actualizar,
 );
 
@@ -67,6 +70,7 @@ router.patch('/:id/estado',
   verificarRol('dependiente'),
   validarParamId,
   validarCambioEstado,
+  validateRequest,
   PromocionController.cambiarEstado,
 );
 
@@ -75,6 +79,7 @@ router.delete('/:id',
   verificarToken,
   verificarRol('dependiente'),
   validarParamId,
+  validateRequest,
   PromocionController.eliminar,
 );
 

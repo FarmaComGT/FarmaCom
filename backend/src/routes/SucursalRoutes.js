@@ -3,6 +3,7 @@ const { body, param } = require('express-validator');
 const SucursalController = require('../controllers/SucursalController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 
@@ -49,10 +50,17 @@ const validarActualizacion = [
 router.get('/', verificarToken, SucursalController.obtenerTodas);
 
 // GET    /api/sucursales/:id
-router.get('/:id', verificarToken, validarParamId, SucursalController.obtenerPorId);
+router.get('/:id', verificarToken, validarParamId, validateRequest, SucursalController.obtenerPorId);
 
 // POST   /api/sucursales
-router.post('/', verificarToken, verificarRol('dueno'), validarCreacion, SucursalController.crear);
+router.post(
+    '/',
+    verificarToken,
+    verificarRol('dueno'),
+    validarCreacion,
+    validateRequest,
+    SucursalController.crear,
+);
 
 // PUT    /api/sucursales/:id
 router.put('/:id',
@@ -60,6 +68,7 @@ router.put('/:id',
     verificarRol('dueno', 'administrador'),
     validarParamId,
     validarActualizacion,
+    validateRequest,
     SucursalController.actualizar,
 );
 
@@ -68,6 +77,7 @@ router.delete('/:id',
     verificarToken,
     verificarRol('dueno'),
     validarParamId,
+    validateRequest,
     SucursalController.eliminar,
 );
 

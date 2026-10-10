@@ -5,6 +5,7 @@ const ProveedorTelefonoController = require('../controllers/ProveedorTelefonoCon
 const ProveedorEmailController = require('../controllers/ProveedorEmailController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 
@@ -12,6 +13,22 @@ const router = Router();
 
 const validarParamId = [
   param('id').isInt({ min: 1 }).withMessage('El id debe ser un entero positivo').toInt(),
+];
+
+const validarIdProveedor = [
+  param('id_proveedor')
+    .isInt({ min: 1 }).withMessage('El id_proveedor debe ser un entero positivo')
+    .toInt(),
+];
+
+const validarIdTelefono = [
+  param('id_telefono')
+    .isInt({ min: 1 }).withMessage('El id_telefono debe ser un entero positivo')
+    .toInt(),
+];
+
+const validarIdEmail = [
+  param('id_email').isInt({ min: 1 }).withMessage('El id_email debe ser un entero positivo').toInt(),
 ];
 
 const validarCreacion = [
@@ -27,6 +44,11 @@ const validarActualizacion = [
     .trim()
     .notEmpty().withMessage('nombre no puede estar vacío')
     .isLength({ max: 150 }).withMessage('nombre no puede superar los 150 caracteres'),
+];
+
+const validarCambioEstado = [
+  body('activo')
+    .isBoolean({ strict: true }).withMessage('El campo "activo" debe ser un booleano'),
 ];
 
 const validarTelefonoCreacion = [
@@ -60,7 +82,7 @@ const validarEmailActualizacion = [
 router.get('/', verificarToken, ProveedorController.obtenerTodos);
 
 // GET    /api/proveedores/:id
-router.get('/:id', verificarToken, validarParamId, ProveedorController.obtenerPorId);
+router.get('/:id', verificarToken, validarParamId, validateRequest, ProveedorController.obtenerPorId);
 
 // POST   /api/proveedores
 router.post(
@@ -68,6 +90,7 @@ router.post(
   verificarToken,
   verificarRol('dueno', 'administrador'),
   validarCreacion,
+  validateRequest,
   ProveedorController.crear,
 );
 
@@ -78,6 +101,7 @@ router.put(
   verificarRol('dueno', 'administrador'),
   validarParamId,
   validarActualizacion,
+  validateRequest,
   ProveedorController.actualizar,
 );
 
@@ -87,6 +111,8 @@ router.patch(
   verificarToken,
   verificarRol('dueno', 'administrador'),
   validarParamId,
+  validarCambioEstado,
+  validateRequest,
   ProveedorController.cambiarEstado,
 );
 
@@ -96,20 +122,29 @@ router.delete(
   verificarToken,
   verificarRol('dueno'),
   validarParamId,
+  validateRequest,
   ProveedorController.eliminar,
 );
 
 // Rutas anidadas: Teléfonos
 
 // GET    /api/proveedores/:id_proveedor/telefonos
-router.get('/:id_proveedor/telefonos', verificarToken, ProveedorTelefonoController.obtenerPorProveedor);
+router.get(
+  '/:id_proveedor/telefonos',
+  verificarToken,
+  validarIdProveedor,
+  validateRequest,
+  ProveedorTelefonoController.obtenerPorProveedor,
+);
 
 // POST   /api/proveedores/:id_proveedor/telefonos
 router.post(
   '/:id_proveedor/telefonos',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdProveedor,
   validarTelefonoCreacion,
+  validateRequest,
   ProveedorTelefonoController.crear,
 );
 
@@ -118,7 +153,10 @@ router.put(
   '/:id_proveedor/telefonos/:id_telefono',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdProveedor,
+  validarIdTelefono,
   validarTelefonoActualizacion,
+  validateRequest,
   ProveedorTelefonoController.actualizar,
 );
 
@@ -127,20 +165,31 @@ router.delete(
   '/:id_proveedor/telefonos/:id_telefono',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdProveedor,
+  validarIdTelefono,
+  validateRequest,
   ProveedorTelefonoController.eliminar,
 );
 
 // Rutas anidadas: Correos
 
 // GET    /api/proveedores/:id_proveedor/correos
-router.get('/:id_proveedor/correos', verificarToken, ProveedorEmailController.obtenerPorProveedor);
+router.get(
+  '/:id_proveedor/correos',
+  verificarToken,
+  validarIdProveedor,
+  validateRequest,
+  ProveedorEmailController.obtenerPorProveedor,
+);
 
 // POST   /api/proveedores/:id_proveedor/correos
 router.post(
   '/:id_proveedor/correos',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdProveedor,
   validarEmailCreacion,
+  validateRequest,
   ProveedorEmailController.crear,
 );
 
@@ -149,7 +198,10 @@ router.put(
   '/:id_proveedor/correos/:id_email',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdProveedor,
+  validarIdEmail,
   validarEmailActualizacion,
+  validateRequest,
   ProveedorEmailController.actualizar,
 );
 
@@ -158,6 +210,9 @@ router.delete(
   '/:id_proveedor/correos/:id_email',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdProveedor,
+  validarIdEmail,
+  validateRequest,
   ProveedorEmailController.eliminar,
 );
 

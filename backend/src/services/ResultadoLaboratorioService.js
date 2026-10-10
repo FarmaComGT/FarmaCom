@@ -149,7 +149,7 @@ const obtenerIdUsuarioSistema = async () => {
 
 // Marca como 'vencido' (y borra el archivo físico) cada resultado cuya
 // fecha_expiracion ya pasó. Pensado para correr periódicamente (ver cron en
-// backend/src/index.js). Devuelve cuántos resultados se purgaron.
+// backend/src/server.js). Devuelve cuántos resultados se purgaron.
 const purgarResultadosVencidos = async () => {
   const idUsuarioSistema = await obtenerIdUsuarioSistema();
   const pendientes = await ResultadoLaboratorioDAO.listarVencidosPendientes();
