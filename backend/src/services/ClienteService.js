@@ -1,15 +1,10 @@
 const ClienteDAO = require('../daos/ClienteDAO');
+const AppError = require('../errors/AppError');
 
-const noEncontrado = () => {
-  const error = new Error('Cliente no encontrado');
-  error.status = 404;
-  return error;
-};
+const noEncontrado = () => new AppError('Cliente no encontrado', 404);
 
 const lanzarError = (mensaje, status) => {
-  const error = new Error(mensaje);
-  error.status = status;
-  throw error;
+  throw new AppError(mensaje, status);
 };
 
 const normalizarNit = (nit) => {

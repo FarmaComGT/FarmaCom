@@ -4,6 +4,7 @@ const ClienteController = require('../controllers/ClienteController');
 const HistorialCompraController = require('../controllers/HistorialCompraController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 const rolesHistorial = verificarRol('dueno', 'administrador', 'dependiente');
@@ -55,9 +56,22 @@ router.get(
   validarFiltrosHistorial,
   HistorialCompraController.obtenerPorCliente,
 );
-router.get('/:id', verificarToken, validarId, ClienteController.obtenerPorId);
-router.post('/', verificarToken, [validarNombre(true), validarNit, validarObservaciones], ClienteController.crear);
-router.put('/:id', verificarToken, validarId, [validarNombre(false), validarNit, validarObservaciones], ClienteController.actualizar);
-router.delete('/:id', verificarToken, validarId, ClienteController.eliminar);
+router.get('/:id', verificarToken, validarId, validateRequest, ClienteController.obtenerPorId);
+router.post(
+  '/',
+  verificarToken,
+  [validarNombre(true), validarNit, validarObservaciones],
+  validateRequest,
+  ClienteController.crear,
+);
+router.put(
+  '/:id',
+  verificarToken,
+  validarId,
+  [validarNombre(false), validarNit, validarObservaciones],
+  validateRequest,
+  ClienteController.actualizar,
+);
+router.delete('/:id', verificarToken, validarId, validateRequest, ClienteController.eliminar);
 
 module.exports = router;
