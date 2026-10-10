@@ -5,6 +5,7 @@ const CasaTelefonoController = require('../controllers/CasaTelefonoController');
 const CasaEmailController = require('../controllers/CasaEmailController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 
@@ -27,6 +28,11 @@ const validarActualizacion = [
     .trim()
     .notEmpty().withMessage('nombre no puede estar vacío')
     .isLength({ max: 150 }).withMessage('nombre no puede superar los 150 caracteres'),
+];
+
+const validarCambioEstado = [
+  body('activo')
+    .isBoolean({ strict: true }).withMessage('El campo "activo" debe ser un booleano'),
 ];
 
 const validarTelefonoCreacion = [
@@ -60,7 +66,13 @@ const validarEmailActualizacion = [
 router.get('/', verificarToken, CasaFarmaceuticaController.obtenerTodas);
 
 // GET    /api/casas/:id
-router.get('/:id', verificarToken, validarParamId, CasaFarmaceuticaController.obtenerPorId);
+router.get(
+  '/:id',
+  verificarToken,
+  validarParamId,
+  validateRequest,
+  CasaFarmaceuticaController.obtenerPorId,
+);
 
 // POST   /api/casas
 router.post(
@@ -68,6 +80,7 @@ router.post(
   verificarToken,
   verificarRol('dueno', 'administrador'),
   validarCreacion,
+  validateRequest,
   CasaFarmaceuticaController.crear,
 );
 
@@ -78,6 +91,7 @@ router.put(
   verificarRol('dueno', 'administrador'),
   validarParamId,
   validarActualizacion,
+  validateRequest,
   CasaFarmaceuticaController.actualizar,
 );
 
@@ -87,6 +101,8 @@ router.patch(
   verificarToken,
   verificarRol('dueno', 'administrador'),
   validarParamId,
+  validarCambioEstado,
+  validateRequest,
   CasaFarmaceuticaController.cambiarEstado,
 );
 
@@ -96,6 +112,7 @@ router.delete(
   verificarToken,
   verificarRol('dueno'),
   validarParamId,
+  validateRequest,
   CasaFarmaceuticaController.eliminar,
 );
 
@@ -105,6 +122,7 @@ router.get(
   '/:id/proveedores',
   verificarToken,
   validarParamId,
+  validateRequest,
   CasaFarmaceuticaController.obtenerProveedoresVinculados,
 );
 

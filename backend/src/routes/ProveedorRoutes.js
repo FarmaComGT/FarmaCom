@@ -5,6 +5,7 @@ const ProveedorTelefonoController = require('../controllers/ProveedorTelefonoCon
 const ProveedorEmailController = require('../controllers/ProveedorEmailController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 
@@ -27,6 +28,11 @@ const validarActualizacion = [
     .trim()
     .notEmpty().withMessage('nombre no puede estar vacío')
     .isLength({ max: 150 }).withMessage('nombre no puede superar los 150 caracteres'),
+];
+
+const validarCambioEstado = [
+  body('activo')
+    .isBoolean({ strict: true }).withMessage('El campo "activo" debe ser un booleano'),
 ];
 
 const validarTelefonoCreacion = [
@@ -60,7 +66,7 @@ const validarEmailActualizacion = [
 router.get('/', verificarToken, ProveedorController.obtenerTodos);
 
 // GET    /api/proveedores/:id
-router.get('/:id', verificarToken, validarParamId, ProveedorController.obtenerPorId);
+router.get('/:id', verificarToken, validarParamId, validateRequest, ProveedorController.obtenerPorId);
 
 // POST   /api/proveedores
 router.post(
@@ -68,6 +74,7 @@ router.post(
   verificarToken,
   verificarRol('dueno', 'administrador'),
   validarCreacion,
+  validateRequest,
   ProveedorController.crear,
 );
 
@@ -78,6 +85,7 @@ router.put(
   verificarRol('dueno', 'administrador'),
   validarParamId,
   validarActualizacion,
+  validateRequest,
   ProveedorController.actualizar,
 );
 
@@ -87,6 +95,8 @@ router.patch(
   verificarToken,
   verificarRol('dueno', 'administrador'),
   validarParamId,
+  validarCambioEstado,
+  validateRequest,
   ProveedorController.cambiarEstado,
 );
 
@@ -96,6 +106,7 @@ router.delete(
   verificarToken,
   verificarRol('dueno'),
   validarParamId,
+  validateRequest,
   ProveedorController.eliminar,
 );
 
