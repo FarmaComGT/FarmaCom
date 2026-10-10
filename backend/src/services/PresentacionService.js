@@ -1,9 +1,8 @@
 const PresentacionDAO = require('../daos/PresentacionDAO');
+const AppError = require('../errors/AppError');
 
 const lanzarError = (mensaje, status) => {
-  const error = new Error(mensaje);
-  error.status = status;
-  throw error;
+  throw new AppError(mensaje, status);
 };
 
 const crearPresentacion = async ({ nombre }) => {
