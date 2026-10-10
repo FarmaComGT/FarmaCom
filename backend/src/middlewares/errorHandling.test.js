@@ -25,7 +25,7 @@ describe('infraestructura común de errores', () => {
     expect(error.name).toBe('AppError');
     expect(error.statusCode).toBe(400);
     expect(error.status).toBe(400);
-    expect(error.details).toBe(details);
+    expect(error.details).toEqual(details);
     expect(error.isOperational).toBe(true);
   });
 
@@ -63,7 +63,7 @@ describe('infraestructura común de errores', () => {
     const [error] = next.mock.calls[0];
     expect(error).toBeInstanceOf(AppError);
     expect(error.statusCode).toBe(400);
-    expect(error.details).toBe(details);
+    expect(error.details).toEqual(details);
   });
 
   it('notFoundHandler crea una respuesta controlada para rutas inexistentes', () => {

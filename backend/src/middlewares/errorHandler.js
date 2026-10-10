@@ -16,16 +16,23 @@ const errorHandler = (error, _req, res, next) => {
   }
 
   const statusCode = obtenerStatusCode(error);
-  const isOperational = error instanceof AppError || statusCode < 500;
+  const isOperational = error instanceof AppError;
+  const mensajeSeguro = error.type === 'entity.parse.failed'
+    ? 'El cuerpo de la solicitud contiene JSON inválido.'
+    : statusCode === 413
+      ? 'La solicitud supera el tamaño máximo permitido.'
+      : statusCode < 500
+        ? 'No se pudo procesar la solicitud.'
+        : 'Error interno del servidor.';
   const response = {
-    mensaje: isOperational ? error.message : 'Error interno del servidor.',
+    mensaje: isOperational ? error.message : mensajeSeguro,
   };
 
   if (isOperational && Array.isArray(error.details) && error.details.length > 0) {
     response.errores = error.details;
   }
 
-  if (!isOperational) {
+  if (!isOperational && statusCode >= 500) {
     console.error(error);
   }
 
