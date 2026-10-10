@@ -15,6 +15,22 @@ const validarParamId = [
   param('id').isInt({ min: 1 }).withMessage('El id debe ser un entero positivo').toInt(),
 ];
 
+const validarIdProveedor = [
+  param('id_proveedor')
+    .isInt({ min: 1 }).withMessage('El id_proveedor debe ser un entero positivo')
+    .toInt(),
+];
+
+const validarIdTelefono = [
+  param('id_telefono')
+    .isInt({ min: 1 }).withMessage('El id_telefono debe ser un entero positivo')
+    .toInt(),
+];
+
+const validarIdEmail = [
+  param('id_email').isInt({ min: 1 }).withMessage('El id_email debe ser un entero positivo').toInt(),
+];
+
 const validarCreacion = [
   body('nombre')
     .trim()
@@ -113,14 +129,22 @@ router.delete(
 // Rutas anidadas: Teléfonos
 
 // GET    /api/proveedores/:id_proveedor/telefonos
-router.get('/:id_proveedor/telefonos', verificarToken, ProveedorTelefonoController.obtenerPorProveedor);
+router.get(
+  '/:id_proveedor/telefonos',
+  verificarToken,
+  validarIdProveedor,
+  validateRequest,
+  ProveedorTelefonoController.obtenerPorProveedor,
+);
 
 // POST   /api/proveedores/:id_proveedor/telefonos
 router.post(
   '/:id_proveedor/telefonos',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdProveedor,
   validarTelefonoCreacion,
+  validateRequest,
   ProveedorTelefonoController.crear,
 );
 
@@ -129,7 +153,10 @@ router.put(
   '/:id_proveedor/telefonos/:id_telefono',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdProveedor,
+  validarIdTelefono,
   validarTelefonoActualizacion,
+  validateRequest,
   ProveedorTelefonoController.actualizar,
 );
 
@@ -138,20 +165,31 @@ router.delete(
   '/:id_proveedor/telefonos/:id_telefono',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdProveedor,
+  validarIdTelefono,
+  validateRequest,
   ProveedorTelefonoController.eliminar,
 );
 
 // Rutas anidadas: Correos
 
 // GET    /api/proveedores/:id_proveedor/correos
-router.get('/:id_proveedor/correos', verificarToken, ProveedorEmailController.obtenerPorProveedor);
+router.get(
+  '/:id_proveedor/correos',
+  verificarToken,
+  validarIdProveedor,
+  validateRequest,
+  ProveedorEmailController.obtenerPorProveedor,
+);
 
 // POST   /api/proveedores/:id_proveedor/correos
 router.post(
   '/:id_proveedor/correos',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdProveedor,
   validarEmailCreacion,
+  validateRequest,
   ProveedorEmailController.crear,
 );
 
@@ -160,7 +198,10 @@ router.put(
   '/:id_proveedor/correos/:id_email',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdProveedor,
+  validarIdEmail,
   validarEmailActualizacion,
+  validateRequest,
   ProveedorEmailController.actualizar,
 );
 
@@ -169,6 +210,9 @@ router.delete(
   '/:id_proveedor/correos/:id_email',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdProveedor,
+  validarIdEmail,
+  validateRequest,
   ProveedorEmailController.eliminar,
 );
 

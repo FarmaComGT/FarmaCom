@@ -1,19 +1,16 @@
 const ProveedorEmailDAO = require('../daos/ProveedorEmailDAO');
 const ProveedorDAO = require('../daos/ProveedorDAO');
+const AppError = require('../errors/AppError');
 
 const crearEmail = async ({ id_proveedor, correo }) => {
   const proveedor = await ProveedorDAO.obtenerPorId(id_proveedor);
   if (!proveedor) {
-    const error = new Error('El proveedor no existe');
-    error.status = 404;
-    throw error;
+    throw new AppError('El proveedor no existe', 404);
   }
 
   const duplicado = await ProveedorEmailDAO.obtenerPorCorreo(correo);
   if (duplicado) {
-    const error = new Error('Ya existe ese correo registrado en un proveedor');
-    error.status = 409;
-    throw error;
+    throw new AppError('Ya existe ese correo registrado en un proveedor', 409);
   }
 
   return await ProveedorEmailDAO.crear({ id_proveedor, correo });
@@ -22,9 +19,7 @@ const crearEmail = async ({ id_proveedor, correo }) => {
 const obtenerPorProveedor = async (id_proveedor) => {
   const proveedor = await ProveedorDAO.obtenerPorId(id_proveedor);
   if (!proveedor) {
-    const error = new Error('El proveedor no existe');
-    error.status = 404;
-    throw error;
+    throw new AppError('El proveedor no existe', 404);
   }
 
   return await ProveedorEmailDAO.obtenerPorProveedor(id_proveedor);
@@ -33,9 +28,7 @@ const obtenerPorProveedor = async (id_proveedor) => {
 const obtenerPorId = async (id_email) => {
   const email = await ProveedorEmailDAO.obtenerPorId(id_email);
   if (!email) {
-    const error = new Error('Correo no encontrado');
-    error.status = 404;
-    throw error;
+    throw new AppError('Correo no encontrado', 404);
   }
   return email;
 };
@@ -43,17 +36,13 @@ const obtenerPorId = async (id_email) => {
 const actualizarEmail = async (id_email, { correo }) => {
   const existente = await ProveedorEmailDAO.obtenerPorId(id_email);
   if (!existente) {
-    const error = new Error('Correo no encontrado');
-    error.status = 404;
-    throw error;
+    throw new AppError('Correo no encontrado', 404);
   }
 
   if (correo && correo !== existente.correo) {
     const duplicado = await ProveedorEmailDAO.obtenerPorCorreo(correo);
     if (duplicado) {
-      const error = new Error('Ya existe ese correo registrado en un proveedor');
-      error.status = 409;
-      throw error;
+      throw new AppError('Ya existe ese correo registrado en un proveedor', 409);
     }
   }
 
@@ -63,9 +52,7 @@ const actualizarEmail = async (id_email, { correo }) => {
 const eliminarEmail = async (id_email) => {
   const eliminado = await ProveedorEmailDAO.eliminar(id_email);
   if (!eliminado) {
-    const error = new Error('Correo no encontrado');
-    error.status = 404;
-    throw error;
+    throw new AppError('Correo no encontrado', 404);
   }
   return { mensaje: 'Correo eliminado correctamente' };
 };
