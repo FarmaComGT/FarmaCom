@@ -3,6 +3,7 @@ const { body, param } = require('express-validator');
 const CiudadController = require('../controllers/CiudadController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 
@@ -21,17 +22,24 @@ const validarActualizacion = [
   body('nombre_ciudad')
     .optional()
     .trim()
-    .notEmpty().withMessage('nombre_ciudad no puede estar vacio')
+    .notEmpty().withMessage('nombre_ciudad no puede estar vacío')
     .isLength({ max: 100 }).withMessage('nombre_ciudad no puede superar los 100 caracteres'),
 ];
 
 router.get('/', verificarToken, CiudadController.obtenerTodas);
-router.get('/:id', verificarToken, validarParamId, CiudadController.obtenerPorId);
+router.get(
+  '/:id',
+  verificarToken,
+  validarParamId,
+  validateRequest,
+  CiudadController.obtenerPorId,
+);
 router.post(
   '/',
   verificarToken,
   verificarRol('dueno', 'administrador'),
   validarCreacion,
+  validateRequest,
   CiudadController.crear,
 );
 router.put(
@@ -40,6 +48,7 @@ router.put(
   verificarRol('dueno', 'administrador'),
   validarParamId,
   validarActualizacion,
+  validateRequest,
   CiudadController.actualizar,
 );
 router.delete(
@@ -47,6 +56,7 @@ router.delete(
   verificarToken,
   verificarRol('dueno'),
   validarParamId,
+  validateRequest,
   CiudadController.eliminar,
 );
 

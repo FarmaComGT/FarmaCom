@@ -1,6 +1,8 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const notFoundHandler = require('./middlewares/notFoundHandler');
+const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
 const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -82,5 +84,8 @@ app.use('/api/sucursales/:id_sucursal/correos', correoSucursalRoutes);
 // Rutas planas: GET, PUT, DELETE por ID propio
 app.use('/api/telefonos', telefonoSucursalRoutes);
 app.use('/api/correos', correoSucursalRoutes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 module.exports = app;

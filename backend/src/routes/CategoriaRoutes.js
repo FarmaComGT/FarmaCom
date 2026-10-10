@@ -3,6 +3,7 @@ const { body, param } = require('express-validator');
 const CategoriaController = require('../controllers/CategoriaController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 
@@ -39,7 +40,13 @@ const validarActualizacion = [
 router.get('/', verificarToken, CategoriaController.obtenerTodas);
 
 // GET    /api/categorias/:id
-router.get('/:id', verificarToken, validarParamId, CategoriaController.obtenerPorId);
+router.get(
+    '/:id',
+    verificarToken,
+    validarParamId,
+    validateRequest,
+    CategoriaController.obtenerPorId,
+);
 
 // POST   /api/categorias
 router.post(
@@ -47,6 +54,7 @@ router.post(
     verificarToken,
     verificarRol('dueno', 'administrador'),
     validarCreacion,
+    validateRequest,
     CategoriaController.crear,
 );
 
@@ -57,6 +65,7 @@ router.put(
     verificarRol('dueno', 'administrador'),
     validarParamId,
     validarActualizacion,
+    validateRequest,
     CategoriaController.actualizar,
 );
 
@@ -66,6 +75,7 @@ router.delete(
     verificarToken,
     verificarRol('dueno'),
     validarParamId,
+    validateRequest,
     CategoriaController.eliminar,
 );
 
