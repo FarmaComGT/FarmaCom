@@ -151,6 +151,41 @@ describe('ReporteDAO', () => {
     expect(resultado).toEqual(metodos);
   });
 
+  it('agrupa las ventas completadas por producto y conserva los precios históricos', async () => {
+    const productos = [{
+      id_producto: 4,
+      nombre_producto: 'Acetaminofén',
+      cantidad_vendida: 15,
+      suma_total: '40.00',
+    }];
+    pool.query.mockResolvedValue({ rows: productos });
+
+    const resultado = await ReporteDAO.obtenerResumenProductos({
+      id_sucursal: 2,
+      fecha_desde: '2026-08-01',
+      fecha_hasta: '2026-08-31',
+    });
+
+    const [consulta, valores] = pool.query.mock.calls[0];
+    expect(consulta).toContain("v.estado = 'completada'");
+    expect(consulta).toContain('America/Guatemala');
+    expect(consulta).toContain('SUM(dv.cantidad)');
+    expect(consulta).toContain('SUM(dv.subtotal)');
+    expect(consulta).toContain('GROUP BY p.id_producto, p.nombre_comercial');
+    expect(consulta).not.toContain('LIMIT');
+    expect(valores).toEqual([2, '2026-08-01', '2026-08-31']);
+    expect(resultado).toEqual(productos);
+  });
+
+  it('permite obtener el resumen de productos sin filtros opcionales', async () => {
+    pool.query.mockResolvedValue({ rows: [] });
+
+    const resultado = await ReporteDAO.obtenerResumenProductos();
+
+    expect(pool.query.mock.calls[0][1]).toEqual([null, null, null]);
+    expect(resultado).toEqual([]);
+  });
+
   it('ordena el top por cantidad vendida y aplica los filtros', async () => {
     const productos = [
       {

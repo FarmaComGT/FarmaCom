@@ -5,6 +5,7 @@ import {
   construirParametrosReporte,
   obtenerMetodosPago,
   obtenerResumenVentas,
+  obtenerResumenProductos,
   obtenerSerieVentas,
   obtenerTopProductos,
 } from './reportes';
@@ -101,6 +102,37 @@ describe('API de reportes', () => {
       total_ventas: 4,
       ingresos: 300,
       porcentaje_ingresos: 75,
+    });
+  });
+
+  it('consulta y normaliza el resumen acumulado por producto', async () => {
+    api.get.mockResolvedValue({
+      data: [{
+        id_producto: '9',
+        nombre_producto: 'Acetaminofén',
+        cantidad_vendida: '15',
+        suma_total: '40.00',
+      }],
+    });
+
+    const resultado = await obtenerResumenProductos({
+      id_sucursal: 2,
+      fecha_desde: '2026-08-01',
+      fecha_hasta: '2026-08-31',
+      criterio: 'ignorar',
+    });
+
+    expect(api.get).toHaveBeenCalledWith('/reportes/ventas/productos', {
+      params: {
+        id_sucursal: 2,
+        fecha_desde: '2026-08-01',
+        fecha_hasta: '2026-08-31',
+      },
+    });
+    expect(resultado[0]).toMatchObject({
+      id_producto: 9,
+      cantidad_vendida: 15,
+      suma_total: 40,
     });
   });
 

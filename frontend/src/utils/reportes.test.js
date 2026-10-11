@@ -7,6 +7,7 @@ import {
   normalizarMetodosPago,
   normalizarNumeroReporte,
   normalizarResumenVentas,
+  normalizarResumenProductos,
   normalizarSerieVentas,
   normalizarTopProductos,
 } from './reportes';
@@ -88,5 +89,20 @@ describe('utilidades de reportes', () => {
     expect(normalizarSerieVentas(null)).toEqual([]);
     expect(normalizarMetodosPago({})).toEqual([]);
     expect(normalizarTopProductos()).toEqual([]);
+  });
+
+  it('normaliza el resumen acumulado por producto', () => {
+    expect(normalizarResumenProductos([{
+      id_producto: '4',
+      nombre_producto: 'Acetaminofén',
+      cantidad_vendida: '15',
+      suma_total: '40.00',
+    }])).toEqual([{
+      id_producto: 4,
+      nombre_producto: 'Acetaminofén',
+      cantidad_vendida: 15,
+      suma_total: 40,
+    }]);
+    expect(normalizarResumenProductos(null)).toEqual([]);
   });
 });
