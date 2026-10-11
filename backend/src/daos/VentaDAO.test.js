@@ -159,4 +159,22 @@ describe('VentaDAO', () => {
     );
     expect(resultado).toEqual({ id_lote: 8, stock_actual: 3 });
   });
+
+  it('interpreta el rango del historial en la zona horaria de Guatemala', async () => {
+    pool.query.mockResolvedValue({ rows: [] });
+
+    await VentaDAO.obtenerTodas({
+      fecha_desde: '2026-10-10',
+      fecha_hasta: '2026-10-10',
+    });
+
+    const [consulta, valores] = pool.query.mock.calls[0];
+    expect(consulta).toContain(
+      "v.fecha_venta >= ($1::DATE::TIMESTAMP AT TIME ZONE 'America/Guatemala')",
+    );
+    expect(consulta).toContain(
+      "v.fecha_venta < (($2::DATE + 1)::TIMESTAMP AT TIME ZONE 'America/Guatemala')",
+    );
+    expect(valores).toEqual(['2026-10-10', '2026-10-10']);
+  });
 });

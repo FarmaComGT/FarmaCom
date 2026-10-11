@@ -4,6 +4,7 @@ import {
   crearPagoPOS,
   crearVenta,
   obtenerEstadoPagoPOS,
+  obtenerVentas,
   obtenerVentaPorId,
 } from './ventas';
 
@@ -14,6 +15,50 @@ vi.mock('./axios', () => ({
 describe('API de ventas', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('obtenerVentas', () => {
+    it('consulta el historial con los filtros admitidos y normaliza los montos', async () => {
+      api.get.mockResolvedValue({
+        data: [{
+          id_venta: '3',
+          id_sucursal: '2',
+          cantidad_articulos: '4',
+          total: '125.50',
+        }],
+      });
+      const signal = new AbortController().signal;
+
+      const resultado = await obtenerVentas({
+        id_sucursal: 2,
+        fecha_desde: '2026-08-01',
+        fecha_hasta: '2026-08-31',
+        desconocido: 'ignorar',
+      }, { signal });
+
+      expect(api.get).toHaveBeenCalledWith('/ventas', {
+        params: {
+          id_sucursal: 2,
+          fecha_desde: '2026-08-01',
+          fecha_hasta: '2026-08-31',
+        },
+        signal,
+      });
+      expect(resultado[0]).toMatchObject({
+        id_venta: 3,
+        id_sucursal: 2,
+        cantidad_articulos: 4,
+        total: 125.5,
+      });
+    });
+
+    it('usa un mensaje claro cuando no puede cargar el historial', async () => {
+      api.get.mockRejectedValue({});
+
+      await expect(obtenerVentas()).rejects.toThrow(
+        'No se pudo cargar el historial de ventas.',
+      );
+    });
   });
 
   describe('crearVenta', () => {
