@@ -15,6 +15,7 @@ import {
   ShoppingCart,
   Banknote,
   BarChart3,
+  History,
   FlaskConical,
   HelpCircle,
   LogOut,
@@ -61,6 +62,12 @@ const navItems = [
     icon: BarChart3,
     label: 'Reportes',
     path: '/reports',
+    roles: ['dueno', 'administrador'],
+  },
+  {
+    icon: History,
+    label: 'Historial de ventas',
+    path: '/ventas/historial',
     roles: ['dueno', 'administrador'],
   },
 ];
