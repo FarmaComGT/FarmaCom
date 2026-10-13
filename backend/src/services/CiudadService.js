@@ -1,11 +1,10 @@
 const CiudadDAO = require('../daos/CiudadDAO');
+const AppError = require('../errors/AppError');
 
 const crearCiudad = async ({ nombre_ciudad }) => {
   const existente = await CiudadDAO.obtenerPorNombre(nombre_ciudad);
   if (existente) {
-    const error = new Error('Ya existe una ciudad con ese nombre');
-    error.status = 409;
-    throw error;
+    throw new AppError('Ya existe una ciudad con ese nombre', 409);
   }
 
   return CiudadDAO.crear({ nombre_ciudad });
@@ -18,9 +17,7 @@ const obtenerTodas = async () => {
 const obtenerPorId = async (id_ciudad) => {
   const ciudad = await CiudadDAO.obtenerPorId(id_ciudad);
   if (!ciudad) {
-    const error = new Error('Ciudad no encontrada');
-    error.status = 404;
-    throw error;
+    throw new AppError('Ciudad no encontrada', 404);
   }
   return ciudad;
 };
@@ -28,9 +25,7 @@ const obtenerPorId = async (id_ciudad) => {
 const actualizarCiudad = async (id_ciudad, campos) => {
   const existente = await CiudadDAO.obtenerPorId(id_ciudad);
   if (!existente) {
-    const error = new Error('Ciudad no encontrada');
-    error.status = 404;
-    throw error;
+    throw new AppError('Ciudad no encontrada', 404);
   }
 
   if (
@@ -39,9 +34,7 @@ const actualizarCiudad = async (id_ciudad, campos) => {
   ) {
     const duplicado = await CiudadDAO.obtenerPorNombre(campos.nombre_ciudad);
     if (duplicado) {
-      const error = new Error('Ya existe una ciudad con ese nombre');
-      error.status = 409;
-      throw error;
+      throw new AppError('Ya existe una ciudad con ese nombre', 409);
     }
   }
 
@@ -52,16 +45,12 @@ const eliminarCiudad = async (id_ciudad) => {
   try {
     const eliminado = await CiudadDAO.eliminar(id_ciudad);
     if (!eliminado) {
-      const error = new Error('Ciudad no encontrada');
-      error.status = 404;
-      throw error;
+      throw new AppError('Ciudad no encontrada', 404);
     }
     return { mensaje: 'Ciudad eliminada correctamente' };
   } catch (error) {
     if (error.code === '23503') {
-      const conflicto = new Error('No se puede eliminar una ciudad asociada a sucursales');
-      conflicto.status = 409;
-      throw conflicto;
+      throw new AppError('No se puede eliminar una ciudad asociada a sucursales', 409);
     }
     throw error;
   }

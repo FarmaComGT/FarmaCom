@@ -1,5 +1,12 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import api from '../api/axios';
 import useAutocompletadoPOS from './useAutocompletadoPOS';
 
@@ -9,6 +16,7 @@ vi.mock('../api/axios', () => ({
 
 describe('useAutocompletadoPOS', () => {
   beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.useRealTimers());
 
   it('consulta el endpoint y normaliza los datos para el carrito', async () => {
     api.get.mockResolvedValue({
@@ -39,7 +47,8 @@ describe('useAutocompletadoPOS', () => {
     });
   });
 
-  it('realiza la búsqueda automática después de escribir', async () => {
+  it('conserva el debounce de 300 ms antes de buscar automáticamente', async () => {
+    vi.useFakeTimers();
     api.get.mockResolvedValue({ data: [] });
     const { rerender } = renderHook(
       ({ busqueda }) => useAutocompletadoPOS(busqueda),
@@ -47,11 +56,18 @@ describe('useAutocompletadoPOS', () => {
     );
 
     rerender({ busqueda: 'ibuprofeno' });
+    expect(api.get).not.toHaveBeenCalled();
 
-    await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/productos/autocompletar', {
-        params: { busqueda: 'ibuprofeno', limite: 10 },
-      });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(299);
+    });
+    expect(api.get).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(api.get).toHaveBeenCalledWith('/productos/autocompletar', {
+      params: { busqueda: 'ibuprofeno', limite: 10 },
     });
   });
 
@@ -69,11 +85,11 @@ describe('useAutocompletadoPOS', () => {
     expect(result.current.error).toBe('Servicio temporalmente no disponible');
   });
 
-  it('conserva las coincidencias directas primero y ordena las aproximadas por relevancia', async () => {
+  it('respeta el orden Damerau-Levenshtein recibido del backend', async () => {
     api.get.mockResolvedValue({
       data: [
-        { id_producto: '3', id_lote: '3', relevancia: '0.42', tipo_coincidencia: 'aproximada' },
         { id_producto: '1', id_lote: '1', relevancia: '1', tipo_coincidencia: 'exacta' },
+        { id_producto: '3', id_lote: '3', relevancia: '0.42', tipo_coincidencia: 'aproximada' },
         { id_producto: '2', id_lote: '2', relevancia: '0.78', tipo_coincidencia: 'aproximada' },
       ],
     });
@@ -84,10 +100,10 @@ describe('useAutocompletadoPOS', () => {
       productos = await result.current.buscarAhora('paracetamlo');
     });
 
-    expect(productos.map((producto) => producto.id_producto)).toEqual([1, 2, 3]);
+    expect(productos.map((producto) => producto.id_producto)).toEqual([1, 3, 2]);
     expect(productos[1]).toMatchObject({
       tipo_coincidencia: 'aproximada',
-      relevancia: 0.78,
+      relevancia: 0.42,
     });
   });
 });

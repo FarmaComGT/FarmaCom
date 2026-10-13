@@ -1,59 +1,29 @@
-const { validationResult } = require('express-validator');
 const sucursalService = require('../services/SucursalService');
+const asyncHandler = require('../middlewares/asyncHandler');
 
-const crear = async (req, res) => {
-  const errores = validationResult(req);
-  if (!errores.isEmpty()) {
-    return res.status(400).json({ errores: errores.array() });
-  }
+const crear = asyncHandler(async (req, res) => {
+  const sucursal = await sucursalService.crearSucursal(req.body);
+  return res.status(201).json(sucursal);
+});
 
-  try {
-    const sucursal = await sucursalService.crearSucursal(req.body);
-    return res.status(201).json(sucursal);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const obtenerTodas = asyncHandler(async (_req, res) => {
+  const sucursales = await sucursalService.obtenerTodas();
+  return res.status(200).json(sucursales);
+});
 
-const obtenerTodas = async (req, res) => {
-  try {
-    const sucursales = await sucursalService.obtenerTodas();
-    return res.status(200).json(sucursales);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const obtenerPorId = asyncHandler(async (req, res) => {
+  const sucursal = await sucursalService.obtenerPorId(Number(req.params.id));
+  return res.status(200).json(sucursal);
+});
 
-const obtenerPorId = async (req, res) => {
-  try {
-    const sucursal = await sucursalService.obtenerPorId(Number(req.params.id));
-    return res.status(200).json(sucursal);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const actualizar = asyncHandler(async (req, res) => {
+  const sucursal = await sucursalService.actualizarSucursal(Number(req.params.id), req.body);
+  return res.status(200).json(sucursal);
+});
 
-const actualizar = async (req, res) => {
-  const errores = validationResult(req);
-  if (!errores.isEmpty()) {
-    return res.status(400).json({ errores: errores.array() });
-  }
-
-  try {
-    const sucursal = await sucursalService.actualizarSucursal(Number(req.params.id), req.body);
-    return res.status(200).json(sucursal);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const eliminar = async (req, res) => {
-  try {
-    const resultado = await sucursalService.eliminarSucursal(Number(req.params.id));
-    return res.status(200).json(resultado);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const eliminar = asyncHandler(async (req, res) => {
+  const resultado = await sucursalService.eliminarSucursal(Number(req.params.id));
+  return res.status(200).json(resultado);
+});
 
 module.exports = { crear, obtenerTodas, obtenerPorId, actualizar, eliminar };

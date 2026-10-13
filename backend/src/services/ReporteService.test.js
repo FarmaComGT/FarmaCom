@@ -104,6 +104,24 @@ describe('ReporteService', () => {
     expect(resultado).toEqual(metodos);
   });
 
+  it('normaliza los filtros al solicitar el resumen de productos', async () => {
+    const productos = [{ id_producto: 1, cantidad_vendida: 10, suma_total: '75.00' }];
+    ReporteDAO.obtenerResumenProductos.mockResolvedValue(productos);
+
+    const resultado = await ReporteService.obtenerResumenProductos({
+      id_sucursal: '2',
+      fecha_desde: '2026-08-01',
+      fecha_hasta: '2026-08-31',
+    });
+
+    expect(ReporteDAO.obtenerResumenProductos).toHaveBeenCalledWith({
+      id_sucursal: 2,
+      fecha_desde: '2026-08-01',
+      fecha_hasta: '2026-08-31',
+    });
+    expect(resultado).toEqual(productos);
+  });
+
   it('aplica los valores predeterminados al top de productos', async () => {
     const productos = [{ id_producto: 1, cantidad_vendida: 10 }];
     ReporteDAO.obtenerTopProductos.mockResolvedValue(productos);

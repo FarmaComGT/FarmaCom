@@ -75,6 +75,14 @@ router.get(
 );
 
 router.get(
+  '/ventas/productos',
+  verificarToken,
+  rolesReportes,
+  validarFiltrosReporte,
+  ReporteController.obtenerResumenProductos,
+);
+
+router.get(
   '/productos/top',
   verificarToken,
   rolesReportes,

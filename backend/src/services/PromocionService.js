@@ -1,12 +1,11 @@
 const PromocionDAO    = require('../daos/PromocionDAO');
 const ProductoDAO     = require('../daos/ProductoDAO');
+const AppError        = require('../errors/AppError');
 
 // Helpers
 
 const lanzarError = (mensaje, status) => {
-  const err = new Error(mensaje);
-  err.status = status;
-  throw err;
+  throw new AppError(mensaje, status);
 };
 
 const validarFechas = (fecha_inicio, fecha_fin) => {

@@ -1,84 +1,47 @@
-const { validationResult } = require('express-validator');
 const PromocionService = require('../services/PromocionService');
+const AppError = require('../errors/AppError');
+const asyncHandler = require('../middlewares/asyncHandler');
 
-const crear = async (req, res) => {
-  const errores = validationResult(req);
-  if (!errores.isEmpty()) {
-    return res.status(400).json({ errores: errores.array() });
-  }
+const crear = asyncHandler(async (req, res) => {
+  const id_producto = Number(req.params.id_producto);
+  const promocion = await PromocionService.crearPromocion(id_producto, req.body);
+  return res.status(201).json(promocion);
+});
 
-  try {
-    const id_producto = Number(req.params.id_producto);
-    const promocion   = await PromocionService.crearPromocion(id_producto, req.body);
-    return res.status(201).json(promocion);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const obtenerPorProducto = asyncHandler(async (req, res) => {
+  const promociones = await PromocionService.obtenerPorProducto(
+    Number(req.params.id_producto),
+  );
+  return res.status(200).json(promociones);
+});
 
-const obtenerPorProducto = async (req, res) => {
-  try {
-    const promociones = await PromocionService.obtenerPorProducto(
-      Number(req.params.id_producto),
-    );
-    return res.status(200).json(promociones);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const obtenerPorId = asyncHandler(async (req, res) => {
+  const promocion = await PromocionService.obtenerPorId(Number(req.params.id));
+  return res.status(200).json(promocion);
+});
 
-const obtenerPorId = async (req, res) => {
-  try {
-    const promocion = await PromocionService.obtenerPorId(Number(req.params.id));
-    return res.status(200).json(promocion);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const actualizar = async (req, res) => {
-  const errores = validationResult(req);
-  if (!errores.isEmpty()) {
-    return res.status(400).json({ errores: errores.array() });
-  }
-
-  try {
-    const promocion = await PromocionService.actualizarPromocion(Number(req.params.id), req.body);
-    return res.status(200).json(promocion);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const actualizar = asyncHandler(async (req, res) => {
+  const promocion = await PromocionService.actualizarPromocion(Number(req.params.id), req.body);
+  return res.status(200).json(promocion);
+});
 
 // PATCH /api/promociones/:id/estado — cancelación manual antes de fecha_fin
-const cambiarEstado = async (req, res) => {
+const cambiarEstado = asyncHandler(async (req, res) => {
   const { activo } = req.body;
-
-  if (typeof activo !== 'boolean') {
-    return res.status(400).json({ mensaje: 'El campo "activo" debe ser un booleano' });
-  }
 
   // Solo se puede desactivar desde este endpoint (la activación es al crear)
   if (activo === true) {
-    return res.status(400).json({ mensaje: 'Para activar una promoción, créela nuevamente' });
+    throw new AppError('Para activar una promoción, créela nuevamente', 400);
   }
 
-  try {
-    const resultado = await PromocionService.desactivarPromocion(Number(req.params.id));
-    return res.status(200).json(resultado);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+  const resultado = await PromocionService.desactivarPromocion(Number(req.params.id));
+  return res.status(200).json(resultado);
+});
 
 // DELETE /api/promociones/:id — borrado físico
-const eliminar = async (req, res) => {
-  try {
-    const resultado = await PromocionService.eliminarPromocion(Number(req.params.id));
-    return res.status(200).json(resultado);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const eliminar = asyncHandler(async (req, res) => {
+  const resultado = await PromocionService.eliminarPromocion(Number(req.params.id));
+  return res.status(200).json(resultado);
+});
 
 module.exports = { crear, obtenerPorProducto, obtenerPorId, actualizar, cambiarEstado, eliminar };

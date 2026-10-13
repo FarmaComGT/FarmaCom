@@ -42,6 +42,17 @@ const obtenerMetodosPago = async (req, res) => {
   }
 };
 
+const obtenerResumenProductos = async (req, res) => {
+  if (responderErrores(req, res)) return;
+
+  try {
+    const productos = await ReporteService.obtenerResumenProductos(req.query);
+    return res.status(200).json(productos);
+  } catch (error) {
+    return res.status(error.status || 500).json({ mensaje: error.message });
+  }
+};
+
 const obtenerTopProductos = async (req, res) => {
   if (responderErrores(req, res)) return;
 
@@ -68,6 +79,7 @@ module.exports = {
   obtenerResumenVentas,
   obtenerSerieVentas,
   obtenerMetodosPago,
+  obtenerResumenProductos,
   obtenerTopProductos,
   obtenerRentabilidad,
 };

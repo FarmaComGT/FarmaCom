@@ -94,6 +94,25 @@ describe('ReporteController', () => {
     expect(res.json).toHaveBeenCalledWith(metodos);
   });
 
+  it('responde con el resumen acumulado por producto', async () => {
+    const productos = [{
+      id_producto: 4,
+      nombre_producto: 'Acetaminofén',
+      cantidad_vendida: 15,
+      suma_total: '40.00',
+    }];
+    const query = { id_sucursal: 1 };
+    ReporteService.obtenerResumenProductos.mockResolvedValue(productos);
+    const req = { query };
+    const res = mockResponse();
+
+    await ReporteController.obtenerResumenProductos(req, res);
+
+    expect(ReporteService.obtenerResumenProductos).toHaveBeenCalledWith(query);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(productos);
+  });
+
   it('no consulta el servicio cuando los filtros son inválidos', async () => {
     validationResult.mockReturnValue({
       isEmpty: () => false,

@@ -1,6 +1,7 @@
 import React from 'react';
-import { AlertTriangle, CalendarClock, PackagePlus, Sparkles } from 'lucide-react';
+import { AlertTriangle, CalendarClock, PackagePlus } from 'lucide-react';
 import { formatearQuetzales } from '../../utils/pos';
+import { obtenerPartesCoincidentes } from '../../utils/resaltarCoincidencia';
 
 const formatearFecha = (fecha) => {
   if (!fecha) return '';
@@ -12,7 +13,22 @@ const formatearFecha = (fecha) => {
   }).format(new Date(fecha));
 };
 
-export default function ProductoVentaCard({ producto, onAgregar }) {
+const TextoCoincidente = ({ texto, busqueda }) => {
+  const partes = obtenerPartesCoincidentes(texto, busqueda);
+  if (!partes) return texto;
+
+  return (
+    <>
+      {partes.antes}
+      <mark className="rounded-sm bg-amber-200/80 px-0.5 text-inherit">
+        {partes.coincidencia}
+      </mark>
+      {partes.despues}
+    </>
+  );
+};
+
+export default function ProductoVentaCard({ producto, onAgregar, busqueda }) {
   const bajoStock = producto.estado_stock === 'poco_stock';
   const proximoAVencer = producto.estado_vencimiento === 'proximo_a_vencer';
   const deshabilitado = !producto.tiene_precio;
@@ -23,16 +39,22 @@ export default function ProductoVentaCard({ producto, onAgregar }) {
       type="button"
       onClick={() => onAgregar(producto)}
       disabled={deshabilitado}
+      aria-label={`Agregar ${producto.nombre_comercial}, lote ${producto.numero_lote}`}
       className="group w-full rounded-xl bg-white p-4 text-left shadow-[0_2px_10px_rgba(0,81,71,0.03)] transition-all hover:-translate-y-0.5 hover:bg-primary/5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="truncate font-headline font-extrabold text-on-surface transition-colors group-hover:text-primary">
-            {producto.nombre_comercial}
+            <TextoCoincidente texto={producto.nombre_comercial} busqueda={busqueda} />
           </p>
           <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
-            {producto.nombre_generico}
-            {producto.concentracion ? ` · ${producto.concentracion}` : ''}
+            <TextoCoincidente texto={producto.nombre_generico} busqueda={busqueda} />
+            {producto.concentracion && (
+              <>
+                {' · '}
+                <TextoCoincidente texto={producto.concentracion} busqueda={busqueda} />
+              </>
+            )}
           </p>
         </div>
 
@@ -54,16 +76,15 @@ export default function ProductoVentaCard({ producto, onAgregar }) {
           {bajoStock ? 'Bajo stock' : 'Disponible'}: {producto.stock_disponible}
         </span>
         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">
-          {producto.presentacion}
+          <TextoCoincidente texto={producto.presentacion} busqueda={busqueda} />
         </span>
         {esCoincidenciaAproximada && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-700">
-            <Sparkles className="h-3 w-3" aria-hidden="true" />
+          <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-700">
             Coincidencia aproximada
           </span>
         )}
         <span className="text-[11px] font-medium text-slate-400">
-          Código: {producto.codigo}
+          Código: <TextoCoincidente texto={producto.codigo} busqueda={busqueda} />
         </span>
       </div>
 

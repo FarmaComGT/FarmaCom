@@ -3,6 +3,7 @@ import {
   normalizarRentabilidad,
   normalizarMetodosPago,
   normalizarResumenVentas,
+  normalizarResumenProductos,
   normalizarSerieVentas,
   normalizarTopProductos,
 } from '../utils/reportes';
@@ -63,6 +64,15 @@ export const obtenerMetodosPago = async (filtros = {}, opciones = {}) => {
   );
 
   return normalizarMetodosPago(data);
+};
+
+export const obtenerResumenProductos = async (filtros = {}, opciones = {}) => {
+  const { data } = await api.get(
+    '/reportes/ventas/productos',
+    construirConfiguracion(filtros, FILTROS_COMUNES, opciones.signal),
+  );
+
+  return normalizarResumenProductos(data);
 };
 
 export const obtenerTopProductos = async (filtros = {}, opciones = {}) => {

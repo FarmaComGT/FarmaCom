@@ -30,6 +30,7 @@ describe('ReporteRoutes - resumen de ventas', () => {
     ReporteService.obtenerTopProductos.mockResolvedValue([]);
     ReporteService.obtenerSerieVentas.mockResolvedValue([]);
     ReporteService.obtenerMetodosPago.mockResolvedValue([]);
+    ReporteService.obtenerResumenProductos.mockResolvedValue([]);
     ReporteService.obtenerRentabilidad.mockResolvedValue([]);
   });
 
@@ -124,6 +125,41 @@ describe('ReporteRoutes - resumen de ventas', () => {
       fecha_desde: '2026-08-01',
       fecha_hasta: '2026-08-31',
     });
+  });
+
+  it('valida y normaliza los filtros del resumen por producto', async () => {
+    const respuesta = await request(crearApp())
+      .get('/api/reportes/ventas/productos')
+      .query({
+        id_sucursal: 2,
+        fecha_desde: '2026-08-01',
+        fecha_hasta: '2026-08-31',
+      });
+
+    expect(respuesta.status).toBe(200);
+    expect(ReporteService.obtenerResumenProductos).toHaveBeenCalledWith({
+      id_sucursal: 2,
+      fecha_desde: '2026-08-01',
+      fecha_hasta: '2026-08-31',
+    });
+  });
+
+  it('rechaza un rango invertido en el resumen por producto', async () => {
+    const respuesta = await request(crearApp())
+      .get('/api/reportes/ventas/productos')
+      .query({ fecha_desde: '2026-08-20', fecha_hasta: '2026-08-01' });
+
+    expect(respuesta.status).toBe(400);
+    expect(ReporteService.obtenerResumenProductos).not.toHaveBeenCalled();
+  });
+
+  it('rechaza el acceso de un dependiente al resumen por producto', async () => {
+    mockUsuario = { id_usuario: 7, id_sucursal: 1, rol: 'dependiente' };
+
+    const respuesta = await request(crearApp()).get('/api/reportes/ventas/productos');
+
+    expect(respuesta.status).toBe(403);
+    expect(ReporteService.obtenerResumenProductos).not.toHaveBeenCalled();
   });
 
   it('valida y normaliza los filtros del top de productos', async () => {

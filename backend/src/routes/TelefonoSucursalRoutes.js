@@ -1,10 +1,21 @@
 const { Router } = require('express');
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
 const TelefonoSucursalController = require('../controllers/TelefonoSucursalController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router({ mergeParams: true });
+
+const validarIdSucursal = [
+    param('id_sucursal')
+    .isInt({ min: 1 }).withMessage('El id_sucursal debe ser un entero positivo')
+    .toInt(),
+];
+
+const validarId = [
+    param('id').isInt({ min: 1 }).withMessage('El id debe ser un entero positivo').toInt(),
+];
 
 const validarCreacion = [
     body('numero')
@@ -20,18 +31,47 @@ const validarActualizacion = [
 ];
 
 // GET    /api/sucursales/:id_sucursal/telefonos
-router.get('/', verificarToken, TelefonoSucursalController.obtenerPorSucursal);
+router.get(
+    '/',
+    verificarToken,
+    validarIdSucursal,
+    validateRequest,
+    TelefonoSucursalController.obtenerPorSucursal,
+);
 
 // POST   /api/sucursales/:id_sucursal/telefonos
-router.post('/', verificarToken, verificarRol('dueno', 'administrador'), validarCreacion, TelefonoSucursalController.crear);
+router.post(
+    '/',
+    verificarToken,
+    verificarRol('dueno', 'administrador'),
+    validarIdSucursal,
+    validarCreacion,
+    validateRequest,
+    TelefonoSucursalController.crear,
+);
 
 // GET    /api/telefonos/:id
-router.get('/:id', verificarToken, TelefonoSucursalController.obtenerPorId);
+router.get('/:id', verificarToken, validarId, validateRequest, TelefonoSucursalController.obtenerPorId);
 
 // PUT    /api/telefonos/:id
-router.put('/:id', verificarToken, verificarRol('dueno', 'administrador'), validarActualizacion, TelefonoSucursalController.actualizar);
+router.put(
+    '/:id',
+    verificarToken,
+    verificarRol('dueno', 'administrador'),
+    validarId,
+    validarActualizacion,
+    validateRequest,
+    TelefonoSucursalController.actualizar,
+);
 
 // DELETE /api/telefonos/:id
-router.delete('/:id', verificarToken, verificarRol('dueno', 'administrador'), TelefonoSucursalController.eliminar);
+router.delete(
+    '/:id',
+    verificarToken,
+    verificarRol('dueno', 'administrador'),
+    validarId,
+    validateRequest,
+    TelefonoSucursalController.eliminar,
+);
 
 module.exports = router;

@@ -171,6 +171,9 @@ describe('PuntoVenta', () => {
     expect(screen.getByText('Caja / salida')).toBeInTheDocument();
     expect(screen.getByText(/El carrito est. vac.o/)).toBeInTheDocument();
     expect(screen.getByText('Consumidor final')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Efectivo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tarjeta' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mixto' })).not.toBeInTheDocument();
   });
 
   it('permite seleccionar un cliente existente', async () => {

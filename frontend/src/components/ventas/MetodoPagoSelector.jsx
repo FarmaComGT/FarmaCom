@@ -1,15 +1,14 @@
 import React from 'react';
-import { Banknote, CreditCard, WalletCards } from 'lucide-react';
+import { Banknote, CreditCard } from 'lucide-react';
 
 const METODOS = [
   { id: 'efectivo', etiqueta: 'Efectivo', icono: Banknote },
   { id: 'tarjeta', etiqueta: 'Tarjeta', icono: CreditCard },
-  { id: 'mixto', etiqueta: 'Mixto', icono: WalletCards },
 ];
 
 export default function MetodoPagoSelector({ seleccionado, onSeleccionar }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 gap-3">
       {METODOS.map(({ id, etiqueta, icono: Icono }) => {
         const activo = seleccionado === id;
         return (

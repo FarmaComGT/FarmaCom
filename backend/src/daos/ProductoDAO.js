@@ -3,6 +3,7 @@ const { reordenarCandidatos } = require('../utils/busquedaTolerante');
 
 const MULTIPLICADOR_CANDIDATOS_BUSQUEDA = 5;
 const MAXIMO_CANDIDATOS_BUSQUEDA = 100;
+const UMBRAL_TRIGRAMAS_BUSQUEDA = '0.1';
 
 class ProductoDAO {
 
@@ -61,8 +62,12 @@ class ProductoDAO {
       MAXIMO_CANDIDATOS_BUSQUEDA,
     );
     const query = `
-      WITH termino AS (
+      WITH configuracion_busqueda AS MATERIALIZED (
+        SELECT set_config('pg_trgm.similarity_threshold', $4, TRUE)
+      ),
+      termino AS MATERIALIZED (
         SELECT normalizar_texto_busqueda($1) AS valor
+        FROM configuracion_busqueda
       ),
       productos_coincidentes AS (
         SELECT
@@ -126,7 +131,6 @@ class ProductoDAO {
               OR nombre_comercial_normalizado % termino_normalizado
               OR nombre_generico_normalizado % termino_normalizado
             )
-            AND relevancia >= 0.30
           )
         ORDER BY prioridad, relevancia DESC, nombre_comercial ASC, id_producto ASC
         LIMIT $3
@@ -165,7 +169,12 @@ class ProductoDAO {
         lote_pos.fecha_vencimiento ASC,
         lote_pos.id_lote ASC
     `;
-    const { rows } = await pool.query(query, [busqueda, id_sucursal, limiteCandidatos]);
+    const { rows } = await pool.query(query, [
+      busqueda,
+      id_sucursal,
+      limiteCandidatos,
+      UMBRAL_TRIGRAMAS_BUSQUEDA,
+    ]);
     return reordenarCandidatos(rows, busqueda, limite);
   }
 

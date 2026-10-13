@@ -134,3 +134,14 @@ export const normalizarTopProductos = (productos) => (
     }))
     : []
 );
+
+export const normalizarResumenProductos = (productos) => (
+  Array.isArray(productos)
+    ? productos.map((producto) => ({
+      ...producto,
+      id_producto: normalizarNumeroReporte(producto.id_producto),
+      cantidad_vendida: normalizarNumeroReporte(producto.cantidad_vendida),
+      suma_total: normalizarNumeroReporte(producto.suma_total),
+    }))
+    : []
+);

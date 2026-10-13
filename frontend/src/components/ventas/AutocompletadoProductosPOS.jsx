@@ -7,6 +7,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
+import { obtenerTextoMasCoincidente } from '../../utils/resaltarCoincidencia';
 import ProductoVentaCard from './ProductoVentaCard';
 
 export default function AutocompletadoProductosPOS({
@@ -24,6 +25,16 @@ export default function AutocompletadoProductosPOS({
   const hayCoincidenciasAproximadas = productos.some(
     (producto) => producto.tipo_coincidencia === 'aproximada',
   );
+  const soloHayCoincidenciasAproximadas = productos.length > 0 && productos.every(
+    (producto) => producto.tipo_coincidencia === 'aproximada',
+  );
+  const sugerencia = soloHayCoincidenciasAproximadas
+    ? obtenerTextoMasCoincidente([
+      productos[0]?.nombre_comercial,
+      productos[0]?.nombre_generico,
+      productos[0]?.codigo,
+    ], busqueda)
+    : null;
 
   const manejarTecla = async (evento) => {
     if (evento.key !== 'Enter' || !hayBusqueda || procesandoEnter) return;
@@ -131,8 +142,36 @@ export default function AutocompletadoProductosPOS({
             <PackageSearch className="mb-3 h-10 w-10 text-slate-300" />
             <p className="font-headline font-bold text-slate-700">Sin coincidencias disponibles</p>
             <p className="mt-1 max-w-sm text-sm">
-              Prueba otra ortografía, otro nombre o verifica el código del producto.
+              No encontramos productos vendibles con esa búsqueda.
             </p>
+            <div className="mt-4 max-w-sm rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+              <p className="font-headline text-sm font-extrabold">¿Quiso decir…?</p>
+              <p className="mt-1 text-xs font-medium">
+                Prueba con el nombre genérico, una presentación o menos caracteres.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {hayBusqueda && !buscando && !error && sugerencia && (
+          <div
+            role="status"
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900"
+          >
+            <div className="min-w-0 text-sm">
+              <p className="font-headline font-extrabold">¿Quiso decir…?</p>
+              <button
+                type="button"
+                onClick={() => onBusquedaChange(sugerencia)}
+                aria-label={`Buscar ${sugerencia}`}
+                className="mt-1 max-w-full truncate font-bold text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary"
+              >
+                {sugerencia}
+              </button>
+              <p className="mt-1 text-xs font-medium text-amber-800">
+                Mostramos los productos disponibles con el nombre más cercano.
+              </p>
+            </div>
           </div>
         )}
 
@@ -141,6 +180,7 @@ export default function AutocompletadoProductosPOS({
             key={producto.carritoKey}
             producto={producto}
             onAgregar={onAgregar}
+            busqueda={busqueda}
           />
         ))}
       </div>
@@ -148,7 +188,9 @@ export default function AutocompletadoProductosPOS({
       {hayBusqueda && !buscando && !error && productos.length > 0 && (
         <div className="mt-4 flex items-center justify-between border-t border-primary/5 pt-4 text-xs font-semibold text-slate-400">
           <span>
-            {hayCoincidenciasAproximadas
+            {soloHayCoincidenciasAproximadas
+              ? 'Mostrando las opciones más cercanas'
+              : hayCoincidenciasAproximadas
               ? 'Las coincidencias aproximadas aparecen después de las directas'
               : 'Enter agrega la primera opción'}
           </span>

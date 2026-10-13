@@ -239,9 +239,17 @@ class VentaDAO {
     if (id_sucursal) agregarCondicion('v.id_sucursal = ?', id_sucursal);
     if (id_cliente) agregarCondicion('v.id_cliente = ?', id_cliente);
     if (estado) agregarCondicion('v.estado = ?', estado);
-    if (fecha_desde) agregarCondicion('v.fecha_venta >= ?::date', fecha_desde);
+    if (fecha_desde) {
+      agregarCondicion(
+        "v.fecha_venta >= (?::DATE::TIMESTAMP AT TIME ZONE 'America/Guatemala')",
+        fecha_desde,
+      );
+    }
     if (fecha_hasta) {
-      agregarCondicion("v.fecha_venta < (?::date + INTERVAL '1 day')", fecha_hasta);
+      agregarCondicion(
+        "v.fecha_venta < ((?::DATE + 1)::TIMESTAMP AT TIME ZONE 'America/Guatemala')",
+        fecha_hasta,
+      );
     }
 
     const where = condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';

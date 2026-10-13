@@ -5,6 +5,7 @@ const CasaTelefonoController = require('../controllers/CasaTelefonoController');
 const CasaEmailController = require('../controllers/CasaEmailController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 
@@ -12,6 +13,20 @@ const router = Router();
 
 const validarParamId = [
   param('id').isInt({ min: 1 }).withMessage('El id debe ser un entero positivo').toInt(),
+];
+
+const validarIdCasa = [
+  param('id_casa').isInt({ min: 1 }).withMessage('El id_casa debe ser un entero positivo').toInt(),
+];
+
+const validarIdTelefono = [
+  param('id_telefono')
+    .isInt({ min: 1 }).withMessage('El id_telefono debe ser un entero positivo')
+    .toInt(),
+];
+
+const validarIdEmail = [
+  param('id_email').isInt({ min: 1 }).withMessage('El id_email debe ser un entero positivo').toInt(),
 ];
 
 const validarCreacion = [
@@ -27,6 +42,11 @@ const validarActualizacion = [
     .trim()
     .notEmpty().withMessage('nombre no puede estar vacío')
     .isLength({ max: 150 }).withMessage('nombre no puede superar los 150 caracteres'),
+];
+
+const validarCambioEstado = [
+  body('activo')
+    .isBoolean({ strict: true }).withMessage('El campo "activo" debe ser un booleano'),
 ];
 
 const validarTelefonoCreacion = [
@@ -60,7 +80,13 @@ const validarEmailActualizacion = [
 router.get('/', verificarToken, CasaFarmaceuticaController.obtenerTodas);
 
 // GET    /api/casas/:id
-router.get('/:id', verificarToken, validarParamId, CasaFarmaceuticaController.obtenerPorId);
+router.get(
+  '/:id',
+  verificarToken,
+  validarParamId,
+  validateRequest,
+  CasaFarmaceuticaController.obtenerPorId,
+);
 
 // POST   /api/casas
 router.post(
@@ -68,6 +94,7 @@ router.post(
   verificarToken,
   verificarRol('dueno', 'administrador'),
   validarCreacion,
+  validateRequest,
   CasaFarmaceuticaController.crear,
 );
 
@@ -78,6 +105,7 @@ router.put(
   verificarRol('dueno', 'administrador'),
   validarParamId,
   validarActualizacion,
+  validateRequest,
   CasaFarmaceuticaController.actualizar,
 );
 
@@ -87,6 +115,8 @@ router.patch(
   verificarToken,
   verificarRol('dueno', 'administrador'),
   validarParamId,
+  validarCambioEstado,
+  validateRequest,
   CasaFarmaceuticaController.cambiarEstado,
 );
 
@@ -96,6 +126,7 @@ router.delete(
   verificarToken,
   verificarRol('dueno'),
   validarParamId,
+  validateRequest,
   CasaFarmaceuticaController.eliminar,
 );
 
@@ -105,20 +136,29 @@ router.get(
   '/:id/proveedores',
   verificarToken,
   validarParamId,
+  validateRequest,
   CasaFarmaceuticaController.obtenerProveedoresVinculados,
 );
 
 // Rutas anidadas: Teléfonos
 
 // GET    /api/casas/:id_casa/telefonos
-router.get('/:id_casa/telefonos', verificarToken, CasaTelefonoController.obtenerPorCasa);
+router.get(
+  '/:id_casa/telefonos',
+  verificarToken,
+  validarIdCasa,
+  validateRequest,
+  CasaTelefonoController.obtenerPorCasa,
+);
 
 // POST   /api/casas/:id_casa/telefonos
 router.post(
   '/:id_casa/telefonos',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdCasa,
   validarTelefonoCreacion,
+  validateRequest,
   CasaTelefonoController.crear,
 );
 
@@ -127,7 +167,10 @@ router.put(
   '/:id_casa/telefonos/:id_telefono',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdCasa,
+  validarIdTelefono,
   validarTelefonoActualizacion,
+  validateRequest,
   CasaTelefonoController.actualizar,
 );
 
@@ -136,20 +179,31 @@ router.delete(
   '/:id_casa/telefonos/:id_telefono',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdCasa,
+  validarIdTelefono,
+  validateRequest,
   CasaTelefonoController.eliminar,
 );
 
 // Rutas anidadas: Correos
 
 // GET    /api/casas/:id_casa/correos
-router.get('/:id_casa/correos', verificarToken, CasaEmailController.obtenerPorCasa);
+router.get(
+  '/:id_casa/correos',
+  verificarToken,
+  validarIdCasa,
+  validateRequest,
+  CasaEmailController.obtenerPorCasa,
+);
 
 // POST   /api/casas/:id_casa/correos
 router.post(
   '/:id_casa/correos',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdCasa,
   validarEmailCreacion,
+  validateRequest,
   CasaEmailController.crear,
 );
 
@@ -158,7 +212,10 @@ router.put(
   '/:id_casa/correos/:id_email',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdCasa,
+  validarIdEmail,
   validarEmailActualizacion,
+  validateRequest,
   CasaEmailController.actualizar,
 );
 
@@ -167,6 +224,9 @@ router.delete(
   '/:id_casa/correos/:id_email',
   verificarToken,
   verificarRol('dueno', 'administrador'),
+  validarIdCasa,
+  validarIdEmail,
+  validateRequest,
   CasaEmailController.eliminar,
 );
 

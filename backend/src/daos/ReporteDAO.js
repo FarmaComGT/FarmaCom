@@ -191,6 +191,43 @@ class ReporteDAO {
     return rows;
   }
 
+  async obtenerResumenProductos({
+    id_sucursal,
+    fecha_desde,
+    fecha_hasta,
+  } = {}) {
+    const { rows } = await pool.query(
+      `SELECT
+         p.id_producto,
+         p.nombre_comercial AS nombre_producto,
+         SUM(dv.cantidad)::INTEGER AS cantidad_vendida,
+         SUM(dv.subtotal)::NUMERIC(14,2) AS suma_total
+       FROM venta v
+       JOIN detalle_venta dv ON dv.id_venta = v.id_venta
+       JOIN lote l ON l.id_lote = dv.id_lote
+       JOIN producto p ON p.id_producto = l.id_producto
+       WHERE v.estado = 'completada'
+         AND ($1::INTEGER IS NULL OR v.id_sucursal = $1)
+         AND (
+           $2::DATE IS NULL
+           OR v.fecha_venta >= (
+             $2::DATE::TIMESTAMP AT TIME ZONE 'America/Guatemala'
+           )
+         )
+         AND (
+           $3::DATE IS NULL
+           OR v.fecha_venta < (
+             ($3::DATE + 1)::TIMESTAMP AT TIME ZONE 'America/Guatemala'
+           )
+         )
+       GROUP BY p.id_producto, p.nombre_comercial
+       ORDER BY p.nombre_comercial ASC, p.id_producto ASC`,
+      [id_sucursal || null, fecha_desde || null, fecha_hasta || null],
+    );
+
+    return rows;
+  }
+
   async obtenerTopProductos({
     id_sucursal,
     fecha_desde,
