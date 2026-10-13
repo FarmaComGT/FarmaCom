@@ -1,9 +1,5 @@
 jest.mock('../services/PromocionService');
-jest.mock('express-validator', () => ({
-  validationResult: jest.fn(),
-}));
 
-const { validationResult } = require('express-validator');
 const PromocionService = require('../services/PromocionService');
 const PromocionController = require('./PromocionController');
 
@@ -14,12 +10,9 @@ const mockResponse = () => {
   return res;
 };
 
-const sinErroresDeValidacion = () => ({ isEmpty: () => true, array: () => [] });
-
 describe('PromocionController', () => {
   describe('crear', () => {
     it('responde 201 con la promoción creada', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
       PromocionService.crearPromocion.mockResolvedValue({ id_promocion: 1 });
 
       const req = { params: { id_producto: '1' }, body: { cantidad_minima: 5 } };
@@ -31,30 +24,19 @@ describe('PromocionController', () => {
       expect(res.status).toHaveBeenCalledWith(201);
     });
 
-    it('responde 400 cuando hay errores de validación y no llama al service', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [] });
-
-      const req = { params: { id_producto: '1' }, body: {} };
-      const res = mockResponse();
-
-      await PromocionController.crear(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(PromocionService.crearPromocion).not.toHaveBeenCalled();
-    });
-
-    it('propaga el código de error del service (404 producto inexistente)', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
+    it('envía al middleware el error del service (404 producto inexistente)', async () => {
       const error = new Error('Producto no encontrado');
       error.status = 404;
       PromocionService.crearPromocion.mockRejectedValue(error);
 
       const req = { params: { id_producto: '99' }, body: {} };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await PromocionController.crear(req, res);
+      await PromocionController.crear(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
@@ -72,23 +54,24 @@ describe('PromocionController', () => {
   });
 
   describe('obtenerPorId', () => {
-    it('responde 404 cuando el service lanza "no encontrada"', async () => {
+    it('envía al middleware el error cuando no existe', async () => {
       const error = new Error('Promoción no encontrada');
       error.status = 404;
       PromocionService.obtenerPorId.mockRejectedValue(error);
 
       const req = { params: { id: '99' } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await PromocionController.obtenerPorId(req, res);
+      await PromocionController.obtenerPorId(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
   describe('actualizar', () => {
     it('responde 200 con la promoción actualizada', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
       PromocionService.actualizarPromocion.mockResolvedValue({ id_promocion: 1 });
 
       const req = { params: { id: '1' }, body: { cantidad_minima: 10 } };
@@ -98,39 +81,22 @@ describe('PromocionController', () => {
 
       expect(res.status).toHaveBeenCalledWith(200);
     });
-
-    it('responde 400 cuando hay errores de validación', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [] });
-
-      const req = { params: { id: '1' }, body: {} };
-      const res = mockResponse();
-
-      await PromocionController.actualizar(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(PromocionService.actualizarPromocion).not.toHaveBeenCalled();
-    });
   });
 
   describe('cambiarEstado', () => {
-    it('responde 400 cuando "activo" no es un booleano', async () => {
-      const req = { params: { id: '1' }, body: { activo: 'si' } };
-      const res = mockResponse();
-
-      await PromocionController.cambiarEstado(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(PromocionService.desactivarPromocion).not.toHaveBeenCalled();
-    });
-
-    it('responde 400 cuando se intenta "activar" desde este endpoint', async () => {
+    it('envía al middleware un error cuando se intenta "activar" desde este endpoint', async () => {
       const req = { params: { id: '1' }, body: { activo: true } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await PromocionController.cambiarEstado(req, res);
+      await PromocionController.cambiarEstado(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(400);
       expect(PromocionService.desactivarPromocion).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Para activar una promoción, créela nuevamente',
+        statusCode: 400,
+      }));
+      expect(res.status).not.toHaveBeenCalled();
     });
 
     it('desactiva correctamente cuando activo es false', async () => {

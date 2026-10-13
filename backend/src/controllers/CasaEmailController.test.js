@@ -1,9 +1,5 @@
 jest.mock('../services/CasaEmailService');
-jest.mock('express-validator', () => ({
-  validationResult: jest.fn(),
-}));
 
-const { validationResult } = require('express-validator');
 const CasaEmailService = require('../services/CasaEmailService');
 const CasaEmailController = require('./CasaEmailController');
 
@@ -14,12 +10,9 @@ const mockResponse = () => {
   return res;
 };
 
-const sinErroresDeValidacion = () => ({ isEmpty: () => true, array: () => [] });
-
 describe('CasaEmailController', () => {
   describe('crear', () => {
     it('responde 201 con el correo creado', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
       CasaEmailService.crearEmail.mockResolvedValue({ id_email: 1, correo: 'a@b.com' });
 
       const req = { params: { id_casa: '1' }, body: { correo: 'a@b.com' } };
@@ -32,31 +25,19 @@ describe('CasaEmailController', () => {
       expect(res.json).toHaveBeenCalledWith({ id_email: 1, correo: 'a@b.com' });
     });
 
-    it('responde 400 cuando hay errores de validación y no llama al service', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [{ msg: 'correo inválido' }] });
-
-      const req = { params: { id_casa: '1' }, body: {} };
-      const res = mockResponse();
-
-      await CasaEmailController.crear(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(CasaEmailService.crearEmail).not.toHaveBeenCalled();
-    });
-
-    it('propaga el código de error del service (404 casa inexistente)', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
+    it('envía al middleware el error del service (404 casa inexistente)', async () => {
       const error = new Error('La casa farmacéutica no existe');
       error.status = 404;
       CasaEmailService.crearEmail.mockRejectedValue(error);
 
       const req = { params: { id_casa: '99' }, body: { correo: 'a@b.com' } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await CasaEmailController.crear(req, res);
+      await CasaEmailController.crear(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ mensaje: 'La casa farmacéutica no existe' });
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
@@ -76,24 +57,24 @@ describe('CasaEmailController', () => {
   });
 
   describe('obtenerPorId', () => {
-    it('responde 404 cuando el service lanza "no encontrado"', async () => {
+    it('envía al middleware el error cuando no existe', async () => {
       const error = new Error('Correo no encontrado');
       error.status = 404;
       CasaEmailService.obtenerPorId.mockRejectedValue(error);
 
       const req = { params: { id_email: '99' } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await CasaEmailController.obtenerPorId(req, res);
+      await CasaEmailController.obtenerPorId(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Correo no encontrado' });
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
   describe('actualizar', () => {
     it('responde 200 con el correo actualizado', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
       CasaEmailService.actualizarEmail.mockResolvedValue({ id_email: 1, correo: 'nuevo@b.com' });
 
       const req = { params: { id_email: '1' }, body: { correo: 'nuevo@b.com' } };
@@ -103,18 +84,6 @@ describe('CasaEmailController', () => {
 
       expect(CasaEmailService.actualizarEmail).toHaveBeenCalledWith(1, { correo: 'nuevo@b.com' });
       expect(res.status).toHaveBeenCalledWith(200);
-    });
-
-    it('responde 400 cuando hay errores de validación', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [] });
-
-      const req = { params: { id_email: '1' }, body: {} };
-      const res = mockResponse();
-
-      await CasaEmailController.actualizar(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(CasaEmailService.actualizarEmail).not.toHaveBeenCalled();
     });
   });
 

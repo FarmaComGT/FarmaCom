@@ -1,9 +1,5 @@
 jest.mock('../services/ProveedorService');
-jest.mock('express-validator', () => ({
-  validationResult: jest.fn(),
-}));
 
-const { validationResult } = require('express-validator');
 const ProveedorService = require('../services/ProveedorService');
 const ProveedorController = require('./ProveedorController');
 
@@ -14,12 +10,9 @@ const mockResponse = () => {
   return res;
 };
 
-const sinErroresDeValidacion = () => ({ isEmpty: () => true, array: () => [] });
-
 describe('ProveedorController', () => {
   describe('crear', () => {
     it('responde 201 con el proveedor creado', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
       ProveedorService.crearProveedor.mockResolvedValue({ id_proveedor: 1, nombre: 'ABC' });
 
       const req = { body: { nombre: 'ABC' } };
@@ -31,30 +24,19 @@ describe('ProveedorController', () => {
       expect(res.json).toHaveBeenCalledWith({ id_proveedor: 1, nombre: 'ABC' });
     });
 
-    it('responde 400 cuando hay errores de validación y no llama al service', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [] });
-
-      const req = { body: {} };
-      const res = mockResponse();
-
-      await ProveedorController.crear(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(ProveedorService.crearProveedor).not.toHaveBeenCalled();
-    });
-
-    it('propaga el código de error del service (409 duplicado)', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
+    it('envía al middleware el error del service (409 duplicado)', async () => {
       const error = new Error('Ya existe un proveedor con ese nombre');
       error.status = 409;
       ProveedorService.crearProveedor.mockRejectedValue(error);
 
       const req = { body: { nombre: 'ABC' } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await ProveedorController.crear(req, res);
+      await ProveedorController.crear(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(409);
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
@@ -71,24 +53,24 @@ describe('ProveedorController', () => {
   });
 
   describe('obtenerPorId', () => {
-    it('responde 404 cuando el service lanza "no encontrado"', async () => {
+    it('envía al middleware el error cuando el proveedor no existe', async () => {
       const error = new Error('Proveedor no encontrado');
       error.status = 404;
       ProveedorService.obtenerPorId.mockRejectedValue(error);
 
       const req = { params: { id: '99' } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await ProveedorController.obtenerPorId(req, res);
+      await ProveedorController.obtenerPorId(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Proveedor no encontrado' });
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
   describe('actualizar', () => {
     it('responde 200 con el proveedor actualizado', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
       ProveedorService.actualizarProveedor.mockResolvedValue({ id_proveedor: 1, nombre: 'XYZ' });
 
       const req = { params: { id: '1' }, body: { nombre: 'XYZ' } };
@@ -97,18 +79,6 @@ describe('ProveedorController', () => {
       await ProveedorController.actualizar(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-    });
-
-    it('responde 400 cuando hay errores de validación', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [] });
-
-      const req = { params: { id: '1' }, body: {} };
-      const res = mockResponse();
-
-      await ProveedorController.actualizar(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(ProveedorService.actualizarProveedor).not.toHaveBeenCalled();
     });
   });
 
@@ -125,14 +95,19 @@ describe('ProveedorController', () => {
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
-    it('responde 400 cuando "activo" no es un booleano', async () => {
-      const req = { params: { id: '1' }, body: { activo: 'si' } };
+    it('envía al middleware el error del service', async () => {
+      const error = new Error('Proveedor no encontrado');
+      error.status = 404;
+      ProveedorService.cambiarEstado.mockRejectedValue(error);
+
+      const req = { params: { id: '1' }, body: { activo: true } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await ProveedorController.cambiarEstado(req, res);
+      await ProveedorController.cambiarEstado(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(ProveedorService.cambiarEstado).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 

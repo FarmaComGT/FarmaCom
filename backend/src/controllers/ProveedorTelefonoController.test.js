@@ -1,9 +1,5 @@
 jest.mock('../services/ProveedorTelefonoService');
-jest.mock('express-validator', () => ({
-  validationResult: jest.fn(),
-}));
 
-const { validationResult } = require('express-validator');
 const ProveedorTelefonoService = require('../services/ProveedorTelefonoService');
 const ProveedorTelefonoController = require('./ProveedorTelefonoController');
 
@@ -14,12 +10,9 @@ const mockResponse = () => {
   return res;
 };
 
-const sinErroresDeValidacion = () => ({ isEmpty: () => true, array: () => [] });
-
 describe('ProveedorTelefonoController', () => {
   describe('crear', () => {
     it('responde 201 con el teléfono creado', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
       ProveedorTelefonoService.crearTelefono.mockResolvedValue({ id_telefono: 1, numero: '123' });
 
       const req = { params: { id_proveedor: '1' }, body: { numero: '123' } };
@@ -31,30 +24,19 @@ describe('ProveedorTelefonoController', () => {
       expect(res.status).toHaveBeenCalledWith(201);
     });
 
-    it('responde 400 cuando hay errores de validación y no llama al service', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [] });
-
-      const req = { params: { id_proveedor: '1' }, body: {} };
-      const res = mockResponse();
-
-      await ProveedorTelefonoController.crear(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(ProveedorTelefonoService.crearTelefono).not.toHaveBeenCalled();
-    });
-
-    it('propaga el código de error del service (404 proveedor inexistente)', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
+    it('envía al middleware el error del service (404 proveedor inexistente)', async () => {
       const error = new Error('El proveedor no existe');
       error.status = 404;
       ProveedorTelefonoService.crearTelefono.mockRejectedValue(error);
 
       const req = { params: { id_proveedor: '99' }, body: { numero: '123' } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await ProveedorTelefonoController.crear(req, res);
+      await ProveedorTelefonoController.crear(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
@@ -72,23 +54,24 @@ describe('ProveedorTelefonoController', () => {
   });
 
   describe('obtenerPorId', () => {
-    it('responde 404 cuando el service lanza "no encontrado"', async () => {
+    it('envía al middleware el error cuando no existe', async () => {
       const error = new Error('Teléfono no encontrado');
       error.status = 404;
       ProveedorTelefonoService.obtenerPorId.mockRejectedValue(error);
 
       const req = { params: { id_telefono: '99' } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await ProveedorTelefonoController.obtenerPorId(req, res);
+      await ProveedorTelefonoController.obtenerPorId(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
   describe('actualizar', () => {
     it('responde 200 con el teléfono actualizado', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
       ProveedorTelefonoService.actualizarTelefono.mockResolvedValue({ id_telefono: 1, numero: '456' });
 
       const req = { params: { id_telefono: '1' }, body: { numero: '456' } };
@@ -97,18 +80,6 @@ describe('ProveedorTelefonoController', () => {
       await ProveedorTelefonoController.actualizar(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-    });
-
-    it('responde 400 cuando hay errores de validación', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [] });
-
-      const req = { params: { id_telefono: '1' }, body: {} };
-      const res = mockResponse();
-
-      await ProveedorTelefonoController.actualizar(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(ProveedorTelefonoService.actualizarTelefono).not.toHaveBeenCalled();
     });
   });
 

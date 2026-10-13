@@ -1,9 +1,5 @@
 jest.mock('../services/CasaFarmaceuticaService');
-jest.mock('express-validator', () => ({
-  validationResult: jest.fn(),
-}));
 
-const { validationResult } = require('express-validator');
 const CasaFarmaceuticaService = require('../services/CasaFarmaceuticaService');
 const CasaFarmaceuticaController = require('./CasaFarmaceuticaController');
 
@@ -14,12 +10,9 @@ const mockResponse = () => {
   return res;
 };
 
-const sinErroresDeValidacion = () => ({ isEmpty: () => true, array: () => [] });
-
 describe('CasaFarmaceuticaController', () => {
   describe('crear', () => {
     it('responde 201 con la casa creada', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
       CasaFarmaceuticaService.crearCasa.mockResolvedValue({ id_casa: 1, nombre: 'Bayer' });
 
       const req = { body: { nombre: 'Bayer' } };
@@ -31,30 +24,19 @@ describe('CasaFarmaceuticaController', () => {
       expect(res.json).toHaveBeenCalledWith({ id_casa: 1, nombre: 'Bayer' });
     });
 
-    it('responde 400 cuando hay errores de validación y no llama al service', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [] });
-
-      const req = { body: {} };
-      const res = mockResponse();
-
-      await CasaFarmaceuticaController.crear(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(CasaFarmaceuticaService.crearCasa).not.toHaveBeenCalled();
-    });
-
-    it('propaga el código de error del service (409 duplicado)', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
+    it('envía al middleware el error del service (409 duplicado)', async () => {
       const error = new Error('Ya existe una casa farmacéutica con ese nombre');
       error.status = 409;
       CasaFarmaceuticaService.crearCasa.mockRejectedValue(error);
 
       const req = { body: { nombre: 'Bayer' } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await CasaFarmaceuticaController.crear(req, res);
+      await CasaFarmaceuticaController.crear(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(409);
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
@@ -72,24 +54,24 @@ describe('CasaFarmaceuticaController', () => {
   });
 
   describe('obtenerPorId', () => {
-    it('responde 404 cuando el service lanza "no encontrada"', async () => {
+    it('envía al middleware el error cuando no existe', async () => {
       const error = new Error('Casa farmacéutica no encontrada');
       error.status = 404;
       CasaFarmaceuticaService.obtenerPorId.mockRejectedValue(error);
 
       const req = { params: { id: '99' } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await CasaFarmaceuticaController.obtenerPorId(req, res);
+      await CasaFarmaceuticaController.obtenerPorId(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Casa farmacéutica no encontrada' });
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
   describe('actualizar', () => {
     it('responde 200 con la casa actualizada', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
       CasaFarmaceuticaService.actualizarCasa.mockResolvedValue({ id_casa: 1, nombre: 'Bayer S.A.' });
 
       const req = { params: { id: '1' }, body: { nombre: 'Bayer S.A.' } };
@@ -98,18 +80,6 @@ describe('CasaFarmaceuticaController', () => {
       await CasaFarmaceuticaController.actualizar(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-    });
-
-    it('responde 400 cuando hay errores de validación', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [] });
-
-      const req = { params: { id: '1' }, body: {} };
-      const res = mockResponse();
-
-      await CasaFarmaceuticaController.actualizar(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(CasaFarmaceuticaService.actualizarCasa).not.toHaveBeenCalled();
     });
   });
 
@@ -126,14 +96,19 @@ describe('CasaFarmaceuticaController', () => {
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
-    it('responde 400 cuando "activo" no es un booleano', async () => {
-      const req = { params: { id: '1' }, body: { activo: 'si' } };
+    it('envía al middleware el error del service', async () => {
+      const error = new Error('Casa farmacéutica no encontrada');
+      error.status = 404;
+      CasaFarmaceuticaService.cambiarEstado.mockRejectedValue(error);
+
+      const req = { params: { id: '1' }, body: { activo: true } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await CasaFarmaceuticaController.cambiarEstado(req, res);
+      await CasaFarmaceuticaController.cambiarEstado(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(CasaFarmaceuticaService.cambiarEstado).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
@@ -164,17 +139,19 @@ describe('CasaFarmaceuticaController', () => {
       expect(res.json).toHaveBeenCalledWith([{ id_proveedor: 1 }]);
     });
 
-    it('responde 404 cuando la casa no existe', async () => {
+    it('envía al middleware el error cuando la casa no existe', async () => {
       const error = new Error('Casa farmacéutica no encontrada');
       error.status = 404;
       CasaFarmaceuticaService.obtenerProveedoresVinculados.mockRejectedValue(error);
 
       const req = { params: { id: '99' } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await CasaFarmaceuticaController.obtenerProveedoresVinculados(req, res);
+      await CasaFarmaceuticaController.obtenerProveedoresVinculados(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 });

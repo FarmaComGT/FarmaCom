@@ -1,9 +1,5 @@
 jest.mock('../services/SucursalService');
-jest.mock('express-validator', () => ({
-  validationResult: jest.fn(),
-}));
 
-const { validationResult } = require('express-validator');
 const sucursalService = require('../services/SucursalService');
 const SucursalController = require('./SucursalController');
 
@@ -14,12 +10,9 @@ const mockResponse = () => {
   return res;
 };
 
-const sinErroresDeValidacion = () => ({ isEmpty: () => true, array: () => [] });
-
 describe('SucursalController', () => {
   describe('crear', () => {
     it('responde 201 con la sucursal creada', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
       sucursalService.crearSucursal.mockResolvedValue({ id_sucursal: 1, nombre_sucursal: 'Central' });
 
       const req = { body: { nombre_sucursal: 'Central' } };
@@ -31,30 +24,19 @@ describe('SucursalController', () => {
       expect(res.json).toHaveBeenCalledWith({ id_sucursal: 1, nombre_sucursal: 'Central' });
     });
 
-    it('responde 400 cuando hay errores de validación y no llama al service', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [] });
-
-      const req = { body: {} };
-      const res = mockResponse();
-
-      await SucursalController.crear(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(sucursalService.crearSucursal).not.toHaveBeenCalled();
-    });
-
-    it('propaga el código de error del service (409 duplicado)', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
+    it('envía al middleware el error del service (409 duplicado)', async () => {
       const error = new Error('Ya existe una sucursal con ese nombre');
       error.status = 409;
       sucursalService.crearSucursal.mockRejectedValue(error);
 
       const req = { body: { nombre_sucursal: 'Central' } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await SucursalController.crear(req, res);
+      await SucursalController.crear(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(409);
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
@@ -71,24 +53,24 @@ describe('SucursalController', () => {
   });
 
   describe('obtenerPorId', () => {
-    it('responde 404 cuando el service lanza "no encontrada"', async () => {
+    it('envía al middleware el error cuando la sucursal no existe', async () => {
       const error = new Error('Sucursal no encontrada');
       error.status = 404;
       sucursalService.obtenerPorId.mockRejectedValue(error);
 
       const req = { params: { id: '99' } };
       const res = mockResponse();
+      const next = jest.fn();
 
-      await SucursalController.obtenerPorId(req, res);
+      await SucursalController.obtenerPorId(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Sucursal no encontrada' });
+      expect(next).toHaveBeenCalledWith(error);
+      expect(res.status).not.toHaveBeenCalled();
     });
   });
 
   describe('actualizar', () => {
     it('responde 200 con la sucursal actualizada', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
       sucursalService.actualizarSucursal.mockResolvedValue({ id_sucursal: 1, nombre_sucursal: 'Norte' });
 
       const req = { params: { id: '1' }, body: { nombre_sucursal: 'Norte' } };
@@ -97,18 +79,6 @@ describe('SucursalController', () => {
       await SucursalController.actualizar(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-    });
-
-    it('responde 400 cuando hay errores de validación', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [] });
-
-      const req = { params: { id: '1' }, body: {} };
-      const res = mockResponse();
-
-      await SucursalController.actualizar(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(sucursalService.actualizarSucursal).not.toHaveBeenCalled();
     });
   });
 
