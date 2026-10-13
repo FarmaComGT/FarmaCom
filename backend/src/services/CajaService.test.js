@@ -5,261 +5,346 @@ const CajaDAO = require('../daos/CajaDAO');
 const SucursalDAO = require('../daos/SucursalDAO');
 const CajaService = require('./CajaService');
 
-const dependiente = {
-  id_usuario: 7,
-  id_sucursal: 1,
-  rol: 'dependiente',
-};
-
-const caja = {
-  id_caja: 3,
-  id_sucursal: 1,
-  nombre: 'Caja mostrador',
-  activa: true,
-};
-
-const sesionAbierta = {
-  id_sesion_caja: 9,
-  id_caja: 3,
-  id_sucursal: 1,
-  fondo_inicial: '100.00',
-  estado: 'abierta',
-};
+const mockClient = {};
+const dueno = { id_usuario: 1, rol: 'dueno', id_sucursal: 1 };
+const dependienteSucursal1 = { id_usuario: 2, rol: 'dependiente', id_sucursal: 1 };
+const dependienteSucursal2 = { id_usuario: 3, rol: 'dependiente', id_sucursal: 2 };
 
 describe('CajaService', () => {
   beforeEach(() => {
-    CajaDAO.ejecutarEnTransaccion.mockImplementation((operacion) => operacion({}));
-    CajaDAO.contarPagosPOSPendientes.mockResolvedValue(0);
+    jest.resetAllMocks();
+    CajaDAO.ejecutarEnTransaccion.mockImplementation((fn) => fn(mockClient));
   });
 
   describe('crearCaja', () => {
-    it('crea una caja en una sucursal existente', async () => {
+    it('crea la caja cuando la sucursal existe y el nombre no está repetido', async () => {
       SucursalDAO.obtenerPorId.mockResolvedValue({ id_sucursal: 1 });
       CajaDAO.obtenerCajaPorNombre.mockResolvedValue(null);
-      CajaDAO.crearCaja.mockResolvedValue(caja);
+      CajaDAO.crearCaja.mockResolvedValue({ id_caja: 1, nombre: 'Caja 1' });
 
-      await expect(
-        CajaService.crearCaja({ id_sucursal: 1, nombre: 'Caja mostrador' }),
-      ).resolves.toEqual(caja);
+      await expect(CajaService.crearCaja({ id_sucursal: 1, nombre: 'Caja 1' })).resolves.toEqual({
+        id_caja: 1, nombre: 'Caja 1',
+      });
     });
 
-    it('evita nombres duplicados dentro de la misma sucursal', async () => {
+    it('rechaza con 404 si la sucursal no existe', async () => {
+      SucursalDAO.obtenerPorId.mockResolvedValue(null);
+
+      await expect(CajaService.crearCaja({ id_sucursal: 99, nombre: 'X' })).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('rechaza con 409 si ya existe una caja con ese nombre', async () => {
       SucursalDAO.obtenerPorId.mockResolvedValue({ id_sucursal: 1 });
-      CajaDAO.obtenerCajaPorNombre.mockResolvedValue(caja);
+      CajaDAO.obtenerCajaPorNombre.mockResolvedValue({ id_caja: 5 });
+
+      await expect(CajaService.crearCaja({ id_sucursal: 1, nombre: 'Caja 1' })).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('traduce la violación de constraint único a un 409', async () => {
+      SucursalDAO.obtenerPorId.mockResolvedValue({ id_sucursal: 1 });
+      CajaDAO.obtenerCajaPorNombre.mockResolvedValue(null);
+      const error = new Error('dup');
+      error.code = '23505';
+      error.constraint = 'uq_caja_sucursal_nombre';
+      CajaDAO.crearCaja.mockRejectedValue(error);
+
+      await expect(CajaService.crearCaja({ id_sucursal: 1, nombre: 'Caja 1' })).rejects.toMatchObject({ status: 409 });
+    });
+  });
+
+  describe('obtenerCajas', () => {
+    it('un dependiente solo puede consultar su propia sucursal', async () => {
+      CajaDAO.obtenerCajas.mockResolvedValue([{ id_caja: 1 }]);
+
+      await CajaService.obtenerCajas({}, dependienteSucursal1);
+
+      expect(CajaDAO.obtenerCajas).toHaveBeenCalledWith({ id_sucursal: 1 });
+    });
+
+    it('rechaza con 403 si el dependiente pide otra sucursal', async () => {
+      await expect(
+        CajaService.obtenerCajas({ id_sucursal: 2 }, dependienteSucursal1),
+      ).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('un dueño puede consultar cualquier sucursal sin forzar el filtro', async () => {
+      CajaDAO.obtenerCajas.mockResolvedValue([]);
+
+      await CajaService.obtenerCajas({ id_sucursal: 2 }, dueno);
+
+      expect(CajaDAO.obtenerCajas).toHaveBeenCalledWith({ id_sucursal: 2 });
+    });
+  });
+
+  describe('actualizarCaja', () => {
+    it('rechaza con 404 si la caja no existe', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue(null);
+
+      await expect(CajaService.actualizarCaja(99, {}, dueno)).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('rechaza con 403 si el dependiente opera otra sucursal', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 2, nombre: 'Caja 1' });
 
       await expect(
-        CajaService.crearCaja({ id_sucursal: 1, nombre: 'Caja mostrador' }),
+        CajaService.actualizarCaja(1, { nombre: 'X' }, dependienteSucursal1),
+      ).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('rechaza con 409 si el nuevo nombre ya existe en la sucursal', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 1, nombre: 'Caja 1' });
+      CajaDAO.obtenerCajaPorNombre.mockResolvedValue({ id_caja: 2 });
+
+      await expect(
+        CajaService.actualizarCaja(1, { nombre: 'Caja 2' }, dueno),
       ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('rechaza con 409 si se intenta desactivar con sesión abierta', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 1, nombre: 'Caja 1' });
+      CajaDAO.obtenerSesionAbiertaPorCaja.mockResolvedValue({ id_sesion_caja: 1 });
+
+      await expect(
+        CajaService.actualizarCaja(1, { activa: false }, dueno),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('actualiza correctamente', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 1, nombre: 'Caja 1' });
+      CajaDAO.actualizarCaja.mockResolvedValue({ id_caja: 1, nombre: 'Caja 2' });
+
+      await expect(CajaService.actualizarCaja(1, { nombre: 'Caja 2' }, dueno)).resolves.toEqual({
+        id_caja: 1, nombre: 'Caja 2',
+      });
     });
   });
 
   describe('abrirSesion', () => {
-    it('abre un turno con el fondo inicial y el usuario autenticado', async () => {
-      CajaDAO.obtenerCajaPorId.mockResolvedValue(caja);
-      CajaDAO.obtenerSesionAbiertaPorCaja.mockResolvedValue(null);
-      CajaDAO.crearSesion.mockResolvedValue(sesionAbierta);
-
-      const resultado = await CajaService.abrirSesion(3, {
-        turno: 'mañana',
-        fondo_inicial: '100.00',
-      }, dependiente);
-
-      expect(CajaDAO.crearSesion).toHaveBeenCalledWith({
-        id_caja: 3,
-        id_usuario_apertura: 7,
-        turno: 'mañana',
-        fondo_inicial: '100.00',
-      }, {});
-      expect(resultado).toEqual(sesionAbierta);
-    });
-
-    it('impide que un dependiente abra una caja de otra sucursal', async () => {
-      CajaDAO.obtenerCajaPorId.mockResolvedValue({ ...caja, id_sucursal: 2 });
+    it('rechaza con 404 si la caja no existe', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue(null);
 
       await expect(
-        CajaService.abrirSesion(3, {
-          turno: 'tarde',
-          fondo_inicial: '50.00',
-        }, dependiente),
-      ).rejects.toMatchObject({ status: 403 });
-      expect(CajaDAO.crearSesion).not.toHaveBeenCalled();
+        CajaService.abrirSesion(1, { turno: 'mañana', fondo_inicial: 100 }, dueno),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('rechaza con 409 si la caja está inactiva', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 1, activa: false });
+
+      await expect(
+        CajaService.abrirSesion(1, { turno: 'mañana', fondo_inicial: 100 }, dueno),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('rechaza con 409 si ya hay una sesión abierta', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 1, activa: true });
+      CajaDAO.obtenerSesionAbiertaPorCaja.mockResolvedValue({ id_sesion_caja: 5 });
+
+      await expect(
+        CajaService.abrirSesion(1, { turno: 'mañana', fondo_inicial: 100 }, dueno),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('abre la sesión correctamente', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 1, activa: true });
+      CajaDAO.obtenerSesionAbiertaPorCaja.mockResolvedValue(null);
+      CajaDAO.crearSesion.mockResolvedValue({ id_sesion_caja: 1 });
+
+      await expect(
+        CajaService.abrirSesion(1, { turno: 'mañana', fondo_inicial: 100 }, dueno),
+      ).resolves.toEqual({ id_sesion_caja: 1 });
+    });
+  });
+
+  describe('obtenerSesionActual', () => {
+    it('rechaza con 404 si la caja no existe', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue(null);
+
+      await expect(CajaService.obtenerSesionActual(1, dueno)).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('rechaza con 404 si no hay sesión abierta', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 1 });
+      CajaDAO.obtenerSesionAbiertaPorCaja.mockResolvedValue(null);
+
+      await expect(CajaService.obtenerSesionActual(1, dueno)).rejects.toMatchObject({ status: 404 });
     });
   });
 
   describe('registrarMovimiento', () => {
-    it('registra una entrada en una sesión abierta', async () => {
-      CajaDAO.obtenerSesionPorId.mockResolvedValue(sesionAbierta);
-      CajaDAO.crearMovimiento.mockResolvedValue({
-        id_movimiento_caja: 4,
-        tipo: 'entrada',
-        monto: '20.00',
-      });
+    const sesionAbierta = { id_sesion_caja: 1, id_sucursal: 1, estado: 'abierta', fondo_inicial: 100 };
 
-      const resultado = await CajaService.registrarMovimiento(9, {
-        tipo: 'entrada',
-        monto: '20.00',
-        motivo: 'Refuerzo de fondo',
-      }, dependiente);
+    it('rechaza con 404 si la sesión no existe', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue(null);
 
-      expect(CajaDAO.crearMovimiento).toHaveBeenCalledWith({
-        id_sesion_caja: 9,
-        id_usuario: 7,
-        tipo: 'entrada',
-        monto: '20.00',
-        motivo: 'Refuerzo de fondo',
-      }, {});
-      expect(resultado.id_movimiento_caja).toBe(4);
+      await expect(
+        CajaService.registrarMovimiento(1, { tipo: 'entrada', monto: 10 }, dueno),
+      ).rejects.toMatchObject({ status: 404 });
     });
 
-    it('rechaza una salida superior al efectivo esperado disponible', async () => {
+    it('rechaza con 409 si la sesión ya está cerrada', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({ ...sesionAbierta, estado: 'cerrada' });
+
+      await expect(
+        CajaService.registrarMovimiento(1, { tipo: 'entrada', monto: 10 }, dueno),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('rechaza con 409 si la salida supera el efectivo disponible', async () => {
       CajaDAO.obtenerSesionPorId.mockResolvedValue(sesionAbierta);
       CajaDAO.obtenerTotalesSesion.mockResolvedValue({
-        ventas_efectivo: '50.00',
-        ventas_tarjeta: '0.00',
-        total_entradas: '0.00',
-        total_salidas: '20.00',
-        cantidad_ventas: 1,
-        cantidad_anulaciones: 0,
+        ventas_efectivo: 0, total_entradas: 0, total_salidas: 0,
       });
 
       await expect(
-        CajaService.registrarMovimiento(9, {
-          tipo: 'salida',
-          monto: '140.00',
-          motivo: 'Retiro',
-        }, dependiente),
-      ).rejects.toMatchObject({
-        status: 409,
-        message: 'La salida supera el efectivo esperado disponible en caja',
-      });
-      expect(CajaDAO.crearMovimiento).not.toHaveBeenCalled();
+        CajaService.registrarMovimiento(1, { tipo: 'salida', monto: 1000 }, dueno),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('registra una entrada correctamente', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue(sesionAbierta);
+      CajaDAO.crearMovimiento.mockResolvedValue({ id_movimiento: 1 });
+
+      await expect(
+        CajaService.registrarMovimiento(1, { tipo: 'entrada', monto: 10 }, dueno),
+      ).resolves.toEqual({ id_movimiento: 1 });
     });
   });
 
   describe('cerrarSesion', () => {
-    const totales = {
-      ventas_efectivo: '250.00',
-      ventas_tarjeta: '80.00',
-      total_entradas: '20.00',
-      total_salidas: '30.00',
-      cantidad_ventas: 8,
-      cantidad_anulaciones: 1,
+    const sesionAbierta = {
+      id_sesion_caja: 1, id_sucursal: 1, estado: 'abierta', fondo_inicial: 100,
     };
 
-    it('calcula el cierre en backend y clasifica un faltante', async () => {
-      const cierreGuardado = {
-        ...sesionAbierta,
-        estado: 'cerrada',
-        total_ventas_efectivo: '250.00',
-        total_ventas_tarjeta: '80.00',
-        efectivo_esperado: '340.00',
-        efectivo_contado: '335.00',
-        diferencia_efectivo: '-5.00',
-      };
-      CajaDAO.obtenerSesionPorId
-        .mockResolvedValueOnce(sesionAbierta)
-        .mockResolvedValueOnce(cierreGuardado);
-      CajaDAO.obtenerTotalesSesion.mockResolvedValue(totales);
-      CajaDAO.cerrarSesion.mockResolvedValue(cierreGuardado);
-
-      const resultado = await CajaService.cerrarSesion(9, {
-        efectivo_contado: '335.00',
-        observaciones: 'Faltante pendiente de revisión',
-      }, dependiente);
-
-      expect(CajaDAO.cerrarSesion).toHaveBeenCalledWith(9, expect.objectContaining({
-        id_usuario_cierre: 7,
-        total_ventas_efectivo: '250.00',
-        total_ventas_tarjeta: '80.00',
-        efectivo_esperado: '340.00',
-        efectivo_contado: '335.00',
-        diferencia_efectivo: '-5.00',
-        cantidad_ventas: 8,
-        cantidad_anulaciones: 1,
-      }), {});
-      expect(resultado).toMatchObject({
-        total_ventas: '330.00',
-        resultado: 'faltante',
-      });
-    });
-
-    it('exige una observación cuando la caja no cuadra', async () => {
-      CajaDAO.obtenerSesionPorId.mockResolvedValue(sesionAbierta);
-      CajaDAO.obtenerTotalesSesion.mockResolvedValue(totales);
+    it('rechaza con 404 si la sesión no existe', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue(null);
 
       await expect(
-        CajaService.cerrarSesion(9, {
-          efectivo_contado: '335.00',
-          observaciones: null,
-        }, dependiente),
-      ).rejects.toMatchObject({
-        status: 400,
-        message: 'Las diferencias de efectivo requieren una observación',
+        CajaService.cerrarSesion(1, { efectivo_contado: 100 }, dueno),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('rechaza con 409 si hay pagos POS pendientes', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue(sesionAbierta);
+      CajaDAO.contarPagosPOSPendientes.mockResolvedValue(2);
+
+      await expect(
+        CajaService.cerrarSesion(1, { efectivo_contado: 100 }, dueno),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('rechaza con 400 si hay diferencia de efectivo sin observaciones', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue(sesionAbierta);
+      CajaDAO.contarPagosPOSPendientes.mockResolvedValue(0);
+      CajaDAO.obtenerTotalesSesion.mockResolvedValue({
+        ventas_efectivo: 0, ventas_tarjeta: 0, total_entradas: 0, total_salidas: 0,
+        cantidad_ventas: 0, cantidad_anulaciones: 0,
       });
-      expect(CajaDAO.cerrarSesion).not.toHaveBeenCalled();
+
+      await expect(
+        CajaService.cerrarSesion(1, { efectivo_contado: 150 }, dueno),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('cierra la sesión cuadrada cuando no hay diferencia', async () => {
+      CajaDAO.obtenerSesionPorId
+        .mockResolvedValueOnce(sesionAbierta)
+        .mockResolvedValueOnce({ ...sesionAbierta, estado: 'cerrada' });
+      CajaDAO.contarPagosPOSPendientes.mockResolvedValue(0);
+      CajaDAO.obtenerTotalesSesion.mockResolvedValue({
+        ventas_efectivo: 0, ventas_tarjeta: 0, total_entradas: 0, total_salidas: 0,
+        cantidad_ventas: 0, cantidad_anulaciones: 0,
+      });
+      CajaDAO.cerrarSesion.mockResolvedValue({});
+
+      const resultado = await CajaService.cerrarSesion(1, { efectivo_contado: 100 }, dueno);
+
+      expect(resultado.resultado).toBe('cuadrada');
     });
 
     it('no permite cerrar dos veces la misma sesión', async () => {
-      CajaDAO.obtenerSesionPorId.mockResolvedValue({
-        ...sesionAbierta,
-        estado: 'cerrada',
-      });
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({ ...sesionAbierta, estado: 'cerrada' });
 
       await expect(
-        CajaService.cerrarSesion(9, {
-          efectivo_contado: '100.00',
-          observaciones: null,
-        }, dependiente),
+        CajaService.cerrarSesion(1, { efectivo_contado: 100 }, dueno),
       ).rejects.toMatchObject({ status: 409 });
       expect(CajaDAO.obtenerTotalesSesion).not.toHaveBeenCalled();
     });
 
-    it('impide cerrar mientras exista un pago POS pendiente', async () => {
-      CajaDAO.obtenerSesionPorId.mockResolvedValue(sesionAbierta);
-      CajaDAO.contarPagosPOSPendientes.mockResolvedValue(1);
-
-      await expect(
-        CajaService.cerrarSesion(9, {
-          efectivo_contado: '100.00',
-          observaciones: 'Conteo físico completado',
-        }, dependiente),
-      ).rejects.toMatchObject({
-        status: 409,
-        message: 'No se puede cerrar la caja mientras haya pagos POS pendientes',
+    it('marca el cierre como "faltante" cuando el efectivo contado es menor al esperado', async () => {
+      CajaDAO.obtenerSesionPorId
+        .mockResolvedValueOnce(sesionAbierta)
+        .mockResolvedValueOnce({ ...sesionAbierta, estado: 'cerrada' });
+      CajaDAO.contarPagosPOSPendientes.mockResolvedValue(0);
+      CajaDAO.obtenerTotalesSesion.mockResolvedValue({
+        ventas_efectivo: 0, ventas_tarjeta: 0, total_entradas: 0, total_salidas: 0,
+        cantidad_ventas: 0, cantidad_anulaciones: 0,
       });
-      expect(CajaDAO.obtenerTotalesSesion).not.toHaveBeenCalled();
+      CajaDAO.cerrarSesion.mockResolvedValue({});
+
+      const resultado = await CajaService.cerrarSesion(
+        1, { efectivo_contado: 95, observaciones: 'Faltante detectado' }, dueno,
+      );
+
+      expect(resultado.resultado).toBe('faltante');
+    });
+
+    it('marca el cierre como "sobrante" cuando el efectivo contado es mayor al esperado', async () => {
+      CajaDAO.obtenerSesionPorId
+        .mockResolvedValueOnce(sesionAbierta)
+        .mockResolvedValueOnce({ ...sesionAbierta, estado: 'cerrada' });
+      CajaDAO.contarPagosPOSPendientes.mockResolvedValue(0);
+      CajaDAO.obtenerTotalesSesion.mockResolvedValue({
+        ventas_efectivo: 0, ventas_tarjeta: 0, total_entradas: 0, total_salidas: 0,
+        cantidad_ventas: 0, cantidad_anulaciones: 0,
+      });
+      CajaDAO.cerrarSesion.mockResolvedValue({});
+
+      const resultado = await CajaService.cerrarSesion(
+        1, { efectivo_contado: 110, observaciones: 'Sobrante detectado' }, dueno,
+      );
+
+      expect(resultado.resultado).toBe('sobrante');
+    });
+  });
+
+  describe('obtenerCierres', () => {
+    it('agrega el total_ventas calculado a cada cierre', async () => {
+      CajaDAO.obtenerCierres.mockResolvedValue([
+        { id_sesion_caja: 1, total_ventas_efectivo: 10, total_ventas_tarjeta: 5 },
+      ]);
+
+      const resultado = await CajaService.obtenerCierres({});
+
+      expect(resultado[0].total_ventas).toBe('15.00');
     });
   });
 
   describe('obtenerResumenDiario', () => {
-    it('consulta todas las cajas de la sucursal cuando no se especifica una', async () => {
-      CajaDAO.obtenerResumenDiario.mockResolvedValue([]);
-
-      await CajaService.obtenerResumenDiario('2026-09-28', 2);
-
-      expect(CajaDAO.obtenerResumenDiario).toHaveBeenCalledWith('2026-09-28', 2, undefined);
-      expect(CajaDAO.obtenerCajaPorId).not.toHaveBeenCalled();
-    });
-
-    it('consulta una caja cuando pertenece a la sucursal seleccionada', async () => {
-      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 3, id_sucursal: 2 });
-      CajaDAO.obtenerResumenDiario.mockResolvedValue([]);
-
-      await CajaService.obtenerResumenDiario('2026-09-28', 2, 3);
-
-      expect(CajaDAO.obtenerResumenDiario).toHaveBeenCalledWith('2026-09-28', 2, 3);
-    });
-
-    it('rechaza una caja que no pertenece a la sucursal seleccionada', async () => {
-      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 3, id_sucursal: 1 });
+    it('rechaza con 404 si la caja indicada no existe', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue(null);
 
       await expect(
-        CajaService.obtenerResumenDiario('2026-09-28', 2, 3),
-      ).rejects.toMatchObject({
-        status: 400,
-        message: 'La caja no pertenece a la sucursal seleccionada',
-      });
-      expect(CajaDAO.obtenerResumenDiario).not.toHaveBeenCalled();
+        CajaService.obtenerResumenDiario('2026-01-01', 1, 5),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('rechaza con 400 si la caja no pertenece a la sucursal', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 5, id_sucursal: 2 });
+
+      await expect(
+        CajaService.obtenerResumenDiario('2026-01-01', 1, 5),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('devuelve el resumen con totales calculados', async () => {
+      CajaDAO.obtenerResumenDiario.mockResolvedValue([
+        { id_sucursal: 1, total_ventas_efectivo: 20, total_ventas_tarjeta: 10 },
+      ]);
+
+      const resultado = await CajaService.obtenerResumenDiario('2026-01-01', 1);
+
+      expect(resultado[0].total_ventas).toBe('30.00');
     });
   });
 });

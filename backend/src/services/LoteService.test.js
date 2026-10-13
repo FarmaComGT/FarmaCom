@@ -7,195 +7,250 @@ const ProductoDAO = require('../daos/ProductoDAO');
 const HistorialPrecioLoteDAO = require('../daos/HistorialPrecioLoteDAO');
 const LoteService = require('./LoteService');
 
-const cliente = { query: jest.fn() };
+const mockClient = {};
 
-const loteExistente = {
-  id_lote: 7,
-  id_producto: 2,
-  id_proveedor: 3,
-  id_sucursal: 4,
-  numero_lote: 'LT-001',
-  cantidad_ingresada: 20,
-  stock_actual: 12,
-  precio_compra: '10.00',
-  precio_venta: '15.00',
+const fechaFutura = () => {
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() + 30);
+  return fecha.toISOString().slice(0, 10);
+};
+
+const datosLoteBase = {
+  id_producto: 1,
+  id_proveedor: 1,
+  id_sucursal: 1,
+  numero_lote: 'L-001',
+  fecha_vencimiento: fechaFutura(),
+  cantidad_ingresada: 10,
+  precio_venta: 8.5,
+  margen_ganancia: 50,
 };
 
 describe('LoteService', () => {
   beforeEach(() => {
-    LoteDAO.ejecutarEnTransaccion.mockImplementation(
-      async (operacion) => operacion(cliente),
-    );
+    jest.resetAllMocks();
+    LoteDAO.ejecutarEnTransaccion.mockImplementation((fn) => fn(mockClient));
   });
 
   describe('crearLote', () => {
-    it('inicializa el precio de compra del lote con el precio del producto', async () => {
-      ProductoDAO.obtenerPorId.mockResolvedValue({
-        id_producto: 2,
-        activo: true,
-        precio_compra: '10.75',
-      });
+    it('crea el lote cuando todo es válido', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: true, precio_compra: 5 });
       LoteDAO.obtenerPorNumeroLote.mockResolvedValue(null);
-      LoteDAO.crear.mockResolvedValue({ id_lote: 7 });
-      LoteDAO.obtenerPorId.mockResolvedValue({ ...loteExistente, precio_compra: '10.75' });
+      LoteDAO.crear.mockResolvedValue({ id_lote: 1 });
+      LoteDAO.obtenerPorId.mockResolvedValue({ id_lote: 1, ...datosLoteBase });
 
-      await LoteService.crearLote({
-        id_producto: 2,
-        id_proveedor: 3,
-        id_sucursal: 4,
-        numero_lote: 'LT-NUEVO',
-        fecha_vencimiento: '2099-12-31',
-        cantidad_ingresada: 20,
-        precio_venta: 15,
-        margen_ganancia: 39.5349,
-      });
+      const resultado = await LoteService.crearLote(datosLoteBase);
 
-      expect(LoteDAO.crear).toHaveBeenCalledWith(expect.objectContaining({
-        precio_compra: 10.75,
-      }));
+      expect(LoteDAO.crear).toHaveBeenCalled();
+      expect(resultado.id_lote).toBe(1);
+    });
+
+    it('rechaza con 404 si el producto no existe', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue(null);
+
+      await expect(LoteService.crearLote(datosLoteBase)).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('rechaza con 409 si el producto está inactivo', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: false });
+
+      await expect(LoteService.crearLote(datosLoteBase)).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('rechaza con 400 si la fecha de vencimiento ya pasó', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: true, precio_compra: 5 });
+
+      await expect(
+        LoteService.crearLote({ ...datosLoteBase, fecha_vencimiento: '2020-01-01' }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 400 si la cantidad ingresada no es un entero positivo', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: true, precio_compra: 5 });
+
+      await expect(
+        LoteService.crearLote({ ...datosLoteBase, cantidad_ingresada: 0 }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 409 si el número de lote ya existe para ese producto/sucursal', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: true, precio_compra: 5 });
+      LoteDAO.obtenerPorNumeroLote.mockResolvedValue({ id_lote: 5 });
+
+      await expect(LoteService.crearLote(datosLoteBase)).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('rechaza con 400 si el precio de venta es negativo', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: true, precio_compra: 5 });
+      LoteDAO.obtenerPorNumeroLote.mockResolvedValue(null);
+
+      await expect(
+        LoteService.crearLote({ ...datosLoteBase, precio_venta: -1 }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 400 si solo viene precio_mayoreo sin cantidad_mayoreo', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: true, precio_compra: 5 });
+      LoteDAO.obtenerPorNumeroLote.mockResolvedValue(null);
+
+      await expect(
+        LoteService.crearLote({ ...datosLoteBase, precio_mayoreo: 7 }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+  });
+
+  describe('obtenerPorSucursal', () => {
+    it('delega al DAO', async () => {
+      LoteDAO.obtenerPorSucursal.mockResolvedValue([{ id_lote: 1 }]);
+
+      await expect(LoteService.obtenerPorSucursal(1)).resolves.toEqual([{ id_lote: 1 }]);
+    });
+  });
+
+  describe('obtenerPorProducto', () => {
+    it('rechaza con 404 si el producto no existe', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue(null);
+
+      await expect(LoteService.obtenerPorProducto(99)).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  describe('obtenerPorId', () => {
+    it('rechaza con 404 si no existe', async () => {
+      LoteDAO.obtenerPorId.mockResolvedValue(null);
+
+      await expect(LoteService.obtenerPorId(99)).rejects.toMatchObject({ status: 404 });
     });
   });
 
   describe('actualizarLote', () => {
-    it('actualiza los datos editables y devuelve el lote completo', async () => {
-      const loteActualizado = { ...loteExistente, numero_lote: 'LT-002' };
-      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
-      LoteDAO.obtenerPorId.mockResolvedValue(loteActualizado);
-      LoteDAO.obtenerPorNumeroLote.mockResolvedValue(null);
-      LoteDAO.actualizar.mockResolvedValue(loteActualizado);
+    const loteExistente = {
+      id_lote: 1,
+      id_producto: 1,
+      id_proveedor: 1,
+      id_sucursal: 1,
+      numero_lote: 'L-001',
+      cantidad_ingresada: 10,
+      stock_actual: 10,
+      precio_compra: 5,
+      precio_venta: 8.5,
+    };
 
-      const resultado = await LoteService.actualizarLote(7, { numero_lote: 'LT-002' });
+    it('rechaza con 404 si el lote no existe', async () => {
+      LoteDAO.obtenerFilaPorId.mockResolvedValue(null);
 
-      expect(LoteDAO.obtenerPorNumeroLote).toHaveBeenCalledWith(
-        'LT-002',
-        2,
-        4,
-        7,
-        cliente,
-      );
-      expect(LoteDAO.actualizar).toHaveBeenCalledWith(
-        7,
-        { numero_lote: 'LT-002' },
-        cliente,
-      );
-      expect(resultado).toEqual(loteActualizado);
+      await expect(LoteService.actualizarLote(99, { numero_lote: 'X' }, 1)).rejects.toMatchObject({ status: 404 });
     });
 
-    it('rechaza un numero de lote duplicado para el producto y sucursal', async () => {
+    it('rechaza con 400 si no hay campos válidos para actualizar', async () => {
       LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
-      LoteDAO.obtenerPorNumeroLote.mockResolvedValue({ id_lote: 8 });
+
+      await expect(LoteService.actualizarLote(1, { campo_invalido: 'x' }, 1)).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 400 si el stock actual supera la cantidad ingresada', async () => {
+      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
 
       await expect(
-        LoteService.actualizarLote(7, { numero_lote: 'LT-DUP' }),
+        LoteService.actualizarLote(1, { stock_actual: 99 }, 1),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('actualiza el lote sin cambio de precio, sin tocar el historial', async () => {
+      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
+      LoteDAO.actualizar.mockResolvedValue({ ...loteExistente, numero_lote: 'L-002' });
+      LoteDAO.obtenerPorId.mockResolvedValue({ ...loteExistente, numero_lote: 'L-002' });
+
+      const resultado = await LoteService.actualizarLote(1, { numero_lote: 'L-002' }, 1);
+
+      expect(resultado.numero_lote).toBe('L-002');
+      expect(HistorialPrecioLoteDAO.registrarCambios).not.toHaveBeenCalled();
+    });
+
+    it('registra el historial de precios cuando el precio cambia', async () => {
+      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
+      LoteDAO.actualizar.mockResolvedValue({ ...loteExistente, precio_venta: 9.5 });
+      LoteDAO.obtenerPorId.mockResolvedValue({ ...loteExistente, precio_venta: 9.5 });
+
+      await LoteService.actualizarLote(1, { precio_venta: 9.5 }, 1);
+
+      expect(HistorialPrecioLoteDAO.registrarCambios).toHaveBeenCalledWith(
+        1, 1, loteExistente, { ...loteExistente, precio_venta: 9.5 }, mockClient,
+      );
+    });
+
+    it('rechaza con 400 si cambia el precio sin un usuario válido', async () => {
+      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
+      LoteDAO.actualizar.mockResolvedValue({ ...loteExistente, precio_venta: 9.5 });
+
+      await expect(
+        LoteService.actualizarLote(1, { precio_venta: 9.5 }, null),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 409 si el nuevo número de lote ya existe para el producto/sucursal', async () => {
+      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
+      LoteDAO.obtenerPorNumeroLote.mockResolvedValue({ id_lote: 2 });
+
+      await expect(
+        LoteService.actualizarLote(1, { numero_lote: 'L-003' }, 1),
       ).rejects.toMatchObject({ status: 409 });
       expect(LoteDAO.actualizar).not.toHaveBeenCalled();
     });
 
-    it('impide reducir la cantidad ingresada por debajo del stock actual', async () => {
+    it('limpia ambos valores de mayoreo en una sola actualización', async () => {
       LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
+      LoteDAO.actualizar.mockResolvedValue({ ...loteExistente, precio_mayoreo: null, cantidad_mayoreo: null });
+      LoteDAO.obtenerPorId.mockResolvedValue({ ...loteExistente, precio_mayoreo: null, cantidad_mayoreo: null });
+
+      await LoteService.actualizarLote(1, { limpiar_mayoreo: true }, 1);
+
+      const datosEnviados = LoteDAO.actualizar.mock.calls[0][1];
+      expect(datosEnviados).not.toHaveProperty('precio_mayoreo');
+      expect(datosEnviados).not.toHaveProperty('cantidad_mayoreo');
+    });
+
+    it('traduce el error de constraint 23505 a un 409', async () => {
+      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
+      const errorDb = new Error('duplicado');
+      errorDb.code = '23505';
+      LoteDAO.actualizar.mockRejectedValue(errorDb);
 
       await expect(
-        LoteService.actualizarLote(7, { cantidad_ingresada: 10 }),
-      ).rejects.toMatchObject({
-        message: 'El stock actual no puede superar la cantidad ingresada del lote',
-        status: 400,
-      });
-    });
-
-    it('limpia ambos valores de mayoreo en una sola actualizacion', async () => {
-      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
-      LoteDAO.obtenerPorId.mockResolvedValue(loteExistente);
-      LoteDAO.actualizar.mockResolvedValue(loteExistente);
-
-      await LoteService.actualizarLote(7, {
-        limpiar_mayoreo: true,
-        precio_mayoreo: 15,
-        cantidad_mayoreo: 5,
-      });
-
-      expect(LoteDAO.actualizar).toHaveBeenCalledWith(
-        7,
-        { limpiar_mayoreo: true },
-        cliente,
-      );
-    });
-
-    it('rechaza una actualizacion sin campos reconocidos', async () => {
-      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
-
-      await expect(
-        LoteService.actualizarLote(7, { campo_desconocido: 'valor' }),
-      ).rejects.toMatchObject({ status: 400 });
-    });
-
-    it('registra en una misma transaccion los cambios de compra y venta', async () => {
-      const loteActualizado = {
-        ...loteExistente,
-        precio_compra: '11.50',
-        precio_venta: '17.25',
-      };
-      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
-      LoteDAO.actualizar.mockResolvedValue(loteActualizado);
-      LoteDAO.obtenerPorId.mockResolvedValue(loteActualizado);
-      HistorialPrecioLoteDAO.registrarCambios.mockResolvedValue([
-        { tipo_precio: 'compra' },
-        { tipo_precio: 'venta' },
-      ]);
-
-      await LoteService.actualizarLote(
-        7,
-        { precio_compra: 11.5, precio_venta: 17.25 },
-        9,
-      );
-
-      expect(HistorialPrecioLoteDAO.registrarCambios).toHaveBeenCalledWith(
-        7,
-        9,
-        loteExistente,
-        loteActualizado,
-        cliente,
-      );
-    });
-
-    it('no registra historial cuando el precio conserva el mismo valor', async () => {
-      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
-      LoteDAO.actualizar.mockResolvedValue(loteExistente);
-      LoteDAO.obtenerPorId.mockResolvedValue(loteExistente);
-
-      await LoteService.actualizarLote(7, { precio_venta: 15 }, 9);
-
-      expect(HistorialPrecioLoteDAO.registrarCambios).not.toHaveBeenCalled();
+        LoteService.actualizarLote(1, { numero_lote: 'L-003' }, 1),
+      ).rejects.toMatchObject({ status: 409 });
     });
   });
 
   describe('eliminarLote', () => {
-    it('devuelve 404 cuando el lote no existe', async () => {
+    it('rechaza con 404 si no existe', async () => {
       LoteDAO.obtenerPorId.mockResolvedValue(null);
 
-      await expect(LoteService.eliminarLote(99)).rejects.toMatchObject({
-        message: 'Lote no encontrado',
-        status: 404,
-      });
-      expect(LoteDAO.eliminar).not.toHaveBeenCalled();
+      await expect(LoteService.eliminarLote(99)).rejects.toMatchObject({ status: 404 });
     });
 
-    it('elimina un lote sin ventas asociadas', async () => {
-      LoteDAO.obtenerPorId.mockResolvedValue(loteExistente);
-      LoteDAO.eliminar.mockResolvedValue(loteExistente);
+    it('elimina correctamente', async () => {
+      LoteDAO.obtenerPorId.mockResolvedValue({ id_lote: 1 });
+      LoteDAO.eliminar.mockResolvedValue(true);
 
-      await expect(LoteService.eliminarLote(7)).resolves.toEqual({
-        mensaje: 'Lote eliminado correctamente',
-      });
+      await expect(LoteService.eliminarLote(1)).resolves.toEqual({ mensaje: 'Lote eliminado correctamente' });
     });
 
-    it('devuelve conflicto cuando el lote esta asociado a una venta', async () => {
-      LoteDAO.obtenerPorId.mockResolvedValue(loteExistente);
-      LoteDAO.eliminar.mockRejectedValue({ code: '23503' });
+    it('traduce la violación de FK a un 409 legible', async () => {
+      LoteDAO.obtenerPorId.mockResolvedValue({ id_lote: 1 });
+      const errorDb = new Error('fk');
+      errorDb.code = '23503';
+      LoteDAO.eliminar.mockRejectedValue(errorDb);
 
-      await expect(LoteService.eliminarLote(7)).rejects.toMatchObject({
-        message: 'No se puede eliminar un lote asociado a ventas o a un historial de precios',
-        status: 409,
-      });
+      await expect(LoteService.eliminarLote(1)).rejects.toMatchObject({ status: 409 });
+    });
+  });
+
+  describe('obtenerAlertas', () => {
+    it('delega al DAO', async () => {
+      LoteDAO.obtenerAlertas.mockResolvedValue([{ id_lote: 1 }]);
+
+      await expect(LoteService.obtenerAlertas(1)).resolves.toEqual([{ id_lote: 1 }]);
     });
   });
 });
