@@ -9,7 +9,6 @@ jest.mock('../services/ProveedorEmailService');
 jest.mock('../services/ProveedorTelefonoService');
 jest.mock('../services/CorreoSucursalService');
 jest.mock('../services/TelefonoSucursalService');
-jest.mock('../services/ContactoSucursalService');
 
 const request = require('supertest');
 const express = require('express');
@@ -18,13 +17,11 @@ const CasaFarmaceuticaRoutes = require('./CasaFarmaceuticaRoutes');
 const ProveedorRoutes = require('./ProveedorRoutes');
 const CorreoSucursalRoutes = require('./CorreoSucursalRoutes');
 const TelefonoSucursalRoutes = require('./TelefonoSucursalRoutes');
-const ContactoSucursalRoutes = require('./ContactoSucursalRoutes');
 const CasaEmailService = require('../services/CasaEmailService');
 const CasaTelefonoService = require('../services/CasaTelefonoService');
 const ProveedorEmailService = require('../services/ProveedorEmailService');
 const ProveedorTelefonoService = require('../services/ProveedorTelefonoService');
 const CorreoSucursalService = require('../services/CorreoSucursalService');
-const ContactoSucursalService = require('../services/ContactoSucursalService');
 const errorHandler = require('../middlewares/errorHandler');
 
 const app = express();
@@ -35,7 +32,6 @@ app.use('/api/sucursales/:id_sucursal/telefonos', TelefonoSucursalRoutes);
 app.use('/api/sucursales/:id_sucursal/correos', CorreoSucursalRoutes);
 app.use('/api/telefonos', TelefonoSucursalRoutes);
 app.use('/api/correos', CorreoSucursalRoutes);
-app.use('/legacy/sucursales/:id/contactos', ContactoSucursalRoutes);
 app.use(errorHandler);
 
 describe('validación centralizada de contactos', () => {
@@ -98,18 +94,5 @@ describe('respuestas de contactos', () => {
 
     expect(respuesta.status).toBe(404);
     expect(respuesta.body).toEqual({ mensaje: 'La sucursal no existe' });
-  });
-
-  it('moderniza la ruta legado sin exponerla en la aplicación', async () => {
-    ContactoSucursalService.agregarCorreo.mockRejectedValue(
-      new AppError('El correo es requerido', 400),
-    );
-
-    const respuesta = await request(app)
-      .post('/legacy/sucursales/1/contactos/correos')
-      .send({ correo: 'contacto@farmacom.test' });
-
-    expect(respuesta.status).toBe(400);
-    expect(respuesta.body).toEqual({ mensaje: 'El correo es requerido' });
   });
 });
