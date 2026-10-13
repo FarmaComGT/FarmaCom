@@ -55,6 +55,61 @@ describe('useContactosSucursal', () => {
     expect(result.current.telefonos).toEqual([{ id_telefono_sucursal: 1, numero: '123' }]);
   });
 
+  it('actualiza un teléfono usando la ruta plana /telefonos/:id', async () => {
+    api.get.mockImplementation((url) => (
+      url.includes('/telefonos')
+        ? Promise.resolve({ data: [{ id_telefono_sucursal: 1, numero: '123' }] })
+        : Promise.resolve({ data: [] })
+    ));
+    const { result } = renderHook(() => useContactosSucursal(3));
+    await waitFor(() => expect(result.current.telefonos).toEqual([
+      { id_telefono_sucursal: 1, numero: '123' },
+    ]));
+
+    api.put.mockResolvedValue({ data: { id_telefono_sucursal: 1, numero: '456' } });
+
+    await act(async () => {
+      await result.current.actualizarTelefono(1, '456');
+    });
+
+    expect(api.put).toHaveBeenCalledWith('/telefonos/1', { numero: '456' });
+    expect(result.current.telefonos[0].numero).toBe('456');
+  });
+
+  it('agrega un correo a la sucursal', async () => {
+    api.get.mockResolvedValue({ data: [] });
+    const { result } = renderHook(() => useContactosSucursal(3));
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    api.post.mockResolvedValue({ data: { id_correo_sucursal: 1, correo: 'a@b.com' } });
+
+    await act(async () => {
+      await result.current.agregarCorreo('a@b.com');
+    });
+
+    expect(api.post).toHaveBeenCalledWith('/sucursales/3/correos', { correo: 'a@b.com' });
+    expect(result.current.correos).toEqual([{ id_correo_sucursal: 1, correo: 'a@b.com' }]);
+  });
+
+  it('elimina un correo usando la ruta plana /correos/:id', async () => {
+    api.get.mockImplementation((url) => (
+      url.includes('/correos')
+        ? Promise.resolve({ data: [{ id_correo_sucursal: 1 }] })
+        : Promise.resolve({ data: [] })
+    ));
+    const { result } = renderHook(() => useContactosSucursal(3));
+    await waitFor(() => expect(result.current.correos).toEqual([{ id_correo_sucursal: 1 }]));
+
+    api.delete.mockResolvedValue({});
+
+    await act(async () => {
+      await result.current.eliminarCorreo(1);
+    });
+
+    expect(api.delete).toHaveBeenCalledWith('/correos/1');
+    expect(result.current.correos).toEqual([]);
+  });
+
   it('actualiza un correo usando la ruta plana /correos/:id', async () => {
     api.get.mockImplementation((url) => (
       url.includes('/correos')

@@ -59,6 +59,78 @@ describe('useContactosCasa', () => {
     expect(result.current.telefonos).toEqual([{ id_telefono: 1, numero: '123' }]);
   });
 
+  it('actualiza un teléfono de la casa', async () => {
+    api.get.mockImplementation((url) => (
+      url.includes('/telefonos')
+        ? Promise.resolve({ data: [{ id_telefono: 1, numero: '123' }] })
+        : Promise.resolve({ data: [] })
+    ));
+    const { result } = renderHook(() => useContactosCasa(5));
+    await waitFor(() => expect(result.current.telefonos).toEqual([{ id_telefono: 1, numero: '123' }]));
+
+    api.put.mockResolvedValue({ data: { id_telefono: 1, numero: '456' } });
+
+    await act(async () => {
+      await result.current.actualizarTelefono(1, '456');
+    });
+
+    expect(api.put).toHaveBeenCalledWith('/casas/5/telefonos/1', { numero: '456' });
+    expect(result.current.telefonos).toEqual([{ id_telefono: 1, numero: '456' }]);
+  });
+
+  it('elimina un teléfono de la casa', async () => {
+    api.get.mockImplementation((url) => (
+      url.includes('/telefonos')
+        ? Promise.resolve({ data: [{ id_telefono: 1 }] })
+        : Promise.resolve({ data: [] })
+    ));
+    const { result } = renderHook(() => useContactosCasa(5));
+    await waitFor(() => expect(result.current.telefonos).toEqual([{ id_telefono: 1 }]));
+
+    api.delete.mockResolvedValue({});
+
+    await act(async () => {
+      await result.current.eliminarTelefono(1);
+    });
+
+    expect(api.delete).toHaveBeenCalledWith('/casas/5/telefonos/1');
+    expect(result.current.telefonos).toEqual([]);
+  });
+
+  it('agrega un correo a la casa', async () => {
+    api.get.mockResolvedValue({ data: [] });
+    const { result } = renderHook(() => useContactosCasa(5));
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    api.post.mockResolvedValue({ data: { id_email: 1, correo: 'a@b.com' } });
+
+    await act(async () => {
+      await result.current.agregarCorreo('a@b.com');
+    });
+
+    expect(api.post).toHaveBeenCalledWith('/casas/5/correos', { correo: 'a@b.com' });
+    expect(result.current.correos).toEqual([{ id_email: 1, correo: 'a@b.com' }]);
+  });
+
+  it('actualiza un correo de la casa', async () => {
+    api.get.mockImplementation((url) => (
+      url.includes('/correos')
+        ? Promise.resolve({ data: [{ id_email: 1, correo: 'a@b.com' }] })
+        : Promise.resolve({ data: [] })
+    ));
+    const { result } = renderHook(() => useContactosCasa(5));
+    await waitFor(() => expect(result.current.correos).toEqual([{ id_email: 1, correo: 'a@b.com' }]));
+
+    api.put.mockResolvedValue({ data: { id_email: 1, correo: 'nuevo@b.com' } });
+
+    await act(async () => {
+      await result.current.actualizarCorreo(1, 'nuevo@b.com');
+    });
+
+    expect(api.put).toHaveBeenCalledWith('/casas/5/correos/1', { correo: 'nuevo@b.com' });
+    expect(result.current.correos).toEqual([{ id_email: 1, correo: 'nuevo@b.com' }]);
+  });
+
   it('elimina un correo de la casa', async () => {
     api.get.mockImplementation((url) => (
       url.includes('/correos')
