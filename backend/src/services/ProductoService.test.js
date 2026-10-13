@@ -5,128 +5,296 @@ const ProductoDAO = require('../daos/ProductoDAO');
 const PresentacionDAO = require('../daos/PresentacionDAO');
 const ProductoService = require('./ProductoService');
 
-const productoBase = {
-  codigo: 'MED010-TE',
-  nombre_comercial: 'Termómetro digital',
-  nombre_generico: 'Termómetro',
-  id_presentacion: 4,
-  id_categoria: 2,
-  id_casa: 3,
-  precio_compra: 25,
-  meses_alerta_vencimiento: 12,
+const datosBase = {
+  codigo: 'MED001',
+  nombre_generico: 'Paracetamol',
+  concentracion: '500 mg',
+  id_presentacion: 1,
+  id_casa: 1,
+  precio_compra: 5,
+  meses_alerta_vencimiento: 6,
 };
 
-describe('ProductoService - concentración opcional', () => {
-  beforeEach(() => jest.clearAllMocks());
+describe('ProductoService', () => {
+  describe('crearProducto', () => {
+    it('crea el producto cuando todo es válido', async () => {
+      PresentacionDAO.obtenerPorId.mockResolvedValue({ id_presentacion: 1, nombre: 'Caja' });
+      ProductoDAO.obtenerPorCodigo.mockResolvedValue(null);
+      ProductoDAO.obtenerPorIdentidad.mockResolvedValue(null);
+      ProductoDAO.crear.mockResolvedValue({ id_producto: 1 });
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, ...datosBase });
 
-  it('crea un producto sin concentración y la normaliza a null', async () => {
-    PresentacionDAO.obtenerPorId.mockResolvedValue({ id_presentacion: 4, nombre: 'Unidad' });
-    ProductoDAO.obtenerPorCodigo.mockResolvedValue(null);
-    ProductoDAO.obtenerPorIdentidad.mockResolvedValue(null);
-    ProductoDAO.crear.mockResolvedValue({ id_producto: 10 });
-    ProductoDAO.obtenerPorId.mockResolvedValue({
-      id_producto: 10,
-      ...productoBase,
-      concentracion: null,
+      const resultado = await ProductoService.crearProducto(datosBase);
+
+      expect(ProductoDAO.crear).toHaveBeenCalled();
+      expect(resultado).toEqual({ id_producto: 1, ...datosBase });
     });
 
-    const resultado = await ProductoService.crearProducto(productoBase);
+    it('crea un producto sin concentración y la normaliza a null', async () => {
+      PresentacionDAO.obtenerPorId.mockResolvedValue({ id_presentacion: 1, nombre: 'Caja' });
+      ProductoDAO.obtenerPorCodigo.mockResolvedValue(null);
+      ProductoDAO.obtenerPorIdentidad.mockResolvedValue(null);
+      ProductoDAO.crear.mockResolvedValue({ id_producto: 1 });
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1 });
 
-    expect(ProductoDAO.obtenerPorIdentidad).toHaveBeenCalledWith({
-      ...productoBase,
-      concentracion: null,
-    });
-    expect(ProductoDAO.crear).toHaveBeenCalledWith({
-      ...productoBase,
-      concentracion: null,
-    });
-    expect(resultado.concentracion).toBeNull();
-  });
+      await ProductoService.crearProducto({ ...datosBase, concentracion: '   ' });
 
-  it('convierte una concentración vacía a null al actualizar', async () => {
-    const existente = {
-      id_producto: 10,
-      ...productoBase,
-      concentracion: '500 mg',
-    };
-    ProductoDAO.obtenerPorId
-      .mockResolvedValueOnce(existente)
-      .mockResolvedValueOnce({ ...existente, concentracion: null });
-    ProductoDAO.obtenerPorIdentidad.mockResolvedValue(null);
-    ProductoDAO.actualizar.mockResolvedValue({ ...existente, concentracion: null });
-
-    const resultado = await ProductoService.actualizarProducto(10, { concentracion: '   ' });
-
-    expect(ProductoDAO.obtenerPorIdentidad).toHaveBeenCalledWith(expect.objectContaining({
-      concentracion: null,
-    }));
-    expect(ProductoDAO.actualizar).toHaveBeenCalledWith(10, { concentracion: null });
-    expect(resultado.concentracion).toBeNull();
-  });
-
-  it('conserva la concentración existente cuando el campo no se envía', async () => {
-    const existente = {
-      id_producto: 10,
-      ...productoBase,
-      concentracion: '500 mg',
-    };
-    ProductoDAO.obtenerPorId
-      .mockResolvedValueOnce(existente)
-      .mockResolvedValueOnce({ ...existente, nombre_comercial: 'Termómetro clínico' });
-    ProductoDAO.obtenerPorIdentidad.mockResolvedValue(null);
-    ProductoDAO.actualizar.mockResolvedValue(existente);
-
-    await ProductoService.actualizarProducto(10, { nombre_comercial: 'Termómetro clínico' });
-
-    expect(ProductoDAO.obtenerPorIdentidad).toHaveBeenCalledWith(expect.objectContaining({
-      concentracion: '500 mg',
-    }));
-    expect(ProductoDAO.actualizar).toHaveBeenCalledWith(10, {
-      nombre_comercial: 'Termómetro clínico',
-    });
-  });
-});
-
-describe('ProductoService - autocompletado para POS', () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  it('normaliza la búsqueda y usa diez resultados por defecto', async () => {
-    ProductoDAO.autocompletarParaPOS.mockResolvedValue([{ id_producto: 2 }]);
-
-    const resultado = await ProductoService.autocompletarParaPOS({
-      busqueda: '  acetaminofen  ',
-      id_sucursal: 4,
+      expect(ProductoDAO.crear).toHaveBeenCalledWith(
+        expect.objectContaining({ concentracion: null }),
+      );
     });
 
-    expect(ProductoDAO.autocompletarParaPOS).toHaveBeenCalledWith('acetaminofen', 4, 10);
-    expect(resultado).toEqual([{ id_producto: 2 }]);
+    it('rechaza con 400 si el código viene vacío', async () => {
+      await expect(
+        ProductoService.crearProducto({ ...datosBase, codigo: '  ' }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 400 si el nombre genérico viene vacío', async () => {
+      await expect(
+        ProductoService.crearProducto({ ...datosBase, nombre_generico: '' }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 400 si el precio de compra es negativo', async () => {
+      await expect(
+        ProductoService.crearProducto({ ...datosBase, precio_compra: -1 }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 400 si los meses de alerta no son positivos', async () => {
+      await expect(
+        ProductoService.crearProducto({ ...datosBase, meses_alerta_vencimiento: 0 }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 400 si la presentación no existe', async () => {
+      PresentacionDAO.obtenerPorId.mockResolvedValue(null);
+
+      await expect(ProductoService.crearProducto(datosBase)).rejects.toMatchObject({ status: 400 });
+      expect(ProductoDAO.crear).not.toHaveBeenCalled();
+    });
+
+    it('rechaza con 409 si el código ya existe', async () => {
+      PresentacionDAO.obtenerPorId.mockResolvedValue({ id_presentacion: 1, nombre: 'Caja' });
+      ProductoDAO.obtenerPorCodigo.mockResolvedValue({ id_producto: 5 });
+
+      await expect(ProductoService.crearProducto(datosBase)).rejects.toMatchObject({ status: 409 });
+      expect(ProductoDAO.crear).not.toHaveBeenCalled();
+    });
+
+    it('rechaza con 409 si ya existe el mismo medicamento en esa presentación', async () => {
+      PresentacionDAO.obtenerPorId.mockResolvedValue({ id_presentacion: 1, nombre: 'Caja' });
+      ProductoDAO.obtenerPorCodigo.mockResolvedValue(null);
+      ProductoDAO.obtenerPorIdentidad.mockResolvedValue({ nombre_comercial: 'Tylenol' });
+
+      await expect(ProductoService.crearProducto(datosBase)).rejects.toMatchObject({ status: 409 });
+      expect(ProductoDAO.crear).not.toHaveBeenCalled();
+    });
   });
 
-  it('rechaza usuarios sin una sucursal válida', async () => {
-    await expect(ProductoService.autocompletarParaPOS({
-      busqueda: 'acetaminofen',
-      id_sucursal: null,
-    })).rejects.toMatchObject({ status: 403 });
+  describe('obtenerTodos', () => {
+    it('delega al DAO', async () => {
+      ProductoDAO.obtenerTodos.mockResolvedValue([{ id_producto: 1 }]);
 
-    expect(ProductoDAO.autocompletarParaPOS).not.toHaveBeenCalled();
+      await expect(ProductoService.obtenerTodos()).resolves.toEqual([{ id_producto: 1 }]);
+    });
   });
 
-  it('rechaza un límite fuera del rango permitido', async () => {
-    await expect(ProductoService.autocompletarParaPOS({
-      busqueda: 'acetaminofen',
-      id_sucursal: 4,
-      limite: 25,
-    })).rejects.toMatchObject({ status: 400 });
+  describe('autocompletarParaPOS', () => {
+    it('devuelve resultados con una búsqueda válida', async () => {
+      ProductoDAO.autocompletarParaPOS.mockResolvedValue([{ id_producto: 1 }]);
 
-    expect(ProductoDAO.autocompletarParaPOS).not.toHaveBeenCalled();
+      const resultado = await ProductoService.autocompletarParaPOS({
+        busqueda: 'para', id_sucursal: 1,
+      });
+
+      expect(ProductoDAO.autocompletarParaPOS).toHaveBeenCalledWith('para', 1, 10);
+      expect(resultado).toEqual([{ id_producto: 1 }]);
+    });
+
+    it('rechaza con 400 si la búsqueda viene vacía', async () => {
+      await expect(
+        ProductoService.autocompletarParaPOS({ busqueda: '   ', id_sucursal: 1 }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 400 si la búsqueda no tiene letras ni números', async () => {
+      await expect(
+        ProductoService.autocompletarParaPOS({ busqueda: '!!!', id_sucursal: 1 }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 403 si no hay una sucursal válida', async () => {
+      await expect(
+        ProductoService.autocompletarParaPOS({ busqueda: 'para', id_sucursal: 0 }),
+      ).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('rechaza con 400 si el límite está fuera de rango', async () => {
+      await expect(
+        ProductoService.autocompletarParaPOS({ busqueda: 'para', id_sucursal: 1, limite: 50 }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
   });
 
-  it('rechaza búsquedas compuestas únicamente por caracteres especiales', async () => {
-    await expect(ProductoService.autocompletarParaPOS({
-      busqueda: '%-_',
-      id_sucursal: 4,
-    })).rejects.toMatchObject({ status: 400 });
+  describe('obtenerPorId', () => {
+    it('rechaza con 404 cuando no existe', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue(null);
 
-    expect(ProductoDAO.autocompletarParaPOS).not.toHaveBeenCalled();
+      await expect(ProductoService.obtenerPorId(99)).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  describe('actualizarProducto', () => {
+    const existente = { id_producto: 1, ...datosBase, codigo: 'MED001' };
+
+    it('rechaza con 404 si el producto no existe', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue(null);
+
+      await expect(
+        ProductoService.actualizarProducto(99, { codigo: 'X' }),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('rechaza con 409 si el nuevo código ya existe', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue(existente);
+      ProductoDAO.obtenerPorCodigo.mockResolvedValue({ id_producto: 2 });
+
+      await expect(
+        ProductoService.actualizarProducto(1, { codigo: 'MED002' }),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(ProductoDAO.actualizar).not.toHaveBeenCalled();
+    });
+
+    it('rechaza con 400 si la nueva presentación no existe', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue(existente);
+      PresentacionDAO.obtenerPorId.mockResolvedValue(null);
+
+      await expect(
+        ProductoService.actualizarProducto(1, { id_presentacion: 99 }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 400 si el nuevo precio de compra es negativo', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue(existente);
+
+      await expect(
+        ProductoService.actualizarProducto(1, { precio_compra: -5 }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('rechaza con 409 si otro producto ya tiene esa misma identidad', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue(existente);
+      ProductoDAO.obtenerPorIdentidad.mockResolvedValue({ id_producto: 2 });
+
+      await expect(
+        ProductoService.actualizarProducto(1, { nombre_generico: 'Ibuprofeno' }),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('actualiza el producto cuando todo es válido', async () => {
+      ProductoDAO.obtenerPorId
+        .mockResolvedValueOnce(existente)
+        .mockResolvedValueOnce({ ...existente, nombre_generico: 'Ibuprofeno' });
+      ProductoDAO.obtenerPorIdentidad.mockResolvedValue(null);
+      ProductoDAO.actualizar.mockResolvedValue({ id_producto: 1 });
+
+      const resultado = await ProductoService.actualizarProducto(1, { nombre_generico: 'Ibuprofeno' });
+
+      expect(resultado.nombre_generico).toBe('Ibuprofeno');
+    });
+
+    it('convierte una concentración vacía a null al actualizar', async () => {
+      ProductoDAO.obtenerPorId
+        .mockResolvedValueOnce(existente)
+        .mockResolvedValueOnce({ ...existente, concentracion: null });
+      ProductoDAO.obtenerPorIdentidad.mockResolvedValue(null);
+      ProductoDAO.actualizar.mockResolvedValue({ id_producto: 1 });
+
+      await ProductoService.actualizarProducto(1, { concentracion: '   ' });
+
+      expect(ProductoDAO.actualizar).toHaveBeenCalledWith(
+        1, expect.objectContaining({ concentracion: null }),
+      );
+    });
+
+    it('conserva la concentración existente cuando el campo no se envía', async () => {
+      ProductoDAO.obtenerPorId
+        .mockResolvedValueOnce(existente)
+        .mockResolvedValueOnce(existente);
+      ProductoDAO.obtenerPorIdentidad.mockResolvedValue(null);
+      ProductoDAO.actualizar.mockResolvedValue({ id_producto: 1 });
+
+      await ProductoService.actualizarProducto(1, { nombre_generico: 'Ibuprofeno' });
+
+      const identidadConsultada = ProductoDAO.obtenerPorIdentidad.mock.calls[0][0];
+      expect(identidadConsultada.concentracion).toBe(existente.concentracion);
+    });
+  });
+
+  describe('cambiarAplicaMayoreo', () => {
+    it('rechaza con 404 si el producto no existe', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue(null);
+
+      await expect(
+        ProductoService.cambiarAplicaMayoreo(99, true),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('activa el mayoreo correctamente', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1 });
+      ProductoDAO.cambiarAplicaMayoreo.mockResolvedValue({ id_producto: 1 });
+
+      const resultado = await ProductoService.cambiarAplicaMayoreo(1, true);
+
+      expect(resultado.mensaje).toBe('Mayoreo activado correctamente');
+    });
+  });
+
+  describe('desactivarProducto', () => {
+    it('rechaza con 404 si no existe', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue(null);
+
+      await expect(ProductoService.desactivarProducto(99)).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('rechaza con 409 si ya está desactivado', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: false });
+
+      await expect(ProductoService.desactivarProducto(1)).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('desactiva correctamente', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: true });
+      ProductoDAO.cambiarActivo.mockResolvedValue({ id_producto: 1 });
+
+      const resultado = await ProductoService.desactivarProducto(1);
+
+      expect(resultado.mensaje).toBe('Producto desactivado correctamente');
+    });
+  });
+
+  describe('reactivarProducto', () => {
+    it('rechaza con 404 si no existe', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue(null);
+
+      await expect(ProductoService.reactivarProducto(99)).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('rechaza con 409 si ya está activo', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: true });
+
+      await expect(ProductoService.reactivarProducto(1)).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('reactiva correctamente', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: false });
+      ProductoDAO.cambiarActivo.mockResolvedValue({ id_producto: 1 });
+
+      const resultado = await ProductoService.reactivarProducto(1);
+
+      expect(resultado.mensaje).toBe('Producto reactivado correctamente');
+    });
   });
 });

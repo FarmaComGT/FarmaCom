@@ -159,4 +159,113 @@ describe('VentaDAO', () => {
     );
     expect(resultado).toEqual({ id_lote: 8, stock_actual: 3 });
   });
+
+  it('busca un cliente por id', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_cliente: 5 }] });
+
+    await expect(VentaDAO.obtenerClientePorId(5)).resolves.toEqual({ id_cliente: 5 });
+  });
+
+  it('devuelve null cuando el cliente no existe', async () => {
+    pool.query.mockResolvedValue({ rows: [] });
+
+    await expect(VentaDAO.obtenerClientePorId(99)).resolves.toBeNull();
+  });
+
+  it('actualiza el pago POS combinando los campos enviados', async () => {
+    const client = { query: jest.fn().mockResolvedValue({ rows: [{ id_pago_pos: 5, estado: 'aprobado' }] }) };
+
+    const resultado = await VentaDAO.actualizarPagoPOS({
+      external_id: 'farmacom-pos-test',
+      estado: 'aprobado',
+      estado_pago: 'completado',
+      comando_recurrente_id: null,
+      evento_recurrente_id: null,
+      referencia_pago: 'ref-1',
+      autorizacion_pago: 'auth-1',
+      tarjeta_ultimos4: '1234',
+      id_venta: 10,
+    }, client);
+
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE pago_pos'),
+      ['farmacom-pos-test', 'aprobado', 'completado', null, null, 'ref-1', 'auth-1', '1234', 10],
+    );
+    expect(resultado).toEqual({ id_pago_pos: 5, estado: 'aprobado' });
+  });
+
+  describe('obtenerTodas', () => {
+    it('sin filtros no agrega WHERE', async () => {
+      pool.query.mockResolvedValue({ rows: [] });
+
+      await VentaDAO.obtenerTodas();
+
+      expect(pool.query.mock.calls[0][0]).not.toContain('WHERE');
+      expect(pool.query.mock.calls[0][1]).toEqual([]);
+    });
+
+    it('con todos los filtros arma las condiciones en orden', async () => {
+      pool.query.mockResolvedValue({ rows: [{ id_venta: 1 }] });
+
+      await VentaDAO.obtenerTodas({
+        id_sucursal: 1, id_cliente: 2, estado: 'completada',
+        fecha_desde: '2026-01-01', fecha_hasta: '2026-01-31',
+      });
+
+      const [sql, valores] = pool.query.mock.calls[0];
+      expect(valores).toEqual([1, 2, 'completada', '2026-01-01', '2026-01-31']);
+      expect(sql).toContain('v.id_sucursal = $1');
+      expect(sql).toContain('v.id_cliente = $2');
+    });
+  });
+
+  it('obtiene una venta con sus detalles agregados en JSON', async () => {
+    const fila = { id_venta: 1, detalles: [] };
+    pool.query.mockResolvedValue({ rows: [fila] });
+
+    await expect(VentaDAO.obtenerPorId(1)).resolves.toEqual(fila);
+  });
+
+  it('devuelve null cuando la venta no existe', async () => {
+    pool.query.mockResolvedValue({ rows: [] });
+
+    await expect(VentaDAO.obtenerPorId(99)).resolves.toBeNull();
+  });
+
+  it('bloquea la venta para actualizarla dentro de una transacción', async () => {
+    const client = { query: jest.fn().mockResolvedValue({ rows: [{ id_venta: 1 }] }) };
+
+    await VentaDAO.obtenerParaActualizar(1, client);
+
+    expect(client.query).toHaveBeenCalledWith(expect.stringContaining('FOR UPDATE'), [1]);
+  });
+
+  it('obtiene los detalles de una venta bloqueados para anulación', async () => {
+    const client = { query: jest.fn().mockResolvedValue({ rows: [{ id_lote: 1, cantidad: 2 }] }) };
+
+    await expect(VentaDAO.obtenerDetallesParaAnulacion(1, client)).resolves.toEqual([
+      { id_lote: 1, cantidad: 2 },
+    ]);
+  });
+
+  it('restaura el stock de un lote', async () => {
+    const client = { query: jest.fn().mockResolvedValue({ rows: [{ id_lote: 1, stock_actual: 10 }] }) };
+
+    await expect(VentaDAO.restaurarStock(1, 5, client)).resolves.toEqual({ id_lote: 1, stock_actual: 10 });
+  });
+
+  it('actualiza el cliente asociado a una venta', async () => {
+    const client = { query: jest.fn().mockResolvedValue({ rows: [{ id_venta: 1, id_cliente: 7 }] }) };
+
+    await expect(VentaDAO.actualizarCliente(1, 7, client)).resolves.toEqual({ id_venta: 1, id_cliente: 7 });
+  });
+
+  it('anula una venta registrando el motivo', async () => {
+    const client = { query: jest.fn().mockResolvedValue({ rows: [{ id_venta: 1, estado: 'anulada' }] }) };
+
+    await expect(VentaDAO.anular(1, 'Error de cobro', client)).resolves.toEqual({
+      id_venta: 1, estado: 'anulada',
+    });
+    expect(client.query).toHaveBeenCalledWith(expect.any(String), ['Error de cobro', 1]);
+  });
 });
