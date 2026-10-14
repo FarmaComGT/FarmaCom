@@ -80,6 +80,11 @@ Contiene los entregables del Sprint 8, que incluyen:
 - Docs del Proyecto del Sprint 8
 - Formulario LOGT del Sprint 8
 
+### Sprint 9
+Contiene los entregables del Sprint 9, que incluyen:
+- Docs del Proyecto del Sprint 9
+- Formulario LOGT del Sprint 9
+
 ### Integrador
 Contiene los archivos relacionados al primer documento integrador:
 - Documento Integrador
