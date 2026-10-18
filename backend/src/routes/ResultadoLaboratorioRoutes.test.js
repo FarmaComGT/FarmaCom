@@ -1,5 +1,5 @@
 jest.mock('../middlewares/verificarToken', () => (req, _res, next) => {
-  req.usuario = { id_usuario: 9, rol: 'laboratorista' };
+  req.usuario = { id_usuario: 9, rol: 'laboratorista', id_laboratorio: 1 };
   next();
 });
 jest.mock('../middlewares/verificarRol', () => () => (_req, _res, next) => next());
@@ -37,7 +37,11 @@ describe('ResultadoLaboratorioRoutes', () => {
 
     expect(respuesta.status).toBe(201);
     expect(ResultadoLaboratorioService.subirResultado).toHaveBeenCalledWith(
-      expect.objectContaining({ id_paciente: 3, categoria: 'Hematología', id_usuario: 9 }),
+      expect.objectContaining({
+        id_paciente: 3,
+        categoria: 'Hematología',
+        usuario: { id_usuario: 9, rol: 'laboratorista', id_laboratorio: 1 },
+      }),
     );
   });
 
@@ -71,6 +75,9 @@ describe('ResultadoLaboratorioRoutes', () => {
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body).toEqual([{ id_resultado: 1, vigente: true }]);
+    expect(ResultadoLaboratorioService.listarPorPaciente).toHaveBeenCalledWith(3, {
+      id_usuario: 9, rol: 'laboratorista', id_laboratorio: 1,
+    });
   });
 
   it('anula un resultado con motivo', async () => {
@@ -81,7 +88,9 @@ describe('ResultadoLaboratorioRoutes', () => {
       .send({ motivo_anulacion: 'Archivo incorrecto' });
 
     expect(respuesta.status).toBe(200);
-    expect(ResultadoLaboratorioService.anularResultado).toHaveBeenCalledWith(1, 'Archivo incorrecto', 9);
+    expect(ResultadoLaboratorioService.anularResultado).toHaveBeenCalledWith(1, 'Archivo incorrecto', {
+      id_usuario: 9, rol: 'laboratorista', id_laboratorio: 1,
+    });
   });
 
   it('rechaza anular sin motivo', async () => {
@@ -102,6 +111,9 @@ describe('ResultadoLaboratorioRoutes', () => {
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body).toEqual(['Orina', 'Sangre']);
+    expect(ResultadoLaboratorioService.obtenerCategoriasSugeridas).toHaveBeenCalledWith(1, {
+      id_usuario: 9, rol: 'laboratorista', id_laboratorio: 1,
+    });
   });
 
   it('rechaza un token con formato inválido en la descarga pública', async () => {

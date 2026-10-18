@@ -1,4 +1,7 @@
-jest.mock('../middlewares/verificarToken', () => (req, _res, next) => { req.usuario = { id_usuario: 9 }; next(); });
+jest.mock('../middlewares/verificarToken', () => (req, _res, next) => {
+  req.usuario = { id_usuario: 9, rol: 'laboratorista', id_laboratorio: 1 };
+  next();
+});
 jest.mock('../middlewares/verificarRol', () => () => (_req, _res, next) => next());
 jest.mock('../services/PacienteService');
 
@@ -77,7 +80,9 @@ describe('PacienteRoutes - sexo y edad', () => {
       .send({ telefono: '5555-0000' });
 
     expect(respuesta.status).toBe(200);
-    expect(PacienteService.actualizarPaciente).toHaveBeenCalledWith(4, { telefono: '5555-0000' }, 9);
+    expect(PacienteService.actualizarPaciente).toHaveBeenCalledWith(4, { telefono: '5555-0000' }, {
+      id_usuario: 9, rol: 'laboratorista', id_laboratorio: 1,
+    });
   });
 
   it('rechaza actualizar enviando ambos, fecha_nacimiento y edad_manual', async () => {
@@ -94,5 +99,7 @@ describe('PacienteRoutes - sexo y edad', () => {
   const respuesta = await request(crearApp()).post('/api/pacientes')
     .send({ ...datosBase, edad_manual: 30, id_usuario: 123 });
   expect(respuesta.status).toBe(201);
-  expect(PacienteService.registrarPaciente).toHaveBeenCalledWith(expect.any(Object), 9);
+  expect(PacienteService.registrarPaciente).toHaveBeenCalledWith(expect.any(Object), {
+    id_usuario: 9, rol: 'laboratorista', id_laboratorio: 1,
+  });
 });

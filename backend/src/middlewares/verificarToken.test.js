@@ -86,7 +86,8 @@ describe('verificarToken', () => {
   it('llama a next() y adjunta el usuario autenticado cuando todo es válido', async () => {
     jwt.verify.mockReturnValue({ id_usuario: 1, token_version: 0 });
     UsuarioDAO.obtenerPorId.mockResolvedValue({
-      id_usuario: 1, id_sucursal: 2, rol: 'dependiente', estado_usuario: 'activo', token_version: 0,
+      id_usuario: 1, id_sucursal: 2, id_laboratorio: null,
+      rol: 'dependiente', estado_usuario: 'activo', token_version: 0,
     });
 
     const req = { cookies: { auth_token: 'token-valido' } };
@@ -97,7 +98,8 @@ describe('verificarToken', () => {
 
     expect(next).toHaveBeenCalled();
     expect(req.usuario).toEqual({
-      id_usuario: 1, id_sucursal: 2, rol: 'dependiente', token_version: 0,
+      id_usuario: 1, id_sucursal: 2, id_laboratorio: null,
+      rol: 'dependiente', token_version: 0,
     });
     expect(res.status).not.toHaveBeenCalled();
   });
