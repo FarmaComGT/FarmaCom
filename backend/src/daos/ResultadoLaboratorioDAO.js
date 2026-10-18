@@ -64,6 +64,19 @@ class ResultadoLaboratorioDAO {
     return rows[0] || null;
   }
 
+  async obtenerParaActualizarConLaboratorio(id_resultado, client) {
+    const { rows } = await client.query(
+      `SELECT r.*, p.id_laboratorio
+       FROM resultado_laboratorio r
+       JOIN expediente_laboratorio e ON e.id_expediente = r.id_expediente
+       JOIN paciente p ON p.id_paciente = e.id_paciente
+       WHERE r.id_resultado = $1
+       FOR UPDATE OF r`,
+      [id_resultado],
+    );
+    return rows[0] || null;
+  }
+
   async obtenerPorToken(token_publico) {
     const { rows } = await pool.query(
       `SELECT * FROM resultado_laboratorio WHERE token_publico = $1`,

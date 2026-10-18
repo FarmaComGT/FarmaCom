@@ -20,7 +20,7 @@ const subir = async (req, res) => {
       id_paciente: Number(req.body.id_paciente),
       categoria: req.body.categoria,
       buffer: req.file.buffer,
-      id_usuario: req.usuario.id_usuario,
+      usuario: req.usuario,
     });
     res.status(201).json(resultado);
   } catch (error) {
@@ -31,7 +31,10 @@ const subir = async (req, res) => {
 const listar = async (req, res) => {
   if (responderErrores(req, res)) return;
   try {
-    const resultados = await ResultadoLaboratorioService.listarPorPaciente(Number(req.query.id_paciente));
+    const resultados = await ResultadoLaboratorioService.listarPorPaciente(
+      Number(req.query.id_paciente),
+      req.usuario,
+    );
     res.status(200).json(resultados);
   } catch (error) {
     res.status(error.status || 500).json({ mensaje: error.message });
@@ -44,7 +47,7 @@ const anular = async (req, res) => {
     const resultado = await ResultadoLaboratorioService.anularResultado(
       Number(req.params.id),
       req.body.motivo_anulacion,
-      req.usuario.id_usuario,
+      req.usuario,
     );
     res.status(200).json(resultado);
   } catch (error) {
@@ -57,6 +60,7 @@ const categorias = async (req, res) => {
   try {
     const categoriasSugeridas = await ResultadoLaboratorioService.obtenerCategoriasSugeridas(
       Number(req.query.id_laboratorio),
+      req.usuario,
     );
     res.status(200).json(categoriasSugeridas);
   } catch (error) {

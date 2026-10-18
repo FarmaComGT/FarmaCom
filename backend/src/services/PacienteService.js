@@ -1,6 +1,7 @@
 const BitacoraLaboratorioService = require('./BitacoraLaboratorioService');
 const PacienteDAO = require('../daos/PacienteDAO');
 const { calcularEdad } = require('../utils/edad');
+const { obtenerIdUsuario, validarPertenenciaLaboratorio } = require('../utils/accesoLaboratorio');
 
 const noEncontrado = () => {
   const error = new Error('Paciente no encontrado');
@@ -34,7 +35,9 @@ const registrarPaciente = async ({
   telefono,
   direccion,
   observaciones,
-}, id_usuario) => {
+}, usuario) => {
+  validarPertenenciaLaboratorio(usuario, id_laboratorio);
+  const id_usuario = obtenerIdUsuario(usuario);
   const dpiNormalizado = normalizarDpi(dpi);
   if (dpiNormalizado) {
     const existente = await PacienteDAO.obtenerPorDpi(dpiNormalizado);
@@ -84,13 +87,15 @@ const registrarPaciente = async ({
   }
 };
 
-const obtenerPorId = async (id_paciente) => {
+const obtenerPorId = async (id_paciente, usuario) => {
   const paciente = await PacienteDAO.obtenerPorId(id_paciente);
   if (!paciente) throw noEncontrado();
+  validarPertenenciaLaboratorio(usuario, paciente.id_laboratorio);
   return conEdad(paciente);
 };
 
-const buscarPacientes = async ({ id_laboratorio, busqueda, estado, pagina, limite }) => {
+const buscarPacientes = async ({ id_laboratorio, busqueda, estado, pagina, limite }, usuario) => {
+  validarPertenenciaLaboratorio(usuario, id_laboratorio);
   const paginaAplicada = pagina ?? 1;
   const limiteAplicado = limite ?? 20;
 
@@ -113,11 +118,13 @@ const buscarPacientes = async ({ id_laboratorio, busqueda, estado, pagina, limit
   };
 };
 
-const actualizarPaciente = async (id_paciente, campos, id_usuario) => {
+const actualizarPaciente = async (id_paciente, campos, usuario) => {
+  const id_usuario = obtenerIdUsuario(usuario);
   try {
     return await PacienteDAO.ejecutarEnTransaccion(async (client) => {
       const existente = await PacienteDAO.obtenerParaActualizar(id_paciente, client);
       if (!existente) throw noEncontrado();
+      validarPertenenciaLaboratorio(usuario, existente.id_laboratorio);
       if (existente.estado === 'anulado') {
         lanzarError('No se puede editar un paciente anulado', 409);
       }
@@ -157,10 +164,12 @@ const actualizarPaciente = async (id_paciente, campos, id_usuario) => {
   }
 };
 
-const anularPaciente = async (id_paciente, motivo_anulacion, id_usuario) => {
+const anularPaciente = async (id_paciente, motivo_anulacion, usuario) => {
+  const id_usuario = obtenerIdUsuario(usuario);
   return PacienteDAO.ejecutarEnTransaccion(async (client) => {
     const paciente = await PacienteDAO.obtenerParaActualizar(id_paciente, client);
     if (!paciente) throw noEncontrado();
+    validarPertenenciaLaboratorio(usuario, paciente.id_laboratorio);
     if (paciente.estado === 'anulado') {
       lanzarError('El paciente ya esta anulado', 409);
     }
