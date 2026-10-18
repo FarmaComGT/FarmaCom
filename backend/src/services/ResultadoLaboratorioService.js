@@ -7,6 +7,7 @@ const { PDFDocument } = require('pdf-lib');
 const ResultadoLaboratorioDAO = require('../daos/ResultadoLaboratorioDAO');
 const UsuarioDAO = require('../daos/UsuarioDAO');
 const { RUTA_UPLOADS_RESULTADOS, PUBLIC_API_BASE_URL } = require('../config/almacenamiento');
+const { obtenerIdUsuario, validarPertenenciaLaboratorio } = require('../utils/accesoLaboratorio');
 
 const MESES_VIGENCIA = 6;
 const TAMANO_QR_PUNTOS = 100;
@@ -53,9 +54,11 @@ const generarPdfConQr = async (bufferOriginal, url) => {
   return Buffer.from(await pdfDoc.save());
 };
 
-const subirResultado = async ({ id_paciente, categoria, buffer, id_usuario }) => {
+const subirResultado = async ({ id_paciente, categoria, buffer, usuario }) => {
+  const id_usuario = obtenerIdUsuario(usuario);
   const expediente = await ResultadoLaboratorioDAO.obtenerExpedientePorPaciente(id_paciente);
   if (!expediente) lanzarError('El paciente no tiene expediente de laboratorio', 404);
+  validarPertenenciaLaboratorio(usuario, expediente.id_laboratorio);
 
   const token = crypto.randomUUID();
   const url = construirUrlPublica(token);
@@ -97,33 +100,42 @@ const esVigente = (resultado) => (
   resultado.estado === 'vigente' && new Date(resultado.fecha_expiracion) > new Date()
 );
 
-const listarPorPaciente = async (id_paciente) => {
+const listarPorPaciente = async (id_paciente, usuario) => {
+  const expediente = await ResultadoLaboratorioDAO.obtenerExpedientePorPaciente(id_paciente);
+  if (!expediente) lanzarError('El paciente no tiene expediente de laboratorio', 404);
+  validarPertenenciaLaboratorio(usuario, expediente.id_laboratorio);
   const resultados = await ResultadoLaboratorioDAO.listarPorPaciente(id_paciente);
   return resultados.map((resultado) => ({ ...resultado, vigente: esVigente(resultado) }));
 };
 
-const anularResultado = async (id_resultado, motivo_anulacion, id_usuario) => ResultadoLaboratorioDAO.ejecutarEnTransaccion(async (client) => {
-  const resultado = await ResultadoLaboratorioDAO.obtenerParaActualizar(id_resultado, client);
+const anularResultado = async (id_resultado, motivo_anulacion, usuario) => ResultadoLaboratorioDAO.ejecutarEnTransaccion(async (client) => {
+  const id_usuario = obtenerIdUsuario(usuario);
+  const resultado = await ResultadoLaboratorioDAO.obtenerParaActualizarConLaboratorio(id_resultado, client);
   if (!resultado) throw noEncontrado();
+  validarPertenenciaLaboratorio(usuario, resultado.id_laboratorio);
   if (resultado.estado === 'anulado') {
     lanzarError('El resultado ya esta anulado', 409);
   }
 
   const actualizado = await ResultadoLaboratorioDAO.anular(id_resultado, motivo_anulacion, client);
+  const { id_laboratorio: _idLaboratorio, ...resultadoAnterior } = resultado;
 
   await BitacoraLaboratorioService.registrarCambio({
     id_usuario,
     entidad: 'resultado_laboratorio',
     id_entidad: id_resultado,
     accion: 'anular',
-    anterior: resultado,
+    anterior: resultadoAnterior,
     nuevo: actualizado,
   }, client);
 
   return actualizado;
 });
 
-const obtenerCategoriasSugeridas = async (id_laboratorio) => ResultadoLaboratorioDAO.obtenerCategoriasSugeridas(id_laboratorio);
+const obtenerCategoriasSugeridas = async (id_laboratorio, usuario) => {
+  validarPertenenciaLaboratorio(usuario, id_laboratorio);
+  return ResultadoLaboratorioDAO.obtenerCategoriasSugeridas(id_laboratorio);
+};
 
 const obtenerPublico = async (token) => {
   const resultado = await ResultadoLaboratorioDAO.obtenerPorToken(token);

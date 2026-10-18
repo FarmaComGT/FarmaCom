@@ -20,6 +20,21 @@ describe('ResultadoLaboratorioDAO', () => {
     expect(pool.query).toHaveBeenCalledWith(expect.any(String), ['abc-123']);
   });
 
+  it('obtiene el laboratorio propietario al bloquear un resultado para actualizarlo', async () => {
+    const clienteFalso = { query: jest.fn().mockResolvedValue({
+      rows: [{ id_resultado: 10, id_laboratorio: 2 }],
+    }) };
+
+    await expect(ResultadoLaboratorioDAO.obtenerParaActualizarConLaboratorio(10, clienteFalso))
+      .resolves.toEqual({ id_resultado: 10, id_laboratorio: 2 });
+
+    expect(clienteFalso.query).toHaveBeenCalledWith(
+      expect.stringContaining('JOIN paciente'),
+      [10],
+    );
+    expect(clienteFalso.query.mock.calls[0][0]).toContain('FOR UPDATE OF r');
+  });
+
   it('lista los resultados de un paciente ordenados por fecha de subida', async () => {
     const filas = [{ id_resultado: 2 }, { id_resultado: 1 }];
     pool.query.mockResolvedValue({ rows: filas });

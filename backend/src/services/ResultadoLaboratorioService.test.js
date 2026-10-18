@@ -26,6 +26,8 @@ const fs = require('fs/promises');
 const ResultadoLaboratorioDAO = require('../daos/ResultadoLaboratorioDAO');
 const UsuarioDAO = require('../daos/UsuarioDAO');
 const ResultadoLaboratorioService = require('./ResultadoLaboratorioService');
+const usuarioAdministrador = { id_usuario: 9, rol: 'administrador', id_laboratorio: null };
+const usuarioLaboratorio1 = { id_usuario: 10, rol: 'laboratorista', id_laboratorio: 1 };
 
 describe('ResultadoLaboratorioService', () => {
   beforeEach(() => {
@@ -48,7 +50,7 @@ describe('ResultadoLaboratorioService', () => {
         id_paciente: 3,
         categoria: 'Hematología',
         buffer: Buffer.from('pdf-original'),
-        id_usuario: 9,
+        usuario: usuarioAdministrador,
       });
 
       expect(fs.writeFile).toHaveBeenCalledWith(
@@ -78,7 +80,7 @@ describe('ResultadoLaboratorioService', () => {
         id_paciente: 3,
         categoria: 'Orina',
         buffer: Buffer.from('x'),
-        id_usuario: 9,
+        usuario: usuarioAdministrador,
       })).rejects.toMatchObject({ status: 404 });
       expect(fs.writeFile).not.toHaveBeenCalled();
     });
@@ -132,9 +134,9 @@ describe('ResultadoLaboratorioService', () => {
       const anterior = { id_resultado: 1, estado: 'vigente', motivo_anulacion: null };
       const nuevo = { ...anterior, estado: 'anulado', motivo_anulacion: 'Duplicado' };
       ResultadoLaboratorioDAO.ejecutarEnTransaccion.mockImplementation((op) => op(client));
-      ResultadoLaboratorioDAO.obtenerParaActualizar.mockResolvedValue(anterior);
+      ResultadoLaboratorioDAO.obtenerParaActualizarConLaboratorio.mockResolvedValue(anterior);
       ResultadoLaboratorioDAO.anular.mockResolvedValue(nuevo);
-      await expect(ResultadoLaboratorioService.anularResultado(1, 'Duplicado', 9))
+      await expect(ResultadoLaboratorioService.anularResultado(1, 'Duplicado', usuarioAdministrador))
         .resolves.toEqual(nuevo);
       expect(BitacoraLaboratorioService.registrarCambio).toHaveBeenCalledWith({
         id_usuario: 9, entidad: 'resultado_laboratorio', id_entidad: 1,
@@ -145,21 +147,77 @@ describe('ResultadoLaboratorioService', () => {
     it('rechaza anular un resultado ya anulado', async () => {
       const clienteFalso = {};
       ResultadoLaboratorioDAO.ejecutarEnTransaccion.mockImplementation((op) => op(clienteFalso));
-      ResultadoLaboratorioDAO.obtenerParaActualizar.mockResolvedValue({ id_resultado: 1, estado: 'anulado' });
+      ResultadoLaboratorioDAO.obtenerParaActualizarConLaboratorio.mockResolvedValue({ id_resultado: 1, estado: 'anulado' });
 
       await expect(
-        ResultadoLaboratorioService.anularResultado(1, 'motivo', 9),
+        ResultadoLaboratorioService.anularResultado(1, 'motivo', usuarioAdministrador),
       ).rejects.toMatchObject({ status: 409 });
     });
 
     it('rechaza anular un resultado inexistente', async () => {
       const clienteFalso = {};
       ResultadoLaboratorioDAO.ejecutarEnTransaccion.mockImplementation((op) => op(clienteFalso));
-      ResultadoLaboratorioDAO.obtenerParaActualizar.mockResolvedValue(null);
+      ResultadoLaboratorioDAO.obtenerParaActualizarConLaboratorio.mockResolvedValue(null);
 
       await expect(
-        ResultadoLaboratorioService.anularResultado(1, 'motivo', 9),
+        ResultadoLaboratorioService.anularResultado(1, 'motivo', usuarioAdministrador),
       ).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  describe('aislamiento por laboratorio', () => {
+    it('impide agregar archivos a un paciente de otro laboratorio antes de escribir en disco', async () => {
+      ResultadoLaboratorioDAO.obtenerExpedientePorPaciente.mockResolvedValue({
+        id_expediente: 70,
+        id_laboratorio: 2,
+      });
+
+      await expect(ResultadoLaboratorioService.subirResultado({
+        id_paciente: 30,
+        categoria: 'Orina',
+        buffer: Buffer.from('pdf-original'),
+        usuario: usuarioLaboratorio1,
+      })).rejects.toMatchObject({ status: 403 });
+
+      expect(fs.writeFile).not.toHaveBeenCalled();
+      expect(ResultadoLaboratorioDAO.crear).not.toHaveBeenCalled();
+    });
+
+    it('impide consultar resultados de un paciente de otro laboratorio', async () => {
+      ResultadoLaboratorioDAO.obtenerExpedientePorPaciente.mockResolvedValue({
+        id_expediente: 70,
+        id_laboratorio: 2,
+      });
+
+      await expect(ResultadoLaboratorioService.listarPorPaciente(30, usuarioLaboratorio1))
+        .rejects.toMatchObject({ status: 403 });
+
+      expect(ResultadoLaboratorioDAO.listarPorPaciente).not.toHaveBeenCalled();
+    });
+
+    it('impide anular resultados de otro laboratorio', async () => {
+      const clienteFalso = {};
+      ResultadoLaboratorioDAO.ejecutarEnTransaccion.mockImplementation((op) => op(clienteFalso));
+      ResultadoLaboratorioDAO.obtenerParaActualizarConLaboratorio.mockResolvedValue({
+        id_resultado: 50,
+        id_laboratorio: 2,
+        estado: 'vigente',
+      });
+
+      await expect(ResultadoLaboratorioService.anularResultado(
+        50,
+        'Archivo incorrecto',
+        usuarioLaboratorio1,
+      )).rejects.toMatchObject({ status: 403 });
+
+      expect(ResultadoLaboratorioDAO.anular).not.toHaveBeenCalled();
+    });
+
+    it('impide consultar categorías de otro laboratorio', async () => {
+      await expect(ResultadoLaboratorioService.obtenerCategoriasSugeridas(2, usuarioLaboratorio1))
+        .rejects.toMatchObject({ status: 403 });
+
+      expect(ResultadoLaboratorioDAO.obtenerCategoriasSugeridas).not.toHaveBeenCalled();
     });
   });
 
