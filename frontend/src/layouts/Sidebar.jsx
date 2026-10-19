@@ -26,8 +26,7 @@ import BrandLogo from '../components/BrandLogo.jsx';
 import { useAuth, AUTH_ACTIONS } from '../context/AuthContext';
 
 const inventarioSubItems = [
-  { icon: Package, label: 'Productos', path: '/inventario/productos' },
-  { icon: Warehouse, label: 'Inventario', path: '/inventario/stock' },
+  { icon: Warehouse, label: 'Inventario', path: '/inventario' },
   { icon: Tag, label: 'Categorías', path: '/inventario/categorias' },
   { icon: Truck, label: 'Proveedores', path: '/inventario/proveedores' },
   { icon: Building2, label: 'Casas', path: '/inventario/casas' },
@@ -203,6 +202,7 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
                 <NavLink
                   key={path}
                   to={path}
+                  end={path === '/inventario'}
                   className={({ isActive }) => nestedItemClass(isActive)}
                 >
                   <Icon className="h-4 w-4 flex-shrink-0" />

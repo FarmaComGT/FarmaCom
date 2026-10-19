@@ -10,6 +10,7 @@ import Ciudades from '../pages/Ciudades.jsx';
 import Sucursales from '../pages/Sucursales.jsx';
 import Laboratorios from '../pages/Laboratorios.jsx';
 import Usuarios from '../pages/Usuarios.jsx';
+import Inventario from '../pages/inventario/Inventario.jsx';
 import Productos from '../pages/inventario/Productos.jsx';
 import InventarioSucursal from '../pages/inventario/InventarioSucursal.jsx';
 import Categorias from '../pages/inventario/Categorias.jsx';
@@ -47,7 +48,7 @@ export default function AppRoutes() {
 
           <Route element={<RoleRoute allowedRoles={ROLES_FARMACIA} />}>
             <Route path="/inventario">
-              <Route index element={<Navigate to="productos" replace />} />
+              <Route index element={<Inventario />} />
               <Route path="productos" element={<Productos />} />
               <Route path="stock" element={<InventarioSucursal />} />
               <Route path="categorias" element={<Categorias />} />

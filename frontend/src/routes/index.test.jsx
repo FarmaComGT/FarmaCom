@@ -46,6 +46,10 @@ vi.mock('../pages/Laboratorios.jsx', () => ({
   default: () => <h1>Administración de laboratorios</h1>,
 }));
 
+vi.mock('../pages/inventario/Inventario.jsx', () => ({
+  default: () => <h1>Inventario unificado</h1>,
+}));
+
 vi.mock('../pages/reportes/Rentabilidad.jsx', () => ({
   default: () => <h1>Rentabilidad por sucursal</h1>,
 }));
@@ -247,5 +251,22 @@ describe('ruta de administración de laboratorios', () => {
 
     expect(screen.queryByRole('heading', { name: 'Administración de laboratorios' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Laboratorios' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ruta de inventario unificado', () => {
+  beforeEach(() => {
+    estadoAuth.usuario = { rol: 'administrador' };
+  });
+
+  it('muestra la nueva pantalla en la ruta principal de inventario', () => {
+    render(
+      <MemoryRouter initialEntries={['/inventario']}>
+        <AppRoutes />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Inventario unificado' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Inventario' })).toHaveAttribute('href', '/inventario');
   });
 });
