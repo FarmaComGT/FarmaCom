@@ -15,7 +15,9 @@ export default function InventarioProductoFila({
   const [expandido, setExpandido] = useState(false);
 
   const stockTotal = Number(producto.stock_total ?? 0);
-  const stockCritico = stockTotal <= producto.stock_minimo;
+  const stockCritico = producto.estado_stock
+    ? ['agotado', 'poco_stock'].includes(producto.estado_stock)
+    : stockTotal <= producto.stock_minimo;
 
   return (
     <>

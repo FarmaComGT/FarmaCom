@@ -19,17 +19,35 @@ describe('useInventarioSucursal', () => {
   });
 
   it('carga el inventario y el resumen en paralelo', async () => {
+    const resumen = {
+      total_productos: 5,
+      productos_sin_lotes: 1,
+      productos_agotados: 1,
+      productos_poco_stock: 1,
+      productos_vencidos: 1,
+      productos_criticos: 2,
+      productos_proximos_vencer: 1,
+      productos_optimos: 1,
+    };
     api.get.mockImplementation((url) => (
       url.includes('/resumen')
-        ? Promise.resolve({ data: { total_productos: 5, productos_criticos: 1, productos_proximos_vencer: 0, productos_optimos: 4 } })
-        : Promise.resolve({ data: [{ id_producto: 1 }] })
+        ? Promise.resolve({ data: resumen })
+        : Promise.resolve({ data: [{
+          id_producto: 1,
+          estado_stock: 'poco_stock',
+          estado_vencimiento: 'proximo_a_vencer',
+        }] })
     ));
 
     const { result } = renderHook(() => useInventarioSucursal(2));
 
     await waitFor(() => expect(result.current.cargando).toBe(false));
-    expect(result.current.productos).toEqual([{ id_producto: 1 }]);
-    expect(result.current.resumen.total_productos).toBe(5);
+    expect(result.current.productos).toEqual([{
+      id_producto: 1,
+      estado_stock: 'poco_stock',
+      estado_vencimiento: 'proximo_a_vencer',
+    }]);
+    expect(result.current.resumen).toEqual(resumen);
     expect(api.get).toHaveBeenCalledWith('/sucursales/2/inventario');
     expect(api.get).toHaveBeenCalledWith('/sucursales/2/inventario/resumen');
   });

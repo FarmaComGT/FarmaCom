@@ -6,6 +6,10 @@ const useInventarioSucursal = (idSucursal) => {
   const [productos, setProductos] = useState([]);
   const [resumen, setResumen] = useState({
     total_productos: 0,
+    productos_sin_lotes: 0,
+    productos_agotados: 0,
+    productos_poco_stock: 0,
+    productos_vencidos: 0,
     productos_criticos: 0,
     productos_proximos_vencer: 0,
     productos_optimos: 0,

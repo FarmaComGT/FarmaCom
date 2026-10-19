@@ -7,7 +7,7 @@ const TARJETAS = [
     key: 'total',
     campo: 'total_productos',
     label: 'Total Productos',
-    sublabel: 'Con stock en sucursal',
+    sublabel: 'Registrados en el catálogo',
     icono: Package,
     colorBorde: 'border-primary',
     colorIcono: 'text-primary',
