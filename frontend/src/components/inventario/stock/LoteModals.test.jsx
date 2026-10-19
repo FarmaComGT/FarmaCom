@@ -91,6 +91,31 @@ describe('modales de lote', () => {
     }));
   });
 
+  it('fija y precarga el producto al registrar desde su detalle', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(
+      <LoteFormModal
+        isOpen
+        {...catalogos}
+        productoInicialId={2}
+        bloquearProducto
+        sucursalInicialId={4}
+        lote={null}
+        cargandoDatos={false}
+        onClose={() => {}}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.getByRole('combobox', { name: /Producto/ })).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: /Producto/ })).toHaveValue('2');
+    expect(screen.getByLabelText('Precio compra *')).toHaveValue(10);
+
+    await user.type(screen.getByRole('textbox', { name: /Número de lote/ }), 'LT-NUEVO');
+  });
+
   it('solicita confirmación antes de eliminar', async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();

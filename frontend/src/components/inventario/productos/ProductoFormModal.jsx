@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { ChevronDown, Pencil, PlusCircle, Trash2, X } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ChevronDown, Pencil, PlusCircle, Trash2 } from 'lucide-react';
 import { sufijoPresentacion } from '../../../constants/presentaciones.js';
+import { Modal, ModalActions, ModalHeader } from '../../ui/Modal.jsx';
 import PresentacionQuickCreateModal from './PresentacionQuickCreateModal.jsx';
 import PresentacionDeleteModal from './PresentacionDeleteModal.jsx';
 
@@ -158,27 +157,15 @@ export default function ProductoFormModal({
     ? producto.codigo
     : `${codigoSugerido || 'MED-AUTO'}${sufijo ? `-${sufijo}` : ''}`;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/55 backdrop-blur-sm overflow-y-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-slate-200 my-auto"
-      >
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-lg font-headline font-extrabold text-primary">
-            {modoEdicion ? 'Editar producto' : 'Nuevo producto'}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={guardando}
-            className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
-            aria-label="Cerrar"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+  return (
+    <>
+      <Modal isOpen={isOpen} size="md" labelledBy="titulo-formulario-producto">
+        <ModalHeader
+          title={modoEdicion ? 'Editar producto' : 'Nuevo producto'}
+          titleId="titulo-formulario-producto"
+          onClose={onClose}
+          disabled={guardando}
+        />
 
         <form onSubmit={manejarEnvio} className="px-6 py-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -478,7 +465,7 @@ export default function ProductoFormModal({
             <p className="text-sm text-error font-semibold">{errorFormulario}</p>
           )}
 
-          <div className="pt-2 flex justify-end gap-3">
+          <ModalActions>
             <button
               type="button"
               onClick={onClose}
@@ -498,9 +485,9 @@ export default function ProductoFormModal({
                 ? 'Guardar cambios'
                 : 'Guardar producto'}
             </button>
-          </div>
+          </ModalActions>
         </form>
-      </motion.div>
+      </Modal>
 
       <PresentacionQuickCreateModal
         isOpen={mostrarFormularioPresentacion}
@@ -527,7 +514,6 @@ export default function ProductoFormModal({
         }}
         onConfirm={confirmarEliminarPresentacion}
       />
-    </div>,
-    document.body,
+    </>
   );
 }

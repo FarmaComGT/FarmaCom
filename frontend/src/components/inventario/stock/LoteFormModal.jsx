@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { ChevronDown, PackagePlus, Pencil, X } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ChevronDown, PackagePlus, Pencil } from 'lucide-react';
+import { Modal, ModalActions, ModalHeader } from '../../ui/Modal.jsx';
+
 const ESTADO_INICIAL = {
   id_producto: '',
   id_proveedor: '',
@@ -40,6 +40,8 @@ export default function LoteFormModal({
   proveedores,
   sucursales,
   sucursalInicialId,
+  productoInicialId,
+  bloquearProducto = false,
   lote = null,
   cargandoDatos,
   guardando = false,
@@ -81,12 +83,21 @@ export default function LoteFormModal({
       precio_venta: String(lote.precio_venta ?? ''),
       precio_mayoreo: lote.precio_mayoreo == null ? '' : String(lote.precio_mayoreo),
       cantidad_mayoreo: lote.cantidad_mayoreo == null ? '' : String(lote.cantidad_mayoreo),
-    } : {
-      ...ESTADO_INICIAL,
-      id_sucursal: sucursalInicialId ? String(sucursalInicialId) : '',
-    });
+    } : (() => {
+      const productoInicial = productosActivos.find(
+        (producto) => String(producto.id_producto) === String(productoInicialId),
+      );
+      return {
+        ...ESTADO_INICIAL,
+        id_producto: productoInicialId ? String(productoInicialId) : '',
+        id_sucursal: sucursalInicialId ? String(sucursalInicialId) : '',
+        precio_compra: productoInicial?.precio_compra == null
+          ? ''
+          : String(productoInicial.precio_compra),
+      };
+    })());
     setErrorLocal(null);
-  }, [isOpen, lote, sucursalInicialId]);
+  }, [isOpen, lote, productoInicialId, productosActivos, sucursalInicialId]);
 
   if (!isOpen || typeof document === 'undefined') return null;
 
@@ -236,56 +247,43 @@ export default function LoteFormModal({
     <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
   );
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/55 p-4 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="my-auto flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="rounded-xl bg-primary/10 p-2 text-primary">
-              {modoEdicion ? <Pencil className="h-5 w-5" /> : <PackagePlus className="h-5 w-5" />}
-            </span>
-            <div className="min-w-0">
-              <h3 className="font-headline text-lg font-extrabold text-primary">
-                {modoEdicion ? 'Editar lote' : 'Ingresar lote'}
-              </h3>
-              <p className="truncate text-xs text-slate-500">
-                {modoEdicion
-                  ? `Actualiza los datos de ${lote.numero_lote}`
-                  : 'Registro manual para el inventario de sucursal'}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={guardando}
-            className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
-            aria-label="Cerrar"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+  return (
+    <Modal
+      isOpen={isOpen}
+      size="lg"
+      labelledBy="titulo-formulario-lote"
+      limitarAltura
+    >
+      <ModalHeader
+        title={modoEdicion ? 'Editar lote' : 'Ingresar lote'}
+        titleId="titulo-formulario-lote"
+        subtitle={modoEdicion
+          ? `Actualiza los datos de ${lote.numero_lote}`
+          : 'Registro manual para el inventario de sucursal'}
+        icon={modoEdicion
+          ? <Pencil className="h-5 w-5" />
+          : <PackagePlus className="h-5 w-5" />}
+        onClose={onClose}
+        disabled={guardando}
+      />
 
-        <form onSubmit={manejarEnvio} className="space-y-5 overflow-y-auto px-6 py-5">
+      <form onSubmit={manejarEnvio} className="space-y-5 overflow-y-auto px-6 py-5">
           <section className="space-y-4">
             <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">
               Datos del lote
             </p>
 
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">
+              <label htmlFor="producto_lote" className="text-sm font-semibold text-slate-700">
                 Producto <span className="text-error">*</span>
               </label>
               <div className="relative">
                 <select
+                  id="producto_lote"
                   name="id_producto"
                   value={formulario.id_producto}
                   onChange={manejarCambio}
-                  disabled={cargandoDatos}
+                  disabled={cargandoDatos || bloquearProducto}
                   required
                   className="w-full appearance-none rounded-xl border border-slate-300 px-4 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-400"
                 >
@@ -396,10 +394,11 @@ export default function LoteFormModal({
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-semibold text-slate-700">
+                <label htmlFor="numero_lote" className="text-sm font-semibold text-slate-700">
                   Número de lote <span className="text-error">*</span>
                 </label>
                 <input
+                  id="numero_lote"
                   type="text"
                   name="numero_lote"
                   value={formulario.numero_lote}
@@ -532,7 +531,7 @@ export default function LoteFormModal({
             <p className="text-sm font-semibold text-error">{errorLocal || errorFormulario}</p>
           )}
 
-          <div className="flex justify-end gap-3 border-t border-slate-100 pt-2">
+          <ModalActions divided>
             <button
               type="button"
               onClick={onClose}
@@ -548,10 +547,8 @@ export default function LoteFormModal({
             >
               {guardando ? 'Guardando...' : modoEdicion ? 'Guardar cambios' : 'Guardar lote'}
             </button>
-          </div>
-        </form>
-      </motion.div>
-    </div>,
-    document.body,
+          </ModalActions>
+      </form>
+    </Modal>
   );
 }
