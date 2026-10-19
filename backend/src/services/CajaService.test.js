@@ -7,8 +7,10 @@ const CajaService = require('./CajaService');
 
 const mockClient = {};
 const dueno = { id_usuario: 1, rol: 'dueno', id_sucursal: 1 };
+const administrador = { id_usuario: 4, rol: 'administrador', id_sucursal: 1 };
 const dependienteSucursal1 = { id_usuario: 2, rol: 'dependiente', id_sucursal: 1 };
 const dependienteSucursal2 = { id_usuario: 3, rol: 'dependiente', id_sucursal: 2 };
+const otroDependienteSucursal1 = { id_usuario: 5, rol: 'dependiente', id_sucursal: 1 };
 
 describe('CajaService', () => {
   beforeEach(() => {
@@ -59,6 +61,21 @@ describe('CajaService', () => {
       await CajaService.obtenerCajas({}, dependienteSucursal1);
 
       expect(CajaDAO.obtenerCajas).toHaveBeenCalledWith({ id_sucursal: 1 });
+    });
+
+    it('oculta al dependiente las cajas con sesiones abiertas por otro usuario', async () => {
+      CajaDAO.obtenerCajas.mockResolvedValue([
+        { id_caja: 1, id_sesion_abierta: null },
+        { id_caja: 2, id_sesion_abierta: 10, id_usuario_apertura: 2 },
+        { id_caja: 3, id_sesion_abierta: 11, id_usuario_apertura: 5 },
+      ]);
+
+      await expect(
+        CajaService.obtenerCajas({}, dependienteSucursal1),
+      ).resolves.toEqual([
+        { id_caja: 1, id_sesion_abierta: null },
+        { id_caja: 2, id_sesion_abierta: 10, id_usuario_apertura: 2 },
+      ]);
     });
 
     it('rechaza con 403 si el dependiente pide otra sucursal', async () => {
@@ -169,6 +186,38 @@ describe('CajaService', () => {
 
       await expect(CajaService.obtenerSesionActual(1, dueno)).rejects.toMatchObject({ status: 404 });
     });
+
+    it('permite al dependiente consultar su propia sesión', async () => {
+      const sesion = { id_sesion_caja: 1, id_usuario_apertura: 2 };
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 1 });
+      CajaDAO.obtenerSesionAbiertaPorCaja.mockResolvedValue(sesion);
+
+      await expect(
+        CajaService.obtenerSesionActual(1, dependienteSucursal1),
+      ).resolves.toBe(sesion);
+    });
+
+    it('rechaza al dependiente que consulta la sesión de otro usuario', async () => {
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 1 });
+      CajaDAO.obtenerSesionAbiertaPorCaja.mockResolvedValue({
+        id_sesion_caja: 1,
+        id_usuario_apertura: otroDependienteSucursal1.id_usuario,
+      });
+
+      await expect(
+        CajaService.obtenerSesionActual(1, dependienteSucursal1),
+      ).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('mantiene el acceso a sesiones ajenas para el administrador', async () => {
+      const sesion = { id_sesion_caja: 1, id_usuario_apertura: 5 };
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 1 });
+      CajaDAO.obtenerSesionAbiertaPorCaja.mockResolvedValue(sesion);
+
+      await expect(
+        CajaService.obtenerSesionActual(1, administrador),
+      ).resolves.toBe(sesion);
+    });
   });
 
   describe('registrarMovimiento', () => {
@@ -188,6 +237,39 @@ describe('CajaService', () => {
       await expect(
         CajaService.registrarMovimiento(1, { tipo: 'entrada', monto: 10 }, dueno),
       ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('rechaza movimientos del dependiente sobre una sesión ajena', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        ...sesionAbierta,
+        id_usuario_apertura: otroDependienteSucursal1.id_usuario,
+      });
+
+      await expect(
+        CajaService.registrarMovimiento(
+          1,
+          { tipo: 'entrada', monto: 10 },
+          dependienteSucursal1,
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(CajaDAO.obtenerTotalesSesion).not.toHaveBeenCalled();
+      expect(CajaDAO.crearMovimiento).not.toHaveBeenCalled();
+    });
+
+    it('permite movimientos del dependiente sobre su propia sesión', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        ...sesionAbierta,
+        id_usuario_apertura: dependienteSucursal1.id_usuario,
+      });
+      CajaDAO.crearMovimiento.mockResolvedValue({ id_movimiento: 1 });
+
+      await expect(
+        CajaService.registrarMovimiento(
+          1,
+          { tipo: 'entrada', monto: 10 },
+          dependienteSucursal1,
+        ),
+      ).resolves.toEqual({ id_movimiento: 1 });
     });
 
     it('rechaza con 409 si la salida supera el efectivo disponible', async () => {
@@ -222,6 +304,24 @@ describe('CajaService', () => {
       await expect(
         CajaService.cerrarSesion(1, { efectivo_contado: 100 }, dueno),
       ).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('rechaza el cierre del dependiente sobre una sesión ajena', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        ...sesionAbierta,
+        id_usuario_apertura: otroDependienteSucursal1.id_usuario,
+      });
+
+      await expect(
+        CajaService.cerrarSesion(
+          1,
+          { efectivo_contado: 100 },
+          dependienteSucursal1,
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(CajaDAO.contarPagosPOSPendientes).not.toHaveBeenCalled();
+      expect(CajaDAO.obtenerTotalesSesion).not.toHaveBeenCalled();
+      expect(CajaDAO.cerrarSesion).not.toHaveBeenCalled();
     });
 
     it('rechaza con 409 si hay pagos POS pendientes', async () => {

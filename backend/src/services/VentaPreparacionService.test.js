@@ -12,8 +12,9 @@ const {
   prepararVenta,
 } = require('./VentaPreparacionService');
 
-const usuarioDueno = { rol: 'dueno', id_sucursal: 1 };
-const usuarioDependiente = { rol: 'dependiente', id_sucursal: 1 };
+const usuarioDueno = { id_usuario: 1, rol: 'dueno', id_sucursal: 1 };
+const usuarioAdministrador = { id_usuario: 2, rol: 'administrador', id_sucursal: 1 };
+const usuarioDependiente = { id_usuario: 7, rol: 'dependiente', id_sucursal: 1 };
 
 const loteBase = {
   id_lote: 10,
@@ -93,6 +94,7 @@ describe('VentaPreparacionService', () => {
       CajaDAO.obtenerSesionPorId.mockResolvedValue({
         id_sesion_caja: 9,
         id_sucursal: 1,
+        id_usuario_apertura: 7,
         estado: 'abierta',
       });
 
@@ -104,6 +106,7 @@ describe('VentaPreparacionService', () => {
       CajaDAO.obtenerSesionPorId.mockResolvedValue({
         id_sesion_caja: 9,
         id_sucursal: 1,
+        id_usuario_apertura: 7,
         estado: 'cerrada',
       });
 
@@ -111,6 +114,33 @@ describe('VentaPreparacionService', () => {
         status: 409,
         message: 'La sesión de caja está cerrada',
       });
+    });
+
+    it('rechaza al dependiente que intenta vender con una sesión ajena', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        id_sesion_caja: 9,
+        id_sucursal: 1,
+        id_usuario_apertura: 8,
+        estado: 'abierta',
+      });
+
+      await expect(
+        validarSesionCaja(datos, usuarioDependiente, {}),
+      ).rejects.toMatchObject({ status: 403 });
+    });
+
+    it.each([
+      ['dueño', usuarioDueno],
+      ['administrador', usuarioAdministrador],
+    ])('permite al %s operar una sesión ajena', async (_rol, usuario) => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        id_sesion_caja: 9,
+        id_sucursal: 1,
+        id_usuario_apertura: 8,
+        estado: 'abierta',
+      });
+
+      await expect(validarSesionCaja(datos, usuario, {})).resolves.toBe(9);
     });
   });
 
