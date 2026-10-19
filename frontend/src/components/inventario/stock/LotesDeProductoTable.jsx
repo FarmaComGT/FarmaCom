@@ -50,6 +50,8 @@ export default function LotesDeProductoTable({
   onEditar,
   onEliminar,
   refreshKey,
+  filtroStock = '',
+  filtroVencimiento = '',
 }) {
   const [mostrarAgotados, setMostrarAgotados] = useState(false);
   const { lotes, cargando, error } = useLotesProducto(producto.id_producto, {
@@ -59,8 +61,12 @@ export default function LotesDeProductoTable({
   const mostrarAcciones = Boolean(onEditar && onEliminar);
 
   const lotesSucursal = useMemo(
-    () => lotes.filter((lote) => String(lote.id_sucursal) === String(sucursalId)),
-    [lotes, sucursalId],
+    () => lotes.filter((lote) => (
+      String(lote.id_sucursal) === String(sucursalId)
+      && (!filtroStock || lote.estado_stock === filtroStock)
+      && (!filtroVencimiento || lote.estado_vencimiento === filtroVencimiento)
+    )),
+    [filtroStock, filtroVencimiento, lotes, sucursalId],
   );
   const lotesConExistencias = useMemo(
     () => lotesSucursal.filter((lote) => Number(lote.stock_actual) > 0),
@@ -70,6 +76,7 @@ export default function LotesDeProductoTable({
     () => lotesSucursal.filter((lote) => Number(lote.stock_actual) <= 0),
     [lotesSucursal],
   );
+  const agotadosVisibles = mostrarAgotados || filtroStock === 'agotado';
 
   const renderizarLote = (lote, agotado = false) => (
     <div
@@ -151,11 +158,14 @@ export default function LotesDeProductoTable({
   }
 
   if (lotesSucursal.length === 0) {
+    const hayFiltros = Boolean(filtroStock || filtroVencimiento);
     return (
       <div className="rounded-xl border border-dashed border-primary/20 p-6 text-center">
         <Boxes className="mx-auto mb-2 h-8 w-8 text-primary/20" />
         <p className="text-sm font-semibold text-slate-400">
-          No hay lotes registrados para este producto en la sucursal actual.
+          {hayFiltros
+            ? 'No hay lotes que coincidan con los filtros seleccionados.'
+            : 'No hay lotes registrados para este producto en la sucursal actual.'}
         </p>
       </div>
     );
@@ -185,7 +195,7 @@ export default function LotesDeProductoTable({
           </div>
         )}
 
-        {lotesAgotados.length > 0 && (
+        {lotesAgotados.length > 0 && filtroStock !== 'agotado' && (
           <button
             type="button"
             aria-expanded={mostrarAgotados}
@@ -202,7 +212,7 @@ export default function LotesDeProductoTable({
           </button>
         )}
 
-        {mostrarAgotados && lotesAgotados.length > 0 && (
+        {agotadosVisibles && lotesAgotados.length > 0 && (
           <div
             id={`lotes-agotados-${producto.id_producto}`}
             role="region"

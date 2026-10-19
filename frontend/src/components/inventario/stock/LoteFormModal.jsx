@@ -40,6 +40,8 @@ export default function LoteFormModal({
   proveedores,
   sucursales,
   sucursalInicialId,
+  productoInicialId,
+  bloquearProducto = false,
   lote = null,
   cargandoDatos,
   guardando = false,
@@ -81,12 +83,21 @@ export default function LoteFormModal({
       precio_venta: String(lote.precio_venta ?? ''),
       precio_mayoreo: lote.precio_mayoreo == null ? '' : String(lote.precio_mayoreo),
       cantidad_mayoreo: lote.cantidad_mayoreo == null ? '' : String(lote.cantidad_mayoreo),
-    } : {
-      ...ESTADO_INICIAL,
-      id_sucursal: sucursalInicialId ? String(sucursalInicialId) : '',
-    });
+    } : (() => {
+      const productoInicial = productosActivos.find(
+        (producto) => String(producto.id_producto) === String(productoInicialId),
+      );
+      return {
+        ...ESTADO_INICIAL,
+        id_producto: productoInicialId ? String(productoInicialId) : '',
+        id_sucursal: sucursalInicialId ? String(sucursalInicialId) : '',
+        precio_compra: productoInicial?.precio_compra == null
+          ? ''
+          : String(productoInicial.precio_compra),
+      };
+    })());
     setErrorLocal(null);
-  }, [isOpen, lote, sucursalInicialId]);
+  }, [isOpen, lote, productoInicialId, productosActivos, sucursalInicialId]);
 
   if (!isOpen || typeof document === 'undefined') return null;
 
@@ -263,15 +274,16 @@ export default function LoteFormModal({
             </p>
 
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">
+              <label htmlFor="producto_lote" className="text-sm font-semibold text-slate-700">
                 Producto <span className="text-error">*</span>
               </label>
               <div className="relative">
                 <select
+                  id="producto_lote"
                   name="id_producto"
                   value={formulario.id_producto}
                   onChange={manejarCambio}
-                  disabled={cargandoDatos}
+                  disabled={cargandoDatos || bloquearProducto}
                   required
                   className="w-full appearance-none rounded-xl border border-slate-300 px-4 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-400"
                 >
@@ -382,10 +394,11 @@ export default function LoteFormModal({
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-semibold text-slate-700">
+                <label htmlFor="numero_lote" className="text-sm font-semibold text-slate-700">
                   Número de lote <span className="text-error">*</span>
                 </label>
                 <input
+                  id="numero_lote"
                   type="text"
                   name="numero_lote"
                   value={formulario.numero_lote}

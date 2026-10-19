@@ -85,4 +85,35 @@ describe('LotesDeProductoTable', () => {
     expect(screen.getByText('No hay lotes con existencias en esta sucursal.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ver lotes agotados (1)' })).toBeInTheDocument();
   });
+
+  it('aplica por separado los filtros de stock y vencimiento', () => {
+    useLotesProducto.mockReturnValue({
+      lotes: [
+        ...lotes,
+        {
+          ...loteBase,
+          id_lote: 12,
+          numero_lote: 'LT-VENCIDO',
+          stock_actual: 3,
+          estado_stock: 'normal',
+          estado_vencimiento: 'vencido',
+        },
+      ],
+      cargando: false,
+      error: null,
+    });
+
+    renderizarTabla({ filtroStock: 'normal', filtroVencimiento: 'vencido' });
+
+    expect(screen.getByText('LT-VENCIDO')).toBeInTheDocument();
+    expect(screen.queryByText('LT-ACTIVO')).not.toBeInTheDocument();
+    expect(screen.queryByText('LT-AGOTADO')).not.toBeInTheDocument();
+  });
+
+  it('muestra directamente los lotes cuando se filtra por agotados', () => {
+    renderizarTabla({ filtroStock: 'agotado' });
+
+    expect(screen.getByText('LT-AGOTADO')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /lotes agotados/i })).not.toBeInTheDocument();
+  });
 });
