@@ -1,5 +1,10 @@
 const CajaDAO = require('../daos/CajaDAO');
 const SucursalDAO = require('../daos/SucursalDAO');
+const {
+  ROLES_ACCESO_GLOBAL,
+  tieneAccesoSesionCaja,
+  validarPertenenciaSesionCaja,
+} = require('../utils/accesoCaja');
 
 const lanzarError = (mensaje, status) => {
   const error = new Error(mensaje);
@@ -11,9 +16,11 @@ const aCentavos = (monto) => Math.round(Number(monto) * 100);
 const aMonto = (centavos) => (centavos / 100).toFixed(2);
 
 const validarAccesoSucursal = (usuario, id_sucursal) => {
+  if (ROLES_ACCESO_GLOBAL.has(usuario.rol)) return;
+
   if (
-    usuario.rol === 'dependiente'
-    && Number(usuario.id_sucursal) !== Number(id_sucursal)
+    usuario.rol !== 'dependiente'
+    || Number(usuario.id_sucursal) !== Number(id_sucursal)
   ) {
     lanzarError('No tienes permiso para operar cajas de otra sucursal', 403);
   }
@@ -56,8 +63,16 @@ const obtenerCajas = async (filtros, usuario) => {
       lanzarError('No tienes permiso para consultar cajas de otra sucursal', 403);
     }
     filtrosAplicados.id_sucursal = Number(usuario.id_sucursal);
+  } else if (!ROLES_ACCESO_GLOBAL.has(usuario.rol)) {
+    lanzarError('No tienes permiso para consultar cajas', 403);
   }
-  return CajaDAO.obtenerCajas(filtrosAplicados);
+
+  const cajas = await CajaDAO.obtenerCajas(filtrosAplicados);
+  if (usuario.rol !== 'dependiente') return cajas;
+
+  return cajas.filter((caja) => (
+    caja.id_sesion_abierta == null || tieneAccesoSesionCaja(usuario, caja)
+  ));
 };
 
 const actualizarCaja = async (id_caja, campos, usuario) => {
@@ -122,6 +137,7 @@ const obtenerSesionActual = async (id_caja, usuario) => {
 
   const sesion = await CajaDAO.obtenerSesionAbiertaPorCaja(id_caja);
   if (!sesion) lanzarError('La caja no tiene una sesión abierta', 404);
+  validarPertenenciaSesionCaja(usuario, sesion);
   return sesion;
 };
 
@@ -133,6 +149,7 @@ const registrarMovimiento = async (
   const sesion = await CajaDAO.obtenerSesionPorId(id_sesion_caja, client, 'update');
   if (!sesion) lanzarError('Sesión de caja no encontrada', 404);
   validarAccesoSucursal(usuario, sesion.id_sucursal);
+  validarPertenenciaSesionCaja(usuario, sesion);
   if (sesion.estado !== 'abierta') {
     lanzarError('No se pueden registrar movimientos en una sesión cerrada', 409);
   }
@@ -166,6 +183,7 @@ const cerrarSesion = async (
   const sesion = await CajaDAO.obtenerSesionPorId(id_sesion_caja, client, 'update');
   if (!sesion) lanzarError('Sesión de caja no encontrada', 404);
   validarAccesoSucursal(usuario, sesion.id_sucursal);
+  validarPertenenciaSesionCaja(usuario, sesion);
   if (sesion.estado !== 'abierta') {
     lanzarError('La sesión de caja ya está cerrada', 409);
   }

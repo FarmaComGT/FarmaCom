@@ -54,6 +54,7 @@ describe('VentaService', () => {
     CajaDAO.obtenerSesionPorId.mockResolvedValue({
       id_sesion_caja: 9,
       id_sucursal: 1,
+      id_usuario_apertura: 7,
       estado: 'abierta',
     });
   });
@@ -209,6 +210,7 @@ describe('VentaService', () => {
       CajaDAO.obtenerSesionPorId.mockResolvedValue({
         id_sesion_caja: 9,
         id_sucursal: 1,
+        id_usuario_apertura: 7,
         estado: 'cerrada',
       });
 
@@ -218,6 +220,21 @@ describe('VentaService', () => {
         status: 409,
         message: 'La sesión de caja está cerrada',
       });
+      expect(VentaDAO.crearVenta).not.toHaveBeenCalled();
+    });
+
+    it('rechaza ventas del dependiente sobre una sesión ajena', async () => {
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        id_sesion_caja: 9,
+        id_sucursal: 1,
+        id_usuario_apertura: 8,
+        estado: 'abierta',
+      });
+
+      await expect(
+        VentaService.crearVenta(datosVenta, usuarioDependiente),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(VentaDAO.obtenerLotesParaVenta).not.toHaveBeenCalled();
       expect(VentaDAO.crearVenta).not.toHaveBeenCalled();
     });
 
@@ -259,6 +276,23 @@ describe('VentaService', () => {
 
       expect(VentaDAO.ejecutarEnTransaccion).not.toHaveBeenCalled();
       expect(VentaDAO.descontarStock).not.toHaveBeenCalled();
+    });
+
+    it('rechaza pagos POS del dependiente sobre una sesión ajena', async () => {
+      process.env.RECURRENTE_TERMINAL_ID = 'trm_test_123';
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        id_sesion_caja: 9,
+        id_sucursal: 1,
+        id_usuario_apertura: 8,
+        estado: 'abierta',
+      });
+
+      await expect(
+        VentaService.crearPagoPOS(datosVenta, usuarioDependiente),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(VentaDAO.obtenerLotesParaVenta).not.toHaveBeenCalled();
+      expect(VentaDAO.crearPagoPOS).not.toHaveBeenCalled();
+      expect(RecurrenteService.crearComandoTerminal).not.toHaveBeenCalled();
     });
 
     it('calcula el total, guarda la orden pendiente y crea el comando de terminal', async () => {
@@ -725,6 +759,7 @@ describe('VentaService', () => {
       VentaDAO.obtenerParaActualizar.mockResolvedValue({
         id_venta: 21,
         id_sucursal: 1,
+        id_sesion_caja: 9,
         estado: 'completada',
       });
       VentaDAO.obtenerDetallesParaAnulacion.mockResolvedValue([
@@ -754,6 +789,7 @@ describe('VentaService', () => {
       VentaDAO.obtenerParaActualizar.mockResolvedValue({
         id_venta: 21,
         id_sucursal: 1,
+        id_sesion_caja: 9,
         estado: 'anulada',
       });
 
@@ -764,6 +800,28 @@ describe('VentaService', () => {
         message: 'La venta ya esta anulada',
       });
       expect(VentaDAO.restaurarStock).not.toHaveBeenCalled();
+    });
+
+    it('impide que un dependiente anule ventas de una sesión ajena', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue({
+        id_venta: 21,
+        id_sucursal: 1,
+        id_sesion_caja: 9,
+        estado: 'completada',
+      });
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        id_sesion_caja: 9,
+        id_sucursal: 1,
+        id_usuario_apertura: 8,
+        estado: 'abierta',
+      });
+
+      await expect(
+        VentaService.anularVenta(21, 'Error de digitacion', usuarioDependiente),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(VentaDAO.obtenerDetallesParaAnulacion).not.toHaveBeenCalled();
+      expect(VentaDAO.restaurarStock).not.toHaveBeenCalled();
+      expect(VentaDAO.anular).not.toHaveBeenCalled();
     });
   });
 });

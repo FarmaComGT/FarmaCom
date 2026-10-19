@@ -6,6 +6,7 @@ const {
   determinarEstadoPago,
   registrarPagoRechazado,
   completarVentaPagada,
+  obtenerEstadoPagoPOS,
 } = require('./VentaPagoPOSService');
 const {
   ESTADOS_PAGO_POS,
@@ -121,5 +122,48 @@ describe('VentaPagoPOSService', () => {
       estado: ESTADOS_PAGO_POS.PAGADO,
       id_venta: 22,
     }), client);
+  });
+
+  describe('obtenerEstadoPagoPOS', () => {
+    const pago = {
+      id_pago_pos: 5,
+      external_id: 'farmacom-pos-test',
+      id_sucursal: 1,
+      id_usuario: 7,
+      estado: ESTADOS_PAGO_POS.PENDIENTE,
+      estado_pago: null,
+      id_venta: null,
+      total: '25.00',
+    };
+
+    it('permite al dependiente consultar su propio pago', async () => {
+      VentaDAO.obtenerPagoPOSPorExternalId.mockResolvedValue(pago);
+
+      await expect(obtenerEstadoPagoPOS(
+        pago.external_id,
+        { id_usuario: 7, id_sucursal: 1, rol: 'dependiente' },
+      )).resolves.toMatchObject({ external_id: pago.external_id });
+    });
+
+    it('rechaza al dependiente que consulta el pago de otra sesión', async () => {
+      VentaDAO.obtenerPagoPOSPorExternalId.mockResolvedValue(pago);
+
+      await expect(obtenerEstadoPagoPOS(
+        pago.external_id,
+        { id_usuario: 8, id_sucursal: 1, rol: 'dependiente' },
+      )).rejects.toMatchObject({ status: 403 });
+    });
+
+    it.each(['dueno', 'administrador'])(
+      'mantiene la consulta global para el rol %s',
+      async (rol) => {
+        VentaDAO.obtenerPagoPOSPorExternalId.mockResolvedValue(pago);
+
+        await expect(obtenerEstadoPagoPOS(
+          pago.external_id,
+          { id_usuario: 1, id_sucursal: 2, rol },
+        )).resolves.toMatchObject({ external_id: pago.external_id });
+      },
+    );
   });
 });
