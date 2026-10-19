@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Inventario from './Inventario.jsx';
 
@@ -164,5 +164,20 @@ describe('Inventario unificado', () => {
 
     await usuario.click(screen.getByRole('button', { name: 'Ingresar lote' }));
     expect(screen.getByText('Formulario de lote abierto')).toBeInTheDocument();
+  });
+
+  it('navega al detalle de lotes del producto', async () => {
+    const usuario = userEvent.setup();
+    const RutaActual = () => <span>{useLocation().pathname}</span>;
+
+    render(
+      <MemoryRouter initialEntries={['/inventario']}>
+        <Inventario />
+        <RutaActual />
+      </MemoryRouter>,
+    );
+
+    await usuario.click(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' }));
+    expect(screen.getByText('/inventario/productos/1/lotes')).toBeInTheDocument();
   });
 });

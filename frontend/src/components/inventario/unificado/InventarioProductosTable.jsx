@@ -1,5 +1,5 @@
 import React from 'react';
-import { History, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Boxes, History, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
 import EstadoInventarioBadge from './EstadoInventarioBadge.jsx';
 
 const columnas = 'grid-cols-[100px_minmax(240px,2fr)_minmax(170px,1fr)_100px_135px_145px_90px_120px]';
@@ -9,6 +9,7 @@ function InventarioProductoRow({
   onEditar,
   onCambiarEstado,
   onVerHistorial,
+  onVerLotes,
   puedeVerHistorial,
   cambiandoEstado,
 }) {
@@ -57,6 +58,15 @@ function InventarioProductoRow({
       </div>
 
       <div className="flex items-center justify-end gap-1.5">
+        <button
+          type="button"
+          onClick={() => onVerLotes(producto)}
+          aria-label={`Ver lotes de ${producto.nombre_comercial}`}
+          title="Ver lotes"
+          className="rounded-lg p-1.5 text-slate-500 hover:bg-primary/10 hover:text-primary"
+        >
+          <Boxes className="h-4 w-4" />
+        </button>
         {puedeVerHistorial && (
           <button
             type="button"
@@ -98,6 +108,7 @@ export default function InventarioProductosTable({
   onEditar,
   onCambiarEstado,
   onVerHistorial,
+  onVerLotes,
   puedeVerHistorial,
   cambiandoEstadoId,
 }) {
@@ -133,6 +144,7 @@ export default function InventarioProductosTable({
                   onEditar={onEditar}
                   onCambiarEstado={onCambiarEstado}
                   onVerHistorial={onVerHistorial}
+                  onVerLotes={onVerLotes}
                   puedeVerHistorial={puedeVerHistorial}
                   cambiandoEstado={cambiandoEstadoId === producto.id_producto}
                 />

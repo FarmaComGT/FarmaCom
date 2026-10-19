@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import InventarioSubNav from '../../components/inventario/InventarioSubNav.jsx';
 import ProductoFormModal from '../../components/inventario/productos/ProductoFormModal.jsx';
 import HistorialPrecioProductoModal from '../../components/inventario/productos/HistorialPrecioProductoModal.jsx';
@@ -23,6 +24,7 @@ import {
 } from '../../utils/inventario.js';
 
 export default function Inventario() {
+  const navigate = useNavigate();
   const { sucursalActivaId, usuario } = useAuth();
   const [sucursalId, setSucursalId] = useState(sucursalActivaId);
   const [busqueda, setBusqueda] = useState('');
@@ -191,6 +193,7 @@ export default function Inventario() {
         onEditar={gestionProducto.abrirEdicion}
         onCambiarEstado={gestionProducto.alternarEstado}
         onVerHistorial={gestionProducto.mostrarHistorial}
+        onVerLotes={(producto) => navigate(`/inventario/productos/${producto.id_producto}/lotes`)}
         puedeVerHistorial={puedeVerHistorial}
         cambiandoEstadoId={gestionProducto.cambiandoEstadoId}
       />

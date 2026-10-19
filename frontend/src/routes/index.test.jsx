@@ -50,6 +50,10 @@ vi.mock('../pages/inventario/Inventario.jsx', () => ({
   default: () => <h1>Inventario unificado</h1>,
 }));
 
+vi.mock('../pages/inventario/LotesProducto.jsx', () => ({
+  default: () => <h1>Detalle de lotes</h1>,
+}));
+
 vi.mock('../pages/reportes/Rentabilidad.jsx', () => ({
   default: () => <h1>Rentabilidad por sucursal</h1>,
 }));
@@ -268,5 +272,15 @@ describe('ruta de inventario unificado', () => {
 
     expect(screen.getByRole('heading', { name: 'Inventario unificado' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Inventario' })).toHaveAttribute('href', '/inventario');
+  });
+
+  it('permite abrir los lotes de un producto', () => {
+    render(
+      <MemoryRouter initialEntries={['/inventario/productos/7/lotes']}>
+        <AppRoutes />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Detalle de lotes' })).toBeInTheDocument();
   });
 });

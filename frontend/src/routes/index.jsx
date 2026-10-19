@@ -13,6 +13,7 @@ import Usuarios from '../pages/Usuarios.jsx';
 import Inventario from '../pages/inventario/Inventario.jsx';
 import Productos from '../pages/inventario/Productos.jsx';
 import InventarioSucursal from '../pages/inventario/InventarioSucursal.jsx';
+import LotesProducto from '../pages/inventario/LotesProducto.jsx';
 import Categorias from '../pages/inventario/Categorias.jsx';
 import Proveedores from '../pages/inventario/Proveedores.jsx';
 import Casas from '../pages/inventario/Casas.jsx';
@@ -51,6 +52,7 @@ export default function AppRoutes() {
               <Route index element={<Inventario />} />
               <Route path="productos" element={<Productos />} />
               <Route path="stock" element={<InventarioSucursal />} />
+              <Route path="productos/:productoId/lotes" element={<LotesProducto />} />
               <Route path="categorias" element={<Categorias />} />
               <Route path="proveedores" element={<Proveedores />} />
               <Route path="casas" element={<Casas />} />
