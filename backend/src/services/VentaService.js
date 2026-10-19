@@ -1,5 +1,7 @@
 const VentaDAO = require('../daos/VentaDAO');
+const CajaDAO = require('../daos/CajaDAO');
 const { lanzarError } = require('./VentaErrores');
+const { validarPertenenciaSesionCaja } = require('../utils/accesoCaja');
 const {
   aMonto,
   calcularCobroEfectivo,
@@ -116,6 +118,14 @@ const anularVenta = async (id_venta, motivo_anulacion, usuario) => {
     const venta = await VentaDAO.obtenerParaActualizar(id_venta, client);
     if (!venta) lanzarError('Venta no encontrada', 404);
     validarAccesoSucursal(usuario, venta.id_sucursal);
+
+    const sesion = await CajaDAO.obtenerSesionPorId(
+      venta.id_sesion_caja,
+      client,
+      'share',
+    );
+    if (!sesion) lanzarError('Sesión de caja no encontrada', 404);
+    validarPertenenciaSesionCaja(usuario, sesion);
 
     if (venta.estado === 'anulada') {
       lanzarError('La venta ya esta anulada', 409);

@@ -2,6 +2,7 @@ const VentaDAO = require('../daos/VentaDAO');
 const CajaDAO = require('../daos/CajaDAO');
 const { lanzarError } = require('./VentaErrores');
 const { calcularDetalles } = require('./VentaMonetariaService');
+const { validarPertenenciaSesionCaja } = require('../utils/accesoCaja');
 
 const puedeAccederSucursal = (usuario, id_sucursal) => (
   usuario.rol !== 'dependiente'
@@ -42,6 +43,7 @@ const validarSesionCaja = async (datos, usuario, client) => {
 
   if (!sesion) lanzarError('Sesión de caja no encontrada', 404);
   validarAccesoSucursal(usuario, sesion.id_sucursal);
+  validarPertenenciaSesionCaja(usuario, sesion);
   if (Number(sesion.id_sucursal) !== Number(datos.id_sucursal)) {
     lanzarError('La sesión de caja no pertenece a la sucursal de la venta', 409);
   }

@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const VentaDAO = require('../daos/VentaDAO');
 const RecurrenteService = require('./RecurrenteService');
 const { lanzarError } = require('./VentaErrores');
+const { validarPertenenciaSesionCaja } = require('../utils/accesoCaja');
 const { aCentavos, aMonto } = require('./VentaMonetariaService');
 const {
   validarAccesoSucursal,
@@ -248,6 +249,9 @@ const obtenerEstadoPagoPOS = async (externalId, usuario) => {
   const pago = await VentaDAO.obtenerPagoPOSPorExternalId(externalId);
   if (!pago) lanzarError('Pago POS no encontrado', 404);
   validarAccesoSucursal(usuario, pago.id_sucursal);
+  validarPertenenciaSesionCaja(usuario, {
+    id_usuario_apertura: pago.id_usuario,
+  });
   return {
     id_pago_pos: pago.id_pago_pos,
     external_id: pago.external_id,
