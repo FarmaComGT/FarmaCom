@@ -88,7 +88,7 @@ describe('ProductoFormModal', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar producto' }));
 
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ id_presentacion: '2' }),
+      expect.objectContaining({ id_presentacion: 2 }),
     );
   });
 
@@ -111,7 +111,7 @@ describe('ProductoFormModal', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar producto' }));
 
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ concentracion: '' }),
+      expect.objectContaining({ concentracion: null }),
     );
   });
 

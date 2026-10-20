@@ -84,8 +84,6 @@ export default function Inventario() {
   const puedeGestionarLotes = ['dueno', 'administrador'].includes(usuario?.rol);
   const puedeVerHistorial = ['dueno', 'administrador'].includes(usuario?.rol);
   const gestionProducto = useGestionProductoInventario({
-    presentaciones,
-    codigoSugerido,
     crearProducto,
     actualizarProducto,
     cambiarEstado,
