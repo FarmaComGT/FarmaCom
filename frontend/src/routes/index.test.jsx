@@ -283,4 +283,17 @@ describe('ruta de inventario unificado', () => {
 
     expect(screen.getByRole('heading', { name: 'Detalle de lotes' })).toBeInTheDocument();
   });
+
+  it.each(['/inventario/productos', '/inventario/stock'])(
+    'redirige la ruta heredada %s al inventario unificado',
+    (rutaHeredada) => {
+      render(
+        <MemoryRouter initialEntries={[rutaHeredada]}>
+          <AppRoutes />
+        </MemoryRouter>,
+      );
+
+      expect(screen.getByRole('heading', { name: 'Inventario unificado' })).toBeInTheDocument();
+    },
+  );
 });
