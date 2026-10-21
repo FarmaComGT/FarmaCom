@@ -421,8 +421,18 @@ describe('VentaDAO', () => {
     });
 
     expect(client.query).toHaveBeenCalledWith(
-      expect.any(String),
+      expect.stringContaining("AND estado = 'completada'"),
       ['Error de cobro', 1],
     );
+  });
+
+  it('devuelve null cuando otra solicitud ya anuló la venta', async () => {
+    const client = {
+      query: jest.fn().mockResolvedValue({ rows: [] }),
+    };
+
+    await expect(
+      VentaDAO.anular(1, 'Solicitud repetida', client),
+    ).resolves.toBeNull();
   });
 });
