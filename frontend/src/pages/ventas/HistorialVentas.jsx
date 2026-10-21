@@ -56,7 +56,11 @@ export default function HistorialVentas() {
           </tbody>
         </table>
       </div>
-      <VentaDetalleModal idVenta={ventaSeleccionada} onClose={() => setVentaSeleccionada(null)} />
+      <VentaDetalleModal
+        idVenta={ventaSeleccionada}
+        onClose={() => setVentaSeleccionada(null)}
+        onVentaAnulada={recargar}
+      />
     </>
   );
 }

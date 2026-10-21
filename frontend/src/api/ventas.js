@@ -66,3 +66,15 @@ export const obtenerVentaPorId = async (idVenta) => {
     throw new Error(mensaje);
   }
 };
+
+export const anularVenta = async (idVenta, motivoAnulacion) => {
+  try {
+    const { data } = await api.delete(`/ventas/${idVenta}`, {
+      data: { motivo_anulacion: motivoAnulacion },
+    });
+    return data;
+  } catch (err) {
+    const mensaje = err.response?.data?.mensaje || 'No se pudo anular la venta.';
+    throw new Error(mensaje);
+  }
+};
