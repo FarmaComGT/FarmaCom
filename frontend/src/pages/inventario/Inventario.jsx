@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import useCasas from '../../hooks/useCasas.js';
 import useCategorias from '../../hooks/useCategorias.js';
 import useGestionProductoInventario from '../../hooks/useGestionProductoInventario.js';
+import useGestionLotesProducto from '../../hooks/useGestionLotesProducto.js';
 import useInventarioSucursal from '../../hooks/useInventarioSucursal.js';
 import useLotes from '../../hooks/useLotes.js';
 import usePresentaciones from '../../hooks/usePresentaciones.js';
@@ -30,7 +31,6 @@ export default function Inventario() {
   const [busqueda, setBusqueda] = useState('');
   const [filtros, setFiltros] = useState(FILTROS_INVENTARIO_INICIALES);
   const [mensajeAccion, setMensajeAccion] = useState(null);
-  const [mostrarLote, setMostrarLote] = useState(false);
 
   const {
     productos: productosInventario,
@@ -90,6 +90,12 @@ export default function Inventario() {
     refrescarInventario,
     onExito: setMensajeAccion,
   });
+  const gestionLotes = useGestionLotesProducto({
+    crearLote,
+    limpiarError: limpiarErrorLote,
+    onCambio: refrescarInventario,
+    onExito: setMensajeAccion,
+  });
 
   const cambiarSucursal = useCallback((id) => {
     setSucursalId(id);
@@ -112,22 +118,6 @@ export default function Inventario() {
       };
     });
   }, []);
-
-  const abrirNuevoLote = useCallback(() => {
-    limpiarErrorLote();
-    setMostrarLote(true);
-  }, [limpiarErrorLote]);
-
-  const guardarLote = useCallback(async (payload) => {
-    try {
-      await crearLote(payload);
-      await refrescarInventario();
-      setMostrarLote(false);
-      setMensajeAccion(`Lote ${payload.numero_lote} creado correctamente.`);
-    } catch {
-      // El hook mantiene el error visible dentro del formulario.
-    }
-  }, [crearLote, refrescarInventario]);
 
   return (
     <div className="space-y-6">
@@ -159,7 +149,7 @@ export default function Inventario() {
         sucursales={sucursales}
         onSucursalChange={cambiarSucursal}
         onNuevoProducto={gestionProducto.abrirNuevo}
-        onNuevoLote={abrirNuevoLote}
+        onNuevoLote={gestionLotes.abrirNuevo}
         puedeGestionarLotes={puedeGestionarLotes}
       />
 
@@ -218,7 +208,7 @@ export default function Inventario() {
       />
 
       <LoteFormModal
-        isOpen={mostrarLote}
+        isOpen={gestionLotes.mostrarFormulario}
         productos={productosCatalogo}
         proveedores={proveedores}
         sucursales={sucursales}
@@ -227,10 +217,8 @@ export default function Inventario() {
         cargandoDatos={cargandoDatosLote}
         guardando={guardandoLote}
         errorFormulario={errorLote}
-        onClose={() => {
-          if (!guardandoLote) setMostrarLote(false);
-        }}
-        onSubmit={guardarLote}
+        onClose={gestionLotes.cerrarFormulario}
+        onSubmit={gestionLotes.guardar}
       />
 
       <HistorialPrecioProductoModal

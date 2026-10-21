@@ -8,6 +8,7 @@ const preparar = () => {
     actualizarLote: vi.fn().mockResolvedValue({}),
     eliminarLote: vi.fn().mockResolvedValue({}),
     limpiarError: vi.fn(),
+    onCambio: vi.fn().mockResolvedValue(undefined),
     onExito: vi.fn(),
   };
   return {
@@ -24,6 +25,7 @@ describe('useGestionLotesProducto', () => {
     await act(() => result.current.guardar({ numero_lote: 'LT-001' }));
 
     expect(dependencias.crearLote).toHaveBeenCalledWith({ numero_lote: 'LT-001' });
+    expect(dependencias.onCambio).toHaveBeenCalledOnce();
     expect(result.current.mostrarFormulario).toBe(false);
     expect(result.current.refreshKey).toBe(1);
   });

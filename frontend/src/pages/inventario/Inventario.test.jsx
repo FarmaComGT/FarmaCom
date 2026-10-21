@@ -111,7 +111,11 @@ vi.mock('../../components/inventario/productos/ProductoFormModal.jsx', () => ({
   default: ({ isOpen }) => isOpen ? <div>Formulario de producto abierto</div> : null,
 }));
 vi.mock('../../components/inventario/stock/LoteFormModal.jsx', () => ({
-  default: ({ isOpen }) => isOpen ? <div>Formulario de lote abierto</div> : null,
+  default: ({ isOpen, onSubmit }) => isOpen ? (
+    <button type="button" onClick={() => onSubmit({ numero_lote: 'LT-001' })}>
+      Formulario de lote abierto
+    </button>
+  ) : null,
 }));
 vi.mock('../../components/inventario/productos/HistorialPrecioProductoModal.jsx', () => ({
   default: () => null,
@@ -124,6 +128,8 @@ describe('Inventario unificado', () => {
       sucursalActivaId: 1,
       usuario: { rol: 'administrador' },
     });
+    mocks.crearLote.mockResolvedValue({});
+    mocks.refrescarInventario.mockResolvedValue(undefined);
   });
 
   const renderizar = () => render(
@@ -164,6 +170,19 @@ describe('Inventario unificado', () => {
 
     await usuario.click(screen.getByRole('button', { name: 'Ingresar lote' }));
     expect(screen.getByText('Formulario de lote abierto')).toBeInTheDocument();
+  });
+
+  it('crea un lote global, refresca el inventario y cierra el formulario', async () => {
+    const usuario = userEvent.setup();
+    renderizar();
+
+    await usuario.click(screen.getByRole('button', { name: 'Ingresar lote' }));
+    await usuario.click(screen.getByRole('button', { name: 'Formulario de lote abierto' }));
+
+    expect(mocks.crearLote).toHaveBeenCalledWith({ numero_lote: 'LT-001' });
+    expect(mocks.refrescarInventario).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('button', { name: 'Formulario de lote abierto' })).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Lote LT-001 creado correctamente.');
   });
 
   it('navega al detalle de lotes del producto', async () => {
