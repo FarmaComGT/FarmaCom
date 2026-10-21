@@ -414,7 +414,7 @@ describe('VentaDAO', () => {
     };
 
     await expect(
-      VentaDAO.anular(1, 'Error de cobro', client),
+      VentaDAO.anular(1, 'Error de cobro', 7, client),
     ).resolves.toEqual({
       id_venta: 1,
       estado: 'anulada',
@@ -422,7 +422,7 @@ describe('VentaDAO', () => {
 
     expect(client.query).toHaveBeenCalledWith(
       expect.stringContaining("AND estado = 'completada'"),
-      ['Error de cobro', 1],
+      ['Error de cobro', 7, 1],
     );
   });
 
@@ -432,7 +432,7 @@ describe('VentaDAO', () => {
     };
 
     await expect(
-      VentaDAO.anular(1, 'Solicitud repetida', client),
+      VentaDAO.anular(1, 'Solicitud repetida', 7, client),
     ).resolves.toBeNull();
   });
 });

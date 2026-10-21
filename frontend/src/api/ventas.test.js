@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from './axios';
 import {
+  anularVenta,
   crearPagoPOS,
   crearVenta,
   obtenerEstadoPagoPOS,
@@ -9,7 +10,7 @@ import {
 } from './ventas';
 
 vi.mock('./axios', () => ({
-  default: { get: vi.fn(), post: vi.fn() },
+  default: { delete: vi.fn(), get: vi.fn(), post: vi.fn() },
 }));
 
 describe('API de ventas', () => {
@@ -145,6 +146,36 @@ describe('API de ventas', () => {
 
       await expect(obtenerVentaPorId(1)).rejects.toThrow(
         'No se pudo cargar el comprobante de la venta.',
+      );
+    });
+  });
+
+  describe('anularVenta', () => {
+    it('envía el motivo obligatorio y devuelve la venta actualizada', async () => {
+      const venta = { id_venta: 1, estado: 'anulada' };
+      api.delete.mockResolvedValue({ data: venta });
+
+      await expect(anularVenta(1, 'Error de cobro')).resolves.toEqual(venta);
+      expect(api.delete).toHaveBeenCalledWith('/ventas/1', {
+        data: { motivo_anulacion: 'Error de cobro' },
+      });
+    });
+
+    it('muestra el mensaje del backend cuando la anulación es rechazada', async () => {
+      api.delete.mockRejectedValue({
+        response: { data: { mensaje: 'La sesión de caja está cerrada' } },
+      });
+
+      await expect(anularVenta(1, 'Error de cobro')).rejects.toThrow(
+        'La sesión de caja está cerrada',
+      );
+    });
+
+    it('usa un mensaje genérico si el backend no devuelve uno', async () => {
+      api.delete.mockRejectedValue({});
+
+      await expect(anularVenta(1, 'Error de cobro')).rejects.toThrow(
+        'No se pudo anular la venta.',
       );
     });
   });
