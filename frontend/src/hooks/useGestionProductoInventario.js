@@ -1,9 +1,6 @@
 import { useCallback, useState } from 'react';
-import { sufijoPresentacion } from '../constants/presentaciones.js';
 
 export default function useGestionProductoInventario({
-  presentaciones,
-  codigoSugerido,
   crearProducto,
   actualizarProducto,
   cambiarEstado,
@@ -37,26 +34,7 @@ export default function useGestionProductoInventario({
     setErrorFormulario(null);
   }, [guardando]);
 
-  const guardar = useCallback(async (formulario) => {
-    const presentacion = presentaciones.find(
-      (item) => String(item.id_presentacion) === formulario.id_presentacion,
-    );
-    const sufijo = sufijoPresentacion(presentacion?.nombre);
-    const payload = {
-      codigo: productoEditando?.codigo || `${codigoSugerido}-${sufijo}`,
-      nombre_comercial: formulario.nombre_comercial.trim(),
-      nombre_generico: formulario.nombre_generico.trim(),
-      concentracion: formulario.concentracion.trim() || null,
-      id_presentacion: Number(formulario.id_presentacion),
-      id_categoria: Number(formulario.id_categoria),
-      id_casa: Number(formulario.id_casa),
-      id_proveedor: formulario.id_proveedor ? Number(formulario.id_proveedor) : undefined,
-      precio_compra: Number(formulario.precio_compra),
-      stock_minimo: formulario.stock_minimo ? Number(formulario.stock_minimo) : undefined,
-      meses_alerta_vencimiento: Number(formulario.meses_alerta_vencimiento),
-      aplica_mayoreo: formulario.aplica_mayoreo,
-    };
-
+  const guardar = useCallback(async (payload) => {
     try {
       setGuardando(true);
       setErrorFormulario(null);
@@ -77,10 +55,8 @@ export default function useGestionProductoInventario({
     }
   }, [
     actualizarProducto,
-    codigoSugerido,
     crearProducto,
     onExito,
-    presentaciones,
     productoEditando,
     refrescarInventario,
   ]);

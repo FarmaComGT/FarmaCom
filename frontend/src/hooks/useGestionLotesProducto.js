@@ -5,6 +5,7 @@ export default function useGestionLotesProducto({
   actualizarLote,
   eliminarLote,
   limpiarError,
+  onCambio,
   onExito,
 }) {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -34,18 +35,19 @@ export default function useGestionLotesProducto({
     try {
       if (loteEditando) {
         await actualizarLote(loteEditando.id_lote, payload);
-        onExito(`Lote ${payload.numero_lote} actualizado correctamente.`);
+        onExito?.(`Lote ${payload.numero_lote} actualizado correctamente.`);
       } else {
         await crearLote(payload);
-        onExito(`Lote ${payload.numero_lote} creado correctamente.`);
+        onExito?.(`Lote ${payload.numero_lote} creado correctamente.`);
       }
+      await onCambio?.();
       setMostrarFormulario(false);
       setLoteEditando(null);
       setRefreshKey((valor) => valor + 1);
     } catch {
       // useLotes conserva el error para mostrarlo en el modal.
     }
-  }, [actualizarLote, crearLote, loteEditando, onExito]);
+  }, [actualizarLote, crearLote, loteEditando, onCambio, onExito]);
 
   const solicitarEliminacion = useCallback((lote) => {
     limpiarError();
@@ -62,13 +64,14 @@ export default function useGestionLotesProducto({
     try {
       const numeroLote = loteAEliminar.numero_lote;
       await eliminarLote(loteAEliminar.id_lote);
+      await onCambio?.();
       setLoteAEliminar(null);
       setRefreshKey((valor) => valor + 1);
-      onExito(`Lote ${numeroLote} eliminado correctamente.`);
+      onExito?.(`Lote ${numeroLote} eliminado correctamente.`);
     } catch {
       // useLotes conserva el error para mostrarlo en el modal.
     }
-  }, [eliminarLote, loteAEliminar, onExito]);
+  }, [eliminarLote, loteAEliminar, onCambio, onExito]);
 
   return {
     mostrarFormulario,

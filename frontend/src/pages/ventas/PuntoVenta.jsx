@@ -1,11 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronDown, Info, LockKeyhole, X } from 'lucide-react';
-import {
-  crearPagoPOS,
-  crearVenta,
-  obtenerEstadoPagoPOS,
-  obtenerVentaPorId,
-} from '../../api/ventas';
+import React, { useCallback, useState } from 'react';
+import AvisoPuntoVenta from '../../components/ventas/AvisoPuntoVenta';
+import CajaVentaContexto from '../../components/ventas/CajaVentaContexto';
 import AutocompletadoProductosPOS from '../../components/ventas/AutocompletadoProductosPOS';
 import CarritoVenta from '../../components/ventas/CarritoVenta';
 import CobroModal from '../../components/ventas/CobroModal';
@@ -17,6 +12,9 @@ import { useCarrito } from '../../context/CarritoContext';
 import useAutocompletadoPOS from '../../hooks/useAutocompletadoPOS';
 import useClientes from '../../hooks/useClientes';
 import useCaja from '../../hooks/useCaja';
+import useSeleccionCajaVenta from '../../hooks/useSeleccionCajaVenta';
+import useFlujoVenta from '../../hooks/useFlujoVenta';
+import { normalizarCantidadCarrito, validarProductoAgregable } from '../../utils/carritoVenta';
 
 export default function PuntoVenta() {
   const { sucursalActivaId } = useAuth();
@@ -55,31 +53,29 @@ export default function PuntoVenta() {
     crear: crearCliente,
   } = useClientes();
 
-  const [metodoPago, setMetodoPago] = useState('efectivo');
   const [aviso, setAviso] = useState(null);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [productoPendiente, setProductoPendiente] = useState(null);
-  const [confirmandoVenta, setConfirmandoVenta] = useState(false);
-  const [mostrandoCobro, setMostrandoCobro] = useState(false);
   const [mostrandoNuevoCliente, setMostrandoNuevoCliente] = useState(false);
-  const [procesandoCobro, setProcesandoCobro] = useState(false);
-  const [errorCobro, setErrorCobro] = useState(null);
-  const [ventaCompletada, setVentaCompletada] = useState(null);
-  const [pagoPOS, setPagoPOS] = useState(null);
-  const confirmandoPagoPOS = useRef(false);
 
-  useEffect(() => {
-    if (idCajaSeleccionada || cargandoCajas) return;
-    const cajasAbiertas = cajas.filter((caja) => caja.id_sesion_abierta);
-    if (cajasAbiertas.length === 1) {
-      seleccionarCaja(cajasAbiertas[0].id_caja);
-    }
-  }, [cajas, cargandoCajas, idCajaSeleccionada, seleccionarCaja]);
+  const { estadoTurno } = useSeleccionCajaVenta({
+    cajas, idCajaSeleccionada, cajaSeleccionada, sesionActual, cargandoCajas,
+    cargandoSesion, seleccionarCaja,
+  });
+  const flujoVenta = useFlujoVenta({
+    items,
+    sucursalId: sucursalActivaId,
+    sesionCajaId: sesionActual?.id_sesion_caja,
+    clienteId: clienteSeleccionado?.id_cliente,
+    vaciarCarrito,
+    refrescarCatalogo: refrescar,
+    onAviso: setAviso,
+  });
 
   const agregarAlCarritoValidandoStock = useCallback((producto) => {
-    const existente = items.find((item) => item.clave === producto.carritoKey);
-    if (existente?.cantidad >= producto.stock_disponible) {
-      setAviso(`No hay más existencias disponibles de ${producto.nombre_comercial}.`);
+    const errorStock = validarProductoAgregable(items, producto);
+    if (errorStock) {
+      setAviso(errorStock);
       return;
     }
 
@@ -118,55 +114,19 @@ export default function PuntoVenta() {
   }, [disminuirCantidad]);
 
   const actualizarCantidadProducto = useCallback((item, cantidad) => {
-    const cantidadSolicitada = Number(cantidad);
-    if (!Number.isFinite(cantidadSolicitada)) {
-      setAviso('Ingresa una cantidad válida.');
+    const resultado = normalizarCantidadCarrito(cantidad, item.stock_disponible);
+    if (resultado.cantidad == null) {
+      setAviso(resultado.aviso);
       return;
     }
-
-    const cantidadNormalizada = Math.max(
-      0,
-      Math.min(Math.floor(cantidadSolicitada), item.stock_disponible),
-    );
-
-    if (cantidadSolicitada > item.stock_disponible) {
-      setAviso(`Solo hay ${item.stock_disponible} unidades disponibles en este lote.`);
-    } else {
-      setAviso(null);
-    }
-
-    actualizarCantidad(item.clave, cantidadNormalizada);
+    setAviso(resultado.aviso);
+    actualizarCantidad(item.clave, resultado.cantidad);
   }, [actualizarCantidad]);
 
   const eliminarProducto = useCallback((item) => {
     eliminarDelCarrito(item.clave);
     setAviso(null);
   }, [eliminarDelCarrito]);
-
-  const itemsProximosAVencer = items.filter(
-    (item) => item.estado_vencimiento === 'proximo_a_vencer',
-  );
-
-  const abrirCobro = useCallback(() => {
-    setErrorCobro(null);
-    setPagoPOS(null);
-    setMostrandoCobro(true);
-    setConfirmandoVenta(false);
-  }, []);
-
-  const procesarVenta = () => {
-    if (!sesionActual?.id_sesion_caja) {
-      setAviso('Selecciona una caja con un turno abierto antes de procesar la venta.');
-      return;
-    }
-
-    if (itemsProximosAVencer.length > 0) {
-      setConfirmandoVenta(true);
-      return;
-    }
-
-    abrirCobro();
-  };
 
   const agregarCliente = useCallback(async (datosCliente) => {
     const nuevoCliente = await crearCliente(datosCliente);
@@ -175,67 +135,7 @@ export default function PuntoVenta() {
     setAviso(`Cliente ${nuevoCliente.nombre_cliente} agregado y seleccionado.`);
   }, [crearCliente]);
 
-  const cerrarCobro = useCallback(() => {
-    if (procesandoCobro || pagoPOS?.external_id) return;
-    setMostrandoCobro(false);
-    setErrorCobro(null);
-    setPagoPOS(null);
-  }, [pagoPOS, procesandoCobro]);
-
-  const cambiarMetodoPago = useCallback((metodo) => {
-    setMetodoPago(metodo);
-    setPagoPOS(null);
-    setErrorCobro(null);
-  }, []);
-
-  const construirPayloadBaseVenta = useCallback(() => {
-    const detalles = items.map((item) => ({
-      id_lote: Number(item.id_lote),
-      cantidad: Number(item.cantidad),
-    }));
-
-    if (!sucursalActivaId) {
-      throw new Error('No hay una sucursal activa para registrar la venta.');
-    }
-
-    if (detalles.some((detalle) => !detalle.id_lote || detalle.cantidad <= 0)) {
-      throw new Error('El carrito contiene productos sin lote valido.');
-    }
-
-    return {
-      id_sucursal: Number(sucursalActivaId),
-      id_sesion_caja: Number(sesionActual.id_sesion_caja),
-      id_cliente: clienteSeleccionado?.id_cliente ?? null,
-      detalles,
-    };
-  }, [clienteSeleccionado, items, sesionActual, sucursalActivaId]);
-
-  const iniciarPagoPOS = useCallback(async () => {
-    if (metodoPago !== 'tarjeta') {
-      setErrorCobro('Selecciona tarjeta para enviar el cobro al POS.');
-      return;
-    }
-
-    if (procesandoCobro || pagoPOS?.external_id) return;
-
-    setErrorCobro(null);
-
-    try {
-      setProcesandoCobro(true);
-      const pago = await crearPagoPOS(construirPayloadBaseVenta());
-
-      if (!pago?.external_id) {
-        throw new Error('No se pudo iniciar el pago. Inténtalo de nuevo.');
-      }
-
-      setPagoPOS(pago);
-    } catch (err) {
-      setErrorCobro(err.message || 'No se pudo enviar el cobro al POS.');
-    } finally {
-      setProcesandoCobro(false);
-    }
-  }, [construirPayloadBaseVenta, metodoPago, pagoPOS, procesandoCobro]);
-
+  /* Flujo de pago extraído a useFlujoVenta.
   useEffect(() => {
     if (!mostrandoCobro || metodoPago !== 'tarjeta' || !pagoPOS?.external_id) {
       return undefined;
@@ -341,10 +241,20 @@ export default function PuntoVenta() {
     metodoPago,
     refrescar,
     vaciarCarrito,
-  ]);
+  ]); */
 
   return (
     <div className="space-y-4">
+      <CajaVentaContexto
+        cajas={cajas}
+        idCaja={idCajaSeleccionada}
+        sesionActiva={Boolean(sesionActual)}
+        cargandoCajas={cargandoCajas}
+        estadoTurno={estadoTurno}
+        error={errorCaja}
+        onSeleccionar={seleccionarCaja}
+      />
+      {/*
       <section className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 flex-1">
@@ -377,34 +287,13 @@ export default function PuntoVenta() {
               : 'border border-slate-200 bg-slate-50 text-slate-500'
           }`}>
             <LockKeyhole className="h-4 w-4" aria-hidden="true" />
-            {cargandoSesion
-              ? 'Verificando turno...'
-              : sesionActual
-                ? `Turno ${sesionActual.turno} activo`
-                : cajaSeleccionada
-                  ? 'Esta caja no tiene un turno abierto'
-                  : 'Selecciona una caja'}
+            {estadoTurno}
           </div>
         </div>
         {errorCaja && <p className="mt-2 text-sm font-semibold text-red-600">{errorCaja}</p>}
-      </section>
+      </section> */}
 
-      {aviso && (
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary">
-          <span className="flex items-center gap-2">
-            <Info className="h-4 w-4 shrink-0" />
-            {aviso}
-          </span>
-          <button
-            type="button"
-            onClick={() => setAviso(null)}
-            aria-label="Cerrar aviso"
-            className="rounded-lg p-1 hover:bg-white/60"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
+      <AvisoPuntoVenta mensaje={aviso} onCerrar={() => setAviso(null)} />
 
       <div className="grid w-full items-stretch gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(390px,0.65fr)]">
         <AutocompletadoProductosPOS
@@ -422,8 +311,8 @@ export default function PuntoVenta() {
           items={items}
           total={total}
           cantidadTotal={cantidadTotal}
-          metodoPago={metodoPago}
-          onMetodoPagoChange={cambiarMetodoPago}
+          metodoPago={flujoVenta.metodoPago}
+          onMetodoPagoChange={flujoVenta.cambiarMetodoPago}
           clientes={clientes}
           cargandoClientes={cargandoClientes}
           clienteSeleccionado={clienteSeleccionado}
@@ -434,7 +323,7 @@ export default function PuntoVenta() {
           onActualizarCantidad={actualizarCantidadProducto}
           onEliminar={eliminarProducto}
           onLimpiar={vaciarCarrito}
-          onProcesar={procesarVenta}
+          onProcesar={flujoVenta.procesarVenta}
         />
       </div>
 
@@ -454,32 +343,32 @@ export default function PuntoVenta() {
       />
 
       <VencimientoAvisoModal
-        isOpen={confirmandoVenta}
-        productos={itemsProximosAVencer}
+        isOpen={flujoVenta.modalActivo === 'confirmar_vencimiento'}
+        productos={flujoVenta.itemsProximosAVencer}
         titulo="Venta con productos próximos a vencer"
         mensaje="El carrito incluye productos próximos a vencer. ¿Deseas continuar con la venta?"
-        onClose={() => setConfirmandoVenta(false)}
-        onConfirm={abrirCobro}
+        onClose={flujoVenta.cerrarConfirmacion}
+        onConfirm={flujoVenta.abrirCobro}
       />
 
       <CobroModal
-        isOpen={mostrandoCobro}
+        isOpen={flujoVenta.modalActivo === 'cobro'}
         items={items}
         total={total}
-        metodoPago={metodoPago}
+        metodoPago={flujoVenta.metodoPago}
         clienteSeleccionado={clienteSeleccionado}
-        pagoPOS={pagoPOS}
-        procesando={procesandoCobro}
-        error={errorCobro}
-        onClose={cerrarCobro}
-        onCrearPagoPOS={iniciarPagoPOS}
-        onConfirm={confirmarCobro}
+        pagoPOS={flujoVenta.pagoPOS}
+        procesando={flujoVenta.procesandoCobro}
+        error={flujoVenta.errorCobro}
+        onClose={flujoVenta.cerrarCobro}
+        onCrearPagoPOS={flujoVenta.iniciarPagoPOS}
+        onConfirm={flujoVenta.confirmarCobro}
       />
 
       <ComprobanteModal
-        isOpen={Boolean(ventaCompletada)}
-        venta={ventaCompletada}
-        onClose={() => setVentaCompletada(null)}
+        isOpen={flujoVenta.modalActivo === 'comprobante'}
+        venta={flujoVenta.ventaCompletada}
+        onClose={flujoVenta.cerrarComprobante}
       />
     </div>
   );
