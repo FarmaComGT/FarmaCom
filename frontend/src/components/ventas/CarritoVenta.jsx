@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ReceiptText, ShoppingCart, Trash2, UserPlus } from 'lucide-react';
+import { ReceiptText, ShoppingCart, Trash2 } from 'lucide-react';
 import CarritoVentaItem from './CarritoVentaItem';
-import MetodoPagoSelector from './MetodoPagoSelector';
-import ClienteSelectorPOS from './ClienteSelectorPOS';
-import { formatearQuetzales } from '../../utils/pos';
+import ClienteVentaSection from './ClienteVentaSection';
+import CarritoAccionesCobro from './CarritoAccionesCobro';
 
 export default function CarritoVenta({
   items,
@@ -71,28 +70,7 @@ export default function CarritoVenta({
         )}
       </header>
 
-      <div className="border-b border-slate-200/70 px-5 py-4 sm:px-6">
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <ClienteSelectorPOS
-              clientes={clientes}
-              cargando={cargandoClientes}
-              clienteSeleccionado={clienteSeleccionado}
-              onSeleccionar={onClienteChange}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={onNuevoCliente}
-            aria-label="Agregar cliente"
-            title="Agregar cliente"
-            className="inline-flex h-[46px] shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-container"
-          >
-            <UserPlus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nuevo</span>
-          </button>
-        </div>
-      </div>
+      <ClienteVentaSection clientes={clientes} cargando={cargandoClientes} seleccionado={clienteSeleccionado} onSeleccionar={onClienteChange} onNuevo={onNuevoCliente} />
 
       <div className="hidden grid-cols-12 gap-3 bg-surface-container-low/60 px-6 py-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-400 sm:grid">
         <span className="col-span-5">Producto</span>
@@ -128,6 +106,8 @@ export default function CarritoVenta({
         )}
       </div>
 
+      <CarritoAccionesCobro total={total} metodoPago={metodoPago} deshabilitado={items.length === 0} onMetodoPagoChange={onMetodoPagoChange} onProcesar={onProcesar} />
+      {/*
       <footer className="space-y-5 bg-primary/5 p-5 sm:p-6">
         <div className="flex items-center justify-between gap-4 px-1">
           <span className="font-headline text-lg font-extrabold text-secondary">
@@ -157,7 +137,7 @@ export default function CarritoVenta({
           <ShoppingCart className="h-5 w-5" />
           Procesar venta
         </button>
-      </footer>
+      </footer> */}
     </section>
   );
 }

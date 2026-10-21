@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { ChevronDown, Info, LockKeyhole, X } from 'lucide-react';
+import AvisoPuntoVenta from '../../components/ventas/AvisoPuntoVenta';
+import CajaVentaContexto from '../../components/ventas/CajaVentaContexto';
 import AutocompletadoProductosPOS from '../../components/ventas/AutocompletadoProductosPOS';
 import CarritoVenta from '../../components/ventas/CarritoVenta';
 import CobroModal from '../../components/ventas/CobroModal';
@@ -244,6 +245,16 @@ export default function PuntoVenta() {
 
   return (
     <div className="space-y-4">
+      <CajaVentaContexto
+        cajas={cajas}
+        idCaja={idCajaSeleccionada}
+        sesionActiva={Boolean(sesionActual)}
+        cargandoCajas={cargandoCajas}
+        estadoTurno={estadoTurno}
+        error={errorCaja}
+        onSeleccionar={seleccionarCaja}
+      />
+      {/*
       <section className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 flex-1">
@@ -280,24 +291,9 @@ export default function PuntoVenta() {
           </div>
         </div>
         {errorCaja && <p className="mt-2 text-sm font-semibold text-red-600">{errorCaja}</p>}
-      </section>
+      </section> */}
 
-      {aviso && (
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary">
-          <span className="flex items-center gap-2">
-            <Info className="h-4 w-4 shrink-0" />
-            {aviso}
-          </span>
-          <button
-            type="button"
-            onClick={() => setAviso(null)}
-            aria-label="Cerrar aviso"
-            className="rounded-lg p-1 hover:bg-white/60"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
+      <AvisoPuntoVenta mensaje={aviso} onCerrar={() => setAviso(null)} />
 
       <div className="grid w-full items-stretch gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(390px,0.65fr)]">
         <AutocompletadoProductosPOS
