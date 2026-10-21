@@ -1,7 +1,11 @@
 const VentaDAO = require('../daos/VentaDAO');
 const CajaDAO = require('../daos/CajaDAO');
 const { lanzarError } = require('./VentaErrores');
-const { validarPertenenciaSesionCaja } = require('../utils/accesoCaja');
+const {
+  ROLES_ACCESO_GLOBAL,
+  obtenerIdUsuario,
+  validarPertenenciaSesionCaja,
+} = require('../utils/accesoCaja');
 const {
   aMonto,
   calcularCobroEfectivo,
@@ -113,11 +117,57 @@ const asociarCliente = async (id_venta, id_cliente, usuario) => {
   return VentaDAO.obtenerPorId(id_venta);
 };
 
+const normalizarMotivoAnulacion = (motivo) => {
+  if (typeof motivo !== 'string' || !motivo.trim()) {
+    lanzarError('El motivo de anulación es requerido', 400);
+  }
+
+  const motivoNormalizado = motivo.trim();
+  if (motivoNormalizado.length > 500) {
+    lanzarError('El motivo de anulación no puede superar los 500 caracteres', 400);
+  }
+  return motivoNormalizado;
+};
+
+const validarResponsableVenta = (venta, usuario) => {
+  const idUsuario = obtenerIdUsuario(usuario);
+  if (ROLES_ACCESO_GLOBAL.has(usuario.rol)) return;
+
+  if (usuario.rol !== 'dependiente') {
+    lanzarError('No tienes permiso para anular ventas', 403);
+  }
+  if (Number(venta.id_usuario) !== idUsuario) {
+    lanzarError('Solo el responsable de la venta puede anularla', 403);
+  }
+};
+
 const anularVenta = async (id_venta, motivo_anulacion, usuario) => {
+  const motivo = normalizarMotivoAnulacion(motivo_anulacion);
+
   await VentaDAO.ejecutarEnTransaccion(async (client) => {
     const venta = await VentaDAO.obtenerParaActualizar(id_venta, client);
     if (!venta) lanzarError('Venta no encontrada', 404);
     validarAccesoSucursal(usuario, venta.id_sucursal);
+    validarResponsableVenta(venta, usuario);
+
+    if (venta.estado === 'anulada') {
+      lanzarError('La venta ya está anulada', 409);
+    }
+    if (venta.estado !== 'completada') {
+      lanzarError('La venta no se encuentra completada', 409);
+    }
+    if (venta.metodo_pago === METODOS_PAGO.TARJETA) {
+      lanzarError(
+        'Las ventas pagadas con tarjeta requieren un reembolso en Recurrente',
+        409,
+      );
+    }
+    if (venta.metodo_pago !== METODOS_PAGO.EFECTIVO) {
+      lanzarError('El método de pago de la venta no permite anulación', 409);
+    }
+    if (!venta.id_sesion_caja) {
+      lanzarError('La venta no está asociada a una sesión de caja', 409);
+    }
 
     const sesion = await CajaDAO.obtenerSesionPorId(
       venta.id_sesion_caja,
@@ -125,16 +175,20 @@ const anularVenta = async (id_venta, motivo_anulacion, usuario) => {
       'share',
     );
     if (!sesion) lanzarError('Sesión de caja no encontrada', 404);
+    if (Number(sesion.id_sucursal) !== Number(venta.id_sucursal)) {
+      lanzarError('La sesión de caja no pertenece a la sucursal de la venta', 409);
+    }
     validarPertenenciaSesionCaja(usuario, sesion);
-
-    if (venta.estado === 'anulada') {
-      lanzarError('La venta ya esta anulada', 409);
+    if (sesion.estado !== 'abierta') {
+      lanzarError('No se puede anular una venta con la sesión de caja cerrada', 409);
     }
 
+    const ventaAnulada = await VentaDAO.anular(id_venta, motivo, client);
+    if (!ventaAnulada) {
+      lanzarError('La venta ya fue anulada por otra solicitud', 409);
+    }
     const detalles = await VentaDAO.obtenerDetallesParaAnulacion(id_venta, client);
     await restaurarExistenciasDeDetalles(detalles, client);
-
-    await VentaDAO.anular(id_venta, motivo_anulacion, client);
   });
 
   return VentaDAO.obtenerPorId(id_venta);

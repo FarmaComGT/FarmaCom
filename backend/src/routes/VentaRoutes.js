@@ -106,8 +106,8 @@ const validarAsociacionCliente = [
 
 const validarAnulacion = [
   body('motivo_anulacion')
-    .optional({ nullable: true })
     .trim()
+    .notEmpty().withMessage('motivo_anulacion es requerido')
     .isLength({ max: 500 })
     .withMessage('motivo_anulacion no puede superar los 500 caracteres'),
 ];
