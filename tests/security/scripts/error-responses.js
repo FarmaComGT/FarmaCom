@@ -209,7 +209,20 @@ const run = async () => {
       !ping.headers.has('x-powered-by'),
       'La API revela su tecnología mediante X-Powered-By.',
     );
-    console.log('PASS: la API no expone X-Powered-By.');
+    const requiredSecurityHeaders = [
+      'content-security-policy',
+      'referrer-policy',
+      'strict-transport-security',
+      'x-content-type-options',
+      'x-frame-options',
+    ];
+    for (const header of requiredSecurityHeaders) {
+      assert(
+        ping.headers.has(header),
+        `La API no incluyó el encabezado de seguridad ${header}.`,
+      );
+    }
+    console.log('PASS: encabezados HTTP de seguridad verificados.');
   } catch (error) {
     failures.push(error.message);
     console.error(`FAIL: ${error.message}`);

@@ -1,11 +1,17 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const helmet = require('helmet');
+const { trustProxyHops } = require('./config/security');
 const notFoundHandler = require('./middlewares/notFoundHandler');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
 const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+app.disable('x-powered-by');
+app.set('trust proxy', trustProxyHops === 0 ? false : trustProxyHops);
+app.use(helmet());
 
 const corsOptions = {
     origin(origin, callback) {
