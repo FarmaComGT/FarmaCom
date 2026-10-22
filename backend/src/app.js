@@ -52,11 +52,13 @@ const pacienteRoutes = require('./routes/PacienteRoutes');
 const resultadoLaboratorioRoutes = require('./routes/ResultadoLaboratorioRoutes');
 const laboratorioRoutes = require('./routes/LaboratorioRoutes');
 const expedienteRoutes = require('./routes/ExpedienteRoutes');
+const healthRoutes = require('./routes/HealthRoutes');
 
 app.get('/api/ping', (req, res) => {
     res.json({ status: 'ok', message: 'pong' });
 });
 
+app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/categorias', categoriaRoutes);

@@ -1,0 +1,18 @@
+-- Reemplazar con una descripción breve del cambio y de cómo se preservan
+-- los datos existentes.
+
+-- 1. Expandir el esquema con cambios compatibles.
+ALTER TABLE tabla_ejemplo
+    ADD COLUMN IF NOT EXISTS columna_nueva TEXT;
+
+-- 2. Transformar o completar los datos existentes antes de agregar
+-- restricciones.
+UPDATE tabla_ejemplo
+SET columna_nueva = 'valor temporal'
+WHERE columna_nueva IS NULL;
+
+-- 3. Agregar restricciones sólo cuando los datos ya sean válidos.
+ALTER TABLE tabla_ejemplo
+    ALTER COLUMN columna_nueva SET NOT NULL;
+
+-- No agregar BEGIN ni COMMIT: el ejecutor controla la transacción.
