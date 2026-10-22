@@ -368,8 +368,9 @@ class VentaDAO {
            fecha_anulacion = CURRENT_TIMESTAMP,
            motivo_anulacion = $1
        WHERE id_venta = $2
+         AND estado = 'completada'
        RETURNING *`,
-      [motivo_anulacion || null, id_venta],
+      [motivo_anulacion, id_venta],
     );
     return rows[0] || null;
   }

@@ -13,6 +13,11 @@ const usuarioDependiente = {
   id_sucursal: 1,
   rol: 'dependiente',
 };
+const usuarioAdministrador = {
+  id_usuario: 1,
+  id_sucursal: 2,
+  rol: 'administrador',
+};
 
 const datosVenta = {
   id_sucursal: 1,
@@ -755,13 +760,17 @@ describe('VentaService', () => {
   });
 
   describe('anularVenta', () => {
+    const ventaEfectivo = {
+      id_venta: 21,
+      id_sucursal: 1,
+      id_usuario: 7,
+      id_sesion_caja: 9,
+      metodo_pago: 'efectivo',
+      estado: 'completada',
+    };
+
     it('repone el stock de cada detalle y conserva la venta como anulada', async () => {
-      VentaDAO.obtenerParaActualizar.mockResolvedValue({
-        id_venta: 21,
-        id_sucursal: 1,
-        id_sesion_caja: 9,
-        estado: 'completada',
-      });
+      VentaDAO.obtenerParaActualizar.mockResolvedValue(ventaEfectivo);
       VentaDAO.obtenerDetallesParaAnulacion.mockResolvedValue([
         { id_lote: 1, cantidad: 1 },
         { id_lote: 2, cantidad: 2 },
@@ -772,43 +781,167 @@ describe('VentaService', () => {
 
       const resultado = await VentaService.anularVenta(
         21,
-        'Error de digitacion',
+        '  Error de digitacion  ',
         usuarioDependiente,
       );
 
+      expect(CajaDAO.obtenerSesionPorId).toHaveBeenCalledWith(9, {}, 'share');
       expect(VentaDAO.restaurarStock).toHaveBeenCalledTimes(2);
       expect(VentaDAO.anular).toHaveBeenCalledWith(
         21,
         'Error de digitacion',
         {},
       );
+      expect(VentaDAO.anular.mock.invocationCallOrder[0])
+        .toBeLessThan(VentaDAO.obtenerDetallesParaAnulacion.mock.invocationCallOrder[0]);
+      expect(VentaDAO.obtenerDetallesParaAnulacion.mock.invocationCallOrder[0])
+        .toBeLessThan(VentaDAO.restaurarStock.mock.invocationCallOrder[0]);
       expect(resultado.estado).toBe('anulada');
+    });
+
+    it.each([null, undefined, '', '   '])(
+      'exige un motivo de anulación no vacío (%p)',
+      async (motivo) => {
+        await expect(
+          VentaService.anularVenta(21, motivo, usuarioDependiente),
+        ).rejects.toMatchObject({ status: 400 });
+        expect(VentaDAO.ejecutarEnTransaccion).not.toHaveBeenCalled();
+      },
+    );
+
+    it('rechaza motivos mayores a 500 caracteres desde el servicio', async () => {
+      await expect(
+        VentaService.anularVenta(21, 'a'.repeat(501), usuarioDependiente),
+      ).rejects.toMatchObject({ status: 400 });
+      expect(VentaDAO.ejecutarEnTransaccion).not.toHaveBeenCalled();
+    });
+
+    it('rechaza con 404 si la venta no existe', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue(null);
+
+      await expect(
+        VentaService.anularVenta(21, 'Venta inexistente', usuarioDependiente),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(VentaDAO.anular).not.toHaveBeenCalled();
+    });
+
+    it('impide que el dependiente anule una venta de otra sucursal', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue({
+        ...ventaEfectivo,
+        id_sucursal: 2,
+      });
+
+      await expect(
+        VentaService.anularVenta(21, 'Sucursal incorrecta', usuarioDependiente),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(CajaDAO.obtenerSesionPorId).not.toHaveBeenCalled();
+      expect(VentaDAO.anular).not.toHaveBeenCalled();
+    });
+
+    it('impide que el dependiente anule una venta registrada por otro usuario', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue({
+        ...ventaEfectivo,
+        id_usuario: 8,
+      });
+
+      await expect(
+        VentaService.anularVenta(21, 'Venta de otro usuario', usuarioDependiente),
+      ).rejects.toMatchObject({
+        status: 403,
+        message: 'Solo el responsable de la venta puede anularla',
+      });
+      expect(CajaDAO.obtenerSesionPorId).not.toHaveBeenCalled();
+      expect(VentaDAO.anular).not.toHaveBeenCalled();
+    });
+
+    it('no concede permisos de anulación a otros roles', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue(ventaEfectivo);
+
+      await expect(
+        VentaService.anularVenta(21, 'Rol incorrecto', {
+          id_usuario: 7,
+          id_sucursal: 1,
+          rol: 'laboratorista',
+        }),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(CajaDAO.obtenerSesionPorId).not.toHaveBeenCalled();
+      expect(VentaDAO.anular).not.toHaveBeenCalled();
     });
 
     it('no permite anular dos veces la misma venta', async () => {
       VentaDAO.obtenerParaActualizar.mockResolvedValue({
-        id_venta: 21,
-        id_sucursal: 1,
-        id_sesion_caja: 9,
+        ...ventaEfectivo,
         estado: 'anulada',
       });
 
       await expect(
-        VentaService.anularVenta(21, null, usuarioDependiente),
+        VentaService.anularVenta(21, 'Intento duplicado', usuarioDependiente),
       ).rejects.toMatchObject({
         status: 409,
-        message: 'La venta ya esta anulada',
+        message: 'La venta ya está anulada',
       });
+      expect(CajaDAO.obtenerSesionPorId).not.toHaveBeenCalled();
       expect(VentaDAO.restaurarStock).not.toHaveBeenCalled();
     });
 
-    it('impide que un dependiente anule ventas de una sesión ajena', async () => {
+    it('rechaza la anulación local de una venta pagada con tarjeta', async () => {
       VentaDAO.obtenerParaActualizar.mockResolvedValue({
-        id_venta: 21,
-        id_sucursal: 1,
-        id_sesion_caja: 9,
-        estado: 'completada',
+        ...ventaEfectivo,
+        metodo_pago: 'tarjeta',
+        estado_pago: 'pagado',
       });
+
+      await expect(
+        VentaService.anularVenta(21, 'Solicita devolución', usuarioDependiente),
+      ).rejects.toMatchObject({
+        status: 409,
+        message: expect.stringContaining('reembolso en Recurrente'),
+      });
+      expect(CajaDAO.obtenerSesionPorId).not.toHaveBeenCalled();
+      expect(VentaDAO.anular).not.toHaveBeenCalled();
+      expect(VentaDAO.restaurarStock).not.toHaveBeenCalled();
+    });
+
+    it('rechaza ventas que no están asociadas a una sesión de caja', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue({
+        ...ventaEfectivo,
+        id_sesion_caja: null,
+      });
+
+      await expect(
+        VentaService.anularVenta(21, 'Sin sesión', usuarioDependiente),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(CajaDAO.obtenerSesionPorId).not.toHaveBeenCalled();
+      expect(VentaDAO.anular).not.toHaveBeenCalled();
+    });
+
+    it('rechaza si la sesión de caja de la venta no existe', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue(ventaEfectivo);
+      CajaDAO.obtenerSesionPorId.mockResolvedValue(null);
+
+      await expect(
+        VentaService.anularVenta(21, 'Sesión inexistente', usuarioDependiente),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(VentaDAO.anular).not.toHaveBeenCalled();
+    });
+
+    it('rechaza si la sesión no pertenece a la sucursal de la venta', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue(ventaEfectivo);
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        id_sesion_caja: 9,
+        id_sucursal: 2,
+        id_usuario_apertura: 7,
+        estado: 'abierta',
+      });
+
+      await expect(
+        VentaService.anularVenta(21, 'Sesión incorrecta', usuarioDependiente),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(VentaDAO.anular).not.toHaveBeenCalled();
+    });
+
+    it('impide que un dependiente anule ventas de una sesión ajena', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue(ventaEfectivo);
       CajaDAO.obtenerSesionPorId.mockResolvedValue({
         id_sesion_caja: 9,
         id_sucursal: 1,
@@ -822,6 +955,57 @@ describe('VentaService', () => {
       expect(VentaDAO.obtenerDetallesParaAnulacion).not.toHaveBeenCalled();
       expect(VentaDAO.restaurarStock).not.toHaveBeenCalled();
       expect(VentaDAO.anular).not.toHaveBeenCalled();
+    });
+
+    it('rechaza anulaciones cuando la sesión de caja está cerrada', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue(ventaEfectivo);
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        id_sesion_caja: 9,
+        id_sucursal: 1,
+        id_usuario_apertura: 7,
+        estado: 'cerrada',
+      });
+
+      await expect(
+        VentaService.anularVenta(21, 'Caja cerrada', usuarioDependiente),
+      ).rejects.toMatchObject({
+        status: 409,
+        message: expect.stringContaining('sesión de caja cerrada'),
+      });
+      expect(VentaDAO.anular).not.toHaveBeenCalled();
+      expect(VentaDAO.restaurarStock).not.toHaveBeenCalled();
+    });
+
+    it('no restaura existencias si la marca atómica de anulación no se aplica', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue(ventaEfectivo);
+      VentaDAO.anular.mockResolvedValue(null);
+
+      await expect(
+        VentaService.anularVenta(21, 'Solicitud concurrente', usuarioDependiente),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(VentaDAO.obtenerDetallesParaAnulacion).not.toHaveBeenCalled();
+      expect(VentaDAO.restaurarStock).not.toHaveBeenCalled();
+    });
+
+    it('permite al administrador anular una venta de otro responsable', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue({
+        ...ventaEfectivo,
+        id_usuario: 8,
+      });
+      CajaDAO.obtenerSesionPorId.mockResolvedValue({
+        id_sesion_caja: 9,
+        id_sucursal: 1,
+        id_usuario_apertura: 8,
+        estado: 'abierta',
+      });
+      VentaDAO.anular.mockResolvedValue({ id_venta: 21, estado: 'anulada' });
+      VentaDAO.obtenerDetallesParaAnulacion.mockResolvedValue([]);
+      VentaDAO.obtenerPorId.mockResolvedValue({ id_venta: 21, estado: 'anulada' });
+
+      await expect(
+        VentaService.anularVenta(21, 'Autorizada por administración', usuarioAdministrador),
+      ).resolves.toMatchObject({ estado: 'anulada' });
+      expect(VentaDAO.anular).toHaveBeenCalledTimes(1);
     });
   });
 });
