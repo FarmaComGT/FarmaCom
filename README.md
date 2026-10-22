@@ -129,21 +129,39 @@ cd <nombre-del-repositorio>
 
 Colocar en la raíz del proyecto el archivo `.env` con las variables requeridas para el entorno de ejecución.
 
+Definir `NODE_ENV=development` para trabajo local y `NODE_ENV=production` en
+el servidor. Los datos de demostración se rechazan en cualquier entorno que no
+sea `development` o `test`.
+
 ### 3. Levantar todos los servicios
 
 ```bash
 docker compose up --build
 ```
 
-Esto levantará tres contenedores:
+Esto levantará tres servicios permanentes y un contenedor temporal de
+migraciones:
 
-| Contenedor          | Servicio   | Puerto expuesto |
-|---------------------|------------|-----------------|
-| `farmacias_db`      | PostgreSQL | `5432`          |
-| `farmacias_backend` | Node.js    | `3000`          |
-| `farmacias_frontend`| React/Vite | `5173`          |
+| Contenedor          | Servicio                  | Puerto expuesto |
+|---------------------|---------------------------|-----------------|
+| `farmacias_db`      | PostgreSQL                | `5432`          |
+| `migrate`           | Migraciones de PostgreSQL | No aplica       |
+| `farmacias_backend` | Node.js                   | `3000`          |
+| `farmacias_frontend`| React/Vite                | `5173`          |
 
-El backend espera a que la base de datos esté lista antes de arrancar (healthcheck configurado). El esquema y los datos semilla se aplican automáticamente al iniciar desde `backend/src/database/schema.sql`.
+En una base nueva, PostgreSQL crea la estructura desde
+`backend/src/database/schema.sql`. En instalaciones existentes, el servicio
+`migrate` aplica únicamente los archivos pendientes de
+`backend/src/database/migrations/versioned`. El backend sólo inicia cuando la
+base está saludable y las migraciones finalizaron correctamente; el frontend
+espera a que el backend también esté saludable.
+
+Los datos de demostración no se cargan automáticamente. En un entorno local se
+pueden agregar con:
+
+```bash
+docker compose run --rm backend npm run db:seed:demo
+```
 
 ### 4. Acceder a la aplicación
 
@@ -171,7 +189,46 @@ docker compose down -v
 docker compose logs -f backend
 docker compose logs -f frontend
 docker compose logs -f db
+
+# Consultar el estado y los health checks
+docker compose ps
+
+# Ejecutar manualmente las migraciones pendientes
+docker compose run --rm migrate
 ```
+
+## Despliegue con migraciones
+
+Antes de desplegar sobre una instalación existente se debe crear un respaldo:
+
+```bash
+mkdir -p respaldos
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > respaldos/farmacom-antes-del-despliegue.dump
+```
+
+Después se construyen las imágenes, se comprueban las migraciones de forma
+explícita y se levantan los servicios:
+
+```bash
+docker compose build
+docker compose run --rm migrate
+docker compose up -d
+docker compose ps
+```
+
+Cada migración se ejecuta dentro de una transacción. Si alguna falla, sus
+cambios se revierten, el comando termina con error y no se debe iniciar la
+versión nueva. Se revisa el error con `docker compose logs migrate`, se corrige
+mediante una migración nueva y se repite el procedimiento. Una migración que ya
+fue aplicada no se modifica.
+
+Para comprobar manualmente la disponibilidad:
+
+```bash
+curl --fail http://localhost:3000/api/health
+curl --fail http://localhost:5173/
+```
+
 # Cómo acceder al sistema desplegado en el servidor
 
 Ingresar a la siguiente dirección: https://farmacom.website/login
