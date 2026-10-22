@@ -11,11 +11,14 @@ const express = require('express');
 const request = require('supertest');
 const BitacoraLaboratorioService = require('../services/BitacoraLaboratorioService');
 const ExpedienteRoutes = require('./ExpedienteRoutes');
+const AppError = require('../errors/AppError');
+const errorHandler = require('../middlewares/errorHandler');
 
 const crearApp = () => {
   const app = express();
   app.use(express.json());
   app.use('/api/expedientes', ExpedienteRoutes);
+  app.use(errorHandler);
   return app;
 };
 
@@ -63,8 +66,7 @@ describe('GET /api/expedientes/:id/bitacora', () => {
   });
 
   it('propaga un expediente inexistente como 404', async () => {
-    const error = new Error('Expediente no encontrado');
-    error.status = 404;
+    const error = new AppError('Expediente no encontrado', 404);
     BitacoraLaboratorioService.obtenerPorExpediente.mockRejectedValue(error);
 
     const respuesta = await request(crearApp())

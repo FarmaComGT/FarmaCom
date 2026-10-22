@@ -3,6 +3,7 @@ const { body, param } = require('express-validator');
 const LaboratorioController = require('../controllers/LaboratorioController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 const rolesLaboratorio = verificarRol('dueno', 'administrador', 'laboratorista');
@@ -26,7 +27,7 @@ const validarId = param('id')
 
 // GET /api/laboratorios
 router.get('/', verificarToken, rolesLaboratorio, LaboratorioController.listar);
-router.post('/', verificarToken, rolesAdministracion, validarDatos, LaboratorioController.crear);
-router.put('/:id', verificarToken, rolesAdministracion, validarId, validarDatos, LaboratorioController.actualizar);
+router.post('/', verificarToken, rolesAdministracion, validarDatos, validateRequest, LaboratorioController.crear);
+router.put('/:id', verificarToken, rolesAdministracion, validarId, validarDatos, validateRequest, LaboratorioController.actualizar);
 
 module.exports = router;

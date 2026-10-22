@@ -8,6 +8,7 @@ const ResultadoLaboratorioDAO = require('../daos/ResultadoLaboratorioDAO');
 const UsuarioDAO = require('../daos/UsuarioDAO');
 const { RUTA_UPLOADS_RESULTADOS, PUBLIC_API_BASE_URL } = require('../config/almacenamiento');
 const { obtenerIdUsuario, validarPertenenciaLaboratorio } = require('../utils/accesoLaboratorio');
+const AppError = require('../errors/AppError');
 
 const MESES_VIGENCIA = 6;
 const TAMANO_QR_PUNTOS = 100;
@@ -15,16 +16,10 @@ const MARGEN_QR_PUNTOS = 24;
 const MOTIVO_VENCIMIENTO_AUTOMATICO = 'Vencimiento automático (6 meses)';
 const CORREO_USUARIO_SISTEMA = 'sistema.laboratorio@farmacom.local';
 
-const noEncontrado = (mensaje = 'Resultado no encontrado') => {
-  const error = new Error(mensaje);
-  error.status = 404;
-  return error;
-};
+const noEncontrado = (mensaje = 'Resultado no encontrado') => new AppError(mensaje, 404);
 
 const lanzarError = (mensaje, status) => {
-  const error = new Error(mensaje);
-  error.status = status;
-  throw error;
+  throw new AppError(mensaje, status);
 };
 
 const calcularFechaExpiracion = () => {

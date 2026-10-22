@@ -1,83 +1,52 @@
-const { validationResult } = require('express-validator');
 const path = require('path');
 const ResultadoLaboratorioService = require('../services/ResultadoLaboratorioService');
 const { RUTA_UPLOADS_RESULTADOS } = require('../config/almacenamiento');
+const AppError = require('../errors/AppError');
+const asyncHandler = require('../middlewares/asyncHandler');
 
-const responderErrores = (req, res) => {
-  const errores = validationResult(req);
-  if (errores.isEmpty()) return false;
-  res.status(400).json({ errores: errores.array() });
-  return true;
-};
-
-const subir = async (req, res) => {
-  if (responderErrores(req, res)) return;
+const subir = asyncHandler(async (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ mensaje: 'El archivo PDF es requerido' });
+    throw new AppError('El archivo PDF es requerido', 400);
   }
-  try {
-    const resultado = await ResultadoLaboratorioService.subirResultado({
-      id_paciente: Number(req.body.id_paciente),
-      categoria: req.body.categoria,
-      buffer: req.file.buffer,
-      usuario: req.usuario,
-    });
-    res.status(201).json(resultado);
-  } catch (error) {
-    res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+  const resultado = await ResultadoLaboratorioService.subirResultado({
+    id_paciente: Number(req.body.id_paciente),
+    categoria: req.body.categoria,
+    buffer: req.file.buffer,
+    usuario: req.usuario,
+  });
+  return res.status(201).json(resultado);
+});
 
-const listar = async (req, res) => {
-  if (responderErrores(req, res)) return;
-  try {
-    const resultados = await ResultadoLaboratorioService.listarPorPaciente(
-      Number(req.query.id_paciente),
-      req.usuario,
-    );
-    res.status(200).json(resultados);
-  } catch (error) {
-    res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const listar = asyncHandler(async (req, res) => {
+  const resultados = await ResultadoLaboratorioService.listarPorPaciente(
+    Number(req.query.id_paciente),
+    req.usuario,
+  );
+  return res.status(200).json(resultados);
+});
 
-const anular = async (req, res) => {
-  if (responderErrores(req, res)) return;
-  try {
-    const resultado = await ResultadoLaboratorioService.anularResultado(
-      Number(req.params.id),
-      req.body.motivo_anulacion,
-      req.usuario,
-    );
-    res.status(200).json(resultado);
-  } catch (error) {
-    res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const anular = asyncHandler(async (req, res) => {
+  const resultado = await ResultadoLaboratorioService.anularResultado(
+    Number(req.params.id),
+    req.body.motivo_anulacion,
+    req.usuario,
+  );
+  return res.status(200).json(resultado);
+});
 
-const categorias = async (req, res) => {
-  if (responderErrores(req, res)) return;
-  try {
-    const categoriasSugeridas = await ResultadoLaboratorioService.obtenerCategoriasSugeridas(
-      Number(req.query.id_laboratorio),
-      req.usuario,
-    );
-    res.status(200).json(categoriasSugeridas);
-  } catch (error) {
-    res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const categorias = asyncHandler(async (req, res) => {
+  const categoriasSugeridas = await ResultadoLaboratorioService.obtenerCategoriasSugeridas(
+    Number(req.query.id_laboratorio),
+    req.usuario,
+  );
+  return res.status(200).json(categoriasSugeridas);
+});
 
-const descargarPublico = async (req, res) => {
-  if (responderErrores(req, res)) return;
-  try {
-    const resultado = await ResultadoLaboratorioService.obtenerPublico(req.params.token);
-    res.set('Content-Type', 'application/pdf');
-    res.set('Content-Disposition', 'inline');
-    res.sendFile(path.join(RUTA_UPLOADS_RESULTADOS, resultado.ruta_archivo));
-  } catch (error) {
-    res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const descargarPublico = asyncHandler(async (req, res) => {
+  const resultado = await ResultadoLaboratorioService.obtenerPublico(req.params.token);
+  res.set('Content-Type', 'application/pdf');
+  res.set('Content-Disposition', 'inline');
+  return res.sendFile(path.join(RUTA_UPLOADS_RESULTADOS, resultado.ruta_archivo));
+});
 
 module.exports = { subir, listar, anular, categorias, descargarPublico };

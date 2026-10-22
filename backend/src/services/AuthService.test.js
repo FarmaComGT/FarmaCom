@@ -53,7 +53,7 @@ describe('AuthService', () => {
       UsuarioDAO.obtenerPorCorreo.mockResolvedValue(null);
 
       await expect(AuthService.login('no-existe@farmacom.com', 'clave')).rejects.toMatchObject({
-        message: 'Credenciales invalidas',
+        message: 'Credenciales inválidas',
         status: 401,
       });
       expect(bcrypt.compare).not.toHaveBeenCalled();
@@ -66,7 +66,7 @@ describe('AuthService', () => {
       await expect(
         AuthService.login('jperez@farmacom.com', 'clave-incorrecta'),
       ).rejects.toMatchObject({
-        message: 'Credenciales invalidas',
+        message: 'Credenciales inválidas',
         status: 401,
       });
       expect(jwt.sign).not.toHaveBeenCalled();

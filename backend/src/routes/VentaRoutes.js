@@ -7,6 +7,7 @@ const {
 const VentaController = require('../controllers/VentaController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 const rolesVenta = verificarRol('dueno', 'administrador', 'dependiente');
@@ -117,6 +118,7 @@ router.post(
   verificarToken,
   rolesVenta,
   validarPagoPOS,
+  validateRequest,
   VentaController.crearPagoPOS,
 );
 
@@ -125,6 +127,7 @@ router.get(
   verificarToken,
   rolesVenta,
   validarExternalId,
+  validateRequest,
   VentaController.obtenerEstadoPagoPOS,
 );
 
@@ -133,6 +136,7 @@ router.post(
   verificarToken,
   rolesVenta,
   validarCreacion,
+  validateRequest,
   VentaController.crear,
 );
 
@@ -141,6 +145,7 @@ router.get(
   verificarToken,
   rolesVenta,
   validarFiltros,
+  validateRequest,
   VentaController.obtenerTodas,
 );
 
@@ -149,6 +154,7 @@ router.get(
   verificarToken,
   rolesVenta,
   validarId,
+  validateRequest,
   VentaController.obtenerPorId,
 );
 
@@ -158,6 +164,7 @@ router.patch(
   rolesVenta,
   validarId,
   validarAsociacionCliente,
+  validateRequest,
   VentaController.asociarCliente,
 );
 
@@ -167,6 +174,7 @@ router.delete(
   rolesVenta,
   validarId,
   validarAnulacion,
+  validateRequest,
   VentaController.anular,
 );
 

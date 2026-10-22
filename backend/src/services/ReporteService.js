@@ -1,12 +1,11 @@
 const ReporteDAO = require('../daos/ReporteDAO');
+const AppError = require('../errors/AppError');
 
 const CRITERIOS_TOP_PRODUCTOS = ['cantidad', 'ingresos'];
 const AGRUPACIONES_SERIE_VENTAS = ['dia', 'semana', 'mes'];
 
 const lanzarError = (mensaje, status = 400) => {
-  const error = new Error(mensaje);
-  error.status = status;
-  throw error;
+  throw new AppError(mensaje, status);
 };
 
 const normalizarFiltrosComunes = (filtros = {}) => {

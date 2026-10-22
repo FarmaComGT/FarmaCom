@@ -137,7 +137,9 @@ const crearPagoPOS = async (datos, usuario) => {
   validarDatosBasicosVenta(datos, usuario);
   const terminalId = process.env.RECURRENTE_TERMINAL_ID;
   if (!terminalId) {
-    lanzarError('Configura RECURRENTE_TERMINAL_ID para procesar pagos con POS', 503);
+    const error = new Error('Configura RECURRENTE_TERMINAL_ID para procesar pagos con POS');
+    error.status = 503;
+    throw error;
   }
 
   const externalId = `${PREFIJO_EXTERNAL_ID_POS}${crypto.randomUUID()}`;

@@ -1,79 +1,35 @@
-const { validationResult } = require('express-validator');
 const ReporteService = require('../services/ReporteService');
+const asyncHandler = require('../middlewares/asyncHandler');
 
-const responderErrores = (req, res) => {
-  const errores = validationResult(req);
-  if (errores.isEmpty()) return false;
+const obtenerResumenVentas = asyncHandler(async (req, res) => {
+  const resumen = await ReporteService.obtenerResumenVentas(req.query);
+  return res.status(200).json(resumen);
+});
 
-  res.status(400).json({ errores: errores.array() });
-  return true;
-};
+const obtenerSerieVentas = asyncHandler(async (req, res) => {
+  const periodos = await ReporteService.obtenerSerieVentas(req.query);
+  return res.status(200).json(periodos);
+});
 
-const obtenerResumenVentas = async (req, res) => {
-  if (responderErrores(req, res)) return;
+const obtenerMetodosPago = asyncHandler(async (req, res) => {
+  const metodos = await ReporteService.obtenerMetodosPago(req.query);
+  return res.status(200).json(metodos);
+});
 
-  try {
-    const resumen = await ReporteService.obtenerResumenVentas(req.query);
-    return res.status(200).json(resumen);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const obtenerResumenProductos = asyncHandler(async (req, res) => {
+  const productos = await ReporteService.obtenerResumenProductos(req.query);
+  return res.status(200).json(productos);
+});
 
-const obtenerSerieVentas = async (req, res) => {
-  if (responderErrores(req, res)) return;
+const obtenerTopProductos = asyncHandler(async (req, res) => {
+  const productos = await ReporteService.obtenerTopProductos(req.query);
+  return res.status(200).json(productos);
+});
 
-  try {
-    const periodos = await ReporteService.obtenerSerieVentas(req.query);
-    return res.status(200).json(periodos);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const obtenerMetodosPago = async (req, res) => {
-  if (responderErrores(req, res)) return;
-
-  try {
-    const metodos = await ReporteService.obtenerMetodosPago(req.query);
-    return res.status(200).json(metodos);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const obtenerResumenProductos = async (req, res) => {
-  if (responderErrores(req, res)) return;
-
-  try {
-    const productos = await ReporteService.obtenerResumenProductos(req.query);
-    return res.status(200).json(productos);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const obtenerTopProductos = async (req, res) => {
-  if (responderErrores(req, res)) return;
-
-  try {
-    const productos = await ReporteService.obtenerTopProductos(req.query);
-    return res.status(200).json(productos);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const obtenerRentabilidad = async (req, res) => {
-  if (responderErrores(req, res)) return;
-
-  try {
-    const rentabilidad = await ReporteService.obtenerRentabilidad(req.query);
-    return res.status(200).json(rentabilidad);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const obtenerRentabilidad = asyncHandler(async (req, res) => {
+  const rentabilidad = await ReporteService.obtenerRentabilidad(req.query);
+  return res.status(200).json(rentabilidad);
+});
 
 module.exports = {
   obtenerResumenVentas,

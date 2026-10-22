@@ -3,6 +3,7 @@ const { query } = require('express-validator');
 const ReporteController = require('../controllers/ReporteController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 const rolesReportes = verificarRol('dueno', 'administrador');
@@ -55,6 +56,7 @@ router.get(
   verificarToken,
   rolesReportes,
   validarFiltrosReporte,
+  validateRequest,
   ReporteController.obtenerResumenVentas,
 );
 
@@ -63,6 +65,7 @@ router.get(
   verificarToken,
   rolesReportes,
   validarFiltrosSerieVentas,
+  validateRequest,
   ReporteController.obtenerSerieVentas,
 );
 
@@ -71,6 +74,7 @@ router.get(
   verificarToken,
   rolesReportes,
   validarFiltrosReporte,
+  validateRequest,
   ReporteController.obtenerMetodosPago,
 );
 
@@ -79,6 +83,7 @@ router.get(
   verificarToken,
   rolesReportes,
   validarFiltrosReporte,
+  validateRequest,
   ReporteController.obtenerResumenProductos,
 );
 
@@ -87,6 +92,7 @@ router.get(
   verificarToken,
   rolesReportes,
   validarFiltrosTopProductos,
+  validateRequest,
   ReporteController.obtenerTopProductos,
 );
 
@@ -95,6 +101,7 @@ router.get(
   verificarToken,
   rolesReportes,
   validarFiltrosReporte,
+  validateRequest,
   ReporteController.obtenerRentabilidad,
 );
 

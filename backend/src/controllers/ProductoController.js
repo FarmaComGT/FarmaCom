@@ -1,104 +1,52 @@
-const { validationResult } = require('express-validator');
 const ProductoService = require('../services/ProductoService');
+const asyncHandler = require('../middlewares/asyncHandler');
 
-const crear = async (req, res) => {
-  const errores = validationResult(req);
-  if (!errores.isEmpty()) {
-    return res.status(400).json({ errores: errores.array() });
-  }
+const crear = asyncHandler(async (req, res) => {
+  const producto = await ProductoService.crearProducto(req.body);
+  return res.status(201).json(producto);
+});
 
-  try {
-    const producto = await ProductoService.crearProducto(req.body);
-    return res.status(201).json(producto);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const obtenerTodos = asyncHandler(async (_req, res) => {
+  const productos = await ProductoService.obtenerTodos();
+  return res.status(200).json(productos);
+});
 
-const obtenerTodos = async (req, res) => {
-  try {
-    const productos = await ProductoService.obtenerTodos();
-    return res.status(200).json(productos);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const autocompletarParaPOS = asyncHandler(async (req, res) => {
+  const productos = await ProductoService.autocompletarParaPOS({
+    busqueda: req.query.busqueda,
+    limite: req.query.limite,
+    id_sucursal: req.usuario.id_sucursal,
+  });
+  return res.status(200).json(productos);
+});
 
-const autocompletarParaPOS = async (req, res) => {
-  const errores = validationResult(req);
-  if (!errores.isEmpty()) {
-    return res.status(400).json({ errores: errores.array() });
-  }
+const obtenerPorId = asyncHandler(async (req, res) => {
+  const producto = await ProductoService.obtenerPorId(Number(req.params.id));
+  return res.status(200).json(producto);
+});
 
-  try {
-    const productos = await ProductoService.autocompletarParaPOS({
-      busqueda: req.query.busqueda,
-      limite: req.query.limite,
-      id_sucursal: req.usuario.id_sucursal,
-    });
-    return res.status(200).json(productos);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const obtenerPorId = async (req, res) => {
-  try {
-    const producto = await ProductoService.obtenerPorId(Number(req.params.id));
-    return res.status(200).json(producto);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const actualizar = async (req, res) => {
-  const errores = validationResult(req);
-  if (!errores.isEmpty()) {
-    return res.status(400).json({ errores: errores.array() });
-  }
-
-  try {
-    const producto = await ProductoService.actualizarProducto(Number(req.params.id), req.body);
-    return res.status(200).json(producto);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const actualizar = asyncHandler(async (req, res) => {
+  const producto = await ProductoService.actualizarProducto(Number(req.params.id), req.body);
+  return res.status(200).json(producto);
+});
 
 // PATCH /api/productos/:id/mayoreo — exclusivo para dependiente (interruptor POS)
-const cambiarAplicaMayoreo = async (req, res) => {
-  const { aplica_mayoreo } = req.body;
-
-  if (typeof aplica_mayoreo !== 'boolean') {
-    return res.status(400).json({ mensaje: 'El campo "aplica_mayoreo" debe ser un booleano' });
-  }
-
-  try {
-    const resultado = await ProductoService.cambiarAplicaMayoreo(Number(req.params.id), aplica_mayoreo);
-    return res.status(200).json(resultado);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const cambiarAplicaMayoreo = asyncHandler(async (req, res) => {
+  const resultado = await ProductoService.cambiarAplicaMayoreo(
+    Number(req.params.id),
+    req.body.aplica_mayoreo,
+  );
+  return res.status(200).json(resultado);
+});
 
 // PATCH /api/productos/:id/estado — desactiva o reactiva
-const cambiarEstado = async (req, res) => {
-  const { activo } = req.body;
+const cambiarEstado = asyncHandler(async (req, res) => {
+  const resultado = req.body.activo
+    ? await ProductoService.reactivarProducto(Number(req.params.id))
+    : await ProductoService.desactivarProducto(Number(req.params.id));
 
-  if (typeof activo !== 'boolean') {
-    return res.status(400).json({ mensaje: 'El campo "activo" debe ser un booleano' });
-  }
-
-  try {
-    const resultado = activo
-      ? await ProductoService.reactivarProducto(Number(req.params.id))
-      : await ProductoService.desactivarProducto(Number(req.params.id));
-
-    return res.status(200).json(resultado);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+  return res.status(200).json(resultado);
+});
 
 module.exports = {
   crear,

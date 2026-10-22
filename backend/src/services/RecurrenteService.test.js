@@ -66,7 +66,7 @@ describe('RecurrenteService', () => {
       }),
     ).rejects.toMatchObject({
       status: 400,
-      message: 'Recurrente requiere un monto minimo de Q5.00 para pagos en GTQ',
+      message: 'Recurrente requiere un monto mínimo de Q5.00 para pagos en GTQ',
     });
     expect(global.fetch).not.toHaveBeenCalled();
   });
@@ -94,7 +94,7 @@ describe('RecurrenteService', () => {
       'svix-id': 'msg_test_123',
       'svix-timestamp': String(Math.floor(Date.now() / 1000)),
       'svix-signature': 'v1,firma-invalida',
-    })).toThrow('Firma de webhook invalida');
+    })).toThrow('Firma de webhook inválida');
   });
 
   it('normaliza eventos de terminal con metadata.external_id', () => {

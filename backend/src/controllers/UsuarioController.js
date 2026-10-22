@@ -1,120 +1,61 @@
-const { validationResult } = require('express-validator');
 const usuarioService = require('../services/UsuarioService');
+const AppError = require('../errors/AppError');
+const asyncHandler = require('../middlewares/asyncHandler');
 
 const esRolElevado = (rol) => ['dueno', 'administrador'].includes(rol);
 
-const crear = async(req, res) => {
-    const errores = validationResult(req);
-    if (!errores.isEmpty()) {
-        return res.status(400).json({ errores: errores.array() });
-    }
+const crear = asyncHandler(async(req, res) => {
+    const usuario = await usuarioService.crearUsuario(req.body);
+    return res.status(201).json(usuario);
+});
 
-    try {
-        const usuario = await usuarioService.crearUsuario(req.body);
-        return res.status(201).json(usuario);
-    } catch (error) {
-        return res.status(error.status || 500).json({ mensaje: error.message });
-    }
-};
+const obtenerTodos = asyncHandler(async(req, res) => {
+    const usuarios = await usuarioService.obtenerTodos();
+    return res.status(200).json(usuarios);
+});
 
-const obtenerTodos = async(req, res) => {
-    try {
-        const usuarios = await usuarioService.obtenerTodos();
-        return res.status(200).json(usuarios);
-    } catch (error) {
-        return res.status(error.status || 500).json({ mensaje: error.message });
-    }
-};
-
-const obtenerPorId = async(req, res) => {
+const obtenerPorId = asyncHandler(async(req, res) => {
     const idObjetivo = Number(req.params.id);
-
-    if (!Number.isInteger(idObjetivo) || idObjetivo < 1) {
-        return res.status(400).json({ mensaje: 'id de usuario invalido' });
-    }
 
     if (req.usuario.id_usuario !== idObjetivo && !esRolElevado(req.usuario.rol)) {
-        return res.status(403).json({ mensaje: 'No puedes consultar la informacion de otro usuario.' });
+        throw new AppError('No puedes consultar la información de otro usuario.', 403);
     }
 
-    try {
-        const usuario = await usuarioService.obtenerPorId(idObjetivo);
-        return res.status(200).json(usuario);
-    } catch (error) {
-        return res.status(error.status || 500).json({ mensaje: error.message });
-    }
-};
+    const usuario = await usuarioService.obtenerPorId(idObjetivo);
+    return res.status(200).json(usuario);
+});
 
-const obtenerPorSucursal = async(req, res) => {
-    try {
-        const usuarios = await usuarioService.obtenerPorSucursal(Number(req.params.id_sucursal));
-        return res.status(200).json(usuarios);
-    } catch (error) {
-        return res.status(error.status || 500).json({ mensaje: error.message });
-    }
-};
+const obtenerPorSucursal = asyncHandler(async(req, res) => {
+    const usuarios = await usuarioService.obtenerPorSucursal(Number(req.params.id_sucursal));
+    return res.status(200).json(usuarios);
+});
 
-const actualizar = async(req, res) => {
-    const errores = validationResult(req);
-    if (!errores.isEmpty()) {
-        return res.status(400).json({ errores: errores.array() });
-    }
+const actualizar = asyncHandler(async(req, res) => {
+    const usuario = await usuarioService.actualizarUsuario(Number(req.params.id), req.body);
+    return res.status(200).json(usuario);
+});
 
-    try {
-        const usuario = await usuarioService.actualizarUsuario(Number(req.params.id), req.body);
-        return res.status(200).json(usuario);
-    } catch (error) {
-        return res.status(error.status || 500).json({ mensaje: error.message });
-    }
-};
-
-const cambiarContrasena = async(req, res) => {
-    const errores = validationResult(req);
-    if (!errores.isEmpty()) {
-        return res.status(400).json({ errores: errores.array() });
-    }
-
+const cambiarContrasena = asyncHandler(async(req, res) => {
     const idObjetivo = Number(req.params.id);
-    if (!Number.isInteger(idObjetivo) || idObjetivo < 1) {
-        return res.status(400).json({ mensaje: 'id de usuario invalido' });
-    }
-
     if (req.usuario.id_usuario !== idObjetivo) {
-        return res.status(403).json({ mensaje: 'Solo puedes cambiar tu propia contrasena.' });
+        throw new AppError('Solo puedes cambiar tu propia contraseña.', 403);
     }
 
-    try {
-        const { contrasena_actual, contrasena_nueva } = req.body;
-        const resultado = await usuarioService.cambiarContrasena(idObjetivo, contrasena_actual, contrasena_nueva);
-        return res.status(200).json(resultado);
-    } catch (error) {
-        return res.status(error.status || 500).json({ mensaje: error.message });
-    }
-};
+    const { contrasena_actual, contrasena_nueva } = req.body;
+    const resultado = await usuarioService.cambiarContrasena(idObjetivo, contrasena_actual, contrasena_nueva);
+    return res.status(200).json(resultado);
+});
 
-const cambiarEstado = async(req, res) => {
-    const errores = validationResult(req);
-    if (!errores.isEmpty()) {
-        return res.status(400).json({ errores: errores.array() });
-    }
+const cambiarEstado = asyncHandler(async(req, res) => {
+    const { estado } = req.body;
+    const usuario = await usuarioService.cambiarEstado(Number(req.params.id), estado);
+    return res.status(200).json(usuario);
+});
 
-    try {
-        const { estado } = req.body;
-        const usuario = await usuarioService.cambiarEstado(Number(req.params.id), estado);
-        return res.status(200).json(usuario);
-    } catch (error) {
-        return res.status(error.status || 500).json({ mensaje: error.message });
-    }
-};
-
-const eliminar = async(req, res) => {
-    try {
-        const resultado = await usuarioService.eliminarUsuario(Number(req.params.id));
-        return res.status(200).json(resultado);
-    } catch (error) {
-        return res.status(error.status || 500).json({ mensaje: error.message });
-    }
-};
+const eliminar = asyncHandler(async(req, res) => {
+    const resultado = await usuarioService.eliminarUsuario(Number(req.params.id));
+    return res.status(200).json(resultado);
+});
 
 module.exports = {
     crear,

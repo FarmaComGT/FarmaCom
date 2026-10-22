@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const AppError = require('../errors/AppError');
 const {
   ESTADOS_RECURRENTE,
   MONEDA_PAGO_POS,
@@ -8,23 +9,27 @@ const API_URL = process.env.RECURRENTE_API_URL || 'https://app.recurrente.com/ap
 const MINIMO_GTQ_CENTAVOS = 500;
 const TOLERANCIA_FIRMA_SEGUNDOS = 300;
 
-const lanzarError = (mensaje, status) => {
+const lanzarErrorInterno = (mensaje, status) => {
   const error = new Error(mensaje);
   error.status = status;
   throw error;
 };
 
+const lanzarErrorPublico = (mensaje, status) => {
+  throw new AppError(mensaje, status);
+};
+
 const obtenerLlaveSecreta = () => {
   const llave = process.env.RECURRENTE_SECRET_KEY;
   if (!llave) {
-    lanzarError('Configura RECURRENTE_SECRET_KEY para procesar pagos con tarjeta', 503);
+    lanzarErrorInterno('Configura RECURRENTE_SECRET_KEY para procesar pagos con tarjeta', 503);
   }
   return llave;
 };
 
 const obtenerFetch = () => {
   if (typeof fetch !== 'function') {
-    lanzarError('El runtime de Node no soporta fetch para conectar con Recurrente', 500);
+    lanzarErrorInterno('El runtime de Node no soporta fetch para conectar con Recurrente', 500);
   }
   return fetch;
 };
@@ -65,7 +70,7 @@ const solicitar = async (ruta, opciones = {}) => {
     const detalle = formatearErrores(data.errors);
     const mensajeBase = data.error || data.message || 'Recurrente no pudo procesar la solicitud';
     const mensaje = detalle ? `${mensajeBase}: ${detalle}` : mensajeBase;
-    lanzarError(mensaje, respuesta.status || 502);
+    lanzarErrorInterno(mensaje, respuesta.status || 502);
   }
 
   return data;
@@ -73,15 +78,15 @@ const solicitar = async (ruta, opciones = {}) => {
 
 const crearComandoTerminal = async ({ terminalId, totalCentavos, externalId }) => {
   if (totalCentavos < MINIMO_GTQ_CENTAVOS) {
-    lanzarError('Recurrente requiere un monto minimo de Q5.00 para pagos en GTQ', 400);
+    lanzarErrorPublico('Recurrente requiere un monto mínimo de Q5.00 para pagos en GTQ', 400);
   }
 
   if (!terminalId) {
-    lanzarError('Configura RECURRENTE_TERMINAL_ID para procesar pagos con POS', 503);
+    lanzarErrorInterno('Configura RECURRENTE_TERMINAL_ID para procesar pagos con POS', 503);
   }
 
   if (!externalId) {
-    lanzarError('external_id es requerido para crear el comando POS', 400);
+    lanzarErrorPublico('external_id es requerido para crear el comando POS', 400);
   }
 
   return solicitar('/terminal_session_commands', {
@@ -98,7 +103,7 @@ const crearComandoTerminal = async ({ terminalId, totalCentavos, externalId }) =
 const obtenerSecretoWebhook = () => {
   const secreto = process.env.RECURRENTE_WEBHOOK_SECRET;
   if (!secreto) {
-    lanzarError('Configura RECURRENTE_WEBHOOK_SECRET para validar webhooks', 503);
+    lanzarErrorInterno('Configura RECURRENTE_WEBHOOK_SECRET para validar webhooks', 503);
   }
   return secreto;
 };
@@ -114,22 +119,22 @@ const verificarFirmaWebhook = (body, headers) => {
   const firmas = obtenerHeader(headers, 'svix-signature');
 
   if (!svixId || !timestamp || !firmas) {
-    lanzarError('Faltan headers de firma del webhook', 401);
+    lanzarErrorPublico('Faltan headers de firma del webhook', 401);
   }
 
   const timestampNumero = Number(timestamp);
   if (!Number.isInteger(timestampNumero)) {
-    lanzarError('El timestamp del webhook no es valido', 401);
+    lanzarErrorPublico('El timestamp del webhook no es válido', 401);
   }
 
   if (Math.abs(Math.floor(Date.now() / 1000) - timestampNumero) > TOLERANCIA_FIRMA_SEGUNDOS) {
-    lanzarError('El webhook esta fuera de la ventana de tiempo permitida', 401);
+    lanzarErrorPublico('El webhook está fuera de la ventana de tiempo permitida', 401);
   }
 
   const secretoBase64 = secreto.startsWith('whsec_') ? secreto.slice(6) : secreto;
   const secretoBytes = Buffer.from(secretoBase64, 'base64');
   if (secretoBytes.length === 0) {
-    lanzarError('RECURRENTE_WEBHOOK_SECRET no tiene un formato valido', 503);
+    lanzarErrorInterno('RECURRENTE_WEBHOOK_SECRET no tiene un formato válido', 503);
   }
 
   const cuerpo = Buffer.isBuffer(body) ? body : Buffer.from(String(body || ''));
@@ -150,7 +155,7 @@ const verificarFirmaWebhook = (body, headers) => {
     });
 
   if (!firmaValida) {
-    lanzarError('Firma de webhook invalida', 401);
+    lanzarErrorPublico('Firma de webhook inválida', 401);
   }
 
   return true;
@@ -160,7 +165,7 @@ const parsearWebhook = (body) => {
   try {
     return JSON.parse(Buffer.isBuffer(body) ? body.toString('utf8') : body);
   } catch (error) {
-    lanzarError('El body del webhook no contiene JSON valido', 400);
+    lanzarErrorPublico('El body del webhook no contiene JSON válido', 400);
   }
 };
 

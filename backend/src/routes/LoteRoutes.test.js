@@ -11,11 +11,13 @@ const request = require('supertest');
 const LoteService = require('../services/LoteService');
 const HistorialPrecioLoteService = require('../services/HistorialPrecioLoteService');
 const LoteRoutes = require('./LoteRoutes');
+const errorHandler = require('../middlewares/errorHandler');
 
 const crearApp = () => {
   const app = express();
   app.use(express.json());
   app.use('/api/lotes', LoteRoutes);
+  app.use(errorHandler);
   return app;
 };
 

@@ -1,9 +1,5 @@
 jest.mock('../services/AuthService');
-jest.mock('express-validator', () => ({
-  validationResult: jest.fn(),
-}));
 
-const { validationResult } = require('express-validator');
 const authService = require('../services/AuthService');
 const { COOKIE_NAME } = require('../config/auth');
 const AuthController = require('./AuthController');
@@ -17,100 +13,58 @@ const mockResponse = () => {
   return res;
 };
 
-const sinErroresDeValidacion = () => ({ isEmpty: () => true, array: () => [] });
-
 describe('AuthController', () => {
-  describe('login', () => {
-    it('responde 200, guarda la cookie httpOnly y no expone el token en el body', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
-      authService.login.mockResolvedValue({
-        token: 'jwt-falso',
-        usuario: { id_usuario: 1, rol: 'dependiente' },
-      });
-
-      const req = { body: { correo_usuario: 'ana@x.com', contrasena: 'clave123' } };
-      const res = mockResponse();
-
-      await AuthController.login(req, res);
-
-      expect(authService.login).toHaveBeenCalledWith('ana@x.com', 'clave123');
-      expect(res.cookie).toHaveBeenCalledWith(
-        COOKIE_NAME,
-        'jwt-falso',
-        expect.objectContaining({ httpOnly: true }),
-      );
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ usuario: { id_usuario: 1, rol: 'dependiente' } });
+  it('inicia sesión, guarda la cookie httpOnly y no expone el token', async () => {
+    authService.login.mockResolvedValue({
+      token: 'jwt-falso',
+      usuario: { id_usuario: 1, rol: 'dependiente' },
     });
+    const req = { body: { correo_usuario: 'ana@x.com', contrasena: 'clave123' } };
+    const res = mockResponse();
 
-    it('responde 400 cuando hay errores de validación y no llama al service', async () => {
-      validationResult.mockReturnValue({ isEmpty: () => false, array: () => [] });
+    await AuthController.login(req, res, jest.fn());
 
-      const req = { body: {} };
-      const res = mockResponse();
-
-      await AuthController.login(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(authService.login).not.toHaveBeenCalled();
-    });
-
-    it('responde 401 con credenciales inválidas sin establecer cookie', async () => {
-      validationResult.mockReturnValue(sinErroresDeValidacion());
-      const error = new Error('Credenciales inválidas');
-      error.status = 401;
-      authService.login.mockRejectedValue(error);
-
-      const req = { body: { correo_usuario: 'ana@x.com', contrasena: 'mala' } };
-      const res = mockResponse();
-
-      await AuthController.login(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.cookie).not.toHaveBeenCalled();
-    });
+    expect(authService.login).toHaveBeenCalledWith('ana@x.com', 'clave123');
+    expect(res.cookie).toHaveBeenCalledWith(
+      COOKIE_NAME,
+      'jwt-falso',
+      expect.objectContaining({ httpOnly: true }),
+    );
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ usuario: { id_usuario: 1, rol: 'dependiente' } });
   });
 
-  describe('logout', () => {
-    it('limpia la cookie y responde con el resultado del service', async () => {
-      authService.logout.mockResolvedValue({ mensaje: 'Sesión cerrada correctamente' });
+  it('delega los errores de login al middleware', async () => {
+    const error = new Error('Credenciales inválidas');
+    authService.login.mockRejectedValue(error);
+    const res = mockResponse();
+    const next = jest.fn();
 
-      const req = { cookies: { [COOKIE_NAME]: 'jwt-falso' } };
-      const res = mockResponse();
+    await AuthController.login({ body: {} }, res, next);
 
-      await AuthController.logout(req, res);
-
-      expect(authService.logout).toHaveBeenCalledWith('jwt-falso');
-      expect(res.clearCookie).toHaveBeenCalledWith(COOKIE_NAME, expect.any(Object));
-      expect(res.status).toHaveBeenCalledWith(200);
-    });
+    expect(next).toHaveBeenCalledWith(error);
+    expect(res.status).not.toHaveBeenCalled();
   });
 
-  describe('me', () => {
-    it('responde 200 con el usuario de la sesión actual', async () => {
-      authService.obtenerSesionActual.mockResolvedValue({ id_usuario: 1, rol: 'dependiente' });
+  it('cierra la sesión y limpia la cookie', async () => {
+    authService.logout.mockResolvedValue({ mensaje: 'Sesión cerrada correctamente' });
+    const req = { cookies: { [COOKIE_NAME]: 'jwt-falso' } };
+    const res = mockResponse();
 
-      const req = { usuario: { id_usuario: 1 } };
-      const res = mockResponse();
+    await AuthController.logout(req, res, jest.fn());
 
-      await AuthController.me(req, res);
+    expect(authService.logout).toHaveBeenCalledWith('jwt-falso');
+    expect(res.clearCookie).toHaveBeenCalledWith(COOKIE_NAME, expect.any(Object));
+    expect(res.status).toHaveBeenCalledWith(200);
+  });
 
-      expect(authService.obtenerSesionActual).toHaveBeenCalledWith(1);
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ usuario: { id_usuario: 1, rol: 'dependiente' } });
-    });
+  it('devuelve la sesión actual', async () => {
+    authService.obtenerSesionActual.mockResolvedValue({ id_usuario: 1 });
+    const res = mockResponse();
 
-    it('responde 404 cuando el usuario de la sesión ya no existe', async () => {
-      const error = new Error('Usuario no encontrado');
-      error.status = 404;
-      authService.obtenerSesionActual.mockRejectedValue(error);
+    await AuthController.me({ usuario: { id_usuario: 1 } }, res, jest.fn());
 
-      const req = { usuario: { id_usuario: 99 } };
-      const res = mockResponse();
-
-      await AuthController.me(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(404);
-    });
+    expect(authService.obtenerSesionActual).toHaveBeenCalledWith(1);
+    expect(res.json).toHaveBeenCalledWith({ usuario: { id_usuario: 1 } });
   });
 });

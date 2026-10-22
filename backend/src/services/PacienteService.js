@@ -2,17 +2,12 @@ const BitacoraLaboratorioService = require('./BitacoraLaboratorioService');
 const PacienteDAO = require('../daos/PacienteDAO');
 const { calcularEdad } = require('../utils/edad');
 const { obtenerIdUsuario, validarPertenenciaLaboratorio } = require('../utils/accesoLaboratorio');
+const AppError = require('../errors/AppError');
 
-const noEncontrado = () => {
-  const error = new Error('Paciente no encontrado');
-  error.status = 404;
-  return error;
-};
+const noEncontrado = () => new AppError('Paciente no encontrado', 404);
 
 const lanzarError = (mensaje, status) => {
-  const error = new Error(mensaje);
-  error.status = status;
-  throw error;
+  throw new AppError(mensaje, status);
 };
 
 const normalizarDpi = (dpi) => {

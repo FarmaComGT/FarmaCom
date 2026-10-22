@@ -3,6 +3,7 @@ const { body, param } = require('express-validator');
 const UsuarioController = require('../controllers/UsuarioController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 
@@ -83,6 +84,7 @@ router.get('/sucursal/:id_sucursal',
     verificarToken,
     verificarRol('dueno', 'administrador'),
     validarParamIdSucursal,
+    validateRequest,
     UsuarioController.obtenerPorSucursal,
 );
 
@@ -90,6 +92,7 @@ router.get('/sucursal/:id_sucursal',
 router.get('/:id',
     verificarToken,
     validarParamId,
+    validateRequest,
     UsuarioController.obtenerPorId,
 );
 
@@ -98,6 +101,7 @@ router.post('/',
     verificarToken,
     verificarRol('dueno'),
     validarCreacion,
+    validateRequest,
     UsuarioController.crear,
 );
 
@@ -107,6 +111,7 @@ router.put('/:id',
     verificarRol('dueno', 'administrador'),
     validarParamId,
     validarActualizacion,
+    validateRequest,
     UsuarioController.actualizar,
 );
 
@@ -115,6 +120,7 @@ router.patch('/:id/contrasena',
     verificarToken,
     validarParamId,
     validarCambioContrasena,
+    validateRequest,
     UsuarioController.cambiarContrasena,
 );
 
@@ -124,6 +130,7 @@ router.patch('/:id/estado',
     verificarRol('dueno'),
     validarParamId,
     validarCambioEstado,
+    validateRequest,
     UsuarioController.cambiarEstado,
 );
 
@@ -132,6 +139,7 @@ router.delete('/:id',
     verificarToken,
     verificarRol('dueno'),
     validarParamId,
+    validateRequest,
     UsuarioController.eliminar,
 );
 

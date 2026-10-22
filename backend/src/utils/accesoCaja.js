@@ -1,15 +1,10 @@
 const ROLES_ACCESO_GLOBAL = new Set(['dueno', 'administrador']);
-
-const crearError = (mensaje, status) => {
-  const error = new Error(mensaje);
-  error.status = status;
-  return error;
-};
+const AppError = require('../errors/AppError');
 
 const obtenerIdUsuario = (usuario) => {
   const idUsuario = Number(usuario?.id_usuario);
   if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
-    throw crearError('No autenticado.', 401);
+    throw new AppError('No autenticado.', 401);
   }
   return idUsuario;
 };
@@ -24,7 +19,7 @@ const tieneAccesoSesionCaja = (usuario, sesion) => {
 
 const validarPertenenciaSesionCaja = (usuario, sesion) => {
   if (!tieneAccesoSesionCaja(usuario, sesion)) {
-    throw crearError('No tienes acceso a la sesión de caja solicitada.', 403);
+    throw new AppError('No tienes acceso a la sesión de caja solicitada.', 403);
   }
 };
 

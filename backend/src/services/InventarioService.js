@@ -1,10 +1,9 @@
 const InventarioDAO = require('../daos/InventarioDAO');
 const pool = require('../database/db');
+const AppError = require('../errors/AppError');
 
 const lanzarError = (mensaje, status) => {
-  const err = new Error(mensaje);
-  err.status = status;
-  throw err;
+  throw new AppError(mensaje, status);
 };
 
 const verificarSucursal = async (id_sucursal) => {

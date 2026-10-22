@@ -1,10 +1,9 @@
 const ClienteDAO = require('../daos/ClienteDAO');
 const HistorialCompraDAO = require('../daos/HistorialCompraDAO');
+const AppError = require('../errors/AppError');
 
 const lanzarError = (mensaje, status) => {
-  const error = new Error(mensaje);
-  error.status = status;
-  throw error;
+  throw new AppError(mensaje, status);
 };
 
 const validarRangoFechas = ({ fecha_desde, fecha_hasta }) => {

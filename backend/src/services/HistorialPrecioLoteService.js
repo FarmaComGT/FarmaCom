@@ -1,10 +1,9 @@
 const LoteDAO = require('../daos/LoteDAO');
 const HistorialPrecioLoteDAO = require('../daos/HistorialPrecioLoteDAO');
+const AppError = require('../errors/AppError');
 
 const lanzarError = (mensaje, status) => {
-  const error = new Error(mensaje);
-  error.status = status;
-  throw error;
+  throw new AppError(mensaje, status);
 };
 
 const obtenerPorLote = async (id_lote) => {

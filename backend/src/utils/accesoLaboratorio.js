@@ -1,12 +1,8 @@
-const crearError = (mensaje, status) => {
-  const error = new Error(mensaje);
-  error.status = status;
-  return error;
-};
+const AppError = require('../errors/AppError');
 
 const obtenerIdUsuario = (usuario) => {
   if (!usuario || !Number.isInteger(usuario.id_usuario) || usuario.id_usuario <= 0) {
-    throw crearError('No autenticado.', 401);
+    throw new AppError('No autenticado.', 401);
   }
   return usuario.id_usuario;
 };
@@ -24,7 +20,7 @@ const validarPertenenciaLaboratorio = (usuario, idLaboratorioRecurso) => {
     || idLaboratorioUsuario <= 0
     || !Number.isInteger(idLaboratorio)
     || idLaboratorioUsuario !== idLaboratorio) {
-    throw crearError('No tienes acceso al recurso solicitado.', 403);
+    throw new AppError('No tienes acceso al recurso solicitado.', 403);
   }
 };
 

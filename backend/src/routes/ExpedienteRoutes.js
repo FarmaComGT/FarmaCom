@@ -3,6 +3,7 @@ const { param } = require('express-validator');
 const BitacoraLaboratorioController = require('../controllers/BitacoraLaboratorioController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.get(
   verificarToken,
   verificarRol('dueno', 'administrador'),
   validarIdExpediente,
+  validateRequest,
   BitacoraLaboratorioController.obtenerPorExpediente,
 );
 
