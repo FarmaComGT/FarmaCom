@@ -32,6 +32,27 @@ services:
       DB_HOST: db
     command: ["npm", "run", "db:migrate"]
 
+  seed:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: "no"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    env_file: .env
+    environment:
+      DB_HOST: db
+    command:
+      - sh
+      - -c
+      - |
+        if [ "$$NODE_ENV" = "development" ]; then
+          npm run db:seed:demo
+        else
+          echo "Seed de demostración omitido para NODE_ENV=$$NODE_ENV."
+        fi
+
   backend:
     build:
       context: ./backend
@@ -42,6 +63,8 @@ services:
       db:
         condition: service_healthy
       migrate:
+        condition: service_completed_successfully
+      seed:
         condition: service_completed_successfully
     env_file: .env
     environment:

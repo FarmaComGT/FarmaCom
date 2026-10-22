@@ -139,29 +139,28 @@ sea `development` o `test`.
 docker compose up --build
 ```
 
-Esto levantará tres servicios permanentes y un contenedor temporal de
-migraciones:
+Esto levantará tres servicios permanentes y dos contenedores temporales de
+preparación:
 
-| Contenedor          | Servicio                  | Puerto expuesto |
-|---------------------|---------------------------|-----------------|
-| `farmacias_db`      | PostgreSQL                | `5432`          |
-| `migrate`           | Migraciones de PostgreSQL | No aplica       |
-| `farmacias_backend` | Node.js                   | `3000`          |
-| `farmacias_frontend`| React/Vite                | `5173`          |
+| Contenedor          | Servicio                         | Puerto expuesto |
+|---------------------|----------------------------------|-----------------|
+| `farmacias_db`      | PostgreSQL                       | `5432`          |
+| `migrate`           | Migraciones de PostgreSQL        | No aplica       |
+| `seed`              | Datos demo sólo en desarrollo | No aplica       |
+| `farmacias_backend` | Node.js                          | `3000`          |
+| `farmacias_frontend`| React/Vite                       | `5173`          |
 
 En una base nueva, PostgreSQL crea la estructura desde
 `backend/src/database/schema.sql`. En instalaciones existentes, el servicio
 `migrate` aplica únicamente los archivos pendientes de
-`backend/src/database/migrations/versioned`. El backend sólo inicia cuando la
-base está saludable y las migraciones finalizaron correctamente; el frontend
+`backend/src/database/migrations/versioned`. Después, el servicio `seed` carga
+automáticamente los datos de demostración cuando `NODE_ENV=development`. En
+`production`, en un entorno diferente o si la variable está ausente, el seed
+se omite sin impedir el despliegue.
+
+El backend sólo inicia cuando la base está saludable, las migraciones
+finalizaron y el paso condicional del seed terminó correctamente; el frontend
 espera a que el backend también esté saludable.
-
-Los datos de demostración no se cargan automáticamente. En un entorno local se
-pueden agregar con:
-
-```bash
-docker compose run --rm backend npm run db:seed:demo
-```
 
 ### 4. Acceder a la aplicación
 
@@ -205,6 +204,16 @@ Antes de desplegar sobre una instalación existente se debe crear un respaldo:
 mkdir -p respaldos
 docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > respaldos/farmacom-antes-del-despliegue.dump
 ```
+
+En el archivo `.env` del servidor se debe confirmar antes del despliegue:
+
+```env
+NODE_ENV=production
+```
+
+Con ese valor, el contenedor `seed` finaliza correctamente sin insertar datos
+de demostración. El volumen existente de PostgreSQL se conserva y sólo se
+aplican las migraciones que todavía no estén registradas.
 
 Después se construyen las imágenes, se comprueban las migraciones de forma
 explícita y se levantan los servicios:
