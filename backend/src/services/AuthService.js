@@ -4,6 +4,11 @@ const UsuarioDAO = require('../daos/UsuarioDAO');
 const { TOKEN_EXPIRY } = require('../config/auth');
 const AppError = require('../errors/AppError');
 
+const MENSAJE_CREDENCIALES_INVALIDAS = 'Credenciales inválidas';
+// Hash bcrypt válido y constante para que un correo inexistente recorra la misma
+// operación costosa que una contraseña incorrecta, sin asociarse a una cuenta real.
+const HASH_COMPARACION_FICTICIO = '$2b$10$C6UzMDM.H6dfI/f/IKcEe.1Z5L9hLXKq4U6o7v7P4J7v7ZQp5Xz1S';
+
 const mapUsuarioSesion = (usuario) => ({
     id_usuario: usuario.id_usuario,
     nombre_usuario: usuario.nombre_usuario,
@@ -15,17 +20,11 @@ const mapUsuarioSesion = (usuario) => ({
 
 const login = async (correo_usuario, contrasena) => {
     const usuario = await UsuarioDAO.obtenerPorCorreo(correo_usuario);
-    if (!usuario) {
-        throw new AppError('Credenciales inválidas', 401);
-    }
+    const hashComparacion = usuario?.contrasena_hash || HASH_COMPARACION_FICTICIO;
+    const contrasenaValida = await bcrypt.compare(contrasena, hashComparacion);
 
-    if (usuario.estado_usuario !== 'activo') {
-        throw new AppError('La cuenta está inactiva.', 403);
-    }
-
-    const contrasenaValida = await bcrypt.compare(contrasena, usuario.contrasena_hash);
-    if (!contrasenaValida) {
-        throw new AppError('Credenciales inválidas', 401);
+    if (!usuario || usuario.estado_usuario !== 'activo' || !contrasenaValida) {
+        throw new AppError(MENSAJE_CREDENCIALES_INVALIDAS, 401);
     }
 
     const payload = {
