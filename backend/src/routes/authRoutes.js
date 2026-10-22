@@ -3,6 +3,7 @@ const { body } = require('express-validator');
 const authController = require('../controllers/AuthController');
 const loginRateLimit = require('../middlewares/loginRateLimit');
 const verificarToken = require('../middlewares/verificarToken');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 
@@ -11,7 +12,7 @@ const validarLogin = [
     body('contrasena').notEmpty().withMessage('La contraseña es requerida'),
 ];
 
-router.post('/login', loginRateLimit, validarLogin, authController.login);
+router.post('/login', loginRateLimit, validarLogin, validateRequest, authController.login);
 
 router.post('/logout', authController.logout);
 

@@ -54,6 +54,7 @@ router.get(
   rolesHistorial,
   validarId,
   validarFiltrosHistorial,
+  validateRequest,
   HistorialCompraController.obtenerPorCliente,
 );
 router.get('/:id', verificarToken, validarId, validateRequest, ClienteController.obtenerPorId);

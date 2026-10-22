@@ -3,6 +3,7 @@ const { body, param, query } = require('express-validator');
 const PacienteController = require('../controllers/PacienteController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 const rolesPaciente = verificarRol('dueno', 'administrador', 'laboratorista');
@@ -140,13 +141,13 @@ const validarBusqueda = [
 ];
 
 // GET    /api/pacientes?id_laboratorio=&busqueda=&estado=&pagina=&limite=
-router.get('/', verificarToken, rolesPaciente, validarBusqueda, PacienteController.buscar);
+router.get('/', verificarToken, rolesPaciente, validarBusqueda, validateRequest, PacienteController.buscar);
 
 // GET    /api/pacientes/:id
-router.get('/:id', verificarToken, rolesPaciente, validarId, PacienteController.obtenerPorId);
+router.get('/:id', verificarToken, rolesPaciente, validarId, validateRequest, PacienteController.obtenerPorId);
 
 // POST   /api/pacientes
-router.post('/', verificarToken, rolesPaciente, validarRegistro, PacienteController.registrar);
+router.post('/', verificarToken, rolesPaciente, validarRegistro, validateRequest, PacienteController.registrar);
 
 // PUT    /api/pacientes/:id
 router.put(
@@ -155,6 +156,7 @@ router.put(
   rolesPaciente,
   validarId,
   validarActualizacion,
+  validateRequest,
   PacienteController.actualizar,
 );
 
@@ -165,6 +167,7 @@ router.patch(
   rolesPaciente,
   validarId,
   validarAnulacion,
+  validateRequest,
   PacienteController.anular,
 );
 

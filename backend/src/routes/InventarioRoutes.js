@@ -3,6 +3,7 @@ const { param } = require('express-validator');
 const InventarioController = require('../controllers/InventarioController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol   = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router({ mergeParams: true }); // mergeParams para heredar :id_sucursal
 
@@ -18,6 +19,7 @@ router.get(
   verificarToken,
   verificarRol('dueno', 'administrador', 'dependiente'),
   validarParamIdSucursal,
+  validateRequest,
   InventarioController.obtenerInventario,
 );
 
@@ -27,6 +29,7 @@ router.get(
   verificarToken,
   verificarRol('dueno', 'administrador', 'dependiente'),
   validarParamIdSucursal,
+  validateRequest,
   InventarioController.obtenerResumen,
 );
 

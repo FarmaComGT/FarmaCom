@@ -7,6 +7,7 @@ const {
 const CajaController = require('../controllers/CajaController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 const rolesOperacion = verificarRol('dueno', 'administrador', 'dependiente');
@@ -132,6 +133,7 @@ router.get(
   verificarToken,
   rolesAdministracion,
   validarResumen,
+  validateRequest,
   CajaController.obtenerResumenDiario,
 );
 
@@ -140,6 +142,7 @@ router.get(
   verificarToken,
   rolesAdministracion,
   validarFiltrosCierres,
+  validateRequest,
   CajaController.obtenerCierres,
 );
 
@@ -149,6 +152,7 @@ router.post(
   rolesOperacion,
   validarId,
   validarMovimiento,
+  validateRequest,
   CajaController.registrarMovimiento,
 );
 
@@ -158,16 +162,18 @@ router.post(
   rolesOperacion,
   validarId,
   validarCierre,
+  validateRequest,
   CajaController.cerrarSesion,
 );
 
-router.get('/', verificarToken, rolesOperacion, validarFiltrosCajas, CajaController.obtenerTodas);
+router.get('/', verificarToken, rolesOperacion, validarFiltrosCajas, validateRequest, CajaController.obtenerTodas);
 
 router.post(
   '/',
   verificarToken,
   rolesAdministracion,
   validarCreacionCaja,
+  validateRequest,
   CajaController.crear,
 );
 
@@ -177,6 +183,7 @@ router.patch(
   rolesAdministracion,
   validarId,
   validarActualizacionCaja,
+  validateRequest,
   CajaController.actualizar,
 );
 
@@ -186,6 +193,7 @@ router.post(
   rolesOperacion,
   validarId,
   validarApertura,
+  validateRequest,
   CajaController.abrirSesion,
 );
 
@@ -194,6 +202,7 @@ router.get(
   verificarToken,
   rolesOperacion,
   validarId,
+  validateRequest,
   CajaController.obtenerSesionActual,
 );
 

@@ -4,6 +4,7 @@ const ResultadoLaboratorioController = require('../controllers/ResultadoLaborato
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const subirPdfResultado = require('../middlewares/subirPdfResultado');
+const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
 const rolesResultado = verificarRol('dueno', 'administrador', 'laboratorista');
@@ -51,6 +52,7 @@ router.get(
   verificarToken,
   rolesResultado,
   validarCategorias,
+  validateRequest,
   ResultadoLaboratorioController.categorias,
 );
 
@@ -58,11 +60,12 @@ router.get(
 router.get(
   '/publico/:token',
   validarToken,
+  validateRequest,
   ResultadoLaboratorioController.descargarPublico,
 );
 
 // GET    /api/resultados-laboratorio?id_paciente=
-router.get('/', verificarToken, rolesResultado, validarListado, ResultadoLaboratorioController.listar);
+router.get('/', verificarToken, rolesResultado, validarListado, validateRequest, ResultadoLaboratorioController.listar);
 
 // POST   /api/resultados-laboratorio
 router.post(
@@ -71,6 +74,7 @@ router.post(
   rolesResultado,
   subirPdfResultado,
   validarSubida,
+  validateRequest,
   ResultadoLaboratorioController.subir,
 );
 
@@ -81,6 +85,7 @@ router.patch(
   rolesResultado,
   validarId,
   validarAnulacion,
+  validateRequest,
   ResultadoLaboratorioController.anular,
 );
 
