@@ -133,6 +133,21 @@ Definir `NODE_ENV=development` para trabajo local y `NODE_ENV=production` en
 el servidor. Los datos de demostración se rechazan en cualquier entorno que no
 sea `development` o `test`.
 
+En desarrollo, el seed exige contraseñas iniciales propias, diferentes y de al
+menos 12 caracteres; no existen claves predeterminadas en el repositorio:
+
+```env
+DEMO_DUENO_PASSWORD=<clave-local-segura>
+DEMO_LABORATORISTA_PASSWORD=<otra-clave-local-segura>
+```
+
+El backend limita por defecto el inicio de sesión a cinco fallos por IP cada
+15 minutos. `LOGIN_RATE_LIMIT_MAX_ATTEMPTS` y `LOGIN_RATE_LIMIT_WINDOW_MS`
+permiten ajustar esos valores. Si el backend se publica detrás de un proxy
+inverso controlado, `TRUST_PROXY_HOPS` debe indicar su número exacto de saltos
+(por defecto es `0`, sin proxies confiables); no se debe usar un valor mayor al
+recorrido real de la solicitud.
+
 ### 3. Levantar todos los servicios
 
 ```bash

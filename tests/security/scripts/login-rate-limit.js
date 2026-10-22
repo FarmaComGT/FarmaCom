@@ -14,7 +14,7 @@ const run = async () => {
 
   const correo = `rate-limit.${Date.now()}@farmacom.test`;
 
-  for (let attempt = 1; attempt <= 11; attempt += 1) {
+  for (let attempt = 1; attempt <= 6; attempt += 1) {
     const response = await fetch(`${apiUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -24,10 +24,10 @@ const run = async () => {
       }),
     });
 
-    if (attempt <= 10) {
+    if (attempt <= 5) {
       assert(response.status === 401, `El intento ${attempt} debía devolver 401 y devolvió ${response.status}.`);
     } else {
-      assert(response.status === 429, `El intento 11 debía devolver 429 y devolvió ${response.status}.`);
+      assert(response.status === 429, `El intento 6 debía devolver 429 y devolvió ${response.status}.`);
       assert(response.headers.has('retry-after'), 'La respuesta 429 no incluyó Retry-After.');
     }
 
@@ -38,12 +38,12 @@ const run = async () => {
       );
       const remaining = response.headers.get('ratelimit-remaining');
       if (remaining !== null) {
-        assert(remaining === '9', 'El rate limit no estaba limpio antes de iniciar la prueba.');
+        assert(remaining === '4', 'El rate limit no estaba limpio antes de iniciar la prueba.');
       }
     }
   }
 
-  console.log('PASS: el intento 11 fue bloqueado temporalmente con 429.');
+  console.log('PASS: el intento 6 fue bloqueado temporalmente con 429.');
 };
 
 run().catch((error) => {

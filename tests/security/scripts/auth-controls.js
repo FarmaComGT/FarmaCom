@@ -119,7 +119,11 @@ const run = async () => {
   );
 
   const inactive = await login(inactiveEmail, inactivePassword, 'Cuenta inactiva');
-  assert(inactive.response.status === 403, 'Una cuenta inactiva no devolvió 403.');
+  assert(inactive.response.status === 401, 'Una cuenta inactiva no devolvió 401.');
+  assert(
+    inactive.json?.mensaje === unknown.json?.mensaje,
+    'El login permite distinguir una cuenta inactiva de credenciales inválidas.',
+  );
   assert(!inactive.response.headers.get('set-cookie'), 'Una cuenta inactiva recibió una cookie.');
 
   const validLogin = await login(adminEmail, adminPassword, 'Administrador activo');

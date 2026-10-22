@@ -51,12 +51,16 @@ describe('AuthService', () => {
 
     it('lanza error 401 si el correo no existe', async () => {
       UsuarioDAO.obtenerPorCorreo.mockResolvedValue(null);
+      bcrypt.compare.mockResolvedValue(false);
 
       await expect(AuthService.login('no-existe@farmacom.com', 'clave')).rejects.toMatchObject({
         message: 'Credenciales inválidas',
         status: 401,
       });
-      expect(bcrypt.compare).not.toHaveBeenCalled();
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'clave',
+        expect.stringMatching(/^\$2[aby]\$10\$/),
+      );
     });
 
     it('lanza error 401 si la contraseña es incorrecta', async () => {
@@ -72,13 +76,16 @@ describe('AuthService', () => {
       expect(jwt.sign).not.toHaveBeenCalled();
     });
 
-    it('lanza error 403 si la cuenta está inactiva', async () => {
+    it('responde igual para una cuenta inactiva que para otras credenciales inválidas', async () => {
       UsuarioDAO.obtenerPorCorreo.mockResolvedValue({ ...usuarioActivo, estado_usuario: 'inactivo' });
+      bcrypt.compare.mockResolvedValue(true);
 
       await expect(AuthService.login('jperez@farmacom.com', 'clave123')).rejects.toMatchObject({
-        message: 'La cuenta está inactiva.',
-        status: 403,
+        message: 'Credenciales inválidas',
+        status: 401,
       });
+      expect(bcrypt.compare).toHaveBeenCalledWith('clave123', 'hash-guardado');
+      expect(jwt.sign).not.toHaveBeenCalled();
     });
   });
 });

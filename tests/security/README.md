@@ -102,7 +102,7 @@ docker compose --env-file .env --env-file tests/security/.env.security -f docker
 La comprobación valida automáticamente:
 
 - rechazo de una solicitud sin cookie;
-- mensaje genérico para usuario inexistente y contraseña incorrecta;
+- mensaje genérico para usuario inexistente, cuenta inactiva y contraseña incorrecta;
 - rechazo de una cuenta inactiva;
 - atributos `HttpOnly`, `SameSite=Strict` y `Path=/`;
 - presencia o ausencia de `Secure` según `SECURITY_EXPECT_SECURE_COOKIE`;
@@ -126,8 +126,8 @@ docker compose restart backend
 docker compose --env-file .env --env-file tests/security/.env.security -f docker-compose.yml -f docker-compose.security.yml --profile security run --rm security-login-rate-limit
 ```
 
-El script utiliza un correo ficticio inexistente. Los primeros diez intentos
-deben devolver `401` y el undécimo debe devolver `429` con `Retry-After`. La
+El script utiliza un correo ficticio inexistente. Los primeros cinco intentos
+deben devolver `401` y el sexto debe devolver `429` con `Retry-After`. La
 prueba también exige encabezados estándar de rate limiting. Debe ejecutarse al
 final para que la ventana de bloqueo no interfiera con otros casos.
 
@@ -223,9 +223,10 @@ ausencia de:
 - cookies, secretos y variables privadas;
 - campos internos como `stack`, `query`, `sql`, `detail` o `constraint`.
 
-También comprueba que la API no publique el encabezado `X-Powered-By`. La
-prueba no modifica información de negocio; los cuerpos inválidos se envían al
-login y son rechazados antes de autenticar.
+También comprueba que la API no publique el encabezado `X-Powered-By` y que
+incluya CSP, HSTS, protección contra MIME sniffing, framing y una política de
+referencia restrictiva. La prueba no modifica información de negocio; los
+cuerpos inválidos se envían al login y son rechazados antes de autenticar.
 
 ## Generar la evidencia de ejecución
 

@@ -47,7 +47,7 @@ SELECT
     s.id_sucursal,
     'Dueno General',
     'dueno@farma.com',
-    crypt('123456', gen_salt('bf')),
+    current_setting('farmacom.seed.dueno_hash'),
     'dueno'
 FROM sucursal s
 WHERE s.nombre_sucursal = 'Sucursal Central'
@@ -72,7 +72,7 @@ SELECT
     l.id_laboratorio,
     'Laboratorista General',
     'laboratorista@farma.com',
-    crypt('123456', gen_salt('bf')),
+    current_setting('farmacom.seed.laboratorista_hash'),
     'laboratorista'
 FROM sucursal s
 JOIN laboratorio l ON l.nombre_laboratorio = 'Laboratorio Central'

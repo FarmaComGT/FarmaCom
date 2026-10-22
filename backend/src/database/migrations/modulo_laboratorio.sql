@@ -162,7 +162,7 @@ SELECT
     l.id_laboratorio,
     'Laboratorista General',
     'laboratorista@farma.com',
-    crypt('123456', gen_salt('bf')),
+    crypt(gen_random_uuid()::text, gen_salt('bf')),
     'laboratorista'
 FROM sucursal s
 JOIN laboratorio l ON l.nombre_laboratorio = 'Laboratorio Central'
