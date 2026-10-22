@@ -1,3 +1,95 @@
+-- Datos mínimos y deterministas para las pruebas de integración.
+-- No dependen del seed de demostración.
+INSERT INTO ciudad (nombre_ciudad)
+VALUES ('Guatemala')
+ON CONFLICT (nombre_ciudad) DO NOTHING;
+
+INSERT INTO sucursal (id_ciudad, nombre_sucursal, direccion)
+SELECT id_ciudad, 'Sucursal Central', 'Zona 1, Ciudad de Guatemala'
+FROM ciudad
+WHERE nombre_ciudad = 'Guatemala'
+ON CONFLICT (nombre_sucursal) DO NOTHING;
+
+INSERT INTO laboratorio (id_ciudad, nombre_laboratorio, direccion)
+SELECT id_ciudad, 'Laboratorio Central', 'Zona 1, Ciudad de Guatemala'
+FROM ciudad
+WHERE nombre_ciudad = 'Guatemala'
+ON CONFLICT (nombre_laboratorio) DO NOTHING;
+
+INSERT INTO usuario (
+  id_sucursal,
+  nombre_usuario,
+  correo_usuario,
+  contrasena_hash,
+  rol
+)
+SELECT
+  id_sucursal,
+  'Dueño de Integración',
+  'dueno@farma.com',
+  crypt('123456', gen_salt('bf')),
+  'dueno'
+FROM sucursal
+WHERE nombre_sucursal = 'Sucursal Central'
+ON CONFLICT (correo_usuario) DO UPDATE SET
+  contrasena_hash = EXCLUDED.contrasena_hash,
+  estado_usuario = 'activo';
+
+INSERT INTO usuario (
+  id_sucursal,
+  id_laboratorio,
+  nombre_usuario,
+  correo_usuario,
+  contrasena_hash,
+  rol
+)
+SELECT
+  sucursal.id_sucursal,
+  laboratorio.id_laboratorio,
+  'Laboratorista de Integración',
+  'laboratorista@farma.com',
+  crypt('123456', gen_salt('bf')),
+  'laboratorista'
+FROM sucursal
+JOIN laboratorio ON laboratorio.nombre_laboratorio = 'Laboratorio Central'
+WHERE sucursal.nombre_sucursal = 'Sucursal Central'
+ON CONFLICT (correo_usuario) DO UPDATE SET
+  contrasena_hash = EXCLUDED.contrasena_hash,
+  estado_usuario = 'activo';
+
+INSERT INTO paciente (
+  id_laboratorio,
+  nombre_paciente,
+  dpi,
+  fecha_nacimiento,
+  sexo,
+  telefono,
+  direccion
+)
+SELECT
+  id_laboratorio,
+  'Paciente Demo Uno',
+  '1234567890101',
+  DATE '1990-05-14',
+  'M',
+  '5555-1111',
+  'Datos ficticios para integración'
+FROM laboratorio
+WHERE nombre_laboratorio = 'Laboratorio Central'
+  AND NOT EXISTS (
+    SELECT 1 FROM paciente WHERE dpi = '1234567890101'
+  );
+
+INSERT INTO expediente_laboratorio (id_paciente)
+SELECT id_paciente
+FROM paciente
+WHERE dpi = '1234567890101'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM expediente_laboratorio
+    WHERE expediente_laboratorio.id_paciente = paciente.id_paciente
+  );
+
 DELETE FROM bitacora_laboratorio
 WHERE (entidad = 'paciente' AND id_entidad IN (
   SELECT id_paciente FROM paciente WHERE dpi = '9999999999999'
