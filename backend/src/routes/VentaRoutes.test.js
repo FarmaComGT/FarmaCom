@@ -9,11 +9,14 @@ const express = require('express');
 const request = require('supertest');
 const VentaService = require('../services/VentaService');
 const VentaRoutes = require('./VentaRoutes');
+const AppError = require('../errors/AppError');
+const errorHandler = require('../middlewares/errorHandler');
 
 const crearApp = () => {
   const app = express();
   app.use(express.json());
   app.use('/api/ventas', VentaRoutes);
+  app.use(errorHandler);
   return app;
 };
 
@@ -60,10 +63,10 @@ describe('VentaRoutes - anulación', () => {
   });
 
   it('propaga el conflicto de una venta pagada con tarjeta', async () => {
-    const error = new Error(
+    const error = new AppError(
       'Las ventas pagadas con tarjeta requieren un reembolso en Recurrente',
+      409,
     );
-    error.status = 409;
     VentaService.anularVenta.mockRejectedValue(error);
 
     const respuesta = await request(crearApp())

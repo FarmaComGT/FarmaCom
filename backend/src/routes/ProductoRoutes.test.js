@@ -10,11 +10,13 @@ const express = require('express');
 const request = require('supertest');
 const ProductoService = require('../services/ProductoService');
 const ProductoRoutes = require('./ProductoRoutes');
+const errorHandler = require('../middlewares/errorHandler');
 
 const crearApp = () => {
   const app = express();
   app.use(express.json());
   app.use('/api/productos', ProductoRoutes);
+  app.use(errorHandler);
   return app;
 };
 

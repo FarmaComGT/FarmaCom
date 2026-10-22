@@ -13,11 +13,14 @@ const express = require('express');
 const request = require('supertest');
 const ResultadoLaboratorioService = require('../services/ResultadoLaboratorioService');
 const ResultadoLaboratorioRoutes = require('./ResultadoLaboratorioRoutes');
+const AppError = require('../errors/AppError');
+const errorHandler = require('../middlewares/errorHandler');
 
 const crearApp = () => {
   const app = express();
   app.use(express.json());
   app.use('/api/resultados-laboratorio', ResultadoLaboratorioRoutes);
+  app.use(errorHandler);
   return app;
 };
 
@@ -125,8 +128,7 @@ describe('ResultadoLaboratorioRoutes', () => {
   });
 
   it('responde 404 con mensaje claro cuando el enlace público no está disponible', async () => {
-    const error = new Error('El enlace no esta disponible');
-    error.status = 404;
+    const error = new AppError('El enlace no esta disponible', 404);
     ResultadoLaboratorioService.obtenerPublico.mockRejectedValue(error);
 
     const respuesta = await request(crearApp())

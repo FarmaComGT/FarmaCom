@@ -11,60 +11,35 @@ const mockResponse = () => {
 };
 
 describe('InventarioController', () => {
-  describe('obtenerInventario', () => {
-    it('responde 200 con el inventario de la sucursal', async () => {
-      InventarioService.obtenerInventarioPorSucursal.mockResolvedValue([{ id_producto: 1 }]);
+  it('devuelve el inventario de la sucursal', async () => {
+    InventarioService.obtenerInventarioPorSucursal.mockResolvedValue([{ id_producto: 1 }]);
+    const res = mockResponse();
 
-      const req = { params: { id_sucursal: '1' } };
-      const res = mockResponse();
+    await InventarioController.obtenerInventario({ params: { id_sucursal: '2' } }, res, jest.fn());
 
-      await InventarioController.obtenerInventario(req, res);
-
-      expect(InventarioService.obtenerInventarioPorSucursal).toHaveBeenCalledWith(1);
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith([{ id_producto: 1 }]);
-    });
-
-    it('responde 404 cuando la sucursal no existe', async () => {
-      const error = new Error('Sucursal no encontrada');
-      error.status = 404;
-      InventarioService.obtenerInventarioPorSucursal.mockRejectedValue(error);
-
-      const req = { params: { id_sucursal: '99' } };
-      const res = mockResponse();
-
-      await InventarioController.obtenerInventario(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Sucursal no encontrada' });
-    });
+    expect(InventarioService.obtenerInventarioPorSucursal).toHaveBeenCalledWith(2);
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  describe('obtenerResumen', () => {
-    it('responde 200 con el resumen de inventario', async () => {
-      InventarioService.obtenerResumenPorSucursal.mockResolvedValue({ total_productos: 5 });
+  it('devuelve el resumen de la sucursal', async () => {
+    InventarioService.obtenerResumenPorSucursal.mockResolvedValue({ total: 3 });
+    const res = mockResponse();
 
-      const req = { params: { id_sucursal: '1' } };
-      const res = mockResponse();
+    await InventarioController.obtenerResumen({ params: { id_sucursal: '2' } }, res, jest.fn());
 
-      await InventarioController.obtenerResumen(req, res);
+    expect(InventarioService.obtenerResumenPorSucursal).toHaveBeenCalledWith(2);
+    expect(res.json).toHaveBeenCalledWith({ total: 3 });
+  });
 
-      expect(InventarioService.obtenerResumenPorSucursal).toHaveBeenCalledWith(1);
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ total_productos: 5 });
-    });
+  it('delega al middleware los errores del servicio', async () => {
+    const error = new Error('fallo de base de datos');
+    InventarioService.obtenerInventarioPorSucursal.mockRejectedValue(error);
+    const res = mockResponse();
+    const next = jest.fn();
 
-    it('responde 404 cuando la sucursal no existe', async () => {
-      const error = new Error('Sucursal no encontrada');
-      error.status = 404;
-      InventarioService.obtenerResumenPorSucursal.mockRejectedValue(error);
+    await InventarioController.obtenerInventario({ params: { id_sucursal: '2' } }, res, next);
 
-      const req = { params: { id_sucursal: '99' } };
-      const res = mockResponse();
-
-      await InventarioController.obtenerResumen(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(404);
-    });
+    expect(next).toHaveBeenCalledWith(error);
+    expect(res.status).not.toHaveBeenCalled();
   });
 });

@@ -9,11 +9,13 @@ const express = require('express');
 const request = require('supertest');
 const PacienteService = require('../services/PacienteService');
 const PacienteRoutes = require('./PacienteRoutes');
+const errorHandler = require('../middlewares/errorHandler');
 
 const crearApp = () => {
   const app = express();
   app.use(express.json());
   app.use('/api/pacientes', PacienteRoutes);
+  app.use(errorHandler);
   return app;
 };
 
