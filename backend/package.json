@@ -10,7 +10,8 @@
         "test": "jest",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
-        "test:integration": "jest --config jest.integration.config.js --runInBand"
+        "test:integration": "jest --config jest.integration.config.js --runInBand",
+        "db:migrate": "node src/database/migrate.js"
     },
     "dependencies": {
         "bcrypt": "^5.1.1",
