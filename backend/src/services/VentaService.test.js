@@ -790,6 +790,7 @@ describe('VentaService', () => {
       expect(VentaDAO.anular).toHaveBeenCalledWith(
         21,
         'Error de digitacion',
+        7,
         {},
       );
       expect(VentaDAO.anular.mock.invocationCallOrder[0])

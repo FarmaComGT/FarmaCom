@@ -258,11 +258,13 @@ class VentaDAO {
          v.*,
          s.nombre_sucursal,
          u.nombre_usuario,
+         ua.nombre_usuario AS nombre_usuario_anulacion,
          c.nombre_cliente,
          COALESCE(SUM(dv.cantidad), 0)::INTEGER AS cantidad_articulos
        FROM venta v
        JOIN sucursal s ON s.id_sucursal = v.id_sucursal
        JOIN usuario u ON u.id_usuario = v.id_usuario
+       LEFT JOIN usuario ua ON ua.id_usuario = v.id_usuario_anulacion
        LEFT JOIN cliente c ON c.id_cliente = v.id_cliente
        LEFT JOIN detalle_venta dv ON dv.id_venta = v.id_venta
        ${where}
@@ -270,6 +272,7 @@ class VentaDAO {
          v.id_venta,
          s.nombre_sucursal,
          u.nombre_usuario,
+         ua.nombre_usuario,
          c.nombre_cliente
        ORDER BY v.fecha_venta DESC, v.id_venta DESC`,
       valores,
@@ -283,6 +286,7 @@ class VentaDAO {
          v.*,
          s.nombre_sucursal,
          u.nombre_usuario,
+         ua.nombre_usuario AS nombre_usuario_anulacion,
          c.nombre_cliente,
          COALESCE(
            json_agg(
@@ -304,6 +308,7 @@ class VentaDAO {
        FROM venta v
        JOIN sucursal s ON s.id_sucursal = v.id_sucursal
        JOIN usuario u ON u.id_usuario = v.id_usuario
+       LEFT JOIN usuario ua ON ua.id_usuario = v.id_usuario_anulacion
        LEFT JOIN cliente c ON c.id_cliente = v.id_cliente
        LEFT JOIN detalle_venta dv ON dv.id_venta = v.id_venta
        LEFT JOIN lote l ON l.id_lote = dv.id_lote
@@ -313,6 +318,7 @@ class VentaDAO {
          v.id_venta,
          s.nombre_sucursal,
          u.nombre_usuario,
+         ua.nombre_usuario,
          c.nombre_cliente`,
       [id_venta],
     );
@@ -361,16 +367,17 @@ class VentaDAO {
     return rows[0] || null;
   }
 
-  async anular(id_venta, motivo_anulacion, client) {
+  async anular(id_venta, motivo_anulacion, id_usuario_anulacion, client) {
     const { rows } = await client.query(
       `UPDATE venta
        SET estado = 'anulada',
            fecha_anulacion = CURRENT_TIMESTAMP,
-           motivo_anulacion = $1
-       WHERE id_venta = $2
+           motivo_anulacion = $1,
+           id_usuario_anulacion = $2
+       WHERE id_venta = $3
          AND estado = 'completada'
        RETURNING *`,
-      [motivo_anulacion, id_venta],
+      [motivo_anulacion, id_usuario_anulacion, id_venta],
     );
     return rows[0] || null;
   }

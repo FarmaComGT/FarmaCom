@@ -781,6 +781,7 @@ CREATE TABLE IF NOT EXISTS venta (
     fecha_venta       TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_anulacion   TIMESTAMPTZ,
     motivo_anulacion  VARCHAR(500),
+    id_usuario_anulacion INTEGER,
 
     CONSTRAINT chk_venta_metodo_pago
         CHECK (metodo_pago IN ('efectivo', 'tarjeta')),
@@ -823,6 +824,11 @@ CREATE TABLE IF NOT EXISTS venta (
 
     CONSTRAINT fk_venta_usuario
         FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_venta_usuario_anulacion
+        FOREIGN KEY (id_usuario_anulacion)
         REFERENCES usuario(id_usuario)
         ON DELETE RESTRICT,
 

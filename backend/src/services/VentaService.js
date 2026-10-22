@@ -143,6 +143,7 @@ const validarResponsableVenta = (venta, usuario) => {
 
 const anularVenta = async (id_venta, motivo_anulacion, usuario) => {
   const motivo = normalizarMotivoAnulacion(motivo_anulacion);
+  const idUsuarioAnulacion = obtenerIdUsuario(usuario);
 
   await VentaDAO.ejecutarEnTransaccion(async (client) => {
     const venta = await VentaDAO.obtenerParaActualizar(id_venta, client);
@@ -183,7 +184,12 @@ const anularVenta = async (id_venta, motivo_anulacion, usuario) => {
       lanzarError('No se puede anular una venta con la sesión de caja cerrada', 409);
     }
 
-    const ventaAnulada = await VentaDAO.anular(id_venta, motivo, client);
+    const ventaAnulada = await VentaDAO.anular(
+      id_venta,
+      motivo,
+      idUsuarioAnulacion,
+      client,
+    );
     if (!ventaAnulada) {
       lanzarError('La venta ya fue anulada por otra solicitud', 409);
     }
