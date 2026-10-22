@@ -1,12 +1,11 @@
 const ProductoDAO = require('../daos/ProductoDAO');
 const PresentacionDAO = require('../daos/PresentacionDAO');
+const AppError = require('../errors/AppError');
 
 // Helpers
 
 const lanzarError = (mensaje, status) => {
-  const err = new Error(mensaje);
-  err.status = status;
-  throw err;
+  throw new AppError(mensaje, status);
 };
 
 const normalizarConcentracion = (valor) => {

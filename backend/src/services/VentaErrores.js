@@ -1,7 +1,7 @@
+const AppError = require('../errors/AppError');
+
 const lanzarError = (mensaje, status) => {
-  const error = new Error(mensaje);
-  error.status = status;
-  throw error;
+  throw new AppError(mensaje, status);
 };
 
 module.exports = { lanzarError };

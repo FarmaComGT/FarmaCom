@@ -1,14 +1,9 @@
 const bcrypt = require('bcrypt');
 const UsuarioDAO = require('../daos/UsuarioDAO');
 const LaboratorioDAO = require('../daos/LaboratorioDAO');
+const AppError = require('../errors/AppError');
 
 const SALT_ROUNDS = 10;
-
-const errorConEstado = (mensaje, status) => {
-    const error = new Error(mensaje);
-    error.status = status;
-    return error;
-};
 
 const resolverLaboratorio = async(rol, id_laboratorio) => {
     if (rol !== 'laboratorista') {
@@ -17,12 +12,12 @@ const resolverLaboratorio = async(rol, id_laboratorio) => {
 
     const id = Number(id_laboratorio);
     if (!Number.isInteger(id) || id < 1) {
-        throw errorConEstado('Un laboratorista debe tener un laboratorio asignado', 400);
+        throw new AppError('Un laboratorista debe tener un laboratorio asignado', 400);
     }
 
     const laboratorio = await LaboratorioDAO.obtenerPorId(id);
     if (!laboratorio || !laboratorio.activo) {
-        throw errorConEstado('Laboratorio no encontrado o inactivo', 400);
+        throw new AppError('Laboratorio no encontrado o inactivo', 400);
     }
 
     return id;
@@ -31,9 +26,7 @@ const resolverLaboratorio = async(rol, id_laboratorio) => {
 const crearUsuario = async({ id_sucursal, id_laboratorio, nombre_usuario, correo_usuario, contrasena, rol }) => {
     const existente = await UsuarioDAO.obtenerPorCorreo(correo_usuario);
     if (existente) {
-        const error = new Error('El correo ya está registrado');
-        error.status = 409;
-        throw error;
+        throw new AppError('El correo ya está registrado', 409);
     }
 
     const laboratorioAsignado = await resolverLaboratorio(rol, id_laboratorio);
@@ -59,9 +52,7 @@ const obtenerTodos = async() => {
 const obtenerPorId = async(id_usuario) => {
     const usuario = await UsuarioDAO.obtenerPorId(id_usuario);
     if (!usuario) {
-        const error = new Error('Usuario no encontrado');
-        error.status = 404;
-        throw error;
+        throw new AppError('Usuario no encontrado', 404);
     }
     delete usuario.contrasena_hash;
     return usuario;
@@ -75,17 +66,13 @@ const obtenerPorSucursal = async(id_sucursal) => {
 const actualizarUsuario = async(id_usuario, campos) => {
     const existente = await UsuarioDAO.obtenerPorId(id_usuario);
     if (!existente) {
-        const error = new Error('Usuario no encontrado');
-        error.status = 404;
-        throw error;
+        throw new AppError('Usuario no encontrado', 404);
     }
 
     if (campos.correo_usuario && campos.correo_usuario !== existente.correo_usuario) {
         const conMismoCorreo = await UsuarioDAO.obtenerPorCorreo(campos.correo_usuario);
         if (conMismoCorreo) {
-            const error = new Error('El correo ya está en uso por otro usuario');
-            error.status = 409;
-            throw error;
+            throw new AppError('El correo ya está en uso por otro usuario', 409);
         }
     }
 
@@ -107,16 +94,12 @@ const actualizarUsuario = async(id_usuario, campos) => {
 const cambiarContrasena = async(id_usuario, contrasena_actual, contrasena_nueva) => {
     const usuario = await UsuarioDAO.obtenerPorId(id_usuario);
     if (!usuario) {
-        const error = new Error('Usuario no encontrado');
-        error.status = 404;
-        throw error;
+        throw new AppError('Usuario no encontrado', 404);
     }
 
     const esValida = await bcrypt.compare(contrasena_actual, usuario.contrasena_hash);
     if (!esValida) {
-        const error = new Error('La contraseña actual es incorrecta');
-        error.status = 401;
-        throw error;
+        throw new AppError('La contraseña actual es incorrecta', 401);
     }
 
     const nueva_hash = await bcrypt.hash(contrasena_nueva, SALT_ROUNDS);
@@ -128,9 +111,7 @@ const cambiarContrasena = async(id_usuario, contrasena_actual, contrasena_nueva)
 const cambiarEstado = async(id_usuario, nuevo_estado) => {
     const existente = await UsuarioDAO.obtenerPorId(id_usuario);
     if (!existente) {
-        const error = new Error('Usuario no encontrado');
-        error.status = 404;
-        throw error;
+        throw new AppError('Usuario no encontrado', 404);
     }
 
     const usuario = await UsuarioDAO.cambiarEstado(id_usuario, nuevo_estado);
@@ -141,9 +122,7 @@ const cambiarEstado = async(id_usuario, nuevo_estado) => {
 const eliminarUsuario = async(id_usuario) => {
     const eliminado = await UsuarioDAO.eliminar(id_usuario);
     if (!eliminado) {
-        const error = new Error('Usuario no encontrado');
-        error.status = 404;
-        throw error;
+        throw new AppError('Usuario no encontrado', 404);
     }
     return { mensaje: 'Usuario eliminado correctamente' };
 };

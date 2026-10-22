@@ -1,12 +1,11 @@
 const multer = require('multer');
+const AppError = require('../errors/AppError');
 
 const TAMANO_MAXIMO_BYTES = 10 * 1024 * 1024; // 10 MB
 
 const filtroPdf = (req, file, cb) => {
     if (file.mimetype !== 'application/pdf') {
-        const error = new Error('El archivo debe ser un PDF');
-        error.status = 400;
-        return cb(error);
+        return cb(new AppError('El archivo debe ser un PDF', 400));
     }
     cb(null, true);
 };
@@ -24,10 +23,14 @@ const subirPdfResultado = (req, res, next) => {
         if (!error) return next();
 
         if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ mensaje: 'El archivo supera el tamaño máximo permitido (10 MB)' });
+            return next(new AppError('El archivo supera el tamaño máximo permitido (10 MB)', 400));
         }
 
-        return res.status(error.status || 400).json({ mensaje: error.message });
+        if (error instanceof multer.MulterError) {
+            return next(new AppError('No se pudo procesar el archivo adjunto.', 400));
+        }
+
+        return next(error);
     });
 };
 

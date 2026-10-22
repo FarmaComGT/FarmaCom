@@ -1,70 +1,39 @@
-const { validationResult } = require('express-validator');
 const PacienteService = require('../services/PacienteService');
+const asyncHandler = require('../middlewares/asyncHandler');
 
-const responderErrores = (req, res) => {
-  const errores = validationResult(req);
-  if (errores.isEmpty()) return false;
-  res.status(400).json({ errores: errores.array() });
-  return true;
-};
+const registrar = asyncHandler(async (req, res) => {
+  const paciente = await PacienteService.registrarPaciente(req.body, req.usuario);
+  return res.status(201).json(paciente);
+});
 
-const registrar = async (req, res) => {
-  if (responderErrores(req, res)) return;
-  try {
-    const paciente = await PacienteService.registrarPaciente(req.body, req.usuario);
-    res.status(201).json(paciente);
-  } catch (error) {
-    res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const buscar = asyncHandler(async (req, res) => {
+  const resultado = await PacienteService.buscarPacientes({
+    id_laboratorio: req.query.id_laboratorio,
+    busqueda: req.query.busqueda,
+    estado: req.query.estado,
+    pagina: req.query.pagina,
+    limite: req.query.limite,
+  }, req.usuario);
+  return res.status(200).json(resultado);
+});
 
-const buscar = async (req, res) => {
-  if (responderErrores(req, res)) return;
-  try {
-    const resultado = await PacienteService.buscarPacientes({
-      id_laboratorio: req.query.id_laboratorio,
-      busqueda: req.query.busqueda,
-      estado: req.query.estado,
-      pagina: req.query.pagina,
-      limite: req.query.limite,
-    }, req.usuario);
-    res.status(200).json(resultado);
-  } catch (error) {
-    res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const obtenerPorId = asyncHandler(async (req, res) => {
+  const paciente = await PacienteService.obtenerPorId(Number(req.params.id), req.usuario);
+  return res.status(200).json(paciente);
+});
 
-const obtenerPorId = async (req, res) => {
-  try {
-    const paciente = await PacienteService.obtenerPorId(Number(req.params.id), req.usuario);
-    res.status(200).json(paciente);
-  } catch (error) {
-    res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const actualizar = asyncHandler(async (req, res) => {
+  const paciente = await PacienteService.actualizarPaciente(Number(req.params.id), req.body, req.usuario);
+  return res.status(200).json(paciente);
+});
 
-const actualizar = async (req, res) => {
-  if (responderErrores(req, res)) return;
-  try {
-    const paciente = await PacienteService.actualizarPaciente(Number(req.params.id), req.body, req.usuario);
-    res.status(200).json(paciente);
-  } catch (error) {
-    res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const anular = async (req, res) => {
-  if (responderErrores(req, res)) return;
-  try {
-    const paciente = await PacienteService.anularPaciente(
-      Number(req.params.id),
-      req.body.motivo_anulacion,
-      req.usuario,
-    );
-    res.status(200).json(paciente);
-  } catch (error) {
-    res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const anular = asyncHandler(async (req, res) => {
+  const paciente = await PacienteService.anularPaciente(
+    Number(req.params.id),
+    req.body.motivo_anulacion,
+    req.usuario,
+  );
+  return res.status(200).json(paciente);
+});
 
 module.exports = { registrar, buscar, obtenerPorId, actualizar, anular };

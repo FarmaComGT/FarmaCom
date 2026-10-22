@@ -1,14 +1,13 @@
 const { isDeepStrictEqual } = require('util');
 const BitacoraLaboratorioDAO = require('../daos/BitacoraLaboratorioDAO');
+const AppError = require('../errors/AppError');
 
 // Recibe filas persistidas para registrar los valores efectivos, no el body HTTP.
 const registrarCambio = async ({
   id_usuario, entidad, id_entidad, accion, anterior = null, nuevo = null,
 }, client) => {
   if (!Number.isInteger(id_usuario) || id_usuario <= 0) {
-    const error = new Error('Se requiere el usuario responsable del cambio');
-    error.status = 401;
-    throw error;
+    throw new AppError('Se requiere el usuario responsable del cambio', 401);
   }
   if (!client || typeof client.query !== 'function') {
     throw new Error('La bitacora requiere una transaccion');
@@ -37,9 +36,7 @@ const registrarCambio = async ({
 const obtenerPorExpediente = async (id_expediente) => {
   const expediente = await BitacoraLaboratorioDAO.obtenerExpedientePorId(id_expediente);
   if (!expediente) {
-    const error = new Error('Expediente no encontrado');
-    error.status = 404;
-    throw error;
+    throw new AppError('Expediente no encontrado', 404);
   }
 
   return BitacoraLaboratorioDAO.obtenerPorExpediente(id_expediente);

@@ -1,13 +1,12 @@
 const LoteDAO = require('../daos/LoteDAO');
 const ProductoDAO = require('../daos/ProductoDAO');
 const HistorialPrecioLoteDAO = require('../daos/HistorialPrecioLoteDAO');
+const AppError = require('../errors/AppError');
 
 //  Helpers 
 
 const lanzarError = (mensaje, status) => {
-  const err = new Error(mensaje);
-  err.status = status;
-  throw err;
+  throw new AppError(mensaje, status);
 };
 
 //  Lote 

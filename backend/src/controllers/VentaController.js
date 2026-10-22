@@ -1,104 +1,54 @@
-const { validationResult } = require('express-validator');
 const VentaService = require('../services/VentaService');
+const asyncHandler = require('../middlewares/asyncHandler');
 
-const responderErrores = (req, res) => {
-  const errores = validationResult(req);
-  if (errores.isEmpty()) return false;
+const crear = asyncHandler(async (req, res) => {
+  const venta = await VentaService.crearVenta(req.body, req.usuario);
+  return res.status(201).json(venta);
+});
 
-  res.status(400).json({ errores: errores.array() });
-  return true;
-};
+const crearPagoPOS = asyncHandler(async (req, res) => {
+  const pago = await VentaService.crearPagoPOS(req.body, req.usuario);
+  return res.status(201).json(pago);
+});
 
-const crear = async (req, res) => {
-  if (responderErrores(req, res)) return;
+const obtenerEstadoPagoPOS = asyncHandler(async (req, res) => {
+  const pago = await VentaService.obtenerEstadoPagoPOS(
+    req.params.externalId,
+    req.usuario,
+  );
+  return res.status(200).json(pago);
+});
 
-  try {
-    const venta = await VentaService.crearVenta(req.body, req.usuario);
-    return res.status(201).json(venta);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const obtenerTodas = asyncHandler(async (req, res) => {
+  const ventas = await VentaService.obtenerTodas(req.query, req.usuario);
+  return res.status(200).json(ventas);
+});
 
-const crearPagoPOS = async (req, res) => {
-  if (responderErrores(req, res)) return;
+const obtenerPorId = asyncHandler(async (req, res) => {
+  const venta = await VentaService.obtenerPorId(
+    Number(req.params.id),
+    req.usuario,
+  );
+  return res.status(200).json(venta);
+});
 
-  try {
-    const pago = await VentaService.crearPagoPOS(req.body, req.usuario);
-    return res.status(201).json(pago);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const asociarCliente = asyncHandler(async (req, res) => {
+  const venta = await VentaService.asociarCliente(
+    Number(req.params.id),
+    req.body.id_cliente,
+    req.usuario,
+  );
+  return res.status(200).json(venta);
+});
 
-const obtenerEstadoPagoPOS = async (req, res) => {
-  if (responderErrores(req, res)) return;
-
-  try {
-    const pago = await VentaService.obtenerEstadoPagoPOS(
-      req.params.externalId,
-      req.usuario,
-    );
-    return res.status(200).json(pago);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const obtenerTodas = async (req, res) => {
-  if (responderErrores(req, res)) return;
-
-  try {
-    const ventas = await VentaService.obtenerTodas(req.query, req.usuario);
-    return res.status(200).json(ventas);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const obtenerPorId = async (req, res) => {
-  if (responderErrores(req, res)) return;
-
-  try {
-    const venta = await VentaService.obtenerPorId(
-      Number(req.params.id),
-      req.usuario,
-    );
-    return res.status(200).json(venta);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const asociarCliente = async (req, res) => {
-  if (responderErrores(req, res)) return;
-
-  try {
-    const venta = await VentaService.asociarCliente(
-      Number(req.params.id),
-      req.body.id_cliente,
-      req.usuario,
-    );
-    return res.status(200).json(venta);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
-
-const anular = async (req, res) => {
-  if (responderErrores(req, res)) return;
-
-  try {
-    const venta = await VentaService.anularVenta(
-      Number(req.params.id),
-      req.body.motivo_anulacion,
-      req.usuario,
-    );
-    return res.status(200).json(venta);
-  } catch (error) {
-    return res.status(error.status || 500).json({ mensaje: error.message });
-  }
-};
+const anular = asyncHandler(async (req, res) => {
+  const venta = await VentaService.anularVenta(
+    Number(req.params.id),
+    req.body.motivo_anulacion,
+    req.usuario,
+  );
+  return res.status(200).json(venta);
+});
 
 module.exports = {
   crear,
