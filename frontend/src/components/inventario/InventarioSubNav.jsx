@@ -1,11 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Package, WarehouseIcon, Tag, Truck, Building2 } from 'lucide-react';
+import { WarehouseIcon, Tag, Truck, Building2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const tabs = [
-  { label: 'Productos',   path: '/inventario/productos', icon: Package },
-  { label: 'Inventario',  path: '/inventario/stock',     icon: WarehouseIcon },
+  { label: 'Inventario',  path: '/inventario',            icon: WarehouseIcon },
   { label: 'Categorías',  path: '/inventario/categorias', icon: Tag },
   { label: 'Proveedores', path: '/inventario/proveedores', icon: Truck },
   { label: 'Casas',       path: '/inventario/casas',      icon: Building2 },
@@ -23,6 +22,7 @@ export default function InventarioSubNav() {
         <NavLink
           key={path}
           to={path}
+          end={path === '/inventario'}
           className={({ isActive }) =>
             `flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-headline font-bold transition-all duration-200 ${
               isActive

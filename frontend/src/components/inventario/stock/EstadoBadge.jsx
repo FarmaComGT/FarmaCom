@@ -1,6 +1,11 @@
 import React from 'react';
 
 const ESTADOS = {
+  sin_lotes: {
+    label: 'Sin lotes',
+    clase: 'border-slate-200 bg-slate-100 text-slate-600',
+    punto: 'bg-slate-400',
+  },
   vencido: {
     label: 'Vencido',
     clase: 'bg-error-container text-on-error-container border-error/20',
