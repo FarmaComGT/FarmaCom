@@ -1,16 +1,11 @@
-const fs = require('fs');
-const path = require('path');
 const request = require('supertest');
 const app = require('../../src/app');
 const pool = require('../../src/database/db');
+const { prepararBaseIntegracion } = require('./preparar-base');
 
 const CONTRASENA_PRUEBA = '123456';
 const DPI_PRUEBA = '9999999999999';
-
-const leerSql = (rutaRelativa) => fs.readFileSync(
-  path.join(__dirname, rutaRelativa),
-  'utf8',
-);
+const DPI_ROLLBACK = '9999999999998';
 
 const iniciarSesion = async (correo) => {
   const respuesta = await request(app)
@@ -24,22 +19,7 @@ const iniciarSesion = async (correo) => {
 };
 
 beforeAll(async () => {
-  const nombreBase = process.env.POSTGRES_DB;
-  if (!nombreBase || !nombreBase.toLowerCase().includes('integration')) {
-    throw new Error('Las pruebas solo pueden ejecutarse sobre una base cuyo nombre incluya "integration".');
-  }
-
-  const esquema = fs.readFileSync(
-    path.join(__dirname, '../../src/database/schema.sql'),
-    'utf8',
-  );
-  await pool.query(`
-    CREATE EXTENSION IF NOT EXISTS pgcrypto;
-    CREATE EXTENSION IF NOT EXISTS unaccent;
-    CREATE EXTENSION IF NOT EXISTS pg_trgm;
-  `);
-  await pool.query(esquema);
-  await pool.query(leerSql('fixtures.sql'));
+  await prepararBaseIntegracion(pool);
 });
 
 afterAll(async () => {
@@ -54,6 +34,22 @@ describe('Integración API–PostgreSQL', () => {
       correo_usuario: 'dueno@farma.com',
       rol: 'dueno',
     });
+  });
+
+  test('rechaza una contraseña incorrecta sin revelar si el usuario existe', async () => {
+    const credenciales = { contrasena: 'contrasena-incorrecta' };
+
+    const usuarioExistente = await request(app)
+      .post('/api/auth/login')
+      .send({ ...credenciales, correo_usuario: 'dueno@farma.com' })
+      .expect(401);
+    const usuarioInexistente = await request(app)
+      .post('/api/auth/login')
+      .send({ ...credenciales, correo_usuario: 'nadie@farma.com' })
+      .expect(401);
+
+    expect(usuarioExistente.body).toEqual(usuarioInexistente.body);
+    expect(usuarioExistente.body.mensaje).toBe('Credenciales inválidas');
   });
 
   test('crea paciente y expediente en una sola operación transaccional', async () => {
@@ -89,6 +85,61 @@ describe('Integración API–PostgreSQL', () => {
       [DPI_PRUEBA],
     );
     expect(persistencia.rows).toHaveLength(1);
+  });
+
+  test('revierte el paciente si falla la creación de su expediente', async () => {
+    const { respuesta: sesion, cookie } = await iniciarSesion('laboratorista@farma.com');
+    const idLaboratorio = sesion.body.usuario.id_laboratorio;
+    const errorEsperado = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await pool.query(`
+      CREATE OR REPLACE FUNCTION integration_fallar_expediente()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM paciente
+          WHERE id_paciente = NEW.id_paciente
+            AND dpi = '${DPI_ROLLBACK}'
+        ) THEN
+          RAISE EXCEPTION 'Fallo controlado para comprobar el rollback';
+        END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+
+      CREATE TRIGGER integration_fallar_expediente_trigger
+      BEFORE INSERT ON expediente_laboratorio
+      FOR EACH ROW EXECUTE FUNCTION integration_fallar_expediente();
+    `);
+
+    try {
+      await request(app)
+        .post('/api/pacientes')
+        .set('Cookie', cookie)
+        .send({
+          id_laboratorio: idLaboratorio,
+          nombre_paciente: 'Paciente Rollback Integración',
+          dpi: DPI_ROLLBACK,
+          edad_manual: 40,
+          sexo: 'Otro',
+        })
+        .expect(500);
+
+      const pacienteParcial = await pool.query(
+        'SELECT id_paciente FROM paciente WHERE dpi = $1',
+        [DPI_ROLLBACK],
+      );
+      expect(pacienteParcial.rows).toHaveLength(0);
+      expect(errorEsperado).toHaveBeenCalled();
+    } finally {
+      errorEsperado.mockRestore();
+      await pool.query(`
+        DROP TRIGGER IF EXISTS integration_fallar_expediente_trigger
+          ON expediente_laboratorio;
+        DROP FUNCTION IF EXISTS integration_fallar_expediente();
+      `);
+    }
   });
 
   test('consulta por API el paciente y el expediente persistidos', async () => {
@@ -163,6 +214,32 @@ describe('Integración API–PostgreSQL', () => {
       fecha_vencimiento: null,
       precio_compra: '8.75',
     });
+
+    const persistencia = await pool.query(
+      `SELECT p.codigo, l.numero_lote, l.stock_actual, l.precio_compra::TEXT
+       FROM producto p
+       JOIN lote l ON l.id_producto = p.id_producto
+       WHERE p.id_producto = $1 AND l.id_lote = $2`,
+      [producto.body.id_producto, lote.body.id_lote],
+    );
+    expect(persistencia.rows).toEqual([{
+      codigo,
+      numero_lote: `LT-${sufijo}`,
+      stock_actual: 12,
+      precio_compra: '8.75',
+    }]);
+
+    const inventario = await request(app)
+      .get(`/api/sucursales/${ids.id_sucursal}/inventario`)
+      .set('Cookie', cookie)
+      .expect(200);
+
+    expect(inventario.body).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id_producto: producto.body.id_producto,
+        stock_total: '12',
+      }),
+    ]));
 
     const autocompletado = await request(app)
       .get('/api/productos/autocompletar')
