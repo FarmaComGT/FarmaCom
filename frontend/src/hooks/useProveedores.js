@@ -40,8 +40,17 @@ const useProveedores = () => {
   };
 
   const eliminar = async (id) => {
-    await api.delete(`/proveedores/${id}`);
-    setProveedores((prev) => prev.filter((p) => p.id_proveedor !== id));
+    const { data = {} } = await api.delete(`/proveedores/${id}`);
+    if (data.accion === 'desactivado') {
+      setProveedores((prev) => prev.map((proveedor) => (
+        proveedor.id_proveedor === id
+          ? { ...proveedor, ...(data.proveedor || {}), activo: false }
+          : proveedor
+      )));
+    } else {
+      setProveedores((prev) => prev.filter((proveedor) => proveedor.id_proveedor !== id));
+    }
+    return data;
   };
 
   return { proveedores, cargando, error, refrescar: obtenerTodos, crear, actualizar, cambiarEstado, eliminar };

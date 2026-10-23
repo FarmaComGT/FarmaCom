@@ -22,6 +22,7 @@ export default function Casas() {
   const [casaAEliminar, setCasaAEliminar] = useState(null);
   const [procesandoId, setProcesandoId] = useState(null);
   const [errorAccion, setErrorAccion] = useState(null);
+  const [mensajeAccion, setMensajeAccion] = useState(null);
   const [casaContactos, setCasaContactos] = useState(null);
 
   const casasFiltradas = useMemo(() => {
@@ -80,6 +81,7 @@ export default function Casas() {
   const manejarCambiarEstado = async (casa) => {
     try {
       setErrorAccion(null);
+      setMensajeAccion(null);
       setProcesandoId(casa.id_casa);
       await cambiarEstado(casa.id_casa, !casa.activo);
     } catch (err) {
@@ -93,8 +95,10 @@ export default function Casas() {
     if (!casaAEliminar) return;
     try {
       setErrorAccion(null);
+      setMensajeAccion(null);
       setProcesandoId(casaAEliminar.id_casa);
-      await eliminar(casaAEliminar.id_casa);
+      const resultado = await eliminar(casaAEliminar.id_casa);
+      setMensajeAccion(resultado?.mensaje || 'Casa farmacéutica procesada correctamente.');
       setCasaAEliminar(null);
     } catch (err) {
       setErrorAccion(err.response?.data?.mensaje || 'No se pudo eliminar la casa farmacéutica.');
@@ -116,6 +120,12 @@ export default function Casas() {
       {(error || errorAccion) && (
         <div className="bg-error-container/40 border border-error/20 rounded-xl px-4 py-3 text-sm text-on-error-container font-medium">
           {error || errorAccion}
+        </div>
+      )}
+
+      {mensajeAccion && (
+        <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+          {mensajeAccion}
         </div>
       )}
 

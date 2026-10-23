@@ -107,9 +107,9 @@ describe('pantalla de casas farmacéuticas', () => {
     renderizar();
 
     await user.click(screen.getByTitle('Eliminar'));
-    expect(screen.getByText('Confirmar eliminación')).toBeInTheDocument();
+    expect(screen.getByText('Eliminar o desactivar')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
 
     await waitFor(() => expect(acciones.eliminar).toHaveBeenCalledWith(1));
   });
@@ -121,7 +121,7 @@ describe('pantalla de casas farmacéuticas', () => {
     await user.click(screen.getByTitle('Eliminar'));
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
 
-    expect(screen.queryByText('Confirmar eliminación')).not.toBeInTheDocument();
+    expect(screen.queryByText('Eliminar o desactivar')).not.toBeInTheDocument();
     expect(acciones.eliminar).not.toHaveBeenCalled();
   });
 });

@@ -1,8 +1,12 @@
 jest.mock('../daos/ProductoDAO');
 jest.mock('../daos/PresentacionDAO');
+jest.mock('../daos/CasaFarmaceuticaDAO');
+jest.mock('../daos/ProveedorDAO');
 
 const ProductoDAO = require('../daos/ProductoDAO');
 const PresentacionDAO = require('../daos/PresentacionDAO');
+const CasaFarmaceuticaDAO = require('../daos/CasaFarmaceuticaDAO');
+const ProveedorDAO = require('../daos/ProveedorDAO');
 const ProductoService = require('./ProductoService');
 
 const datosBase = {
@@ -16,6 +20,12 @@ const datosBase = {
 };
 
 describe('ProductoService', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+    CasaFarmaceuticaDAO.obtenerPorId.mockResolvedValue({ id_casa: 1, activo: true });
+    ProveedorDAO.obtenerPorId.mockResolvedValue({ id_proveedor: 1, activo: true });
+  });
+
   describe('crearProducto', () => {
     it('crea el producto cuando todo es válido', async () => {
       PresentacionDAO.obtenerPorId.mockResolvedValue({ id_presentacion: 1, nombre: 'Caja' });
@@ -89,6 +99,30 @@ describe('ProductoService', () => {
       ProductoDAO.obtenerPorIdentidad.mockResolvedValue({ nombre_comercial: 'Tylenol' });
 
       await expect(ProductoService.crearProducto(datosBase)).rejects.toMatchObject({ status: 409 });
+      expect(ProductoDAO.crear).not.toHaveBeenCalled();
+    });
+
+    it('rechaza una casa farmacéutica inactiva', async () => {
+      PresentacionDAO.obtenerPorId.mockResolvedValue({ id_presentacion: 1, nombre: 'Caja' });
+      CasaFarmaceuticaDAO.obtenerPorId.mockResolvedValue({ id_casa: 1, activo: false });
+
+      await expect(ProductoService.crearProducto(datosBase)).rejects.toMatchObject({
+        status: 409,
+        message: 'No se puede asignar una casa farmacéutica inactiva',
+      });
+      expect(ProductoDAO.crear).not.toHaveBeenCalled();
+    });
+
+    it('rechaza un proveedor inactivo', async () => {
+      PresentacionDAO.obtenerPorId.mockResolvedValue({ id_presentacion: 1, nombre: 'Caja' });
+      ProveedorDAO.obtenerPorId.mockResolvedValue({ id_proveedor: 2, activo: false });
+
+      await expect(
+        ProductoService.crearProducto({ ...datosBase, id_proveedor: 2 }),
+      ).rejects.toMatchObject({
+        status: 409,
+        message: 'No se puede asignar un proveedor inactivo',
+      });
       expect(ProductoDAO.crear).not.toHaveBeenCalled();
     });
   });

@@ -4,12 +4,21 @@ import ProveedorActionBar from '../../components/inventario/proveedores/Proveedo
 import ProveedorTable from '../../components/inventario/proveedores/ProveedorTable.jsx';
 import ProveedorFormModal from '../../components/inventario/proveedores/ProveedorFormModal.jsx';
 import ProveedorContactosModal from '../../components/inventario/proveedores/ProveedorContactosModal.jsx';
+import ProveedorDeleteModal from '../../components/inventario/proveedores/ProveedorDeleteModal.jsx';
 import useProveedores from '../../hooks/useProveedores';
 
 const formularioInicial = { nombre: '' };
 
 export default function Proveedores() {
-  const { proveedores, cargando, error, crear, actualizar, cambiarEstado } = useProveedores();
+  const {
+    proveedores,
+    cargando,
+    error,
+    crear,
+    actualizar,
+    cambiarEstado,
+    eliminar,
+  } = useProveedores();
 
   const [busqueda, setBusqueda] = useState('');
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -21,6 +30,8 @@ export default function Proveedores() {
   const [proveedorContactos, setProveedorContactos] = useState(null);
   const [procesandoId, setProcesandoId] = useState(null);
   const [errorAccion, setErrorAccion] = useState(null);
+  const [mensajeAccion, setMensajeAccion] = useState(null);
+  const [proveedorAEliminar, setProveedorAEliminar] = useState(null);
 
   const proveedoresFiltrados = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
@@ -78,10 +89,27 @@ export default function Proveedores() {
   const manejarCambiarEstado = async (proveedor) => {
     try {
       setErrorAccion(null);
+      setMensajeAccion(null);
       setProcesandoId(proveedor.id_proveedor);
       await cambiarEstado(proveedor.id_proveedor, !proveedor.activo);
     } catch (err) {
       setErrorAccion(err.response?.data?.mensaje || 'No se pudo cambiar el estado.');
+    } finally {
+      setProcesandoId(null);
+    }
+  };
+
+  const confirmarEliminar = async () => {
+    if (!proveedorAEliminar) return;
+    try {
+      setErrorAccion(null);
+      setMensajeAccion(null);
+      setProcesandoId(proveedorAEliminar.id_proveedor);
+      const resultado = await eliminar(proveedorAEliminar.id_proveedor);
+      setMensajeAccion(resultado?.mensaje || 'Proveedor procesado correctamente.');
+      setProveedorAEliminar(null);
+    } catch (err) {
+      setErrorAccion(err.response?.data?.mensaje || 'No se pudo procesar el proveedor.');
     } finally {
       setProcesandoId(null);
     }
@@ -103,12 +131,19 @@ export default function Proveedores() {
         </div>
       )}
 
+      {mensajeAccion && (
+        <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+          {mensajeAccion}
+        </div>
+      )}
+
       <ProveedorTable
         cargando={cargando}
         proveedores={proveedoresFiltrados}
         onEditar={abrirModalEditar}
         onCambiarEstado={manejarCambiarEstado}
         onContactos={setProveedorContactos}
+        onEliminar={setProveedorAEliminar}
         procesandoId={procesandoId}
       />
 
@@ -127,6 +162,14 @@ export default function Proveedores() {
         isOpen={Boolean(proveedorContactos)}
         proveedor={proveedorContactos}
         onClose={() => setProveedorContactos(null)}
+      />
+
+      <ProveedorDeleteModal
+        isOpen={Boolean(proveedorAEliminar)}
+        proveedor={proveedorAEliminar}
+        eliminando={procesandoId === proveedorAEliminar?.id_proveedor}
+        onClose={() => { if (!procesandoId) setProveedorAEliminar(null); }}
+        onConfirm={confirmarEliminar}
       />
     </div>
   );
