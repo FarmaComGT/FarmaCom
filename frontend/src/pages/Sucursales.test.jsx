@@ -77,7 +77,8 @@ describe('pantalla de sucursales', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva sucursal' }));
-    await user.type(screen.getByPlaceholderText('Ej: Farmacia Central Norte'), 'a'.repeat(101));
+    await user.click(screen.getByPlaceholderText('Ej: Farmacia Central Norte'));
+    await user.paste('a'.repeat(101));
     await user.selectOptions(screen.getByRole('combobox'), '2');
     await user.type(screen.getByPlaceholderText('Ej: Calle 10 #45-20'), 'Zona 17');
     await user.click(screen.getByRole('button', { name: 'Crear sucursal' }));
@@ -93,7 +94,8 @@ describe('pantalla de sucursales', () => {
     await user.click(screen.getByRole('button', { name: 'Nueva sucursal' }));
     await user.type(screen.getByPlaceholderText('Ej: Farmacia Central Norte'), 'Norte');
     await user.selectOptions(screen.getByRole('combobox'), '2');
-    await user.type(screen.getByPlaceholderText('Ej: Calle 10 #45-20'), 'a'.repeat(256));
+    await user.click(screen.getByPlaceholderText('Ej: Calle 10 #45-20'));
+    await user.paste('a'.repeat(256));
     await user.click(screen.getByRole('button', { name: 'Crear sucursal' }));
 
     expect(screen.getByText('La dirección no puede superar los 255 caracteres.')).toBeInTheDocument();
