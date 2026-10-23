@@ -264,7 +264,7 @@ export default function ClienteContactosModal({ cliente, onClose }) {
             </ul>
             <AgregarContacto
               etiqueta="Nuevo teléfono"
-              placeholder="Ej: 5555-1234 o +502 5555-1234"
+              placeholder="Ej: 5555-1234"
               type="tel"
               onAgregar={agregarTelefono}
             />
