@@ -29,6 +29,7 @@ describe('InventarioDAO', () => {
       );
       expect(consulta).toContain('END AS estado_stock');
       expect(consulta).toContain('END AS estado_vencimiento');
+      expect(consulta).not.toContain('p.precio_compra');
       expect(pool.query).toHaveBeenCalledWith(expect.any(String), [3]);
     });
 

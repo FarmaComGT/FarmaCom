@@ -27,7 +27,6 @@ const payloadBase = {
   id_presentacion: 1,
   id_categoria: 1,
   id_casa: 1,
-  precio_compra: 25,
   meses_alerta_vencimiento: 12,
 };
 

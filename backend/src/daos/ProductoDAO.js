@@ -7,14 +7,14 @@ const UMBRAL_TRIGRAMAS_BUSQUEDA = '0.1';
 
 class ProductoDAO {
 
-  async crear({ codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion, id_categoria, id_casa, id_proveedor, precio_compra, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo }) {
+  async crear({ codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion, id_categoria, id_casa, id_proveedor, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo }) {
     const query = `
       INSERT INTO producto (
         codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion,
         id_categoria, id_casa, id_proveedor,
-        precio_compra, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo
+        stock_minimo, meses_alerta_vencimiento, aplica_mayoreo
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *
     `;
     const valores = [
@@ -27,7 +27,6 @@ class ProductoDAO {
       id_categoria,
       id_casa,
       id_proveedor                 ?? null,
-      precio_compra,
       stock_minimo                 ?? 5,
       meses_alerta_vencimiento,
       aplica_mayoreo               ?? false,
@@ -117,7 +116,10 @@ class ProductoDAO {
               AND l.id_sucursal = $2
               AND l.stock_actual > 0
               AND l.precio_venta > 0
-              AND l.fecha_vencimiento >= CURRENT_DATE
+              AND (
+                l.fecha_vencimiento IS NULL
+                OR l.fecha_vencimiento >= CURRENT_DATE
+              )
           )
       ),
       productos_limitados AS (
@@ -160,13 +162,16 @@ class ProductoDAO {
        AND lote_pos.id_sucursal = $2
        AND lote_pos.stock_actual > 0
        AND lote_pos.precio_venta > 0
-       AND lote_pos.fecha_vencimiento >= CURRENT_DATE
+       AND (
+         lote_pos.fecha_vencimiento IS NULL
+         OR lote_pos.fecha_vencimiento >= CURRENT_DATE
+       )
       ORDER BY
         p.prioridad,
         p.relevancia DESC,
         p.nombre_comercial ASC,
         p.id_producto ASC,
-        lote_pos.fecha_vencimiento ASC,
+        lote_pos.fecha_vencimiento ASC NULLS LAST,
         lote_pos.id_lote ASC
     `;
     const { rows } = await pool.query(query, [
@@ -223,7 +228,7 @@ class ProductoDAO {
     const {
       codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion,
       id_categoria, id_casa, id_proveedor,
-      precio_compra, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo,
+      stock_minimo, meses_alerta_vencimiento, aplica_mayoreo,
     } = campos;
     const actualizaConcentracion = Object.prototype.hasOwnProperty.call(campos, 'concentracion');
 
@@ -232,17 +237,16 @@ class ProductoDAO {
         codigo                   = COALESCE($1,  codigo),
         nombre_comercial         = COALESCE($2,  nombre_comercial),
         nombre_generico          = COALESCE($3,  nombre_generico),
-        concentracion            = CASE WHEN $14 THEN $4 ELSE concentracion END,
+        concentracion            = CASE WHEN $13 THEN $4 ELSE concentracion END,
         id_presentacion          = COALESCE($5,  id_presentacion),
         descripcion              = COALESCE($6,  descripcion),
         id_categoria             = COALESCE($7,  id_categoria),
         id_casa                  = COALESCE($8,  id_casa),
         id_proveedor             = COALESCE($9,  id_proveedor),
-        precio_compra            = COALESCE($10, precio_compra),
-        stock_minimo             = COALESCE($11, stock_minimo),
-        meses_alerta_vencimiento = COALESCE($12, meses_alerta_vencimiento),
-        aplica_mayoreo           = COALESCE($13, aplica_mayoreo)
-      WHERE id_producto = $15
+        stock_minimo             = COALESCE($10, stock_minimo),
+        meses_alerta_vencimiento = COALESCE($11, meses_alerta_vencimiento),
+        aplica_mayoreo           = COALESCE($12, aplica_mayoreo)
+      WHERE id_producto = $14
       RETURNING *
     `;
     const valores = [
@@ -255,7 +259,6 @@ class ProductoDAO {
       id_categoria             ?? null,
       id_casa                  ?? null,
       id_proveedor             ?? null,
-      precio_compra            ?? null,
       stock_minimo             ?? null,
       meses_alerta_vencimiento ?? null,
       aplica_mayoreo           ?? null,

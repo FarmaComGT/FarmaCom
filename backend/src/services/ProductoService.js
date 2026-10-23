@@ -28,12 +28,11 @@ const contieneCaracteresBuscables = (valor) => (
 const crearProducto = async (datos) => {
   const {
     codigo, nombre_generico, concentracion, id_presentacion,
-    precio_compra, meses_alerta_vencimiento,
+    meses_alerta_vencimiento,
   } = datos;
 
   if (!codigo || codigo.trim() === '')                   lanzarError('El código es requerido', 400);
   if (!nombre_generico || nombre_generico.trim() === '')  lanzarError('El nombre genérico es requerido', 400);
-  if (precio_compra < 0)                                  lanzarError('El precio de compra no puede ser negativo', 400);
   if (meses_alerta_vencimiento <= 0)                      lanzarError('Los meses de alerta deben ser mayores a 0', 400);
 
   const presentacion = await PresentacionDAO.obtenerPorId(id_presentacion);
@@ -103,10 +102,6 @@ const actualizarProducto = async (id_producto, campos) => {
   if (campos.id_presentacion !== undefined) {
     const presentacion = await PresentacionDAO.obtenerPorId(campos.id_presentacion);
     if (!presentacion) lanzarError('La presentación seleccionada no existe', 400);
-  }
-
-  if (campos.precio_compra !== undefined && campos.precio_compra < 0) {
-    lanzarError('El precio de compra no puede ser negativo', 400);
   }
 
   if (campos.meses_alerta_vencimiento !== undefined && campos.meses_alerta_vencimiento <= 0) {

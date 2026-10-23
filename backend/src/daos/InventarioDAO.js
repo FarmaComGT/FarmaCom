@@ -14,7 +14,6 @@ class InventarioDAO {
           p.id_categoria,
           p.id_casa,
           p.id_proveedor,
-          p.precio_compra,
           p.stock_minimo,
           p.meses_alerta_vencimiento,
           p.aplica_mayoreo,
@@ -87,7 +86,7 @@ class InventarioDAO {
         GROUP BY
           p.id_producto, p.codigo, p.nombre_comercial, p.nombre_generico,
           p.concentracion, p.id_presentacion, p.id_categoria, p.id_casa,
-          p.id_proveedor, p.precio_compra, p.stock_minimo,
+          p.id_proveedor, p.stock_minimo,
           p.meses_alerta_vencimiento, p.aplica_mayoreo, p.activo,
           pre.nombre, c.nombre, cf.nombre, pr.nombre
       )
