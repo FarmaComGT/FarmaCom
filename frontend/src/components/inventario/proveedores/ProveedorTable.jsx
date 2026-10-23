@@ -8,6 +8,7 @@ export default function ProveedorTable({
   onEditar,
   onCambiarEstado,
   onContactos,
+  onEliminar,
   procesandoId,
 }) {
   return (
@@ -28,6 +29,7 @@ export default function ProveedorTable({
                   onEditar={onEditar}
                   onCambiarEstado={onCambiarEstado}
                   onContactos={onContactos}
+                  onEliminar={onEliminar}
                   procesando={procesandoId === p.id_proveedor}
                 />
               ))}

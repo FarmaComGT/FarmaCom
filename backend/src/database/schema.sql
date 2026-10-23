@@ -452,7 +452,7 @@ CREATE TABLE IF NOT EXISTS producto (
     CONSTRAINT fk_producto_proveedor
         FOREIGN KEY (id_proveedor)
         REFERENCES proveedor(id_proveedor)
-        ON DELETE SET NULL,
+        ON DELETE RESTRICT,
 
     CONSTRAINT fk_producto_presentacion
         FOREIGN KEY (id_presentacion)
@@ -478,6 +478,12 @@ CREATE INDEX IF NOT EXISTS idx_producto_familia
         COALESCE(LOWER(TRIM(concentracion)), ''),
         id_casa
     );
+
+CREATE INDEX IF NOT EXISTS idx_producto_casa
+    ON producto (id_casa);
+
+CREATE INDEX IF NOT EXISTS idx_producto_proveedor
+    ON producto (id_proveedor);
 
 -- Índices parciales para el catálogo vendible. Soportan coincidencias por
 -- similitud y no agregan costo a productos inactivos.
@@ -585,6 +591,9 @@ CREATE TABLE IF NOT EXISTS lote (
     CONSTRAINT uq_lote_numero_producto_sucursal
         UNIQUE (numero_lote, id_producto, id_sucursal)
 );
+
+CREATE INDEX IF NOT EXISTS idx_lote_proveedor
+    ON lote (id_proveedor);
 
 -- =========================
 -- TABLA: historial_precio_lote

@@ -4,6 +4,10 @@ const CasaFarmaceuticaDAO = require('../daos/CasaFarmaceuticaDAO');
 const CasaFarmaceuticaService = require('./CasaFarmaceuticaService');
 
 describe('CasaFarmaceuticaService', () => {
+  beforeEach(() => {
+    CasaFarmaceuticaDAO.ejecutarEnTransaccion.mockImplementation((operacion) => operacion({}));
+  });
+
   describe('crearCasa', () => {
     it('crea la casa cuando el nombre no está repetido', async () => {
       const creada = { id_casa: 1, nombre: 'Bayer' };
@@ -101,18 +105,54 @@ describe('CasaFarmaceuticaService', () => {
   });
 
   describe('eliminarCasa', () => {
-    it('elimina la casa cuando existe', async () => {
+    it('elimina físicamente una casa que nunca se ha utilizado', async () => {
+      CasaFarmaceuticaDAO.obtenerParaActualizar.mockResolvedValue({
+        id_casa: 1, nombre: 'Bayer', activo: true,
+      });
+      CasaFarmaceuticaDAO.obtenerUso.mockResolvedValue({ productos: 0, lotes: 0, sucursales: 0 });
       CasaFarmaceuticaDAO.eliminar.mockResolvedValue({ id_casa: 1 });
 
       await expect(CasaFarmaceuticaService.eliminarCasa(1)).resolves.toEqual({
+        accion: 'eliminado',
         mensaje: 'Casa farmacéutica eliminada correctamente',
+        casa: { id_casa: 1 },
+        uso: { productos: 0, lotes: 0, sucursales: 0 },
       });
     });
 
-    it('rechaza con 404 si no había nada que eliminar', async () => {
-      CasaFarmaceuticaDAO.eliminar.mockResolvedValue(null);
+    it('desactiva la casa si ya tiene productos o inventario en sucursales', async () => {
+      CasaFarmaceuticaDAO.obtenerParaActualizar.mockResolvedValue({ id_casa: 1, activo: true });
+      CasaFarmaceuticaDAO.obtenerUso.mockResolvedValue({ productos: 2, lotes: 3, sucursales: 2 });
+      CasaFarmaceuticaDAO.cambiarActivo.mockResolvedValue({ id_casa: 1, activo: false });
+
+      await expect(CasaFarmaceuticaService.eliminarCasa(1)).resolves.toMatchObject({
+        accion: 'desactivado',
+        casa: { id_casa: 1, activo: false },
+        uso: { productos: 2, lotes: 3, sucursales: 2 },
+      });
+      expect(CasaFarmaceuticaDAO.eliminar).not.toHaveBeenCalled();
+      expect(CasaFarmaceuticaDAO.cambiarActivo).toHaveBeenCalledWith(1, false, {});
+    });
+
+    it('rechaza con 404 si la casa no existe', async () => {
+      CasaFarmaceuticaDAO.obtenerParaActualizar.mockResolvedValue(null);
 
       await expect(CasaFarmaceuticaService.eliminarCasa(99)).rejects.toMatchObject({ status: 404 });
+      expect(CasaFarmaceuticaDAO.obtenerUso).not.toHaveBeenCalled();
+      expect(CasaFarmaceuticaDAO.eliminar).not.toHaveBeenCalled();
+    });
+
+    it('desactiva como respaldo si la base detecta una relación concurrente', async () => {
+      const errorFk = new Error('foreign key');
+      errorFk.code = '23503';
+      CasaFarmaceuticaDAO.ejecutarEnTransaccion.mockRejectedValue(errorFk);
+      CasaFarmaceuticaDAO.obtenerPorId.mockResolvedValue({ id_casa: 1, activo: true });
+      CasaFarmaceuticaDAO.obtenerUso.mockResolvedValue({ productos: 1, lotes: 0, sucursales: 0 });
+      CasaFarmaceuticaDAO.cambiarActivo.mockResolvedValue({ id_casa: 1, activo: false });
+
+      await expect(CasaFarmaceuticaService.eliminarCasa(1)).resolves.toMatchObject({
+        accion: 'desactivado',
+      });
     });
   });
 

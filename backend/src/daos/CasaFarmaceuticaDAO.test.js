@@ -4,6 +4,19 @@ const pool = require('../database/db');
 const CasaFarmaceuticaDAO = require('./CasaFarmaceuticaDAO');
 
 describe('CasaFarmaceuticaDAO', () => {
+  it('confirma la transacción cuando la operación termina correctamente', async () => {
+    const client = { query: jest.fn().mockResolvedValue({}), release: jest.fn() };
+    pool.connect.mockResolvedValue(client);
+
+    await expect(
+      CasaFarmaceuticaDAO.ejecutarEnTransaccion(async () => 'resultado'),
+    ).resolves.toBe('resultado');
+
+    expect(client.query).toHaveBeenNthCalledWith(1, 'BEGIN');
+    expect(client.query).toHaveBeenNthCalledWith(2, 'COMMIT');
+    expect(client.release).toHaveBeenCalledTimes(1);
+  });
+
   it('crea una casa farmacéutica', async () => {
     const fila = { id_casa: 1, nombre: 'Bayer' };
     pool.query.mockResolvedValue({ rows: [fila] });
@@ -65,6 +78,17 @@ describe('CasaFarmaceuticaDAO', () => {
 
     await expect(CasaFarmaceuticaDAO.eliminar(1)).resolves.toEqual(fila);
     expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('DELETE FROM casa_farmaceutica'), [1]);
+  });
+
+  it('resume los productos, lotes y sucursales que usan la casa', async () => {
+    const uso = { productos: 2, lotes: 4, sucursales: 2 };
+    pool.query.mockResolvedValue({ rows: [uso] });
+
+    await expect(CasaFarmaceuticaDAO.obtenerUso(1)).resolves.toEqual(uso);
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining('COUNT(DISTINCT l.id_sucursal)'),
+      [1],
+    );
   });
 
   it('obtiene los proveedores vinculados a una casa', async () => {

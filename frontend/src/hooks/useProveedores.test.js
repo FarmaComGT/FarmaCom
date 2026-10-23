@@ -70,4 +70,25 @@ describe('useProveedores', () => {
 
     expect(result.current.proveedores).toEqual([]);
   });
+
+  it('conserva y desactiva un proveedor que ya tiene historial', async () => {
+    api.get.mockResolvedValue({ data: [{ id_proveedor: 1, nombre: 'ABC', activo: true }] });
+    const { result } = renderHook(() => useProveedores());
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    api.delete.mockResolvedValue({
+      data: {
+        accion: 'desactivado',
+        proveedor: { id_proveedor: 1, nombre: 'ABC', activo: false },
+      },
+    });
+
+    await act(async () => {
+      await result.current.eliminar(1);
+    });
+
+    expect(result.current.proveedores).toEqual([
+      { id_proveedor: 1, nombre: 'ABC', activo: false },
+    ]);
+  });
 });
