@@ -57,6 +57,9 @@ describe('VentaDAO', () => {
       [[1, 2]],
     );
     expect(client.query.mock.calls[0][0]).toContain('l.precio_compra');
+    expect(client.query.mock.calls[0][0]).toContain(
+      'COALESCE(l.fecha_vencimiento < CURRENT_DATE, FALSE) AS vencido',
+    );
   });
 
   it('guarda el costo unitario histórico en el detalle de venta', async () => {

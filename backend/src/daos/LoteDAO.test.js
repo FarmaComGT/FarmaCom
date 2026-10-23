@@ -64,9 +64,23 @@ describe('LoteDAO', () => {
 
       expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
         2, null, null, 'LT-02', null, null, null,
-        null, null, null, null, null, true, 7,
+        null, null, null, null, null, true, false, 7,
       ]);
       expect(resultado).toEqual(fila);
+    });
+
+    it('permite establecer la fecha de vencimiento en null', async () => {
+      pool.query.mockResolvedValue({ rows: [{ id_lote: 7, fecha_vencimiento: null }] });
+
+      await LoteDAO.actualizar(7, { fecha_vencimiento: null });
+
+      const [consulta, valores] = pool.query.mock.calls[0];
+      expect(consulta).toContain(
+        'fecha_vencimiento  = CASE WHEN $14 THEN $5 ELSE fecha_vencimiento END',
+      );
+      expect(valores[4]).toBeNull();
+      expect(valores[13]).toBe(true);
+      expect(valores[14]).toBe(7);
     });
   });
 
