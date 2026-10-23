@@ -95,6 +95,10 @@ paths:
     $ref: './paths/clientes.yaml#/coleccion'
   /api/clientes/{id}:
     $ref: './paths/clientes.yaml#/porId'
+  /api/clientes/{id}/telefonos:
+    $ref: './paths/clientes.yaml#/telefonos'
+  /api/clientes/{id}/correos:
+    $ref: './paths/clientes.yaml#/correos'
   /api/clientes/{id}/historial-compras:
     $ref: './paths/clientes.yaml#/historialCompras'
   /api/categorias:
