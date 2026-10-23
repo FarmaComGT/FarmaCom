@@ -40,7 +40,6 @@ const validarCreacionProducto = [
   body('id_casa').isInt({ min: 1 }).withMessage('id_casa debe ser un entero positivo').toInt(),
   body('id_proveedor').optional({ nullable: true })
     .isInt({ min: 1 }).withMessage('id_proveedor debe ser un entero positivo').toInt(),
-  body('precio_compra').isFloat({ min: 0 }).withMessage('El precio de compra debe ser mayor o igual a 0').toFloat(),
   body('stock_minimo').optional()
     .isInt({ min: 0 }).withMessage('El stock mínimo debe ser mayor o igual a 0').toInt(),
   body('meses_alerta_vencimiento')
@@ -66,8 +65,6 @@ const validarActualizacionProducto = [
     .isInt({ min: 1 }).withMessage('id_casa debe ser un entero positivo').toInt(),
   body('id_proveedor').optional({ nullable: true })
     .isInt({ min: 1 }).withMessage('id_proveedor debe ser un entero positivo').toInt(),
-  body('precio_compra').optional()
-    .isFloat({ min: 0 }).withMessage('El precio de compra debe ser mayor o igual a 0').toFloat(),
   body('stock_minimo').optional()
     .isInt({ min: 0 }).withMessage('El stock mínimo debe ser mayor o igual a 0').toInt(),
   body('meses_alerta_vencimiento').optional()

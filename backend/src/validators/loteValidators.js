@@ -18,13 +18,13 @@ const validarCreacion = [
   body('id_sucursal').isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo').toInt(),
   body('numero_lote').trim().notEmpty().withMessage('numero_lote es requerido')
     .isLength({ max: 100 }).withMessage('numero_lote no puede superar los 100 caracteres'),
-  body('fecha_vencimiento').isISO8601()
+  body('fecha_vencimiento').optional({ nullable: true }).isISO8601()
     .withMessage('fecha_vencimiento debe ser una fecha válida (YYYY-MM-DD)').toDate(),
   body('cantidad_ingresada').isInt({ min: 1 })
     .withMessage('cantidad_ingresada debe ser un entero mayor a 0').toInt(),
   body('precio_venta').isFloat({ min: 0 }).withMessage('precio_venta debe ser mayor o igual a 0').toFloat(),
-  body('precio_compra').optional()
-    .isFloat({ min: 0 }).withMessage('precio_compra debe ser mayor o igual a 0').toFloat(),
+  body('precio_compra').isFloat({ min: 0 })
+    .withMessage('precio_compra es requerido y debe ser mayor o igual a 0').toFloat(),
   body('margen_ganancia').isFloat({ min: 0, max: 9999.9999 })
     .withMessage('margen_ganancia debe estar entre 0 y 9999.9999').toFloat(),
   body('precio_mayoreo').optional({ nullable: true })
@@ -42,7 +42,7 @@ const validarActualizacion = [
     .isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo').toInt(),
   body('numero_lote').optional().trim().notEmpty().withMessage('numero_lote no puede estar vacío')
     .isLength({ max: 100 }).withMessage('numero_lote no puede superar los 100 caracteres'),
-  body('fecha_vencimiento').optional().isISO8601()
+  body('fecha_vencimiento').optional({ nullable: true }).isISO8601()
     .withMessage('fecha_vencimiento debe ser una fecha válida (YYYY-MM-DD)').toDate(),
   body('cantidad_ingresada').optional().isInt({ min: 1 })
     .withMessage('cantidad_ingresada debe ser un entero mayor a 0').toInt(),

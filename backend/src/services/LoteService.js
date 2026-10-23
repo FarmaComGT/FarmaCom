@@ -10,6 +10,21 @@ const lanzarError = (mensaje, status) => {
   throw new AppError(mensaje, status);
 };
 
+const validarFechaVencimiento = (fechaVencimiento) => {
+  if (fechaVencimiento === null || fechaVencimiento === undefined) return null;
+
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const fecha = new Date(fechaVencimiento);
+
+  if (isNaN(fecha.getTime()))
+    lanzarError('fecha_vencimiento no es una fecha válida', 400);
+  if (fecha <= hoy)
+    lanzarError('La fecha de vencimiento debe ser posterior a hoy', 400);
+
+  return fechaVencimiento;
+};
+
 const validarProveedorActivo = async (id_proveedor, client) => {
   const proveedor = await ProveedorDAO.obtenerPorId(id_proveedor, client);
   if (!proveedor) lanzarError('Proveedor no encontrado', 404);
@@ -39,18 +54,18 @@ const crearLote = async (datos) => {
   if (!producto.activo) lanzarError('No se puede agregar un lote a un producto inactivo', 409);
   await validarProveedorActivo(id_proveedor);
 
-  const precioCompraEfectivo = precio_compra ?? Number(producto.precio_compra);
-  if (!Number.isFinite(Number(precioCompraEfectivo)) || Number(precioCompraEfectivo) < 0)
-    lanzarError('El precio de compra no puede ser negativo', 400);
+  const precioCompraNumerico = Number(precio_compra);
+  if (
+    precio_compra === undefined
+    || precio_compra === null
+    || (typeof precio_compra === 'string' && precio_compra.trim() === '')
+    || !Number.isFinite(precioCompraNumerico)
+    || precioCompraNumerico < 0
+  ) {
+    lanzarError('El precio de compra es requerido y no puede ser negativo', 400);
+  }
 
-  // Verificar fecha de vencimiento, no puede ser pasada
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const fechaVenc = new Date(fecha_vencimiento);
-  if (isNaN(fechaVenc.getTime()))
-    lanzarError('fecha_vencimiento no es una fecha válida', 400);
-  if (fechaVenc <= hoy)
-    lanzarError('La fecha de vencimiento debe ser posterior a hoy', 400);
+  const fechaVencimientoNormalizada = validarFechaVencimiento(fecha_vencimiento);
 
   // Verificar cantidad
   if (!Number.isInteger(Number(cantidad_ingresada)) || Number(cantidad_ingresada) <= 0)
@@ -81,9 +96,9 @@ const crearLote = async (datos) => {
     id_proveedor,
     id_sucursal,
     numero_lote,
-    fecha_vencimiento,
+    fecha_vencimiento: fechaVencimientoNormalizada,
     cantidad_ingresada,
-    precio_compra: Number(precioCompraEfectivo),
+    precio_compra: precioCompraNumerico,
     precio_venta,
     margen_ganancia,
     precio_mayoreo:   precio_mayoreo   ?? null,
@@ -169,13 +184,7 @@ const actualizarLoteEnTransaccion = async (id_lote, campos, id_usuario, client) 
   }
 
   if (datos.fecha_vencimiento !== undefined) {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const fechaVenc = new Date(datos.fecha_vencimiento);
-    if (isNaN(fechaVenc.getTime()))
-      lanzarError('fecha_vencimiento no es una fecha válida', 400);
-    if (fechaVenc <= hoy)
-      lanzarError('La fecha de vencimiento debe ser posterior a hoy', 400);
+    datos.fecha_vencimiento = validarFechaVencimiento(datos.fecha_vencimiento);
   }
 
   const cantidadIngresada = datos.cantidad_ingresada ?? Number(lote.cantidad_ingresada);
@@ -185,8 +194,17 @@ const actualizarLoteEnTransaccion = async (id_lote, campos, id_usuario, client) 
   if (stockActual > cantidadIngresada)
     lanzarError('El stock actual no puede superar la cantidad ingresada del lote', 400);
 
-  if (datos.precio_compra !== undefined && datos.precio_compra < 0)
+  if (
+    datos.precio_compra !== undefined
+    && (
+      datos.precio_compra === null
+      || (typeof datos.precio_compra === 'string' && datos.precio_compra.trim() === '')
+      || !Number.isFinite(Number(datos.precio_compra))
+      || Number(datos.precio_compra) < 0
+    )
+  ) {
     lanzarError('El precio de compra no puede ser negativo', 400);
+  }
 
   if (datos.precio_venta !== undefined && datos.precio_venta < 0)
     lanzarError('El precio de venta no puede ser negativo', 400);

@@ -28,11 +28,11 @@ describe('ProductoDAO - concentración opcional', () => {
     await ProductoDAO.actualizar(7, { concentracion: null });
 
     const [consulta, valores] = pool.query.mock.calls[0];
-    expect(consulta).toContain('concentracion            = CASE WHEN $14 THEN $4 ELSE concentracion END');
-    expect(consulta).toContain('WHERE id_producto = $15');
+    expect(consulta).toContain('concentracion            = CASE WHEN $13 THEN $4 ELSE concentracion END');
+    expect(consulta).toContain('WHERE id_producto = $14');
     expect(valores[3]).toBeNull();
-    expect(valores[13]).toBe(true);
-    expect(valores[14]).toBe(7);
+    expect(valores[12]).toBe(true);
+    expect(valores[13]).toBe(7);
   });
 
   it('no modifica la concentración cuando el campo se omite', async () => {
@@ -41,7 +41,7 @@ describe('ProductoDAO - concentración opcional', () => {
     await ProductoDAO.actualizar(7, { nombre_comercial: 'Producto actualizado' });
 
     const valores = pool.query.mock.calls[0][1];
-    expect(valores[13]).toBe(false);
+    expect(valores[12]).toBe(false);
   });
 });
 
@@ -67,11 +67,12 @@ describe('ProductoDAO - autocompletado para POS', () => {
     expect(consulta).toContain('l.id_sucursal = $2');
     expect(consulta).toContain('l.stock_actual > 0');
     expect(consulta).toContain('l.precio_venta > 0');
+    expect(consulta).toContain('l.fecha_vencimiento IS NULL');
     expect(consulta).toContain('l.fecha_vencimiento >= CURRENT_DATE');
     expect(consulta).toContain('FROM productos_limitados p');
     expect(consulta).toContain('JOIN v_lote_estado lote_pos');
     expect(consulta).toContain('lote_pos.estado_vencimiento');
-    expect(consulta).toContain('lote_pos.fecha_vencimiento ASC');
+    expect(consulta).toContain('lote_pos.fecha_vencimiento ASC NULLS LAST');
     expect(consulta).toContain('LIMIT $3');
     expect(consulta).not.toContain('JOIN LATERAL');
     expect(consulta).not.toContain('LIMIT 1');

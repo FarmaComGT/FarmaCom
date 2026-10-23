@@ -76,7 +76,7 @@ class LoteDAO {
       JOIN presentacion pre ON pre.id_presentacion = p.id_presentacion
       JOIN proveedor pr ON pr.id_proveedor = v.id_proveedor
       WHERE v.id_sucursal = $1
-      ORDER BY v.fecha_vencimiento ASC, v.id_lote
+      ORDER BY v.fecha_vencimiento ASC NULLS LAST, v.id_lote
     `;
     const { rows } = await pool.query(query, [id_sucursal]);
     return rows;
@@ -97,7 +97,7 @@ class LoteDAO {
       JOIN sucursal  s  ON s.id_sucursal   = v.id_sucursal
       JOIN proveedor pr ON pr.id_proveedor = v.id_proveedor
       WHERE v.id_producto = $1
-      ORDER BY v.fecha_vencimiento ASC, v.id_lote
+      ORDER BY v.fecha_vencimiento ASC NULLS LAST, v.id_lote
     `;
     const { rows } = await pool.query(query, [id_producto]);
     return rows;
@@ -177,6 +177,10 @@ class LoteDAO {
       cantidad_mayoreo,
       limpiar_mayoreo,
     } = campos;
+    const actualizaFechaVencimiento = Object.prototype.hasOwnProperty.call(
+      campos,
+      'fecha_vencimiento',
+    );
 
     const query = `
       UPDATE lote SET
@@ -184,7 +188,7 @@ class LoteDAO {
         id_proveedor       = COALESCE($2, id_proveedor),
         id_sucursal        = COALESCE($3, id_sucursal),
         numero_lote        = COALESCE($4, numero_lote),
-        fecha_vencimiento  = COALESCE($5, fecha_vencimiento),
+        fecha_vencimiento  = CASE WHEN $14 THEN $5 ELSE fecha_vencimiento END,
         cantidad_ingresada = COALESCE($6, cantidad_ingresada),
         stock_actual       = COALESCE($7, stock_actual),
         precio_compra      = COALESCE($8, precio_compra),
@@ -192,7 +196,7 @@ class LoteDAO {
         margen_ganancia    = COALESCE($10, margen_ganancia),
         precio_mayoreo     = CASE WHEN $13 THEN NULL ELSE COALESCE($11, precio_mayoreo) END,
         cantidad_mayoreo   = CASE WHEN $13 THEN NULL ELSE COALESCE($12, cantidad_mayoreo) END
-      WHERE id_lote = $14
+      WHERE id_lote = $15
       RETURNING *
     `;
     const { rows } = await client.query(query, [
@@ -209,6 +213,7 @@ class LoteDAO {
       precio_mayoreo     ?? null,
       cantidad_mayoreo   ?? null,
       limpiar_mayoreo    === true,
+      actualizaFechaVencimiento,
       id_lote,
     ]);
     return rows[0] || null;
@@ -263,7 +268,7 @@ class LoteDAO {
       ORDER BY
         CASE v.estado_vencimiento WHEN 'vencido' THEN 1 WHEN 'proximo_a_vencer' THEN 2 ELSE 3 END,
         CASE v.estado_stock       WHEN 'agotado'  THEN 1 WHEN 'poco_stock'       THEN 2 ELSE 3 END,
-        v.fecha_vencimiento ASC
+        v.fecha_vencimiento ASC NULLS LAST
     `;
     const { rows } = await pool.query(query, valores);
     return rows;

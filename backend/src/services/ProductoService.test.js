@@ -15,7 +15,6 @@ const datosBase = {
   concentracion: '500 mg',
   id_presentacion: 1,
   id_casa: 1,
-  precio_compra: 5,
   meses_alerta_vencimiento: 6,
 };
 
@@ -63,12 +62,6 @@ describe('ProductoService', () => {
     it('rechaza con 400 si el nombre genérico viene vacío', async () => {
       await expect(
         ProductoService.crearProducto({ ...datosBase, nombre_generico: '' }),
-      ).rejects.toMatchObject({ status: 400 });
-    });
-
-    it('rechaza con 400 si el precio de compra es negativo', async () => {
-      await expect(
-        ProductoService.crearProducto({ ...datosBase, precio_compra: -1 }),
       ).rejects.toMatchObject({ status: 400 });
     });
 
@@ -207,14 +200,6 @@ describe('ProductoService', () => {
 
       await expect(
         ProductoService.actualizarProducto(1, { id_presentacion: 99 }),
-      ).rejects.toMatchObject({ status: 400 });
-    });
-
-    it('rechaza con 400 si el nuevo precio de compra es negativo', async () => {
-      ProductoDAO.obtenerPorId.mockResolvedValue(existente);
-
-      await expect(
-        ProductoService.actualizarProducto(1, { precio_compra: -5 }),
       ).rejects.toMatchObject({ status: 400 });
     });
 

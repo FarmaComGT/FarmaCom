@@ -27,7 +27,7 @@ class VentaDAO {
          l.precio_venta,
          l.precio_compra,
          l.fecha_vencimiento,
-         (l.fecha_vencimiento < CURRENT_DATE) AS vencido,
+         COALESCE(l.fecha_vencimiento < CURRENT_DATE, FALSE) AS vencido,
          p.nombre_comercial,
          p.activo AS producto_activo
        FROM lote l

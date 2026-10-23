@@ -21,6 +21,63 @@ const crearApp = () => {
   return app;
 };
 
+const payloadLote = {
+  id_producto: 1,
+  id_proveedor: 1,
+  id_sucursal: 3,
+  numero_lote: 'LT-SIN-VENCIMIENTO',
+  fecha_vencimiento: null,
+  cantidad_ingresada: 10,
+  precio_compra: 7.5,
+  precio_venta: 10,
+  margen_ganancia: 25,
+};
+
+describe('LoteRoutes - precio por lote y vencimiento opcional', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('permite crear un lote con precio de compra y sin fecha de vencimiento', async () => {
+    LoteService.crearLote.mockImplementation(async (datos) => ({ id_lote: 7, ...datos }));
+
+    const respuesta = await request(crearApp())
+      .post('/api/lotes')
+      .send(payloadLote);
+
+    expect(respuesta.status).toBe(201);
+    expect(LoteService.crearLote).toHaveBeenCalledWith(
+      expect.objectContaining({ precio_compra: 7.5, fecha_vencimiento: null }),
+    );
+    expect(respuesta.body.fecha_vencimiento).toBeNull();
+  });
+
+  it('rechaza la creación de un lote sin precio de compra', async () => {
+    const { precio_compra, ...sinPrecioCompra } = payloadLote;
+
+    const respuesta = await request(crearApp())
+      .post('/api/lotes')
+      .send(sinPrecioCompra);
+
+    expect(precio_compra).toBe(7.5);
+    expect(respuesta.status).toBe(400);
+    expect(LoteService.crearLote).not.toHaveBeenCalled();
+  });
+
+  it('permite quitar la fecha de vencimiento durante una actualización', async () => {
+    LoteService.actualizarLote.mockResolvedValue({ id_lote: 7, fecha_vencimiento: null });
+
+    const respuesta = await request(crearApp())
+      .patch('/api/lotes/7')
+      .send({ fecha_vencimiento: null });
+
+    expect(respuesta.status).toBe(200);
+    expect(LoteService.actualizarLote).toHaveBeenCalledWith(
+      7,
+      { fecha_vencimiento: null },
+      9,
+    );
+  });
+});
+
 describe('LoteRoutes - historial de precios', () => {
   it('asocia al usuario autenticado cuando cambia un precio', async () => {
     LoteService.actualizarLote.mockResolvedValue({
