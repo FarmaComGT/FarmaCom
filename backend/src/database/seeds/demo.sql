@@ -180,7 +180,7 @@ WHERE c.nombre = 'Medicamentos Globales'
       WHERE cp.id_casa = c.id_casa AND cp.id_proveedor = p.id_proveedor
   );
 
-INSERT INTO producto (codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion, id_categoria, id_casa, id_proveedor, precio_compra, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo)
+INSERT INTO producto (codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion, id_categoria, id_casa, id_proveedor, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo)
 SELECT
     'MED001-UN',
     'Tylenol',
@@ -191,7 +191,6 @@ SELECT
     (SELECT id_categoria FROM categoria WHERE nombre = 'Analgésico'),
     (SELECT id_casa FROM casa_farmaceutica WHERE nombre = 'Farmacéutica ABC'),
     (SELECT id_proveedor FROM proveedor WHERE nombre = 'Proveedor Uno'),
-    0.50,
     10,
     6,
     TRUE
@@ -221,7 +220,7 @@ SELECT
     CURRENT_DATE + INTERVAL '12 months',
     30,
     30,
-    p.precio_compra,
+    0.50,
     1.00,
     0.30,
     NULL,
@@ -245,7 +244,7 @@ WHERE p.codigo = 'MED001-UN'
 -- 2) Un producto con lote vencido.
 -- 3) Un producto con lote próximo a vencer.
 
-INSERT INTO producto (codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion, id_categoria, id_casa, id_proveedor, precio_compra, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo)
+INSERT INTO producto (codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion, id_categoria, id_casa, id_proveedor, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo)
 SELECT
     'MED002-UN',
     'Amoxicilina',
@@ -256,7 +255,6 @@ SELECT
     (SELECT id_categoria FROM categoria WHERE nombre = 'Antibiótico'),
     (SELECT id_casa FROM casa_farmaceutica WHERE nombre = 'Laboratorios XYZ'),
     (SELECT id_proveedor FROM proveedor WHERE nombre = 'Proveedor Dos'),
-    1.20,
     10,
     6,
     TRUE
@@ -264,7 +262,7 @@ WHERE NOT EXISTS (
     SELECT 1 FROM producto WHERE codigo = 'MED002-UN'
 );
 
-INSERT INTO producto (codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion, id_categoria, id_casa, id_proveedor, precio_compra, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo)
+INSERT INTO producto (codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion, id_categoria, id_casa, id_proveedor, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo)
 SELECT
     'MED003-UN',
     'Ibuprofeno',
@@ -275,7 +273,6 @@ SELECT
     (SELECT id_categoria FROM categoria WHERE nombre = 'Antiinflamatorio'),
     (SELECT id_casa FROM casa_farmaceutica WHERE nombre = 'Medicamentos Globales'),
     (SELECT id_proveedor FROM proveedor WHERE nombre = 'Proveedor Tres'),
-    0.80,
     5,
     6,
     TRUE
@@ -305,7 +302,7 @@ SELECT
     CURRENT_DATE + INTERVAL '12 months',
     30,
     30,
-    p.precio_compra,
+    0.50,
     1.00,
     0.30,
     NULL,
@@ -346,7 +343,7 @@ SELECT
     CURRENT_DATE - 1,
     12,
     12,
-    p.precio_compra,
+    1.20,
     1.35,
     0.25,
     NULL,
@@ -387,7 +384,7 @@ SELECT
     CURRENT_DATE + INTERVAL '2 months',
     18,
     18,
-    p.precio_compra,
+    0.80,
     1.05,
     0.28,
     NULL,

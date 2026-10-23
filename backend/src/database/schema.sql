@@ -433,7 +433,6 @@ CREATE TABLE IF NOT EXISTS producto (
     id_categoria             INTEGER       NOT NULL,
     id_casa                  INTEGER       NOT NULL,
     id_proveedor             INTEGER,
-    precio_compra            NUMERIC(10,2) NOT NULL CHECK (precio_compra >= 0),
     stock_minimo             INTEGER       NOT NULL DEFAULT 5,
     meses_alerta_vencimiento INTEGER       NOT NULL,
     aplica_mayoreo           BOOLEAN       NOT NULL DEFAULT FALSE,
@@ -547,10 +546,10 @@ CREATE TABLE IF NOT EXISTS lote (
     id_proveedor          INTEGER       NOT NULL,
     id_sucursal           INTEGER       NOT NULL,
     numero_lote           VARCHAR(100)  NOT NULL,
-    fecha_vencimiento     DATE          NOT NULL,
+    fecha_vencimiento     DATE,
     cantidad_ingresada    INTEGER       NOT NULL CHECK (cantidad_ingresada > 0),
     stock_actual          INTEGER       NOT NULL CHECK (stock_actual >= 0),
-    precio_compra         NUMERIC(10,2) NOT NULL CHECK (precio_compra >= 0),
+    precio_compra         NUMERIC(10,2) NOT NULL,
     precio_venta          NUMERIC(10,2) NOT NULL CHECK (precio_venta >= 0),
     margen_ganancia       NUMERIC(8,4)  NOT NULL CHECK (margen_ganancia >= 0),
     precio_mayoreo        NUMERIC(10,2)          CHECK (precio_mayoreo >= 0),
@@ -570,6 +569,9 @@ CREATE TABLE IF NOT EXISTS lote (
         FOREIGN KEY (id_sucursal)
         REFERENCES sucursal(id_sucursal)
         ON DELETE RESTRICT,
+
+    CONSTRAINT chk_lote_precio_compra_no_negativo
+        CHECK (precio_compra >= 0),
 
         -- precio_mayoreo y cantidad_mayoreo se definen juntos o ninguno.
     CONSTRAINT chk_lote_mayoreo_completo

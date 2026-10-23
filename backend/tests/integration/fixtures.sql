@@ -124,7 +124,6 @@ INSERT INTO producto (
   id_categoria,
   id_casa,
   id_proveedor,
-  precio_compra,
   stock_minimo,
   meses_alerta_vencimiento
 )
@@ -137,7 +136,6 @@ SELECT
   cat.id_categoria,
   casa.id_casa,
   proveedor.id_proveedor,
-  10.00,
   5,
   3
 FROM presentacion pre
