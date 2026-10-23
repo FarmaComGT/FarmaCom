@@ -1,9 +1,11 @@
 jest.mock('../daos/LoteDAO');
 jest.mock('../daos/ProductoDAO');
+jest.mock('../daos/ProveedorDAO');
 jest.mock('../daos/HistorialPrecioLoteDAO');
 
 const LoteDAO = require('../daos/LoteDAO');
 const ProductoDAO = require('../daos/ProductoDAO');
+const ProveedorDAO = require('../daos/ProveedorDAO');
 const HistorialPrecioLoteDAO = require('../daos/HistorialPrecioLoteDAO');
 const LoteService = require('./LoteService');
 
@@ -31,6 +33,7 @@ describe('LoteService', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     LoteDAO.ejecutarEnTransaccion.mockImplementation((fn) => fn(mockClient));
+    ProveedorDAO.obtenerPorId.mockResolvedValue({ id_proveedor: 1, activo: true });
   });
 
   describe('crearLote', () => {
@@ -85,6 +88,17 @@ describe('LoteService', () => {
       ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: false });
 
       await expect(LoteService.crearLote(datosLoteBase)).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('rechaza con 409 si el proveedor está inactivo', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: true, precio_compra: 5 });
+      ProveedorDAO.obtenerPorId.mockResolvedValue({ id_proveedor: 1, activo: false });
+
+      await expect(LoteService.crearLote(datosLoteBase)).rejects.toMatchObject({
+        status: 409,
+        message: 'No se puede asignar un proveedor inactivo',
+      });
+      expect(LoteDAO.crear).not.toHaveBeenCalled();
     });
 
     it('rechaza con 400 si la fecha de vencimiento ya pasó', async () => {
@@ -249,6 +263,17 @@ describe('LoteService', () => {
       await expect(
         LoteService.actualizarLote(1, { numero_lote: 'L-003' }, 1),
       ).rejects.toMatchObject({ status: 409 });
+      expect(LoteDAO.actualizar).not.toHaveBeenCalled();
+    });
+
+    it('rechaza cambiar el lote a un proveedor inactivo', async () => {
+      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
+      ProveedorDAO.obtenerPorId.mockResolvedValue({ id_proveedor: 2, activo: false });
+
+      await expect(
+        LoteService.actualizarLote(1, { id_proveedor: 2 }, 1),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(ProveedorDAO.obtenerPorId).toHaveBeenCalledWith(2, mockClient);
       expect(LoteDAO.actualizar).not.toHaveBeenCalled();
     });
 

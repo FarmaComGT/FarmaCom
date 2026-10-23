@@ -32,7 +32,9 @@ export default function ProductoClasificacion({
           <label className="text-sm font-semibold text-slate-700">Casa farmacéutica <span className="text-error">*</span></label>
           <Selector name="id_casa" value={formulario.id_casa} onChange={onChange} required disabled={cargandoDatos}>
             <option value="">Seleccionar...</option>
-            {(casas || []).filter((casa) => casa.activo).map((casa) => <option key={casa.id_casa} value={casa.id_casa}>{casa.nombre}</option>)}
+            {(casas || [])
+              .filter((casa) => casa.activo || String(casa.id_casa) === String(formulario.id_casa))
+              .map((casa) => <option key={casa.id_casa} value={casa.id_casa}>{casa.nombre}</option>)}
           </Selector>
         </div>
       </div>
@@ -40,7 +42,9 @@ export default function ProductoClasificacion({
         <label className="text-sm font-semibold text-slate-700">Proveedor</label>
         <Selector name="id_proveedor" value={formulario.id_proveedor} onChange={onChange} disabled={cargandoDatos}>
           <option value="">Sin proveedor</option>
-          {(proveedores || []).map((proveedor) => <option key={proveedor.id_proveedor} value={proveedor.id_proveedor}>{proveedor.nombre}</option>)}
+          {(proveedores || [])
+            .filter((proveedor) => proveedor.activo || String(proveedor.id_proveedor) === String(formulario.id_proveedor))
+            .map((proveedor) => <option key={proveedor.id_proveedor} value={proveedor.id_proveedor}>{proveedor.nombre}</option>)}
         </Selector>
       </div>
     </>

@@ -34,7 +34,7 @@ export default function CasaTableRow({ casa, onEditar, onCambiarEstado, onContac
         </button>
         <button
           onClick={() => onCambiarEstado(casa)}
-          disabled={procesando === casa.id_casa}
+          disabled={procesando}
           className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold border disabled:opacity-60 ${
             casa.activo
               ? 'text-red-600 border-red-200 hover:bg-red-50'
@@ -46,8 +46,11 @@ export default function CasaTableRow({ casa, onEditar, onCambiarEstado, onContac
             : <><ToggleRight className="w-3.5 h-3.5" /> Activar</>}
         </button>
         <button
+          type="button"
           onClick={() => onEliminar(casa)}
-          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold text-slate-500 border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+          disabled={procesando}
+          aria-label={`Eliminar casa farmacéutica ${casa.nombre}`}
+          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold text-slate-500 border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-60"
           title="Eliminar"
         >
           <Trash2 className="w-3.5 h-3.5" />

@@ -2,6 +2,21 @@ const pool = require('../database/db');
 
 class CasaFarmaceuticaDAO {
 
+  async ejecutarEnTransaccion(operacion) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const resultado = await operacion(client);
+      await client.query('COMMIT');
+      return resultado;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   // ─── CREATE ────
 
   async crear({ nombre }) {
@@ -47,23 +62,53 @@ class CasaFarmaceuticaDAO {
     return rows[0] || null;
   }
 
-  async cambiarActivo(id_casa, activo) {
+  async cambiarActivo(id_casa, activo, client = pool) {
     const query = `
       UPDATE casa_farmaceutica
       SET activo = $1
       WHERE id_casa = $2
       RETURNING *
     `;
-    const { rows } = await pool.query(query, [activo, id_casa]);
+    const { rows } = await client.query(query, [activo, id_casa]);
     return rows[0] || null;
   }
 
   // ─── DELETE ────
 
-  async eliminar(id_casa) {
+  async eliminar(id_casa, client = pool) {
     const query = `DELETE FROM casa_farmaceutica WHERE id_casa = $1 RETURNING *`;
-    const { rows } = await pool.query(query, [id_casa]);
+    const { rows } = await client.query(query, [id_casa]);
     return rows[0] || null;
+  }
+
+  async obtenerParaActualizar(id_casa, client = pool) {
+    const query = `
+      SELECT *
+      FROM casa_farmaceutica
+      WHERE id_casa = $1
+      FOR UPDATE
+    `;
+    const { rows } = await client.query(query, [id_casa]);
+    return rows[0] || null;
+  }
+
+  async obtenerUso(id_casa, client = pool) {
+    const query = `
+      SELECT
+        (SELECT COUNT(*)::INTEGER
+         FROM producto p
+         WHERE p.id_casa = $1) AS productos,
+        (SELECT COUNT(*)::INTEGER
+         FROM lote l
+         JOIN producto p ON p.id_producto = l.id_producto
+         WHERE p.id_casa = $1) AS lotes,
+        (SELECT COUNT(DISTINCT l.id_sucursal)::INTEGER
+         FROM lote l
+         JOIN producto p ON p.id_producto = l.id_producto
+         WHERE p.id_casa = $1) AS sucursales
+    `;
+    const { rows } = await client.query(query, [id_casa]);
+    return rows[0];
   }
 
   // ─── RELACIONES ────

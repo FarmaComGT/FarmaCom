@@ -91,4 +91,23 @@ describe('useCasas', () => {
     expect(api.delete).toHaveBeenCalledWith('/casas/1');
     expect(result.current.casas).toEqual([{ id_casa: 2 }]);
   });
+
+  it('conserva y desactiva una casa que ya tiene historial', async () => {
+    api.get.mockResolvedValue({ data: [{ id_casa: 1, nombre: 'Bayer', activo: true }] });
+    const { result } = renderHook(() => useCasas());
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    api.delete.mockResolvedValue({
+      data: {
+        accion: 'desactivado',
+        casa: { id_casa: 1, nombre: 'Bayer', activo: false },
+      },
+    });
+
+    await act(async () => {
+      await result.current.eliminar(1);
+    });
+
+    expect(result.current.casas).toEqual([{ id_casa: 1, nombre: 'Bayer', activo: false }]);
+  });
 });

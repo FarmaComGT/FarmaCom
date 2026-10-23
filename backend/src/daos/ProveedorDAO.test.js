@@ -4,6 +4,19 @@ const pool = require('../database/db');
 const ProveedorDAO = require('./ProveedorDAO');
 
 describe('ProveedorDAO', () => {
+  it('revierte la transacción cuando la operación falla', async () => {
+    const client = { query: jest.fn().mockResolvedValue({}), release: jest.fn() };
+    pool.connect.mockResolvedValue(client);
+
+    await expect(
+      ProveedorDAO.ejecutarEnTransaccion(async () => { throw new Error('fallo'); }),
+    ).rejects.toThrow('fallo');
+
+    expect(client.query).toHaveBeenNthCalledWith(1, 'BEGIN');
+    expect(client.query).toHaveBeenNthCalledWith(2, 'ROLLBACK');
+    expect(client.release).toHaveBeenCalledTimes(1);
+  });
+
   it('crea un proveedor', async () => {
     const fila = { id_proveedor: 1, nombre: 'Distribuidora ABC' };
     pool.query.mockResolvedValue({ rows: [fila] });
@@ -56,5 +69,16 @@ describe('ProveedorDAO', () => {
     pool.query.mockResolvedValue({ rows: [fila] });
 
     await expect(ProveedorDAO.eliminar(1)).resolves.toEqual(fila);
+  });
+
+  it('resume los productos, lotes y sucursales que usan el proveedor', async () => {
+    const uso = { productos: 1, lotes: 3, sucursales: 2 };
+    pool.query.mockResolvedValue({ rows: [uso] });
+
+    await expect(ProveedorDAO.obtenerUso(1)).resolves.toEqual(uso);
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining('COUNT(DISTINCT l.id_sucursal)'),
+      [1],
+    );
   });
 });

@@ -1,11 +1,12 @@
 import React from 'react';
-import { Pencil, ToggleLeft, ToggleRight, Phone } from 'lucide-react';
+import { Pencil, ToggleLeft, ToggleRight, Trash2, Phone } from 'lucide-react';
 
 export default function ProveedorTableRow({
   proveedor,
   onEditar,
   onCambiarEstado,
   onContactos,
+  onEliminar,
   procesando,
 }) {
   return (
@@ -48,6 +49,16 @@ export default function ProveedorTableRow({
           {proveedor.activo
             ? <><ToggleLeft className="w-3.5 h-3.5" /> Desactivar</>
             : <><ToggleRight className="w-3.5 h-3.5" /> Activar</>}
+        </button>
+        <button
+          type="button"
+          onClick={() => onEliminar(proveedor)}
+          disabled={procesando}
+          aria-label={`Eliminar proveedor ${proveedor.nombre}`}
+          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold text-slate-500 border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-60"
+          title="Eliminar"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>

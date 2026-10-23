@@ -42,8 +42,17 @@ const useCasas = () => {
   };
 
   const eliminar = async (id) => {
-    await api.delete(`/casas/${id}`);
-    setCasas((prev) => prev.filter((c) => c.id_casa !== id));
+    const { data = {} } = await api.delete(`/casas/${id}`);
+    if (data.accion === 'desactivado') {
+      setCasas((prev) => prev.map((casa) => (
+        casa.id_casa === id
+          ? { ...casa, ...(data.casa || {}), activo: false }
+          : casa
+      )));
+    } else {
+      setCasas((prev) => prev.filter((casa) => casa.id_casa !== id));
+    }
+    return data;
   };
 
   return { casas, cargando, error, refrescar: obtenerTodas, crear, actualizar, cambiarEstado, eliminar };

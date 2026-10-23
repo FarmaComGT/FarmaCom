@@ -9,6 +9,7 @@ const acciones = vi.hoisted(() => ({
   crear: vi.fn(),
   actualizar: vi.fn(),
   cambiarEstado: vi.fn(),
+  eliminar: vi.fn(),
 }));
 
 vi.mock('../../hooks/useProveedores', () => ({
@@ -19,6 +20,7 @@ vi.mock('../../hooks/useProveedores', () => ({
     crear: acciones.crear,
     actualizar: acciones.actualizar,
     cambiarEstado: acciones.cambiarEstado,
+    eliminar: acciones.eliminar,
   }),
 }));
 
@@ -97,5 +99,18 @@ describe('pantalla de proveedores', () => {
     await user.click(screen.getByRole('button', { name: /Desactivar/ }));
 
     expect(await screen.findByText('No se pudo')).toBeInTheDocument();
+  });
+
+  it('procesa la eliminación segura de un proveedor', async () => {
+    const user = userEvent.setup();
+    acciones.eliminar.mockResolvedValue({ mensaje: 'Proveedor eliminado correctamente' });
+    renderizar();
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar proveedor Distribuidora ABC' }));
+    expect(screen.getByText('Eliminar o desactivar')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    await waitFor(() => expect(acciones.eliminar).toHaveBeenCalledWith(1));
+    expect(await screen.findByText('Proveedor eliminado correctamente')).toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   Ban,
@@ -49,7 +50,7 @@ export default function VentaDetalleModal({ idVenta, onClose, onVentaAnulada }) 
     return () => { vigente = false; };
   }, [idVenta]);
 
-  if (!idVenta) return null;
+  if (!idVenta || typeof document === 'undefined') return null;
   const { venta, cargando, error } = estado;
   const rolGlobal = usuario?.rol === 'dueno' || usuario?.rol === 'administrador';
   const esResponsable = usuario?.rol === 'dependiente'
@@ -82,10 +83,10 @@ export default function VentaDetalleModal({ idVenta, onClose, onVentaAnulada }) 
     }
   };
 
-  return (
+  return createPortal(
     <>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-sm"
         role="presentation"
         onMouseDown={(evento) => evento.target === evento.currentTarget && onClose()}
       >
@@ -249,6 +250,7 @@ export default function VentaDetalleModal({ idVenta, onClose, onVentaAnulada }) 
         onClose={cerrarAnulacion}
         onConfirm={confirmarAnulacion}
       />
-    </>
+    </>,
+    document.body,
   );
 }

@@ -1,5 +1,7 @@
 const ProductoDAO = require('../daos/ProductoDAO');
 const PresentacionDAO = require('../daos/PresentacionDAO');
+const CasaFarmaceuticaDAO = require('../daos/CasaFarmaceuticaDAO');
+const ProveedorDAO = require('../daos/ProveedorDAO');
 const AppError = require('../errors/AppError');
 
 // Helpers
@@ -23,6 +25,19 @@ const contieneCaracteresBuscables = (valor) => (
     .length > 0
 );
 
+const validarCasaActiva = async (id_casa) => {
+  const casa = await CasaFarmaceuticaDAO.obtenerPorId(id_casa);
+  if (!casa) lanzarError('La casa farmacéutica seleccionada no existe', 400);
+  if (!casa.activo) lanzarError('No se puede asignar una casa farmacéutica inactiva', 409);
+};
+
+const validarProveedorActivo = async (id_proveedor) => {
+  if (id_proveedor === null || id_proveedor === undefined || id_proveedor === '') return;
+  const proveedor = await ProveedorDAO.obtenerPorId(id_proveedor);
+  if (!proveedor) lanzarError('El proveedor seleccionado no existe', 400);
+  if (!proveedor.activo) lanzarError('No se puede asignar un proveedor inactivo', 409);
+};
+
 // Operaciones
 
 const crearProducto = async (datos) => {
@@ -37,6 +52,9 @@ const crearProducto = async (datos) => {
 
   const presentacion = await PresentacionDAO.obtenerPorId(id_presentacion);
   if (!presentacion) lanzarError('La presentación seleccionada no existe', 400);
+
+  await validarCasaActiva(datos.id_casa);
+  await validarProveedorActivo(datos.id_proveedor);
 
   const existente = await ProductoDAO.obtenerPorCodigo(codigo);
   if (existente) lanzarError(`Ya existe un producto con el código "${codigo}"`, 409);
@@ -102,6 +120,21 @@ const actualizarProducto = async (id_producto, campos) => {
   if (campos.id_presentacion !== undefined) {
     const presentacion = await PresentacionDAO.obtenerPorId(campos.id_presentacion);
     if (!presentacion) lanzarError('La presentación seleccionada no existe', 400);
+  }
+
+  if (
+    campos.id_casa !== undefined
+    && Number(campos.id_casa) !== Number(existente.id_casa)
+  ) {
+    await validarCasaActiva(campos.id_casa);
+  }
+
+  if (
+    Object.prototype.hasOwnProperty.call(campos, 'id_proveedor')
+    && campos.id_proveedor !== null
+    && Number(campos.id_proveedor) !== Number(existente.id_proveedor)
+  ) {
+    await validarProveedorActivo(campos.id_proveedor);
   }
 
   if (campos.meses_alerta_vencimiento !== undefined && campos.meses_alerta_vencimiento <= 0) {

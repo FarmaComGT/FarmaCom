@@ -1,5 +1,6 @@
 const LoteDAO = require('../daos/LoteDAO');
 const ProductoDAO = require('../daos/ProductoDAO');
+const ProveedorDAO = require('../daos/ProveedorDAO');
 const HistorialPrecioLoteDAO = require('../daos/HistorialPrecioLoteDAO');
 const AppError = require('../errors/AppError');
 
@@ -24,6 +25,12 @@ const validarFechaVencimiento = (fechaVencimiento) => {
   return fechaVencimiento;
 };
 
+const validarProveedorActivo = async (id_proveedor, client) => {
+  const proveedor = await ProveedorDAO.obtenerPorId(id_proveedor, client);
+  if (!proveedor) lanzarError('Proveedor no encontrado', 404);
+  if (!proveedor.activo) lanzarError('No se puede asignar un proveedor inactivo', 409);
+};
+
 //  Lote 
 
 const crearLote = async (datos) => {
@@ -45,6 +52,7 @@ const crearLote = async (datos) => {
   const producto = await ProductoDAO.obtenerPorId(id_producto);
   if (!producto)        lanzarError('Producto no encontrado', 404);
   if (!producto.activo) lanzarError('No se puede agregar un lote a un producto inactivo', 409);
+  await validarProveedorActivo(id_proveedor);
 
   const precioCompraNumerico = Number(precio_compra);
   if (
@@ -142,6 +150,14 @@ const actualizarLoteEnTransaccion = async (id_lote, campos, id_usuario, client) 
     const producto = await ProductoDAO.obtenerPorId(datos.id_producto, client);
     if (!producto) lanzarError('Producto no encontrado', 404);
     if (!producto.activo) lanzarError('No se puede asignar el lote a un producto inactivo', 409);
+  }
+
+
+  if (
+    datos.id_proveedor !== undefined
+    && Number(datos.id_proveedor) !== Number(lote.id_proveedor)
+  ) {
+    await validarProveedorActivo(datos.id_proveedor, client);
   }
 
   const numeroLote = datos.numero_lote ?? lote.numero_lote;
