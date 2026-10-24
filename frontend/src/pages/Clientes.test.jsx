@@ -4,11 +4,19 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Clientes from './Clientes';
 
-const { mockObtenerHistorialCompras, mockCrearCliente, mockActualizarCliente } = vi.hoisted(() => ({
+const {
+  mockObtenerHistorialCompras,
+  mockCrearCliente,
+  mockActualizarCliente,
+  mockApi,
+} = vi.hoisted(() => ({
   mockObtenerHistorialCompras: vi.fn(),
   mockCrearCliente: vi.fn(),
   mockActualizarCliente: vi.fn(),
+  mockApi: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
+
+vi.mock('../api/axios', () => ({ default: mockApi }));
 
 vi.mock('../api/clientes', () => ({
   obtenerHistorialCompras: mockObtenerHistorialCompras,
@@ -146,5 +154,43 @@ describe('Clientes', () => {
       expect(screen.getByText('Sin ventas registradas')).toBeInTheDocument();
     });
     expect(screen.getByText('Este cliente todavía no tiene compras asociadas.')).toBeInTheDocument();
+  });
+
+  it('no consulta contactos hasta abrir el modal de un cliente', () => {
+    render(<Clientes />);
+
+    expect(screen.queryByRole('dialog', { name: 'Contactos' })).not.toBeInTheDocument();
+    expect(mockApi.get).not.toHaveBeenCalled();
+  });
+
+  it('abre los contactos del cliente, agrega un teléfono y cierra el modal', async () => {
+    mockApi.get.mockReset();
+    mockApi.post.mockReset();
+    mockApi.get.mockImplementation((url) => Promise.resolve({
+      data: url.endsWith('/telefonos')
+        ? [{ id_telefono: 1, id_cliente: 7, numero: '55551234' }]
+        : [{ id_email: 2, id_cliente: 7, correo: 'maria@farmacom.test' }],
+    }));
+    mockApi.post.mockResolvedValue({ data: { id_telefono: 3, id_cliente: 7, numero: '50255559999' } });
+    const user = userEvent.setup();
+    render(<Clientes />);
+
+    await user.click(screen.getByRole('button', { name: 'Ver contactos de María López' }));
+
+    const modal = await screen.findByRole('dialog', { name: 'Contactos' });
+    expect(mockApi.get).toHaveBeenCalledWith('/clientes/7/telefonos');
+    expect(mockApi.get).toHaveBeenCalledWith('/clientes/7/correos');
+    expect(within(modal).getByText('María López')).toBeInTheDocument();
+    expect(await within(modal).findByText('5555-1234')).toBeInTheDocument();
+    expect(within(modal).getByText('maria@farmacom.test')).toBeInTheDocument();
+
+    await user.type(within(modal).getByRole('textbox', { name: 'Nuevo teléfono' }), '5025 5559999');
+    await user.click(within(modal).getAllByRole('button', { name: 'Agregar' })[0]);
+
+    expect(mockApi.post).toHaveBeenCalledWith('/clientes/7/telefonos', { numero: '5025 5559999' });
+    expect(await within(modal).findByText('50255559999')).toBeInTheDocument();
+
+    await user.click(within(modal).getAllByRole('button', { name: 'Cerrar' })[0]);
+    expect(screen.queryByRole('dialog', { name: 'Contactos' })).not.toBeInTheDocument();
   });
 });

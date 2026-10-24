@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  Contact,
   History,
   Pencil,
   PlusCircle,
@@ -10,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import ClienteContactosModal from '../components/clientes/ClienteContactosModal';
 import HistorialClienteModal from '../components/clientes/HistorialClienteModal';
 import useClientes from '../hooks/useClientes';
 import { esNitValido, MENSAJE_NIT_INVALIDO, normalizarNit } from '../utils/nit';
@@ -47,6 +49,7 @@ export default function Clientes() {
   const [editando, setEditando] = useState(null);
   const [eliminarCliente, setEliminarCliente] = useState(null);
   const [clienteHistorial, setClienteHistorial] = useState(null);
+  const [clienteContactos, setClienteContactos] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [borrando, setBorrando] = useState(false);
   const [errorFormulario, setErrorFormulario] = useState(null);
@@ -173,8 +176,8 @@ export default function Clientes() {
             <span className="col-span-1">#</span>
             <span className="col-span-3">Nombre</span>
             <span className="col-span-2">NIT</span>
-            <span className="col-span-3">Observaciones</span>
-            <span className="col-span-3 text-center">Acciones</span>
+            <span className="col-span-2">Observaciones</span>
+            <span className="col-span-4 text-center">Acciones</span>
           </div>
 
           {cargando ? (
@@ -199,12 +202,21 @@ export default function Clientes() {
                   {cliente.nit || '—'}
                 </span>
                 <span
-                  className="col-span-3 truncate text-sm text-slate-600"
+                  className="col-span-2 truncate text-sm text-slate-600"
                   title={cliente.observaciones || ''}
                 >
                   {cliente.observaciones || '—'}
                 </span>
-                <div className="col-span-3 flex justify-center gap-2">
+                <div className="col-span-4 mx-auto grid w-full max-w-64 grid-cols-2 gap-2 [&>button]:justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setClienteContactos(cliente)}
+                    aria-label={`Ver contactos de ${cliente.nombre_cliente}`}
+                    className="inline-flex items-center gap-1 rounded-lg border border-primary/20 px-3 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary/5"
+                  >
+                    <Contact className="h-3.5 w-3.5" />
+                    Contactos
+                  </button>
                   <button
                     type="button"
                     onClick={() => setClienteHistorial(cliente)}
@@ -358,6 +370,11 @@ export default function Clientes() {
       <HistorialClienteModal
         cliente={clienteHistorial}
         onClose={() => setClienteHistorial(null)}
+      />
+
+      <ClienteContactosModal
+        cliente={clienteContactos}
+        onClose={() => setClienteContactos(null)}
       />
     </div>
   );
