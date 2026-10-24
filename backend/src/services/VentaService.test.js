@@ -1,9 +1,11 @@
 jest.mock('../daos/VentaDAO');
 jest.mock('../daos/CajaDAO');
+jest.mock('../daos/PromocionDAO');
 jest.mock('./RecurrenteService');
 
 const VentaDAO = require('../daos/VentaDAO');
 const CajaDAO = require('../daos/CajaDAO');
+const PromocionDAO = require('../daos/PromocionDAO');
 const RecurrenteService = require('./RecurrenteService');
 const VentaService = require('./VentaService');
 const terminalOriginal = process.env.RECURRENTE_TERMINAL_ID;
@@ -34,6 +36,7 @@ const datosVenta = {
 const lotesDisponibles = [
   {
     id_lote: 1,
+    id_producto: 1,
     id_sucursal: 1,
     stock_actual: 4,
     precio_venta: '10.00',
@@ -43,6 +46,7 @@ const lotesDisponibles = [
   },
   {
     id_lote: 2,
+    id_producto: 2,
     id_sucursal: 1,
     stock_actual: 5,
     precio_venta: '7.50',
@@ -62,6 +66,7 @@ describe('VentaService', () => {
       id_usuario_apertura: 7,
       estado: 'abierta',
     });
+    PromocionDAO.obtenerVigentesParaVenta.mockResolvedValue([]);
   });
 
   afterAll(() => {
@@ -129,6 +134,34 @@ describe('VentaService', () => {
       expect(VentaDAO.descontarStock.mock.invocationCallOrder[1])
         .toBeLessThan(VentaDAO.crearDetalle.mock.invocationCallOrder[1]);
       expect(resultado).toEqual({ id_venta: 21, total: '25.00' });
+    });
+
+    it('guarda en el detalle el precio promocional realmente cobrado', async () => {
+      VentaDAO.obtenerLotesParaVenta.mockResolvedValue(lotesDisponibles);
+      PromocionDAO.obtenerVigentesParaVenta.mockResolvedValue([{
+        id_promocion: 4,
+        id_producto: 2,
+        cantidad_minima: 2,
+        precio_promocion: '6.00',
+      }]);
+      VentaDAO.crearVenta.mockResolvedValue({ id_venta: 21 });
+      VentaDAO.descontarStock.mockResolvedValue({ id_lote: 1 });
+      VentaDAO.crearDetalle.mockResolvedValue({});
+      VentaDAO.obtenerPorId.mockResolvedValue({ id_venta: 21, total: '22.00' });
+
+      await VentaService.crearVenta(datosVenta, usuarioDependiente);
+
+      expect(VentaDAO.crearVenta).toHaveBeenCalledWith(
+        expect.objectContaining({ total: '22.00', cambio: '8.00' }),
+        {},
+      );
+      expect(VentaDAO.crearDetalle).toHaveBeenCalledWith({
+        id_venta: 21,
+        id_lote: 2,
+        cantidad: 2,
+        precio_unitario: '6.00',
+        costo_unitario: '4.10',
+      }, {});
     });
 
     it('interrumpe la creación de detalles cuando el descuento atómico de stock falla', async () => {
@@ -374,6 +407,50 @@ describe('VentaService', () => {
       expect(VentaDAO.crearVenta).not.toHaveBeenCalled();
       expect(VentaDAO.descontarStock).not.toHaveBeenCalled();
       expect(VentaDAO.crearDetalle).not.toHaveBeenCalled();
+    });
+
+    it('envía al POS el total promocional calculado por el backend', async () => {
+      process.env.RECURRENTE_TERMINAL_ID = 'trm_test_123';
+      VentaDAO.obtenerLotesParaVenta.mockResolvedValue(lotesDisponibles);
+      PromocionDAO.obtenerVigentesParaVenta.mockResolvedValue([{
+        id_promocion: 4,
+        id_producto: 2,
+        cantidad_minima: 2,
+        precio_promocion: '6.00',
+      }]);
+      VentaDAO.crearPagoPOS.mockResolvedValue({
+        id_pago_pos: 5,
+        external_id: 'farmacom-pos-promo',
+        terminal_id: 'trm_test_123',
+        total: '22.00',
+        estado: 'pendiente',
+      });
+      VentaDAO.actualizarPagoPOS.mockResolvedValue({
+        id_pago_pos: 5,
+        external_id: 'farmacom-pos-promo',
+        terminal_id: 'trm_test_123',
+        total: '22.00',
+        estado: 'pendiente',
+      });
+      RecurrenteService.crearComandoTerminal.mockResolvedValue({
+        id: 'tsc_promo',
+        status: 'pending',
+      });
+
+      await VentaService.crearPagoPOS(datosVenta, usuarioDependiente);
+
+      expect(RecurrenteService.crearComandoTerminal).toHaveBeenCalledWith(
+        expect.objectContaining({ totalCentavos: 2200 }),
+      );
+      expect(VentaDAO.crearPagoPOS).toHaveBeenCalledWith(
+        expect.objectContaining({
+          total: '22.00',
+          detalles: expect.arrayContaining([
+            expect.objectContaining({ id_lote: 2, precio_unitario: '6.00' }),
+          ]),
+        }),
+        {},
+      );
     });
 
     it('marca la orden como fallida si Recurrente rechaza el comando de terminal', async () => {

@@ -5,11 +5,13 @@ const MAXIMO_CENTAVOS = 999999999999;
 const aCentavos = (monto) => Math.round(Number(monto) * 100);
 const aMonto = (centavos) => (centavos / 100).toFixed(2);
 
-const calcularDetalles = (detallesValidados) => {
+const calcularDetalles = (detallesValidados, promocionesPorProducto = new Map()) => {
   let totalCentavos = 0;
 
   const detallesCalculados = detallesValidados.map(({ id_lote, cantidad, lote }) => {
-    const precioCentavos = aCentavos(lote.precio_venta);
+    const promocion = promocionesPorProducto.get(Number(lote.id_producto));
+    const precioAplicado = promocion?.precio_promocion ?? lote.precio_venta;
+    const precioCentavos = aCentavos(precioAplicado);
     const costoCentavos = aCentavos(lote.precio_compra);
     const subtotalCentavos = precioCentavos * cantidad;
 

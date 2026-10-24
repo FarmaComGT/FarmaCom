@@ -1,5 +1,6 @@
 const VentaDAO = require('../daos/VentaDAO');
 const CajaDAO = require('../daos/CajaDAO');
+const PromocionDAO = require('../daos/PromocionDAO');
 const { lanzarError } = require('./VentaErrores');
 const { calcularDetalles } = require('./VentaMonetariaService');
 const { validarPertenenciaSesionCaja } = require('../utils/accesoCaja');
@@ -54,6 +55,38 @@ const validarSesionCaja = async (datos, usuario, client) => {
   return Number(sesion.id_sesion_caja);
 };
 
+const obtenerPromocionesAplicables = async (detallesValidados, idSucursal, client) => {
+  const cantidadesPorProducto = new Map();
+
+  detallesValidados.forEach(({ cantidad, lote }) => {
+    const idProducto = Number(lote.id_producto);
+    cantidadesPorProducto.set(
+      idProducto,
+      (cantidadesPorProducto.get(idProducto) || 0) + Number(cantidad),
+    );
+  });
+
+  const promocionesVigentes = await PromocionDAO.obtenerVigentesParaVenta(
+    [...cantidadesPorProducto.keys()].sort((a, b) => a - b),
+    Number(idSucursal),
+    client,
+  );
+  const promocionesPorProducto = new Map();
+
+  promocionesVigentes.forEach((promocion) => {
+    const idProducto = Number(promocion.id_producto);
+    const cantidadTotal = cantidadesPorProducto.get(idProducto) || 0;
+    if (
+      cantidadTotal >= Number(promocion.cantidad_minima)
+      && !promocionesPorProducto.has(idProducto)
+    ) {
+      promocionesPorProducto.set(idProducto, promocion);
+    }
+  });
+
+  return promocionesPorProducto;
+};
+
 const prepararVenta = async (datos, usuario, client) => {
   const { id_sucursal, id_cliente = null, detalles } = datos;
   const idsLote = validarDatosBasicosVenta(datos, usuario);
@@ -91,7 +124,15 @@ const prepararVenta = async (datos, usuario, client) => {
     return { id_lote: idLote, cantidad: cantidadSolicitada, lote };
   });
 
-  const { totalCentavos, detallesCalculados } = calcularDetalles(detallesValidados);
+  const promocionesPorProducto = await obtenerPromocionesAplicables(
+    detallesValidados,
+    id_sucursal,
+    client,
+  );
+  const { totalCentavos, detallesCalculados } = calcularDetalles(
+    detallesValidados,
+    promocionesPorProducto,
+  );
 
   return {
     id_sucursal: Number(id_sucursal),
@@ -107,5 +148,6 @@ module.exports = {
   verificarCliente,
   validarDatosBasicosVenta,
   validarSesionCaja,
+  obtenerPromocionesAplicables,
   prepararVenta,
 };
