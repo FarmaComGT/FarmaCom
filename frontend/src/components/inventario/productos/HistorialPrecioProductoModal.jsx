@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarDays, History, RefreshCw, X } from 'lucide-react';
+import { CalendarDays, ChevronDown, History, RefreshCw, X } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -39,12 +39,11 @@ function TooltipPrecio({ active, payload }) {
     <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs shadow-xl">
       <p className="font-bold text-primary">Lote {cambio.numero_lote}</p>
       <p className="mt-1 capitalize text-slate-500">
-        {cambio.es_inicial ? 'Valor inicial' : 'Precio'} de {cambio.tipo_precio}
+        {cambio.es_inicial ? 'Precio inicial' : 'Nuevo precio'} de {cambio.tipo_precio}
       </p>
       <p className="mt-1 font-extrabold text-slate-800">{formatearMoneda(cambio.valor_nuevo)}</p>
-      <p className="mt-1 text-slate-400">
-        {cambio.es_inicial ? 'Antes del ' : ''}{formatearFechaHora(cambio.fecha_cambio)}
-      </p>
+      <p className="mt-1 text-slate-500">{cambio.nombre_sucursal}</p>
+      <p className="mt-1 text-slate-400">{formatearFechaHora(cambio.fecha_cambio)}</p>
     </div>
   );
 }
@@ -53,6 +52,8 @@ export default function HistorialPrecioProductoModal({ producto, isOpen, onClose
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [tipoGrafica, setTipoGrafica] = useState('venta');
+  const [idSucursalSeleccionada, setIdSucursalSeleccionada] = useState('');
+  const botonCerrarRef = useRef(null);
   const { historial, cargando, error, recargar } = useHistorialPreciosProducto(
     producto?.id_producto,
     { enabled: isOpen },
@@ -63,37 +64,63 @@ export default function HistorialPrecioProductoModal({ producto, isOpen, onClose
     setFechaDesde('');
     setFechaHasta('');
     setTipoGrafica('venta');
+    setIdSucursalSeleccionada('');
   }, [isOpen, producto?.id_producto]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const elementoActivo = document.activeElement;
+    botonCerrarRef.current?.focus();
+    const cerrarConEscape = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', cerrarConEscape);
+
+    return () => {
+      document.removeEventListener('keydown', cerrarConEscape);
+      elementoActivo?.focus?.();
+    };
+  }, [isOpen, onClose]);
+
+  const sucursales = useMemo(() => Array.from(
+    new Map(historial.map((cambio) => [String(cambio.id_sucursal), {
+      id_sucursal: String(cambio.id_sucursal),
+      nombre_sucursal: cambio.nombre_sucursal,
+    }])).values(),
+  ).sort((a, b) => a.nombre_sucursal.localeCompare(b.nombre_sucursal, 'es')), [historial]);
+
+  const idSucursalActiva = sucursales.some(
+    (sucursal) => sucursal.id_sucursal === idSucursalSeleccionada,
+  )
+    ? idSucursalSeleccionada
+    : (sucursales[0]?.id_sucursal || '');
 
   const rangoInvalido = Boolean(fechaDesde && fechaHasta && fechaDesde > fechaHasta);
   const historialFiltrado = useMemo(
-    () => (rangoInvalido ? [] : filtrarPorFechas(historial, fechaDesde, fechaHasta)),
-    [fechaDesde, fechaHasta, historial, rangoInvalido],
+    () => (rangoInvalido ? [] : filtrarPorFechas(
+      historial.filter((cambio) => String(cambio.id_sucursal) === idSucursalActiva),
+      fechaDesde,
+      fechaHasta,
+    )),
+    [fechaDesde, fechaHasta, historial, idSucursalActiva, rangoInvalido],
   );
   const datosGrafica = useMemo(() => {
     const cambios = historialFiltrado
       .filter((cambio) => cambio.tipo_precio === tipoGrafica)
-      .reverse();
+      .sort((a, b) => new Date(a.fecha_cambio) - new Date(b.fecha_cambio));
+    const incluyeValorInicial = cambios[0]?.valor_anterior === null;
 
-    if (cambios.length === 0) return [];
-
-    const primerCambio = cambios[0];
-    return [
-      {
-        ...primerCambio,
-        id_grafica: `inicial-${primerCambio.id_historial_precio}`,
-        etiqueta: 'Inicial',
-        valor_nuevo: Number(primerCambio.valor_anterior),
-        es_inicial: true,
-      },
-      ...cambios.map((cambio, indice) => ({
+    return cambios.map((cambio, indice) => {
+      const esInicial = cambio.valor_anterior === null;
+      return {
         ...cambio,
         id_grafica: `cambio-${cambio.id_historial_precio}`,
-        etiqueta: String(indice + 1),
+        etiqueta: esInicial ? 'Inicial' : String(indice + (incluyeValorInicial ? 0 : 1)),
         valor_nuevo: Number(cambio.valor_nuevo),
-        es_inicial: false,
-      })),
-    ];
+        es_inicial: esInicial,
+      };
+    });
   }, [historialFiltrado, tipoGrafica]);
 
   if (!isOpen || !producto || typeof document === 'undefined') return null;
@@ -113,7 +140,7 @@ export default function HistorialPrecioProductoModal({ producto, isOpen, onClose
             </span>
             <div className="min-w-0">
               <h2 id="titulo-historial-precios" className="truncate font-headline text-xl font-extrabold text-primary">
-                Historial de precios
+                Historial de precios por ingreso de lote
               </h2>
               <p className="truncate text-sm text-slate-500">
                 {producto.nombre_comercial} · {producto.codigo}
@@ -121,57 +148,81 @@ export default function HistorialPrecioProductoModal({ producto, isOpen, onClose
             </div>
           </div>
           <button
+            ref={botonCerrarRef}
             type="button"
             onClick={onClose}
             aria-label="Cerrar historial de precios"
-            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </header>
 
         <div className="space-y-6 overflow-y-auto p-6">
-          <div className="flex flex-col gap-4 rounded-2xl bg-slate-50 p-4 sm:flex-row sm:items-end">
-            <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
+          <div className="grid gap-4 rounded-2xl bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-[auto_1fr_1fr_1fr_auto] lg:items-end">
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-600 sm:col-span-2 lg:col-span-1 lg:self-center">
               <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />
-              Filtrar por fecha
+              Filtrar historial
             </div>
-            <label className="text-xs font-bold text-slate-500">
+            <label className="text-xs font-bold text-slate-600">
+              Sucursal
+              <div className="relative mt-1">
+                <select
+                  value={idSucursalActiva}
+                  onChange={(event) => setIdSucursalSeleccionada(event.target.value)}
+                  disabled={sucursales.length <= 1}
+                  className="block w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-10 text-base font-medium text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-default disabled:bg-slate-100 sm:text-sm"
+                >
+                  {sucursales.map((sucursal) => (
+                    <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>
+                      {sucursal.nombre_sucursal}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+                />
+              </div>
+            </label>
+            <label className="text-xs font-bold text-slate-600">
               Desde
               <input
                 type="date"
                 value={fechaDesde}
                 onChange={(event) => setFechaDesde(event.target.value)}
-                className="mt-1 block rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-primary/20"
+                className="mt-1 block w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-2 text-base font-medium text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 sm:text-sm"
               />
             </label>
-            <label className="text-xs font-bold text-slate-500">
+            <label className="text-xs font-bold text-slate-600">
               Hasta
               <input
                 type="date"
                 value={fechaHasta}
                 onChange={(event) => setFechaHasta(event.target.value)}
-                className="mt-1 block rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-primary/20"
+                className="mt-1 block w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-2 text-base font-medium text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 sm:text-sm"
               />
             </label>
-            {(fechaDesde || fechaHasta) && (
+            <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-1 lg:justify-end">
+              {(fechaDesde || fechaHasta) && (
+                <button
+                  type="button"
+                  onClick={() => { setFechaDesde(''); setFechaHasta(''); }}
+                  className="rounded-xl px-3 py-2 text-sm font-bold text-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                >
+                  Limpiar
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => { setFechaDesde(''); setFechaHasta(''); }}
-                className="rounded-xl px-3 py-2 text-sm font-bold text-primary hover:bg-primary/5"
+                onClick={recargar}
+                disabled={cargando}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-50"
               >
-                Limpiar filtros
+                <RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} aria-hidden="true" />
+                Actualizar
               </button>
-            )}
-            <button
-              type="button"
-              onClick={recargar}
-              disabled={cargando}
-              className="sm:ml-auto inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 hover:text-primary disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} aria-hidden="true" />
-              Actualizar
-            </button>
+            </div>
           </div>
 
           {rangoInvalido && (
@@ -185,14 +236,23 @@ export default function HistorialPrecioProductoModal({ producto, isOpen, onClose
           )}
 
           {!cargando && error && (
-            <p role="alert" className="rounded-xl bg-error-container/30 px-4 py-3 text-sm font-semibold text-on-error-container">
-              {error}
-            </p>
+            <div role="alert" className="flex flex-col gap-3 rounded-xl bg-error-container/30 px-4 py-3 text-sm font-semibold text-on-error-container sm:flex-row sm:items-center sm:justify-between">
+              <span>{error}</span>
+              <button
+                type="button"
+                onClick={recargar}
+                className="w-fit rounded-lg bg-white/80 px-3 py-2 font-bold text-on-error-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-error-container/30"
+              >
+                Intentar de nuevo
+              </button>
+            </div>
           )}
 
           {!cargando && !error && !rangoInvalido && historialFiltrado.length === 0 && (
             <div className="rounded-2xl border border-dashed border-slate-200 py-14 text-center text-sm font-medium text-slate-500">
-              No hay cambios de precio en el período seleccionado.
+              {historial.length === 0
+                ? 'Aún no hay precios registrados mediante el ingreso de lotes.'
+                : 'No hay precios registrados con los filtros seleccionados.'}
             </div>
           )}
 
@@ -212,7 +272,7 @@ export default function HistorialPrecioProductoModal({ producto, isOpen, onClose
                       type="button"
                       aria-pressed={tipoGrafica === 'compra'}
                       onClick={() => setTipoGrafica('compra')}
-                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700/30 ${
                         tipoGrafica === 'compra'
                           ? 'bg-teal-700 text-white shadow-sm'
                           : 'text-slate-500 hover:text-teal-700'
@@ -225,7 +285,7 @@ export default function HistorialPrecioProductoModal({ producto, isOpen, onClose
                       type="button"
                       aria-pressed={tipoGrafica === 'venta'}
                       onClick={() => setTipoGrafica('venta')}
-                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/30 ${
                         tipoGrafica === 'venta'
                           ? 'bg-amber-600 text-white shadow-sm'
                           : 'text-slate-500 hover:text-amber-700'
@@ -237,28 +297,30 @@ export default function HistorialPrecioProductoModal({ producto, isOpen, onClose
                   </div>
                 </div>
                 {datosGrafica.length > 0 ? (
-                  <div className="mt-4 h-72 min-w-[520px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={datosGrafica} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
-                        <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="etiqueta" axisLine={false} tickLine={false} />
-                        <YAxis
-                          tickFormatter={(valor) => `Q${valor}`}
-                          axisLine={false}
-                          tickLine={false}
-                          width={62}
-                        />
-                        <Tooltip content={<TooltipPrecio />} cursor={{ fill: '#005147', opacity: 0.05 }} />
-                        <Bar dataKey="valor_nuevo" name="Precio nuevo" radius={[6, 6, 0, 0]} maxBarSize={38}>
-                          {datosGrafica.map((cambio) => (
-                            <Cell
-                              key={cambio.id_grafica}
-                              fill={COLORES_TIPO[cambio.tipo_precio] || '#64748b'}
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <div className="mt-4 overflow-x-auto pb-2">
+                    <div className="h-72 min-w-[520px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={datosGrafica} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+                          <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey="etiqueta" axisLine={false} tickLine={false} />
+                          <YAxis
+                            tickFormatter={(valor) => `Q${valor}`}
+                            axisLine={false}
+                            tickLine={false}
+                            width={62}
+                          />
+                          <Tooltip content={<TooltipPrecio />} cursor={{ fill: '#005147', opacity: 0.05 }} />
+                          <Bar dataKey="valor_nuevo" name="Precio registrado" radius={[6, 6, 0, 0]} maxBarSize={38}>
+                            {datosGrafica.map((cambio) => (
+                              <Cell
+                                key={cambio.id_grafica}
+                                fill={COLORES_TIPO[cambio.tipo_precio] || '#64748b'}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 ) : (
                   <div className="mt-4 flex h-72 items-center justify-center rounded-xl bg-slate-50 text-sm font-medium text-slate-500">
@@ -269,13 +331,14 @@ export default function HistorialPrecioProductoModal({ producto, isOpen, onClose
 
               <section aria-labelledby="titulo-tabla-precios" className="overflow-hidden rounded-2xl border border-slate-200">
                 <h3 id="titulo-tabla-precios" className="border-b border-slate-100 px-5 py-4 font-headline text-base font-extrabold text-slate-800">
-                  Detalle de cambios
+                  Detalle de cambios de compra y venta
                 </h3>
                 <div className="overflow-x-auto">
-                  <table className="min-w-[860px] w-full text-left text-sm">
+                  <table className="min-w-[960px] w-full text-left text-sm">
                     <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                       <tr>
                         <th className="px-5 py-3">Fecha</th>
+                        <th className="px-5 py-3">Sucursal</th>
                         <th className="px-5 py-3">Lote</th>
                         <th className="px-5 py-3">Tipo</th>
                         <th className="px-5 py-3 text-right">Anterior</th>
@@ -287,14 +350,19 @@ export default function HistorialPrecioProductoModal({ producto, isOpen, onClose
                       {historialFiltrado.map((cambio) => (
                         <tr key={cambio.id_historial_precio}>
                           <td className="whitespace-nowrap px-5 py-3 text-slate-600">{formatearFechaHora(cambio.fecha_cambio)}</td>
+                          <td className="px-5 py-3 text-slate-600">{cambio.nombre_sucursal}</td>
                           <td className="px-5 py-3 font-mono text-xs text-slate-600">{cambio.numero_lote}</td>
                           <td className="px-5 py-3">
                             <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold capitalize text-slate-700">
                               {cambio.tipo_precio}
                             </span>
                           </td>
-                          <td className="px-5 py-3 text-right text-slate-500">{formatearMoneda(cambio.valor_anterior)}</td>
-                          <td className="px-5 py-3 text-right font-bold text-primary">{formatearMoneda(cambio.valor_nuevo)}</td>
+                          <td className="px-5 py-3 text-right tabular-nums text-slate-500">
+                            {cambio.valor_anterior === null
+                              ? <span className="font-semibold text-slate-400">Inicial</span>
+                              : formatearMoneda(cambio.valor_anterior)}
+                          </td>
+                          <td className="px-5 py-3 text-right font-bold tabular-nums text-primary">{formatearMoneda(cambio.valor_nuevo)}</td>
                           <td className="px-5 py-3 text-slate-700">{cambio.nombre_usuario}</td>
                         </tr>
                       ))}

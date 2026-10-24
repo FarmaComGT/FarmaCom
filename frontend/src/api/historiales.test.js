@@ -19,24 +19,17 @@ describe('API de historiales', () => {
     expect(api.get).toHaveBeenCalledWith('/expedientes/7/bitacora');
   });
 
-  it('agrupa y ordena los cambios de precio de todos los lotes del producto', async () => {
-    api.get.mockImplementation(async (ruta) => {
-      if (ruta === '/lotes/producto/4') {
-        return { data: [
-          { id_lote: 10, numero_lote: 'LOTE-A' },
-          { id_lote: 11, numero_lote: 'LOTE-B' },
-        ] };
-      }
-      if (ruta === '/lotes/10/historial-precios') {
-        return { data: [{ id_historial_precio: 1, fecha_cambio: '2026-01-01T10:00:00Z' }] };
-      }
-      return { data: [{ id_historial_precio: 2, fecha_cambio: '2026-02-01T10:00:00Z' }] };
-    });
+  it('consulta el historial completo del producto en una sola solicitud', async () => {
+    const historial = [
+      { id_historial_precio: 2, numero_lote: 'LOTE-B' },
+      { id_historial_precio: 1, numero_lote: 'LOTE-A' },
+    ];
+    api.get.mockResolvedValue({ data: historial });
 
     const resultado = await obtenerHistorialPreciosProducto(4);
 
-    expect(resultado.map((cambio) => cambio.id_historial_precio)).toEqual([2, 1]);
-    expect(resultado[0]).toMatchObject({ id_lote: 11, numero_lote: 'LOTE-B' });
-    expect(api.get).toHaveBeenCalledTimes(3);
+    expect(resultado).toEqual(historial);
+    expect(api.get).toHaveBeenCalledOnce();
+    expect(api.get).toHaveBeenCalledWith('/productos/4/historial-precios');
   });
 });
