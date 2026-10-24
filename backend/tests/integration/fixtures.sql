@@ -16,6 +16,12 @@ FROM ciudad
 WHERE nombre_ciudad = 'Guatemala'
 ON CONFLICT (nombre_laboratorio) DO NOTHING;
 
+INSERT INTO laboratorio (id_ciudad, nombre_laboratorio, direccion)
+SELECT id_ciudad, 'Laboratorio Aislado CI', 'Zona 2, Ciudad de Guatemala'
+FROM ciudad
+WHERE nombre_ciudad = 'Guatemala'
+ON CONFLICT (nombre_laboratorio) DO NOTHING;
+
 INSERT INTO usuario (
   id_sucursal,
   nombre_usuario,
@@ -34,6 +40,35 @@ WHERE nombre_sucursal = 'Sucursal Central'
 ON CONFLICT (correo_usuario) DO UPDATE SET
   contrasena_hash = EXCLUDED.contrasena_hash,
   estado_usuario = 'activo';
+
+INSERT INTO caja (id_sucursal, nombre)
+SELECT id_sucursal, 'Caja Integración CI'
+FROM sucursal
+WHERE nombre_sucursal = 'Sucursal Central'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO sesion_caja (
+  id_caja,
+  id_usuario_apertura,
+  turno,
+  fondo_inicial
+)
+SELECT
+  caja.id_caja,
+  usuario.id_usuario,
+  'noche',
+  500.00
+FROM caja
+JOIN sucursal ON sucursal.id_sucursal = caja.id_sucursal
+JOIN usuario ON usuario.correo_usuario = 'dueno@farma.com'
+WHERE caja.nombre = 'Caja Integración CI'
+  AND sucursal.nombre_sucursal = 'Sucursal Central'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM sesion_caja
+    WHERE sesion_caja.id_caja = caja.id_caja
+      AND sesion_caja.estado = 'abierta'
+  );
 
 INSERT INTO usuario (
   id_sucursal,
@@ -84,6 +119,37 @@ INSERT INTO expediente_laboratorio (id_paciente)
 SELECT id_paciente
 FROM paciente
 WHERE dpi = '1234567890101'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM expediente_laboratorio
+    WHERE expediente_laboratorio.id_paciente = paciente.id_paciente
+  );
+
+INSERT INTO paciente (
+  id_laboratorio,
+  nombre_paciente,
+  dpi,
+  edad_manual,
+  sexo,
+  direccion
+)
+SELECT
+  id_laboratorio,
+  'Paciente Laboratorio Aislado CI',
+  '1234567890199',
+  45,
+  'F',
+  'Datos ficticios para comprobar aislamiento'
+FROM laboratorio
+WHERE nombre_laboratorio = 'Laboratorio Aislado CI'
+  AND NOT EXISTS (
+    SELECT 1 FROM paciente WHERE dpi = '1234567890199'
+  );
+
+INSERT INTO expediente_laboratorio (id_paciente)
+SELECT id_paciente
+FROM paciente
+WHERE dpi = '1234567890199'
   AND NOT EXISTS (
     SELECT 1
     FROM expediente_laboratorio
