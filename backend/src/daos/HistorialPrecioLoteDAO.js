@@ -63,6 +63,34 @@ class HistorialPrecioLoteDAO {
     );
     return rows;
   }
+
+  async obtenerPorProducto(id_producto) {
+    const { rows } = await pool.query(
+      `SELECT
+         h.id_historial_precio,
+         h.id_lote,
+         l.numero_lote,
+         l.fecha_ingreso,
+         l.id_sucursal,
+         s.nombre_sucursal,
+         h.tipo_precio,
+         h.valor_anterior,
+         h.valor_nuevo,
+         h.origen,
+         h.id_usuario,
+         u.nombre_usuario,
+         h.fecha_cambio
+       FROM historial_precio_lote h
+       JOIN lote l ON l.id_lote = h.id_lote
+       JOIN sucursal s ON s.id_sucursal = l.id_sucursal
+       JOIN usuario u ON u.id_usuario = h.id_usuario
+       WHERE l.id_producto = $1
+         AND h.origen = 'ingreso_lote'
+       ORDER BY h.fecha_cambio DESC, h.id_historial_precio DESC`,
+      [id_producto],
+    );
+    return rows;
+  }
 }
 
 module.exports = new HistorialPrecioLoteDAO();

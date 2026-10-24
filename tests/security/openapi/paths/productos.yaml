@@ -39,6 +39,19 @@ porId:
       '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
       '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
       '404': { $ref: '../components/responses.yaml#/NoEncontrado' }
+historialPrecios:
+  get:
+    tags: [Productos]
+    operationId: obtenerHistorialPreciosProducto
+    x-farmacom-roles: [dueno, administrador]
+    parameters:
+      - { $ref: '../components/parameters.yaml#/Id' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+      '404': { $ref: '../components/responses.yaml#/NoEncontrado' }
 promociones:
   get:
     tags: [Productos]

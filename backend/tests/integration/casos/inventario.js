@@ -54,6 +54,32 @@ module.exports = ({ app, iniciarSesion, pool, request }) => {
         precio_compra: '8.75',
       });
 
+      const historialPrecios = await request(app)
+        .get(`/api/productos/${producto.body.id_producto}/historial-precios`)
+        .set('Cookie', cookie)
+        .expect(200);
+
+      expect(historialPrecios.body).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          id_lote: lote.body.id_lote,
+          numero_lote: `LT-${sufijo}`,
+          id_sucursal: ids.id_sucursal,
+          tipo_precio: 'compra',
+          valor_anterior: null,
+          valor_nuevo: '8.75',
+          origen: 'ingreso_lote',
+        }),
+        expect.objectContaining({
+          id_lote: lote.body.id_lote,
+          numero_lote: `LT-${sufijo}`,
+          id_sucursal: ids.id_sucursal,
+          tipo_precio: 'venta',
+          valor_anterior: null,
+          valor_nuevo: '12.50',
+          origen: 'ingreso_lote',
+        }),
+      ]));
+
       const persistencia = await pool.query(
         `SELECT p.codigo, l.numero_lote, l.stock_actual, l.precio_compra::TEXT
          FROM producto p

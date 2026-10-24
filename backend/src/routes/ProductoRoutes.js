@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const ProductoController = require('../controllers/ProductoController');
 const PromocionController = require('../controllers/PromocionController');
+const HistorialPrecioLoteController = require('../controllers/HistorialPrecioLoteController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
@@ -32,6 +33,14 @@ router.get('/autocompletar',
   validarAutocompletado,
   validateRequest,
   ProductoController.autocompletarParaPOS,
+);
+
+router.get('/:id/historial-precios',
+  verificarToken,
+  verificarRol('dueno', 'administrador'),
+  validarParamId,
+  validateRequest,
+  HistorialPrecioLoteController.obtenerPorProducto,
 );
 
 router.get('/:id',

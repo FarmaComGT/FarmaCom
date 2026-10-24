@@ -79,11 +79,32 @@ describe('HistorialPrecioLoteDAO', () => {
     });
   });
 
-  it('consulta el historial mas reciente del lote', async () => {
+  it('consulta el historial más reciente del lote', async () => {
     const filas = [{ id_historial_precio: 3, id_lote: 7 }];
     pool.query.mockResolvedValue({ rows: filas });
 
     await expect(HistorialPrecioLoteDAO.obtenerPorLote(7)).resolves.toEqual(filas);
     expect(pool.query).toHaveBeenCalledWith(expect.any(String), [7]);
+  });
+
+  it('consulta por producto solamente los precios originados por ingresos', async () => {
+    const filas = [{
+      id_historial_precio: 4,
+      id_lote: 8,
+      numero_lote: 'LT-08',
+      nombre_sucursal: 'Central',
+    }];
+    pool.query.mockResolvedValue({ rows: filas });
+
+    await expect(
+      HistorialPrecioLoteDAO.obtenerPorProducto(2),
+    ).resolves.toEqual(filas);
+
+    const [consulta, valores] = pool.query.mock.calls[0];
+    expect(consulta).toContain('JOIN lote l ON l.id_lote = h.id_lote');
+    expect(consulta).toContain('JOIN sucursal s ON s.id_sucursal = l.id_sucursal');
+    expect(consulta).toContain("AND h.origen = 'ingreso_lote'");
+    expect(consulta).toContain('ORDER BY h.fecha_cambio DESC');
+    expect(valores).toEqual([2]);
   });
 });

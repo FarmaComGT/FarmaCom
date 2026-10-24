@@ -49,6 +49,8 @@ paths:
     $ref: './paths/productos.yaml#/autocompletar'
   /api/productos/{id}:
     $ref: './paths/productos.yaml#/porId'
+  /api/productos/{id}/historial-precios:
+    $ref: './paths/productos.yaml#/historialPrecios'
   /api/productos/{id_producto}/promociones:
     $ref: './paths/productos.yaml#/promociones'
   /api/promociones/{id}:

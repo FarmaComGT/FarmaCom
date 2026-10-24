@@ -4,11 +4,13 @@ jest.mock('../middlewares/verificarToken', () => (req, _res, next) => {
 });
 jest.mock('../middlewares/verificarRol', () => () => (_req, _res, next) => next());
 jest.mock('../services/ProductoService');
+jest.mock('../services/HistorialPrecioLoteService');
 jest.mock('../controllers/PromocionController');
 
 const express = require('express');
 const request = require('supertest');
 const ProductoService = require('../services/ProductoService');
+const HistorialPrecioLoteService = require('../services/HistorialPrecioLoteService');
 const ProductoRoutes = require('./ProductoRoutes');
 const errorHandler = require('../middlewares/errorHandler');
 
@@ -114,5 +116,34 @@ describe('ProductoRoutes - autocompletado para POS', () => {
 
     expect(respuesta.status).toBe(400);
     expect(ProductoService.autocompletarParaPOS).not.toHaveBeenCalled();
+  });
+});
+
+describe('ProductoRoutes - historial de precios', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('expone el historial completo del producto en una sola solicitud', async () => {
+    const historial = [{
+      id_historial_precio: 2,
+      id_lote: 8,
+      numero_lote: 'LT-08',
+      nombre_sucursal: 'Central',
+    }];
+    HistorialPrecioLoteService.obtenerPorProducto.mockResolvedValue(historial);
+
+    const respuesta = await request(crearApp())
+      .get('/api/productos/5/historial-precios');
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body).toEqual(historial);
+    expect(HistorialPrecioLoteService.obtenerPorProducto).toHaveBeenCalledWith(5);
+  });
+
+  it('rechaza identificadores de producto inválidos', async () => {
+    const respuesta = await request(crearApp())
+      .get('/api/productos/no-valido/historial-precios');
+
+    expect(respuesta.status).toBe(400);
+    expect(HistorialPrecioLoteService.obtenerPorProducto).not.toHaveBeenCalled();
   });
 });
