@@ -16,6 +16,8 @@ const {
 } = require('../validators/productoValidators');
 
 const router = Router();
+const rolesConsultaPromociones = verificarRol('dueno', 'administrador', 'dependiente');
+const rolesAdministracionPromociones = verificarRol('dueno', 'administrador');
 
 router.get('/',
   verificarToken,
@@ -77,7 +79,7 @@ router.patch('/:id/estado',
 
 router.post('/:id_producto/promociones',
   verificarToken,
-  verificarRol('dependiente'),
+  rolesAdministracionPromociones,
   validarParamIdProducto,
   validarCreacionPromocion,
   validateRequest,
@@ -86,7 +88,7 @@ router.post('/:id_producto/promociones',
 
 router.get('/:id_producto/promociones',
   verificarToken,
-  verificarRol('dependiente'),
+  rolesConsultaPromociones,
   validarParamIdProducto,
   validateRequest,
   PromocionController.obtenerPorProducto,
