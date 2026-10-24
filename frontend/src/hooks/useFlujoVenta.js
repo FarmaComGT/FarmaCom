@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { crearPagoPOS, crearVenta, obtenerEstadoPagoPOS, obtenerVentaPorId } from '../api/ventas.js';
+import { asignarLotesFEFO } from '../utils/pos.js';
 
 export const construirPayloadVenta = ({ items, sucursalId, sesionCajaId, clienteId }) => {
   if (!sucursalId) throw new Error('No hay una sucursal activa para registrar la venta.');
   if (!sesionCajaId) throw new Error('Selecciona una caja con un turno abierto antes de procesar la venta.');
-  const detalles = items.map((item) => ({ id_lote: Number(item.id_lote), cantidad: Number(item.cantidad) }));
+  const detalles = items.flatMap((item) => asignarLotesFEFO(item, item.cantidad));
   if (detalles.some((detalle) => !detalle.id_lote || detalle.cantidad <= 0)) {
     throw new Error('El carrito contiene productos sin lote válido.');
   }

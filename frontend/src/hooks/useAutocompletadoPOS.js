@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/axios';
+import { agruparLotesPorProductoPOS } from '../utils/pos';
 
 const normalizarProducto = (producto) => {
-  const precioVenta = Number(producto.precio_venta);
+  const precioVenta = producto.precio_venta === null
+    ? null
+    : Number(producto.precio_venta);
   const relevancia = Number(producto.relevancia);
 
   return {
     ...producto,
     id_producto: Number(producto.id_producto),
-    id_lote: Number(producto.id_lote),
-    carritoKey: `lote-${producto.id_lote}`,
     stock_disponible: Number(producto.stock_disponible),
     precio_venta: precioVenta,
     tiene_precio: Number.isFinite(precioVenta) && precioVenta > 0,
@@ -46,7 +47,7 @@ export default function useAutocompletadoPOS(busqueda, limite = 10) {
         params: { busqueda: terminoNormalizado, limite },
       });
       // El backend ya aplica prioridad directa y Damerau-Levenshtein a las aproximadas.
-      const resultados = respuesta.data.map(normalizarProducto);
+      const resultados = agruparLotesPorProductoPOS(respuesta.data).map(normalizarProducto);
 
       if (idSolicitud === solicitudActual.current) {
         setProductos(resultados);

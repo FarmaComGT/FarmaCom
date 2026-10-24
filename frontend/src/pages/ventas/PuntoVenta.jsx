@@ -100,7 +100,7 @@ export default function PuntoVenta() {
 
   const incrementarProducto = useCallback((item) => {
     if (item.cantidad >= item.stock_disponible) {
-      setAviso(`Solo hay ${item.stock_disponible} unidades disponibles en este lote.`);
+      setAviso(`Solo hay ${item.stock_disponible} unidades disponibles para este producto.`);
       return;
     }
 

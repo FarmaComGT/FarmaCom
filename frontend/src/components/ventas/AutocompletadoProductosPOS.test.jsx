@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import AutocompletadoProductosPOS from './AutocompletadoProductosPOS';
 
 const producto = {
-  carritoKey: 'lote-1',
+  carritoKey: 'producto-1',
   id_producto: 1,
   id_lote: 1,
   codigo: 'MED-001',
@@ -19,6 +19,14 @@ const producto = {
   tiene_precio: true,
   estado_stock: 'normal',
   estado_vencimiento: 'normal',
+  cantidad_lotes: 1,
+  lotes: [{
+    id_lote: 1,
+    numero_lote: 'L-001',
+    fecha_vencimiento: '2027-01-01',
+    stock_disponible: 5,
+    precio_venta: 8.5,
+  }],
 };
 
 function Escenario({
@@ -59,7 +67,7 @@ describe('AutocompletadoProductosPOS', () => {
     const buscador = screen.getByLabelText('Buscar productos');
     await user.type(buscador, 'para');
 
-    expect(screen.getByRole('button', { name: 'Agregar Paracetamol, lote L-001' }))
+    expect(screen.getByRole('button', { name: 'Agregar Paracetamol' }))
       .toBeInTheDocument();
     expect(screen.getByText('1 resultado')).toBeInTheDocument();
 
@@ -122,7 +130,7 @@ describe('AutocompletadoProductosPOS', () => {
         ...producto,
         id_producto: 2,
         id_lote: 2,
-        carritoKey: 'lote-2',
+        carritoKey: 'producto-2',
         numero_lote: 'L-002',
         nombre_comercial: 'Paracetamol Forte',
         tipo_coincidencia: 'aproximada',
@@ -147,28 +155,36 @@ describe('AutocompletadoProductosPOS', () => {
     expect(container.querySelector('mark')).toHaveTextContent('Paracetam');
   });
 
-  it('mantiene la selección del lote al agregar un resultado', async () => {
+  it('agrega una sola opción agrupada con todos los lotes del producto', async () => {
     const user = userEvent.setup();
     const onAgregar = vi.fn();
-    const segundoLote = {
+    const productoAgrupado = {
       ...producto,
-      id_lote: 2,
-      carritoKey: 'lote-2',
-      numero_lote: 'L-002',
-      stock_disponible: 3,
+      cantidad_lotes: 2,
+      stock_disponible: 8,
+      lotes: [
+        ...producto.lotes,
+        {
+          id_lote: 2,
+          numero_lote: 'L-002',
+          fecha_vencimiento: '2027-06-01',
+          stock_disponible: 3,
+          precio_venta: 8.5,
+        },
+      ],
     };
-    render(<Escenario productos={[producto, segundoLote]} onAgregar={onAgregar} />);
+    render(<Escenario productos={[productoAgrupado]} onAgregar={onAgregar} />);
 
     await user.type(screen.getByLabelText('Buscar productos'), 'para');
-    await user.click(screen.getByRole('button', {
-      name: 'Agregar Paracetamol, lote L-002',
-    }));
+    await user.click(screen.getByRole('button', { name: 'Agregar Paracetamol' }));
 
-    expect(onAgregar).toHaveBeenCalledWith(segundoLote);
+    expect(screen.getByText('2 lotes')).toBeInTheDocument();
+    expect(onAgregar).toHaveBeenCalledWith(productoAgrupado);
     expect(onAgregar.mock.calls[0][0]).toMatchObject({
-      id_lote: 2,
-      carritoKey: 'lote-2',
-      stock_disponible: 3,
+      id_producto: 1,
+      carritoKey: 'producto-1',
+      stock_disponible: 8,
+      cantidad_lotes: 2,
     });
   });
 });

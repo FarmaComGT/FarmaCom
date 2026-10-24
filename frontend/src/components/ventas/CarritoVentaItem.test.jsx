@@ -5,13 +5,14 @@ import userEvent from '@testing-library/user-event';
 import CarritoVentaItem from './CarritoVentaItem';
 
 const item = {
-  clave: 'lote-1-presentacion-1',
+  clave: 'producto-1',
   nombre_comercial: 'Paracetamol',
   presentacion: 'Tableta',
   numero_lote: 'L-001',
   cantidad: 2,
   stock_disponible: 5,
   precioUnitario: 8.5,
+  cantidad_lotes: 2,
 };
 
 const propsBase = {
@@ -23,6 +24,12 @@ const propsBase = {
 };
 
 describe('CarritoVentaItem', () => {
+  it('indica que la salida de lotes se realizará automáticamente por FEFO', () => {
+    render(<CarritoVentaItem {...propsBase} />);
+
+    expect(screen.getByText(/FEFO automático · 2 lotes/)).toBeInTheDocument();
+  });
+
   it('avisa en tiempo real, mientras se escribe, si la cantidad excede el stock disponible', async () => {
     const user = userEvent.setup();
     render(<CarritoVentaItem {...propsBase} />);

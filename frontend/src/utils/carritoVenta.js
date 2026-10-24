@@ -2,7 +2,7 @@ export const mensajeStockAgotado = (producto) => {
   const disponible = Number(producto.stock_disponible) || 0;
   return disponible === 0
     ? `No hay existencias disponibles de ${producto.nombre_comercial}.`
-    : `Solo hay ${disponible} unidades disponibles en este lote.`;
+    : `Solo hay ${disponible} unidades disponibles para este producto.`;
 };
 
 export const validarProductoAgregable = (items, producto) => {
@@ -20,6 +20,6 @@ export const normalizarCantidadCarrito = (cantidad, stockDisponible) => {
   const stock = Math.max(0, Number(stockDisponible) || 0);
   return {
     cantidad: Math.max(0, Math.min(Math.floor(solicitada), stock)),
-    aviso: solicitada > stock ? `Solo hay ${stock} unidades disponibles en este lote.` : null,
+    aviso: solicitada > stock ? `Solo hay ${stock} unidades disponibles para este producto.` : null,
   };
 };

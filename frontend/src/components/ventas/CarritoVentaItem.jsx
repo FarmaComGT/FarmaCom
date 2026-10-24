@@ -28,6 +28,7 @@ export default function CarritoVentaItem({
   const excedeStock = cantidadTexto.trim() !== ''
     && Number.isFinite(cantidadNumerica)
     && cantidadNumerica > item.stock_disponible;
+  const cantidadLotes = Number(item.cantidad_lotes) || item.lotes?.length || 1;
 
   return (
     <div className="grid grid-cols-12 items-center gap-3 border-b border-slate-100 py-4 last:border-0">
@@ -36,7 +37,8 @@ export default function CarritoVentaItem({
           {item.nombre_comercial}
         </p>
         <p className="mt-0.5 truncate text-xs font-medium text-slate-400">
-          {item.presentacion} · lote {item.numero_lote}
+          {item.presentacion} · FEFO automático · {cantidadLotes}{' '}
+          {cantidadLotes === 1 ? 'lote' : 'lotes'}
         </p>
       </div>
 
