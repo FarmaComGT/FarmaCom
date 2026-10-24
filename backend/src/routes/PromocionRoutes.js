@@ -6,6 +6,8 @@ const verificarRol        = require('../middlewares/verificarRol');
 const validateRequest     = require('../middlewares/validateRequest');
 
 const router = Router();
+const rolesConsulta = verificarRol('dueno', 'administrador', 'dependiente');
+const rolesAdministracion = verificarRol('dueno', 'administrador');
 
 // ── validadores ───────────────────────────────────────────────────────────────
 
@@ -48,7 +50,7 @@ const validarCambioEstado = [
 // GET    /api/promociones/:id
 router.get('/:id',
   verificarToken,
-  verificarRol('dependiente'),
+  rolesConsulta,
   validarParamId,
   validateRequest,
   PromocionController.obtenerPorId,
@@ -57,7 +59,7 @@ router.get('/:id',
 // PUT    /api/promociones/:id
 router.put('/:id',
   verificarToken,
-  verificarRol('dependiente'),
+  rolesAdministracion,
   validarParamId,
   validarActualizacion,
   validateRequest,
@@ -67,7 +69,7 @@ router.put('/:id',
 // PATCH  /api/promociones/:id/estado — cancelación manual
 router.patch('/:id/estado',
   verificarToken,
-  verificarRol('dependiente'),
+  rolesAdministracion,
   validarParamId,
   validarCambioEstado,
   validateRequest,
@@ -77,7 +79,7 @@ router.patch('/:id/estado',
 // DELETE /api/promociones/:id — borrado físico
 router.delete('/:id',
   verificarToken,
-  verificarRol('dependiente'),
+  rolesAdministracion,
   validarParamId,
   validateRequest,
   PromocionController.eliminar,

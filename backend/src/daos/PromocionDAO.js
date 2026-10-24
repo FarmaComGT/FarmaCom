@@ -51,6 +51,30 @@ class PromocionDAO {
     return rows[0] || null;
   }
 
+  async obtenerVigentesParaVenta(idsProducto, idSucursal, client = pool) {
+    if (!idsProducto.length) return [];
+
+    const { rows } = await client.query(
+      `SELECT
+         id_promocion,
+         id_producto,
+         id_sucursal,
+         cantidad_minima,
+         precio_promocion,
+         fecha_inicio,
+         fecha_fin
+       FROM promocion
+       WHERE id_producto = ANY($1::int[])
+         AND id_sucursal = $2
+         AND activo = TRUE
+         AND CURRENT_DATE BETWEEN fecha_inicio AND fecha_fin
+       ORDER BY id_producto, precio_promocion, id_promocion
+       FOR SHARE`,
+      [idsProducto, idSucursal],
+    );
+    return rows;
+  }
+
   // Verifica si ya existe una promoción activa para el mismo producto + sucursal
   async existeActivaSolapada({ id_producto, id_sucursal, fecha_inicio, fecha_fin, excluir_id = null }) {
     const query = `

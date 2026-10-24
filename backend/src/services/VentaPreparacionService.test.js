@@ -1,14 +1,17 @@
 jest.mock('../daos/VentaDAO');
 jest.mock('../daos/CajaDAO');
+jest.mock('../daos/PromocionDAO');
 
 const VentaDAO = require('../daos/VentaDAO');
 const CajaDAO = require('../daos/CajaDAO');
+const PromocionDAO = require('../daos/PromocionDAO');
 const {
   puedeAccederSucursal,
   validarAccesoSucursal,
   verificarCliente,
   validarDatosBasicosVenta,
   validarSesionCaja,
+  obtenerPromocionesAplicables,
   prepararVenta,
 } = require('./VentaPreparacionService');
 
@@ -18,6 +21,7 @@ const usuarioDependiente = { id_usuario: 7, rol: 'dependiente', id_sucursal: 1 }
 
 const loteBase = {
   id_lote: 10,
+  id_producto: 1,
   id_sucursal: 1,
   producto_activo: true,
   vencido: false,
@@ -27,6 +31,10 @@ const loteBase = {
 };
 
 describe('VentaPreparacionService', () => {
+  beforeEach(() => {
+    PromocionDAO.obtenerVigentesParaVenta.mockResolvedValue([]);
+  });
+
   describe('puedeAccederSucursal / validarAccesoSucursal', () => {
     it('permite a roles no dependientes operar cualquier sucursal', () => {
       expect(puedeAccederSucursal(usuarioDueno, 99)).toBe(true);
@@ -161,6 +169,68 @@ describe('VentaPreparacionService', () => {
       expect(resultado.totalCentavos).toBe(1700);
       expect(resultado.detallesCalculados).toEqual([
         { id_lote: 10, cantidad: 2, precio_unitario: '8.50', costo_unitario: '5.00' },
+      ]);
+      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([1], 1, undefined);
+    });
+
+    it('acumula la cantidad del producto entre lotes y aplica la promoción vigente', async () => {
+      const client = {};
+      const detalles = [
+        { id_lote: 10, cantidad: 2, lote: { ...loteBase, id_lote: 10 } },
+        { id_lote: 11, cantidad: 3, lote: { ...loteBase, id_lote: 11 } },
+      ];
+      PromocionDAO.obtenerVigentesParaVenta.mockResolvedValue([{
+        id_promocion: 5,
+        id_producto: 1,
+        cantidad_minima: 5,
+        precio_promocion: '6.50',
+      }]);
+
+      const promociones = await obtenerPromocionesAplicables(detalles, 1, client);
+
+      expect(promociones.get(1)).toMatchObject({
+        id_promocion: 5,
+        precio_promocion: '6.50',
+      });
+      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([1], 1, client);
+    });
+
+    it('mantiene el precio normal cuando no alcanza la cantidad mínima', async () => {
+      VentaDAO.obtenerLotesParaVenta.mockResolvedValue([loteBase]);
+      PromocionDAO.obtenerVigentesParaVenta.mockResolvedValue([{
+        id_promocion: 5,
+        id_producto: 1,
+        cantidad_minima: 3,
+        precio_promocion: '6.50',
+      }]);
+
+      const resultado = await prepararVenta(datosVenta, usuarioDueno);
+
+      expect(resultado.totalCentavos).toBe(1700);
+      expect(resultado.detallesCalculados[0].precio_unitario).toBe('8.50');
+    });
+
+    it('aplica el mismo precio promocional a los lotes FEFO del producto', async () => {
+      VentaDAO.obtenerLotesParaVenta.mockResolvedValue([
+        { ...loteBase, id_lote: 10, stock_actual: 2 },
+        { ...loteBase, id_lote: 11, stock_actual: 3, precio_venta: '9.00' },
+      ]);
+      PromocionDAO.obtenerVigentesParaVenta.mockResolvedValue([{
+        id_promocion: 5,
+        id_producto: 1,
+        cantidad_minima: 5,
+        precio_promocion: '6.50',
+      }]);
+
+      const resultado = await prepararVenta({
+        ...datosVenta,
+        detalles: [{ id_lote: 10, cantidad: 2 }, { id_lote: 11, cantidad: 3 }],
+      }, usuarioDueno);
+
+      expect(resultado.totalCentavos).toBe(3250);
+      expect(resultado.detallesCalculados).toEqual([
+        { id_lote: 10, cantidad: 2, precio_unitario: '6.50', costo_unitario: '5.00' },
+        { id_lote: 11, cantidad: 3, precio_unitario: '6.50', costo_unitario: '5.00' },
       ]);
     });
 

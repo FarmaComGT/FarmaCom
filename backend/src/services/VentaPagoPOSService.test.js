@@ -1,6 +1,8 @@
 jest.mock('../daos/VentaDAO');
+jest.mock('../daos/PromocionDAO');
 
 const VentaDAO = require('../daos/VentaDAO');
+const PromocionDAO = require('../daos/PromocionDAO');
 const {
   validarEventoPago,
   determinarEstadoPago,
@@ -14,6 +16,10 @@ const {
 } = require('./VentaPagoConstantes');
 
 describe('VentaPagoPOSService', () => {
+  beforeEach(() => {
+    PromocionDAO.obtenerVigentesParaVenta.mockResolvedValue([]);
+  });
+
   describe('determinarEstadoPago', () => {
     it.each([
       ['succeeded', 'payment_intent.pending', ESTADOS_PAGO_POS.PAGADO],
@@ -93,6 +99,7 @@ describe('VentaPagoPOSService', () => {
     };
     VentaDAO.obtenerLotesParaVenta.mockResolvedValue([{
       id_lote: 1,
+      id_producto: 1,
       id_sucursal: 1,
       stock_actual: 2,
       precio_venta: '10.00',

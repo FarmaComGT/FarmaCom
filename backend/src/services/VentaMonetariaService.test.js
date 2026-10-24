@@ -11,12 +11,12 @@ describe('VentaMonetariaService', () => {
       {
         id_lote: 2,
         cantidad: 2,
-        lote: { precio_venta: '7.50', precio_compra: '4.10' },
+        lote: { id_producto: 2, precio_venta: '7.50', precio_compra: '4.10' },
       },
       {
         id_lote: 1,
         cantidad: 1,
-        lote: { precio_venta: '10.00', precio_compra: '6.25' },
+        lote: { id_producto: 1, precio_venta: '10.00', precio_compra: '6.25' },
       },
     ]);
 
@@ -36,6 +36,26 @@ describe('VentaMonetariaService', () => {
           costo_unitario: '6.25',
         },
       ],
+    });
+  });
+
+  it('usa el precio promocional como precio unitario histórico', () => {
+    const promociones = new Map([
+      [1, { id_promocion: 9, precio_promocion: '6.25' }],
+    ]);
+
+    expect(calcularDetalles([{
+      id_lote: 3,
+      cantidad: 4,
+      lote: { id_producto: 1, precio_venta: '8.50', precio_compra: '5.00' },
+    }], promociones)).toEqual({
+      totalCentavos: 2500,
+      detallesCalculados: [{
+        id_lote: 3,
+        cantidad: 4,
+        precio_unitario: '6.25',
+        costo_unitario: '5.00',
+      }],
     });
   });
 
