@@ -12,8 +12,8 @@ import {
 import useCaja from '../../hooks/useCaja';
 
 const productoNormal = {
-  carritoKey: 'lote-1-presentacion-1',
-  clave: 'lote-1-presentacion-1',
+  carritoKey: 'producto-1',
+  clave: 'producto-1',
   id_producto: 1,
   id_lote: 1,
   nombre_comercial: 'Paracetamol',
@@ -23,11 +23,19 @@ const productoNormal = {
   precio_venta: 8.5,
   tiene_precio: true,
   estado_vencimiento: 'normal',
+  cantidad_lotes: 1,
+  lotes: [{
+    id_lote: 1,
+    numero_lote: 'L-001',
+    fecha_vencimiento: '2027-01-01',
+    stock_disponible: 5,
+    precio_venta: 8.5,
+  }],
 };
 
 const productoProximoAVencer = {
-  carritoKey: 'lote-2-presentacion-1',
-  clave: 'lote-2-presentacion-1',
+  carritoKey: 'producto-2',
+  clave: 'producto-2',
   id_producto: 2,
   id_lote: 2,
   nombre_comercial: 'Ibuprofeno',
@@ -37,6 +45,24 @@ const productoProximoAVencer = {
   precio_venta: 12,
   tiene_precio: true,
   estado_vencimiento: 'proximo_a_vencer',
+  cantidad_lotes: 1,
+  lotes: [{
+    id_lote: 2,
+    numero_lote: 'L-002',
+    fecha_vencimiento: '2026-08-01',
+    stock_disponible: 5,
+    precio_venta: 12,
+  }],
+};
+
+const productoAgrupado = {
+  ...productoNormal,
+  stock_disponible: 8,
+  cantidad_lotes: 2,
+  lotes: [
+    { id_lote: 1, numero_lote: 'L-001', fecha_vencimiento: '2027-01-01', stock_disponible: 3, precio_venta: 8.5 },
+    { id_lote: 3, numero_lote: 'L-003', fecha_vencimiento: '2027-06-01', stock_disponible: 5, precio_venta: 8.5 },
+  ],
 };
 
 let carritoItems = [];
@@ -305,6 +331,24 @@ describe('PuntoVenta', () => {
     expect(screen.getByText('Venta registrada')).toBeInTheDocument();
     expect(screen.getByText(/Comprobante #15/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Imprimir comprobante' })).toBeInTheDocument();
+  });
+
+  it('envía varios detalles de lote en orden FEFO para un producto agrupado', async () => {
+    carritoItems = [{ ...productoAgrupado, cantidad: 7, precioUnitario: 8.5 }];
+    const user = userEvent.setup();
+    render(<PuntoVenta />);
+
+    await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar cobro' }));
+
+    await waitFor(() => {
+      expect(crearVenta).toHaveBeenCalledWith(expect.objectContaining({
+        detalles: [
+          { id_lote: 1, cantidad: 3 },
+          { id_lote: 3, cantidad: 4 },
+        ],
+      }));
+    });
   });
 
   it('envia el cobro al POS para que el webhook confirme la venta', async () => {

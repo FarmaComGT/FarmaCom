@@ -9,7 +9,7 @@ describe('reglas de existencias del carrito', () => {
   });
   it('normaliza cantidades decimales y limita por stock', () => {
     expect(normalizarCantidadCarrito('8.9', 5)).toEqual({
-      cantidad: 5, aviso: 'Solo hay 5 unidades disponibles en este lote.',
+      cantidad: 5, aviso: 'Solo hay 5 unidades disponibles para este producto.',
     });
     expect(normalizarCantidadCarrito('abc', 5)).toEqual({
       cantidad: null, aviso: 'Ingresa una cantidad válida.',

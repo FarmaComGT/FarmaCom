@@ -177,7 +177,7 @@ export default function AutocompletadoProductosPOS({
 
         {hayBusqueda && !buscando && !error && productos.map((producto) => (
           <ProductoVentaCard
-            key={producto.carritoKey}
+            key={producto.id_producto}
             producto={producto}
             onAgregar={onAgregar}
             busqueda={busqueda}
