@@ -40,11 +40,43 @@ describe('useAutocompletadoPOS', () => {
     expect(productos[0]).toMatchObject({
       id_producto: 2,
       id_lote: 9,
-      carritoKey: 'lote-9',
+      carritoKey: 'producto-2',
       stock_disponible: 12,
       precio_venta: 7.5,
       tiene_precio: true,
+      cantidad_lotes: 1,
+      lotes: [expect.objectContaining({ id_lote: 9, stock_disponible: 12 })],
     });
+  });
+
+  it('devuelve un resultado por producto con el stock acumulado de sus lotes', async () => {
+    api.get.mockResolvedValue({
+      data: [
+        {
+          id_producto: '2', id_lote: '10', stock_disponible: '3',
+          precio_venta: '7.50', fecha_vencimiento: '2027-05-01',
+        },
+        {
+          id_producto: '2', id_lote: '9', stock_disponible: '4',
+          precio_venta: '7.50', fecha_vencimiento: '2027-02-01',
+        },
+      ],
+    });
+    const { result } = renderHook(() => useAutocompletadoPOS(''));
+
+    let productos;
+    await act(async () => {
+      productos = await result.current.buscarAhora('para');
+    });
+
+    expect(productos).toHaveLength(1);
+    expect(productos[0]).toMatchObject({
+      id_producto: 2,
+      id_lote: 9,
+      stock_disponible: 7,
+      cantidad_lotes: 2,
+    });
+    expect(productos[0].lotes.map(({ id_lote }) => id_lote)).toEqual([9, 10]);
   });
 
   it('conserva el debounce de 300 ms antes de buscar automáticamente', async () => {
@@ -88,9 +120,30 @@ describe('useAutocompletadoPOS', () => {
   it('respeta el orden Damerau-Levenshtein recibido del backend', async () => {
     api.get.mockResolvedValue({
       data: [
-        { id_producto: '1', id_lote: '1', relevancia: '1', tipo_coincidencia: 'exacta' },
-        { id_producto: '3', id_lote: '3', relevancia: '0.42', tipo_coincidencia: 'aproximada' },
-        { id_producto: '2', id_lote: '2', relevancia: '0.78', tipo_coincidencia: 'aproximada' },
+        {
+          id_producto: '1',
+          id_lote: '1',
+          stock_disponible: '1',
+          precio_venta: '5.00',
+          relevancia: '1',
+          tipo_coincidencia: 'exacta',
+        },
+        {
+          id_producto: '3',
+          id_lote: '3',
+          stock_disponible: '1',
+          precio_venta: '5.00',
+          relevancia: '0.42',
+          tipo_coincidencia: 'aproximada',
+        },
+        {
+          id_producto: '2',
+          id_lote: '2',
+          stock_disponible: '1',
+          precio_venta: '5.00',
+          relevancia: '0.78',
+          tipo_coincidencia: 'aproximada',
+        },
       ],
     });
     const { result } = renderHook(() => useAutocompletadoPOS(''));
