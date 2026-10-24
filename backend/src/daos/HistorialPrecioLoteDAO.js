@@ -1,26 +1,65 @@
 const pool = require('../database/db');
 
+const CAMPOS_PRECIO = [
+  { columna: 'precio_compra', tipo: 'compra' },
+  { columna: 'precio_venta', tipo: 'venta' },
+];
+
+const normalizarPrecio = (valor) => {
+  if (valor === null || valor === undefined || valor === '') {
+    throw new TypeError('El precio debe tener un valor numérico');
+  }
+
+  const precio = Number(valor);
+  if (!Number.isFinite(precio)) {
+    throw new TypeError('El precio debe tener un valor numérico');
+  }
+
+  return precio.toFixed(2);
+};
+
 class HistorialPrecioLoteDAO {
   async registrarCambios(id_lote, id_usuario, loteAnterior, loteNuevo, client = pool) {
-    const campos = [
-      { columna: 'precio_compra', tipo: 'compra' },
-      { columna: 'precio_venta', tipo: 'venta' },
-    ];
     const registros = [];
 
-    for (const { columna, tipo } of campos) {
-      const valorAnterior = Number(loteAnterior[columna]);
-      const valorNuevo = Number(loteNuevo[columna]);
+    for (const { columna, tipo } of CAMPOS_PRECIO) {
+      const valorAnterior = normalizarPrecio(loteAnterior[columna]);
+      const valorNuevo = normalizarPrecio(loteNuevo[columna]);
 
       if (valorAnterior === valorNuevo) continue;
 
       const { rows } = await client.query(
         `INSERT INTO historial_precio_lote (
-           id_lote, tipo_precio, valor_anterior, valor_nuevo, id_usuario
+           id_lote, tipo_precio, valor_anterior, valor_nuevo, origen, id_usuario
          )
-         VALUES ($1, $2, $3, $4, $5)
+         VALUES ($1, $2, $3, $4, 'correccion_lote', $5)
          RETURNING *`,
         [id_lote, tipo, valorAnterior, valorNuevo, id_usuario],
+      );
+      registros.push(rows[0]);
+    }
+
+    return registros;
+  }
+
+  async registrarPorIngreso(loteAnterior, loteNuevo, id_usuario, client = pool) {
+    const registros = [];
+
+    for (const { columna, tipo } of CAMPOS_PRECIO) {
+      const valorAnterior = loteAnterior === null
+        ? null
+        : normalizarPrecio(loteAnterior[columna]);
+      const valorNuevo = normalizarPrecio(loteNuevo[columna]);
+
+      if (valorAnterior === valorNuevo) continue;
+
+      const { rows } = await client.query(
+        `INSERT INTO historial_precio_lote (
+           id_lote, tipo_precio, valor_anterior, valor_nuevo, origen, id_usuario
+         )
+         VALUES ($1, $2, $3, $4, 'ingreso_lote', $5)
+         RETURNING *`,
+        [loteNuevo.id_lote, tipo, valorAnterior, valorNuevo, id_usuario],
       );
       registros.push(rows[0]);
     }

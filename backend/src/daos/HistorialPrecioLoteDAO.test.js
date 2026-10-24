@@ -20,15 +20,90 @@ describe('HistorialPrecioLoteDAO', () => {
 
     expect(client.query).toHaveBeenNthCalledWith(
       1,
-      expect.any(String),
-      [7, 'compra', 10, 11, 9],
+      expect.stringContaining("'correccion_lote'"),
+      [7, 'compra', '10.00', '11.00', 9],
     );
     expect(client.query).toHaveBeenNthCalledWith(
       2,
       expect.any(String),
-      [7, 'venta', 15, 16.5, 9],
+      [7, 'venta', '15.00', '16.50', 9],
     );
     expect(resultado).toHaveLength(2);
+  });
+
+  describe('registrarPorIngreso', () => {
+    it('registra compra y venta como valores iniciales para el primer lote', async () => {
+      const client = { query: jest.fn() };
+      client.query
+        .mockResolvedValueOnce({ rows: [{ tipo_precio: 'compra' }] })
+        .mockResolvedValueOnce({ rows: [{ tipo_precio: 'venta' }] });
+
+      const resultado = await HistorialPrecioLoteDAO.registrarPorIngreso(
+        null,
+        { id_lote: 7, precio_compra: '10', precio_venta: '15.5' },
+        9,
+        client,
+      );
+
+      expect(client.query).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining("'ingreso_lote'"),
+        [7, 'compra', null, '10.00', 9],
+      );
+      expect(client.query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining("'ingreso_lote'"),
+        [7, 'venta', null, '15.50', 9],
+      );
+      expect(resultado).toHaveLength(2);
+    });
+
+    it('registra solamente el tipo de precio que cambió', async () => {
+      const client = {
+        query: jest.fn().mockResolvedValue({ rows: [{ tipo_precio: 'venta' }] }),
+      };
+
+      const resultado = await HistorialPrecioLoteDAO.registrarPorIngreso(
+        { precio_compra: '10.00', precio_venta: '15.00' },
+        { id_lote: 8, precio_compra: 10, precio_venta: 16 },
+        9,
+        client,
+      );
+
+      expect(client.query).toHaveBeenCalledTimes(1);
+      expect(client.query).toHaveBeenCalledWith(
+        expect.any(String),
+        [8, 'venta', '15.00', '16.00', 9],
+      );
+      expect(resultado).toEqual([{ tipo_precio: 'venta' }]);
+    });
+
+    it('omite precios monetariamente equivalentes', async () => {
+      const client = { query: jest.fn() };
+
+      const resultado = await HistorialPrecioLoteDAO.registrarPorIngreso(
+        { precio_compra: '10.0', precio_venta: '15.00' },
+        { id_lote: 8, precio_compra: 10, precio_venta: '15' },
+        9,
+        client,
+      );
+
+      expect(client.query).not.toHaveBeenCalled();
+      expect(resultado).toEqual([]);
+    });
+
+    it('rechaza un precio nuevo sin valor numérico', async () => {
+      const client = { query: jest.fn() };
+
+      await expect(HistorialPrecioLoteDAO.registrarPorIngreso(
+        null,
+        { id_lote: 8, precio_compra: null, precio_venta: 15 },
+        9,
+        client,
+      )).rejects.toThrow('El precio debe tener un valor numérico');
+
+      expect(client.query).not.toHaveBeenCalled();
+    });
   });
 
   it('omite valores que no cambiaron', async () => {
