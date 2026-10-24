@@ -19,29 +19,6 @@ const normalizarPrecio = (valor) => {
 };
 
 class HistorialPrecioLoteDAO {
-  async registrarCambios(id_lote, id_usuario, loteAnterior, loteNuevo, client = pool) {
-    const registros = [];
-
-    for (const { columna, tipo } of CAMPOS_PRECIO) {
-      const valorAnterior = normalizarPrecio(loteAnterior[columna]);
-      const valorNuevo = normalizarPrecio(loteNuevo[columna]);
-
-      if (valorAnterior === valorNuevo) continue;
-
-      const { rows } = await client.query(
-        `INSERT INTO historial_precio_lote (
-           id_lote, tipo_precio, valor_anterior, valor_nuevo, origen, id_usuario
-         )
-         VALUES ($1, $2, $3, $4, 'correccion_lote', $5)
-         RETURNING *`,
-        [id_lote, tipo, valorAnterior, valorNuevo, id_usuario],
-      );
-      registros.push(rows[0]);
-    }
-
-    return registros;
-  }
-
   async registrarPorIngreso(loteAnterior, loteNuevo, id_usuario, client = pool) {
     const registros = [];
 

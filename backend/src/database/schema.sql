@@ -630,6 +630,12 @@ CREATE TABLE IF NOT EXISTS lote (
         UNIQUE (numero_lote, id_producto, id_sucursal)
 );
 
+-- Permite aplicar este esquema sobre instalaciones creadas antes de que los
+-- lotes registraran su fecha de ingreso. La migración versionada conserva la
+-- misma operación para los despliegues incrementales.
+ALTER TABLE lote
+    ADD COLUMN IF NOT EXISTS fecha_ingreso TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
 CREATE INDEX IF NOT EXISTS idx_lote_proveedor
     ON lote (id_proveedor);
 
@@ -1009,7 +1015,9 @@ CREATE INDEX IF NOT EXISTS idx_detalle_venta_lote
 -- Usar esta vista en lugar de la tabla directa cuando se necesiten
 -- estado_vencimiento y estado_stock.
 -- =========================
-CREATE OR REPLACE VIEW v_lote_estado AS
+DROP VIEW IF EXISTS v_lote_estado;
+
+CREATE VIEW v_lote_estado AS
 SELECT
     l.*,
     CASE

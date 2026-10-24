@@ -4,33 +4,6 @@ const pool = require('../database/db');
 const HistorialPrecioLoteDAO = require('./HistorialPrecioLoteDAO');
 
 describe('HistorialPrecioLoteDAO', () => {
-  it('registra una fila por cada tipo de precio que cambio', async () => {
-    const client = { query: jest.fn() };
-    client.query
-      .mockResolvedValueOnce({ rows: [{ id_historial_precio: 1, tipo_precio: 'compra' }] })
-      .mockResolvedValueOnce({ rows: [{ id_historial_precio: 2, tipo_precio: 'venta' }] });
-
-    const resultado = await HistorialPrecioLoteDAO.registrarCambios(
-      7,
-      9,
-      { precio_compra: '10.00', precio_venta: '15.00' },
-      { precio_compra: '11.00', precio_venta: '16.50' },
-      client,
-    );
-
-    expect(client.query).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining("'correccion_lote'"),
-      [7, 'compra', '10.00', '11.00', 9],
-    );
-    expect(client.query).toHaveBeenNthCalledWith(
-      2,
-      expect.any(String),
-      [7, 'venta', '15.00', '16.50', 9],
-    );
-    expect(resultado).toHaveLength(2);
-  });
-
   describe('registrarPorIngreso', () => {
     it('registra compra y venta como valores iniciales para el primer lote', async () => {
       const client = { query: jest.fn() };
@@ -104,21 +77,6 @@ describe('HistorialPrecioLoteDAO', () => {
 
       expect(client.query).not.toHaveBeenCalled();
     });
-  });
-
-  it('omite valores que no cambiaron', async () => {
-    const client = { query: jest.fn() };
-
-    const resultado = await HistorialPrecioLoteDAO.registrarCambios(
-      7,
-      9,
-      { precio_compra: '10.00', precio_venta: '15.00' },
-      { precio_compra: '10.00', precio_venta: '15.00' },
-      client,
-    );
-
-    expect(client.query).not.toHaveBeenCalled();
-    expect(resultado).toEqual([]);
   });
 
   it('consulta el historial mas reciente del lote', async () => {

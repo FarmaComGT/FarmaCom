@@ -46,6 +46,7 @@ describe('LoteRoutes - precio por lote y vencimiento opcional', () => {
     expect(respuesta.status).toBe(201);
     expect(LoteService.crearLote).toHaveBeenCalledWith(
       expect.objectContaining({ precio_compra: 7.5, fecha_vencimiento: null }),
+      9,
     );
     expect(respuesta.body.fecha_vencimiento).toBeNull();
   });
@@ -73,13 +74,12 @@ describe('LoteRoutes - precio por lote y vencimiento opcional', () => {
     expect(LoteService.actualizarLote).toHaveBeenCalledWith(
       7,
       { fecha_vencimiento: null },
-      9,
     );
   });
 });
 
 describe('LoteRoutes - historial de precios', () => {
-  it('asocia al usuario autenticado cuando cambia un precio', async () => {
+  it('trata el cambio de precio de un lote como una corrección', async () => {
     LoteService.actualizarLote.mockResolvedValue({
       id_lote: 7,
       precio_compra: 11.5,
@@ -94,7 +94,6 @@ describe('LoteRoutes - historial de precios', () => {
     expect(LoteService.actualizarLote).toHaveBeenCalledWith(
       7,
       { precio_compra: 11.5, precio_venta: 17.25 },
-      9,
     );
   });
 
@@ -115,7 +114,7 @@ describe('LoteRoutes - historial de precios', () => {
     expect(HistorialPrecioLoteService.obtenerPorLote).toHaveBeenCalledWith(7);
   });
 
-  it('rechaza identificadores de lote invalidos', async () => {
+  it('rechaza identificadores de lote inválidos', async () => {
     const respuesta = await request(crearApp())
       .get('/api/lotes/no-valido/historial-precios');
 
