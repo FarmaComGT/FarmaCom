@@ -31,6 +31,32 @@ describe('PromocionDAO', () => {
     await expect(PromocionDAO.obtenerPorId(99)).resolves.toBeNull();
   });
 
+  it('consulta promociones activas y vigentes para los productos y la sucursal de la venta', async () => {
+    const client = {
+      query: jest.fn().mockResolvedValue({
+        rows: [{ id_promocion: 3, id_producto: 1 }],
+      }),
+    };
+
+    await expect(
+      PromocionDAO.obtenerVigentesParaVenta([1, 2], 4, client),
+    ).resolves.toEqual([{ id_promocion: 3, id_producto: 1 }]);
+
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /id_producto = ANY[\s\S]*id_sucursal = \$2[\s\S]*activo = TRUE[\s\S]*CURRENT_DATE BETWEEN fecha_inicio AND fecha_fin[\s\S]*FOR SHARE/,
+      ),
+      [[1, 2], 4],
+    );
+  });
+
+  it('no consulta la base si la venta no contiene productos', async () => {
+    const client = { query: jest.fn() };
+
+    await expect(PromocionDAO.obtenerVigentesParaVenta([], 1, client)).resolves.toEqual([]);
+    expect(client.query).not.toHaveBeenCalled();
+  });
+
   it('detecta solapamiento sin excluir ningún id', async () => {
     pool.query.mockResolvedValue({ rows: [{ '?column?': 1 }] });
 
