@@ -84,30 +84,27 @@ describe('PromocionController', () => {
   });
 
   describe('cambiarEstado', () => {
-    it('envía al middleware un error cuando se intenta "activar" desde este endpoint', async () => {
+    it('activa correctamente cuando activo es true', async () => {
+      PromocionService.cambiarEstadoPromocion.mockResolvedValue({ mensaje: 'Promoción activada correctamente' });
+
       const req = { params: { id: '1' }, body: { activo: true } };
       const res = mockResponse();
-      const next = jest.fn();
 
-      await PromocionController.cambiarEstado(req, res, next);
+      await PromocionController.cambiarEstado(req, res);
 
-      expect(PromocionService.desactivarPromocion).not.toHaveBeenCalled();
-      expect(next).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Para activar una promoción, créela nuevamente',
-        statusCode: 400,
-      }));
-      expect(res.status).not.toHaveBeenCalled();
+      expect(PromocionService.cambiarEstadoPromocion).toHaveBeenCalledWith(1, true);
+      expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it('desactiva correctamente cuando activo es false', async () => {
-      PromocionService.desactivarPromocion.mockResolvedValue({ mensaje: 'Promoción desactivada correctamente' });
+      PromocionService.cambiarEstadoPromocion.mockResolvedValue({ mensaje: 'Promoción desactivada correctamente' });
 
       const req = { params: { id: '1' }, body: { activo: false } };
       const res = mockResponse();
 
       await PromocionController.cambiarEstado(req, res);
 
-      expect(PromocionService.desactivarPromocion).toHaveBeenCalledWith(1);
+      expect(PromocionService.cambiarEstadoPromocion).toHaveBeenCalledWith(1, false);
       expect(res.status).toHaveBeenCalledWith(200);
     });
   });

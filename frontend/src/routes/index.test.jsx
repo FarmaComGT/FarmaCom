@@ -54,6 +54,10 @@ vi.mock('../pages/inventario/LotesProducto.jsx', () => ({
   default: () => <h1>Detalle de lotes</h1>,
 }));
 
+vi.mock('../pages/inventario/Promociones.jsx', () => ({
+  default: () => <h1>Administración de promociones</h1>,
+}));
+
 vi.mock('../pages/reportes/Rentabilidad.jsx', () => ({
   default: () => <h1>Rentabilidad por sucursal</h1>,
 }));
@@ -104,6 +108,31 @@ describe('ruta de reportes', () => {
     expect(screen.getByText('Dashboard (Próximamente)')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Reportes' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Reportes' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ruta de promociones', () => {
+  beforeEach(() => {
+    estadoAuth.usuario = { rol: 'administrador' };
+    window.localStorage.clear();
+  });
+
+  it('permite administrar promociones y muestra el acceso al administrador', () => {
+    renderizarRutaReportes('/inventario/promociones');
+
+    expect(screen.getByRole('heading', { name: 'Administración de promociones' }))
+      .toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Promociones' })).toBeInTheDocument();
+  });
+
+  it('protege la administración de promociones para dependientes', () => {
+    estadoAuth.usuario = { rol: 'dependiente' };
+    renderizarRutaReportes('/inventario/promociones');
+
+    expect(screen.queryByRole('heading', { name: 'Administración de promociones' }))
+      .not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Promociones' })).not.toBeInTheDocument();
+    expect(screen.getByText('Dashboard (Próximamente)')).toBeInTheDocument();
   });
 });
 

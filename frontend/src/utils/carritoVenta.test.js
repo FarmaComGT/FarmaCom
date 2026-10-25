@@ -4,8 +4,8 @@ import { normalizarCantidadCarrito, validarProductoAgregable } from './carritoVe
 describe('reglas de existencias del carrito', () => {
   it('impide agregar más unidades que las disponibles', () => {
     expect(validarProductoAgregable([{ clave: 'lote-1', cantidad: 2 }], {
-      carritoKey: 'lote-1', stock_disponible: 2, nombre_comercial: 'Aspirina',
-    })).toBe('No hay más existencias disponibles de Aspirina.');
+      carritoKey: 'lote-1', numero_lote: 'A-01', stock_disponible: 2, nombre_comercial: 'Aspirina',
+    })).toBe('No hay más existencias disponibles en el lote A-01 de Aspirina.');
   });
   it('normaliza cantidades decimales y limita por stock', () => {
     expect(normalizarCantidadCarrito('8.9', 5)).toEqual({

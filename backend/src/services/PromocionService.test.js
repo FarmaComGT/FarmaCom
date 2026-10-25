@@ -14,6 +14,10 @@ const datosBase = {
 };
 
 describe('PromocionService', () => {
+  beforeEach(() => {
+    PromocionDAO.obtenerPrecioVentaMinimoDisponible.mockResolvedValue('15.00');
+  });
+
   describe('crearPromocion', () => {
     it('crea la promoción cuando todo es válido', async () => {
       ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1 });
@@ -71,6 +75,38 @@ describe('PromocionService', () => {
       });
       expect(PromocionDAO.crear).not.toHaveBeenCalled();
     });
+
+    it('rechaza un precio promocional igual o mayor al precio normal mínimo', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1 });
+      PromocionDAO.obtenerPrecioVentaMinimoDisponible.mockResolvedValue('10.00');
+
+      await expect(PromocionService.crearPromocion(1, datosBase)).rejects.toMatchObject({
+        status: 400,
+        message: 'El precio de promoción debe ser menor que el precio normal mínimo de Q10.00',
+      });
+      expect(PromocionDAO.crear).not.toHaveBeenCalled();
+    });
+
+    it('compara en centavos para impedir que el redondeo guarde el precio normal', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1 });
+      PromocionDAO.obtenerPrecioVentaMinimoDisponible.mockResolvedValue('10.00');
+
+      await expect(PromocionService.crearPromocion(1, {
+        ...datosBase,
+        precio_promocion: 9.999,
+      })).rejects.toMatchObject({ status: 400 });
+      expect(PromocionDAO.crear).not.toHaveBeenCalled();
+    });
+
+    it('rechaza la promoción si la sucursal no tiene lotes vendibles con precio', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1 });
+      PromocionDAO.obtenerPrecioVentaMinimoDisponible.mockResolvedValue(null);
+
+      await expect(PromocionService.crearPromocion(1, datosBase)).rejects.toMatchObject({
+        status: 409,
+      });
+      expect(PromocionDAO.crear).not.toHaveBeenCalled();
+    });
   });
 
   describe('obtenerPorProducto', () => {
@@ -103,6 +139,7 @@ describe('PromocionService', () => {
         id_promocion: 1,
         id_producto: 1,
         id_sucursal: 1,
+        precio_promocion: 10,
         fecha_inicio: '2026-01-01',
         fecha_fin: '2026-01-31',
       });
@@ -117,6 +154,7 @@ describe('PromocionService', () => {
     it('no valida solapamiento si no se tocan las fechas', async () => {
       PromocionDAO.obtenerPorId.mockResolvedValue({
         id_promocion: 1, id_producto: 1, id_sucursal: 1,
+        precio_promocion: 10,
         fecha_inicio: '2026-01-01', fecha_fin: '2026-01-31',
       });
       PromocionDAO.actualizar.mockResolvedValue({ id_promocion: 1, cantidad_minima: 8 });
@@ -125,19 +163,94 @@ describe('PromocionService', () => {
 
       expect(PromocionDAO.existeActivaSolapada).not.toHaveBeenCalled();
     });
+
+    it('valida el precio resultante aunque solo se edite otra condición', async () => {
+      PromocionDAO.obtenerPorId.mockResolvedValue({
+        id_promocion: 1,
+        id_producto: 1,
+        id_sucursal: 1,
+        precio_promocion: 10,
+        fecha_inicio: '2026-01-01',
+        fecha_fin: '2026-01-31',
+      });
+      PromocionDAO.obtenerPrecioVentaMinimoDisponible.mockResolvedValue('9.50');
+
+      await expect(PromocionService.actualizarPromocion(1, { cantidad_minima: 8 }))
+        .rejects.toMatchObject({ status: 400 });
+      expect(PromocionDAO.actualizar).not.toHaveBeenCalled();
+    });
   });
 
-  describe('desactivarPromocion', () => {
+  describe('cambiarEstadoPromocion', () => {
     it('rechaza con 404 si la promoción no existe', async () => {
       PromocionDAO.obtenerPorId.mockResolvedValue(null);
 
-      await expect(PromocionService.desactivarPromocion(99)).rejects.toMatchObject({ status: 404 });
+      await expect(PromocionService.cambiarEstadoPromocion(99, false)).rejects.toMatchObject({ status: 404 });
     });
 
     it('rechaza con 409 si ya estaba desactivada', async () => {
       PromocionDAO.obtenerPorId.mockResolvedValue({ id_promocion: 1, activo: false });
 
-      await expect(PromocionService.desactivarPromocion(1)).rejects.toMatchObject({ status: 409 });
+      await expect(PromocionService.cambiarEstadoPromocion(1, false)).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('reactiva una promoción cuando no se solapa con otra activa', async () => {
+      const promocion = {
+        id_promocion: 1,
+        id_producto: 2,
+        id_sucursal: 3,
+        fecha_inicio: '2026-10-01',
+        fecha_fin: '2026-12-31',
+        precio_promocion: 10,
+        activo: false,
+      };
+      PromocionDAO.obtenerPorId.mockResolvedValue(promocion);
+      PromocionDAO.existeActivaSolapada.mockResolvedValue(false);
+      PromocionDAO.cambiarActivo.mockResolvedValue({ ...promocion, activo: true });
+
+      await expect(PromocionService.cambiarEstadoPromocion(1, true)).resolves.toMatchObject({
+        mensaje: 'Promoción activada correctamente',
+        promocion: expect.objectContaining({ activo: true }),
+      });
+      expect(PromocionDAO.existeActivaSolapada).toHaveBeenCalledWith({
+        id_producto: 2,
+        id_sucursal: 3,
+        fecha_inicio: '2026-10-01',
+        fecha_fin: '2026-12-31',
+        excluir_id: 1,
+      });
+    });
+
+    it('impide reactivar una promoción que se solapa con otra activa', async () => {
+      PromocionDAO.obtenerPorId.mockResolvedValue({
+        id_promocion: 1,
+        id_producto: 2,
+        id_sucursal: 3,
+        fecha_inicio: '2026-10-01',
+        fecha_fin: '2026-12-31',
+        precio_promocion: 10,
+        activo: false,
+      });
+      PromocionDAO.existeActivaSolapada.mockResolvedValue(true);
+
+      await expect(PromocionService.cambiarEstadoPromocion(1, true))
+        .rejects.toMatchObject({ status: 409 });
+      expect(PromocionDAO.cambiarActivo).not.toHaveBeenCalled();
+    });
+
+    it('impide reactivar si el precio promocional ya no es menor al normal', async () => {
+      PromocionDAO.obtenerPorId.mockResolvedValue({
+        id_promocion: 1,
+        id_producto: 2,
+        id_sucursal: 3,
+        precio_promocion: 10,
+        activo: false,
+      });
+      PromocionDAO.obtenerPrecioVentaMinimoDisponible.mockResolvedValue('9.00');
+
+      await expect(PromocionService.cambiarEstadoPromocion(1, true))
+        .rejects.toMatchObject({ status: 400 });
+      expect(PromocionDAO.cambiarActivo).not.toHaveBeenCalled();
     });
   });
 

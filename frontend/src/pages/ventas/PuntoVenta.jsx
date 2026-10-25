@@ -6,6 +6,7 @@ import CarritoVenta from '../../components/ventas/CarritoVenta';
 import CobroModal from '../../components/ventas/CobroModal';
 import ComprobanteModal from '../../components/ventas/ComprobanteModal';
 import NuevoClienteModal from '../../components/ventas/NuevoClienteModal';
+import SeleccionLoteModal from '../../components/ventas/SeleccionLoteModal';
 import VencimientoAvisoModal from '../../components/ventas/VencimientoAvisoModal';
 import { useAuth } from '../../context/AuthContext';
 import { useCarrito } from '../../context/CarritoContext';
@@ -15,6 +16,7 @@ import useCaja from '../../hooks/useCaja';
 import useSeleccionCajaVenta from '../../hooks/useSeleccionCajaVenta';
 import useFlujoVenta from '../../hooks/useFlujoVenta';
 import { normalizarCantidadCarrito, validarProductoAgregable } from '../../utils/carritoVenta';
+import { crearItemLotePOS } from '../../utils/pos';
 
 export default function PuntoVenta() {
   const { sucursalActivaId } = useAuth();
@@ -55,6 +57,7 @@ export default function PuntoVenta() {
 
   const [aviso, setAviso] = useState(null);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  const [productoSeleccionandoLote, setProductoSeleccionandoLote] = useState(null);
   const [productoPendiente, setProductoPendiente] = useState(null);
   const [mostrandoNuevoCliente, setMostrandoNuevoCliente] = useState(false);
 
@@ -83,14 +86,18 @@ export default function PuntoVenta() {
     setAviso(null);
   }, [agregarAlCarrito, items]);
 
-  const agregarProducto = useCallback((producto) => {
-    if (producto.estado_vencimiento === 'proximo_a_vencer') {
-      setProductoPendiente(producto);
+  const seleccionarLote = useCallback((lote) => {
+    if (!productoSeleccionandoLote) return;
+    const itemLote = crearItemLotePOS(productoSeleccionandoLote, lote);
+    setProductoSeleccionandoLote(null);
+
+    if (itemLote.estado_vencimiento === 'proximo_a_vencer') {
+      setProductoPendiente(itemLote);
       return;
     }
 
-    agregarAlCarritoValidandoStock(producto);
-  }, [agregarAlCarritoValidandoStock]);
+    agregarAlCarritoValidandoStock(itemLote);
+  }, [agregarAlCarritoValidandoStock, productoSeleccionandoLote]);
 
   const confirmarAgregarPendiente = useCallback(() => {
     if (!productoPendiente) return;
@@ -100,7 +107,9 @@ export default function PuntoVenta() {
 
   const incrementarProducto = useCallback((item) => {
     if (item.cantidad >= item.stock_disponible) {
-      setAviso(`Solo hay ${item.stock_disponible} unidades disponibles para este producto.`);
+      setAviso(
+        `Solo hay ${item.stock_disponible} unidades disponibles en el lote ${item.numero_lote}.`,
+      );
       return;
     }
 
@@ -302,7 +311,7 @@ export default function PuntoVenta() {
           productos={productos}
           cargando={cargando}
           error={error}
-          onAgregar={agregarProducto}
+          onSeleccionar={setProductoSeleccionandoLote}
           onBuscarAhora={buscarAhora}
           onRefrescar={refrescar}
         />
@@ -331,6 +340,12 @@ export default function PuntoVenta() {
         isOpen={mostrandoNuevoCliente}
         onClose={() => setMostrandoNuevoCliente(false)}
         onCrear={agregarCliente}
+      />
+
+      <SeleccionLoteModal
+        producto={productoSeleccionandoLote}
+        onClose={() => setProductoSeleccionandoLote(null)}
+        onSeleccionar={seleccionarLote}
       />
 
       <VencimientoAvisoModal

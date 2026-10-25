@@ -16,6 +16,31 @@ const validarFechas = (fecha_inicio, fecha_fin) => {
   if (fin <= inicio)           lanzarError('fecha_fin debe ser posterior a fecha_inicio', 400);
 };
 
+const validarPrecioPromocional = async (id_producto, id_sucursal, precio_promocion) => {
+  const precioMinimo = await PromocionDAO.obtenerPrecioVentaMinimoDisponible(
+    id_producto,
+    id_sucursal,
+  );
+  if (precioMinimo === null) {
+    lanzarError(
+      'No hay lotes vendibles con precio para validar la promoción en esta sucursal',
+      409,
+    );
+  }
+
+  const precioPromocionalCentavos = Math.round(Number(precio_promocion) * 100);
+  const precioMinimoCentavos = Math.round(Number(precioMinimo) * 100);
+
+  if (precioPromocionalCentavos >= precioMinimoCentavos) {
+    lanzarError(
+      `El precio de promoción debe ser menor que el precio normal mínimo de Q${Number(precioMinimo).toFixed(2)}`,
+      400,
+    );
+  }
+
+  return Number(precioMinimo);
+};
+
 // Operaciones
 
 const crearPromocion = async (id_producto, datos) => {
@@ -29,6 +54,7 @@ const crearPromocion = async (id_producto, datos) => {
   if (precio_promocion <= 0) lanzarError('El precio de promoción debe ser mayor a 0', 400);
 
   validarFechas(fecha_inicio, fecha_fin);
+  await validarPrecioPromocional(id_producto, id_sucursal, precio_promocion);
 
   // Validar que no exista una promoción activa solapada para el mismo
   // producto y sucursal
@@ -75,6 +101,13 @@ const actualizarPromocion = async (id_promocion, campos) => {
   // Si se actualizan fechas, validar coherencia y solapamiento
   const fecha_inicio = campos.fecha_inicio ?? existente.fecha_inicio;
   const fecha_fin    = campos.fecha_fin    ?? existente.fecha_fin;
+  const precio_promocion = campos.precio_promocion ?? existente.precio_promocion;
+
+  await validarPrecioPromocional(
+    existente.id_producto,
+    existente.id_sucursal,
+    precio_promocion,
+  );
 
   if (campos.fecha_inicio || campos.fecha_fin) {
     validarFechas(fecha_inicio, fecha_fin);
@@ -99,13 +132,40 @@ const actualizarPromocion = async (id_promocion, campos) => {
   return actualizado;
 };
 
-const desactivarPromocion = async (id_promocion) => {
+const cambiarEstadoPromocion = async (id_promocion, activo) => {
   const existente = await PromocionDAO.obtenerPorId(id_promocion);
-  if (!existente)        lanzarError('Promoción no encontrada', 404);
-  if (!existente.activo) lanzarError('La promoción ya está desactivada', 409);
+  if (!existente) lanzarError('Promoción no encontrada', 404);
+  if (existente.activo === activo) {
+    lanzarError(`La promoción ya está ${activo ? 'activa' : 'desactivada'}`, 409);
+  }
 
-  const resultado = await PromocionDAO.cambiarActivo(id_promocion, false);
-  return { mensaje: 'Promoción desactivada correctamente', promocion: resultado };
+  if (activo) {
+    await validarPrecioPromocional(
+      existente.id_producto,
+      existente.id_sucursal,
+      existente.precio_promocion,
+    );
+
+    const solapada = await PromocionDAO.existeActivaSolapada({
+      id_producto: existente.id_producto,
+      id_sucursal: existente.id_sucursal,
+      fecha_inicio: existente.fecha_inicio,
+      fecha_fin: existente.fecha_fin,
+      excluir_id: id_promocion,
+    });
+    if (solapada) {
+      lanzarError(
+        'Ya existe una promoción activa para este producto y sucursal en ese rango de fechas',
+        409,
+      );
+    }
+  }
+
+  const resultado = await PromocionDAO.cambiarActivo(id_promocion, activo);
+  return {
+    mensaje: `Promoción ${activo ? 'activada' : 'desactivada'} correctamente`,
+    promocion: resultado,
+  };
 };
 
 // Borrado físico
@@ -123,6 +183,7 @@ module.exports = {
   obtenerPorProducto,
   obtenerPorId,
   actualizarPromocion,
-  desactivarPromocion,
+  cambiarEstadoPromocion,
   eliminarPromocion,
+  validarPrecioPromocional,
 };

@@ -2,6 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { formatearQuetzales } from '../../utils/pos';
 
+const formatearVencimiento = (fecha) => {
+  if (!fecha) return 'sin vencimiento';
+  return `vence ${new Intl.DateTimeFormat('es-GT', {
+    day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC',
+  }).format(new Date(fecha))}`;
+};
+
 export default function CarritoVentaItem({
   item,
   onIncrementar,
@@ -28,7 +35,10 @@ export default function CarritoVentaItem({
   const excedeStock = cantidadTexto.trim() !== ''
     && Number.isFinite(cantidadNumerica)
     && cantidadNumerica > item.stock_disponible;
-  const cantidadLotes = Number(item.cantidad_lotes) || item.lotes?.length || 1;
+  const faltantesPromocion = item.promocionDisponible
+    ? Math.max(0, Number(item.promocion.cantidad_minima) - item.cantidad)
+    : 0;
+  const precioAplicado = item.precioAplicado ?? item.precioUnitario;
 
   return (
     <div className="grid grid-cols-12 items-center gap-3 border-b border-slate-100 py-4 last:border-0">
@@ -37,9 +47,16 @@ export default function CarritoVentaItem({
           {item.nombre_comercial}
         </p>
         <p className="mt-0.5 truncate text-xs font-medium text-slate-400">
-          {item.presentacion} · FEFO automático · {cantidadLotes}{' '}
-          {cantidadLotes === 1 ? 'lote' : 'lotes'}
+          {item.presentacion} · Lote {item.numero_lote} ·{' '}
+          {formatearVencimiento(item.fecha_vencimiento)}
         </p>
+        {item.promocionDisponible && (
+          <p className={`mt-1 text-[11px] font-bold ${item.promocionAplicada ? 'text-emerald-700' : 'text-amber-700'}`}>
+            {item.promocionAplicada
+              ? `Promoción aplicada: ${formatearQuetzales(item.promocion.precio_promocion)} por unidad`
+              : `Agrega ${faltantesPromocion} ${faltantesPromocion === 1 ? 'unidad' : 'unidades'} más para aplicar la promoción`}
+          </p>
+        )}
       </div>
 
       <div className="col-span-5 flex flex-col items-center sm:col-span-3">
@@ -90,11 +107,16 @@ export default function CarritoVentaItem({
       </div>
 
       <div className="col-span-5 text-right sm:col-span-3">
-        <p className="font-mono text-xs text-slate-500">
-          {formatearQuetzales(item.precioUnitario)}
+        {item.promocionAplicada && (
+          <p className="font-mono text-xs text-slate-400 line-through">
+            {formatearQuetzales(item.precioUnitario)}
+          </p>
+        )}
+        <p className={`font-mono text-xs ${item.promocionAplicada ? 'font-bold text-emerald-700' : 'text-slate-500'}`}>
+          {formatearQuetzales(precioAplicado)}
         </p>
         <p className="font-mono text-sm font-extrabold text-primary">
-          {formatearQuetzales(item.precioUnitario * item.cantidad)}
+          {formatearQuetzales(precioAplicado * item.cantidad)}
         </p>
       </div>
 

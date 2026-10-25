@@ -37,7 +37,7 @@ describe('permisos de promociones', () => {
     PromocionService.obtenerPorProducto.mockResolvedValue([]);
     PromocionService.obtenerPorId.mockResolvedValue({ id_promocion: 1 });
     PromocionService.actualizarPromocion.mockResolvedValue({ id_promocion: 1 });
-    PromocionService.desactivarPromocion.mockResolvedValue({ mensaje: 'Promoción desactivada' });
+    PromocionService.cambiarEstadoPromocion.mockResolvedValue({ mensaje: 'Promoción actualizada' });
     PromocionService.eliminarPromocion.mockResolvedValue({ mensaje: 'Promoción eliminada' });
   });
 

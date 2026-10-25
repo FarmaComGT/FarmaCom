@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   agruparLotesPorProductoPOS,
-  asignarLotesFEFO,
   construirCatalogoPOS,
+  crearItemLotePOS,
   filtrarCatalogoPOS,
 } from './pos';
 
@@ -57,12 +57,13 @@ describe('utilidades del punto de venta', () => {
 
     expect(resultado).toHaveLength(1);
     expect(resultado[0]).toMatchObject({
-      id_lote: 10,
       nombre_comercial: 'Paracetamol',
       presentacion: 'Blíster',
       stock_disponible: 40,
-      precio_venta: 8.5,
+      precio_minimo: 8.5,
+      precio_maximo: 8.5,
       tiene_precio: true,
+      lotes: [expect.objectContaining({ id_lote: 10, precio_venta: 8.5 })],
     });
   });
 
@@ -78,11 +79,11 @@ describe('utilidades del punto de venta', () => {
       },
     ]);
 
-    expect(resultado[0].precio_venta).toBeNull();
+    expect(resultado[0].precio_minimo).toBeNull();
     expect(resultado[0].tiene_precio).toBe(false);
   });
 
-  it('prefiere un lote con precio positivo cuando hay lotes con precio cero', () => {
+  it('conserva todos los lotes y calcula el rango de precios vendibles', () => {
     const resultado = construirCatalogoPOS(inventario, [
       {
         id_lote: 10,
@@ -101,19 +102,21 @@ describe('utilidades del punto de venta', () => {
     ]);
 
     expect(resultado[0]).toMatchObject({
-      id_lote: 11,
-      precio_venta: 1.25,
+      cantidad_lotes: 2,
+      precio_minimo: 1.25,
+      precio_maximo: 1.25,
       tiene_precio: true,
     });
+    expect(resultado[0].lotes).toHaveLength(2);
   });
 
-  it('agrupa los lotes por producto, acumula existencias y los ordena por FEFO', () => {
+  it('agrupa los lotes por producto, acumula existencias y los ordena por número', () => {
     const resultado = agruparLotesPorProductoPOS([
       {
         id_producto: 1,
         id_lote: 13,
         nombre_comercial: 'Paracetamol',
-        numero_lote: 'SIN-FECHA',
+        numero_lote: 'L-003',
         fecha_vencimiento: null,
         stock_disponible: '4',
         precio_venta: '8.50',
@@ -123,7 +126,7 @@ describe('utilidades del punto de venta', () => {
         id_producto: 1,
         id_lote: 12,
         nombre_comercial: 'Paracetamol',
-        numero_lote: 'FEFO-2',
+        numero_lote: 'L-002',
         fecha_vencimiento: '2027-06-01',
         stock_disponible: '6',
         precio_venta: '8.50',
@@ -133,7 +136,7 @@ describe('utilidades del punto de venta', () => {
         id_producto: 1,
         id_lote: 11,
         nombre_comercial: 'Paracetamol',
-        numero_lote: 'FEFO-1',
+        numero_lote: 'L-001',
         fecha_vencimiento: '2027-02-01',
         stock_disponible: '5',
         precio_venta: '8.50',
@@ -144,37 +147,35 @@ describe('utilidades del punto de venta', () => {
     expect(resultado).toHaveLength(1);
     expect(resultado[0]).toMatchObject({
       id_producto: 1,
-      id_lote: 11,
-      carritoKey: 'producto-1',
       cantidad_lotes: 3,
       stock_disponible: 15,
-      numero_lote: 'FEFO-1',
+      precio_minimo: 8.5,
+      precio_maximo: 8.5,
     });
     expect(resultado[0].lotes.map(({ id_lote }) => id_lote)).toEqual([11, 12, 13]);
   });
 
-  it('distribuye la cantidad entre lotes mediante FEFO', () => {
+  it('crea un artículo de carrito exclusivamente para el lote elegido', () => {
     const producto = {
+      id_producto: 1,
       nombre_comercial: 'Paracetamol',
+      cantidad_lotes: 2,
+      stock_disponible: 14,
       lotes: [
-        { id_lote: 3, fecha_vencimiento: null, stock_disponible: 10 },
-        { id_lote: 2, fecha_vencimiento: '2027-06-01', stock_disponible: 4 },
-        { id_lote: 1, fecha_vencimiento: '2027-02-01', stock_disponible: 3 },
+        { id_lote: 3, numero_lote: 'L-003', stock_disponible: 10, precio_venta: 8, tiene_precio: true },
+        { id_lote: 2, numero_lote: 'L-002', stock_disponible: 4, precio_venta: 9, tiene_precio: true },
       ],
     };
 
-    expect(asignarLotesFEFO(producto, 9)).toEqual([
-      { id_lote: 1, cantidad: 3 },
-      { id_lote: 2, cantidad: 4 },
-      { id_lote: 3, cantidad: 2 },
-    ]);
-  });
-
-  it('rechaza una asignación que supera el stock acumulado', () => {
-    expect(() => asignarLotesFEFO({
-      nombre_comercial: 'Paracetamol',
-      lotes: [{ id_lote: 1, stock_disponible: 2 }],
-    }, 3)).toThrow('Stock insuficiente para Paracetamol.');
+    expect(crearItemLotePOS(producto, producto.lotes[1])).toMatchObject({
+      id_producto: 1,
+      id_lote: 2,
+      carritoKey: 'lote-2',
+      numero_lote: 'L-002',
+      stock_disponible: 4,
+      precio_venta: 9,
+    });
+    expect(crearItemLotePOS(producto, producto.lotes[1])).not.toHaveProperty('lotes');
   });
 
   it('filtra por código, nombre genérico o presentación', () => {

@@ -154,6 +154,11 @@ class ProductoDAO {
         p.aplica_mayoreo,
         lote_pos.precio_mayoreo,
         lote_pos.cantidad_mayoreo,
+        promocion.id_promocion,
+        promocion.cantidad_minima AS promocion_cantidad_minima,
+        promocion.precio_promocion,
+        promocion.fecha_inicio AS promocion_fecha_inicio,
+        promocion.fecha_fin AS promocion_fecha_fin,
         p.relevancia,
         p.tipo_coincidencia
       FROM productos_limitados p
@@ -166,12 +171,28 @@ class ProductoDAO {
          lote_pos.fecha_vencimiento IS NULL
          OR lote_pos.fecha_vencimiento >= CURRENT_DATE
        )
+      LEFT JOIN LATERAL (
+        SELECT
+          pr.id_promocion,
+          pr.cantidad_minima,
+          pr.precio_promocion,
+          pr.fecha_inicio,
+          pr.fecha_fin
+        FROM promocion pr
+        WHERE pr.id_producto = p.id_producto
+          AND pr.id_sucursal = $2
+          AND pr.activo = TRUE
+          AND CURRENT_DATE BETWEEN pr.fecha_inicio AND pr.fecha_fin
+          AND pr.precio_promocion < lote_pos.precio_venta
+        ORDER BY pr.precio_promocion, pr.id_promocion
+        LIMIT 1
+      ) promocion ON TRUE
       ORDER BY
         p.prioridad,
         p.relevancia DESC,
         p.nombre_comercial ASC,
         p.id_producto ASC,
-        lote_pos.fecha_vencimiento ASC NULLS LAST,
+        lote_pos.numero_lote ASC,
         lote_pos.id_lote ASC
     `;
     const { rows } = await pool.query(query, [

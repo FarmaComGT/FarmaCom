@@ -72,10 +72,14 @@ describe('ProductoDAO - autocompletado para POS', () => {
     expect(consulta).toContain('FROM productos_limitados p');
     expect(consulta).toContain('JOIN v_lote_estado lote_pos');
     expect(consulta).toContain('lote_pos.estado_vencimiento');
-    expect(consulta).toContain('lote_pos.fecha_vencimiento ASC NULLS LAST');
+    expect(consulta).toContain('lote_pos.numero_lote ASC');
+    expect(consulta).not.toContain('lote_pos.fecha_vencimiento ASC');
     expect(consulta).toContain('LIMIT $3');
-    expect(consulta).not.toContain('JOIN LATERAL');
-    expect(consulta).not.toContain('LIMIT 1');
+    expect(consulta).toContain('LEFT JOIN LATERAL');
+    expect(consulta).toContain('CURRENT_DATE BETWEEN pr.fecha_inicio AND pr.fecha_fin');
+    expect(consulta).toContain('pr.id_sucursal = $2');
+    expect(consulta).toContain('pr.activo = TRUE');
+    expect(consulta).toContain('pr.precio_promocion < lote_pos.precio_venta');
     expect(valores).toEqual(['Pará_50%', 2, 40, '0.1']);
     expect(resultado).toEqual([
       { id_producto: 3, id_lote: 9 },

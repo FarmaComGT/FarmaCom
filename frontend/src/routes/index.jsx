@@ -15,6 +15,7 @@ import LotesProducto from '../pages/inventario/LotesProducto.jsx';
 import Categorias from '../pages/inventario/Categorias.jsx';
 import Proveedores from '../pages/inventario/Proveedores.jsx';
 import Casas from '../pages/inventario/Casas.jsx';
+import Promociones from '../pages/inventario/Promociones.jsx';
 import Clientes from '../pages/Clientes.jsx';
 import PuntoVenta from '../pages/ventas/PuntoVenta.jsx';
 import CajaOperativa from '../pages/caja/CajaOperativa.jsx';
@@ -61,6 +62,7 @@ export default function AppRoutes() {
 
           {/* Admin */}
           <Route element={<RoleRoute allowedRoles={['dueno', 'administrador']} />}>
+            <Route path="/inventario/promociones" element={<Promociones />} />
             <Route path="/sucursales" element={<Sucursales />} />
             <Route path="/laboratorios" element={<Laboratorios />} />
             <Route path="/ciudades" element={<Ciudades />} />

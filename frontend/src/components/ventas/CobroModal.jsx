@@ -222,11 +222,11 @@ export default function CobroModal({
                   <div className="min-w-0">
                     <p className="truncate font-bold text-on-surface">{item.nombre_comercial}</p>
                     <p className="text-xs font-medium text-slate-400">
-                      {item.cantidad} x {formatearQuetzales(item.precioUnitario)}
+                      {item.cantidad} x {formatearQuetzales(item.precioAplicado ?? item.precioUnitario)}
                     </p>
                   </div>
                   <p className="shrink-0 font-mono font-extrabold text-primary">
-                    {formatearQuetzales(item.precioUnitario * item.cantidad)}
+                    {formatearQuetzales((item.precioAplicado ?? item.precioUnitario) * item.cantidad)}
                   </p>
                 </div>
               ))}

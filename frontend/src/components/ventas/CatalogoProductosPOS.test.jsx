@@ -6,47 +6,47 @@ import CatalogoProductosPOS from './CatalogoProductosPOS';
 
 const productos = [
   {
-    carritoKey: 'lote-1-presentacion-1',
     id_producto: 1,
     codigo: 'MED-001',
     nombre_comercial: 'Paracetamol',
     nombre_generico: 'Acetaminofén',
     presentacion: 'Blíster',
-    numero_lote: 'L-001',
-    fecha_vencimiento: '2027-01-01',
     stock_disponible: 5,
-    precio_venta: 8.5,
+    precio_minimo: 8.5,
+    precio_maximo: 8.5,
+    cantidad_lotes: 1,
+    lotes: [{ id_lote: 1, numero_lote: 'L-001', stock_disponible: 5, precio_venta: 8.5 }],
     tiene_precio: true,
     estado_stock: 'normal',
     estado_vencimiento: 'normal',
   },
   {
-    carritoKey: 'lote-2-presentacion-2',
     id_producto: 2,
     codigo: 'HIG-010',
     nombre_comercial: 'Pañales talla M',
     presentacion: 'Paquete',
-    numero_lote: 'L-002',
-    fecha_vencimiento: '2028-01-01',
     stock_disponible: 3,
-    precio_venta: 42,
+    precio_minimo: 42,
+    precio_maximo: 42,
+    cantidad_lotes: 1,
+    lotes: [{ id_lote: 2, numero_lote: 'L-002', stock_disponible: 3, precio_venta: 42 }],
     tiene_precio: true,
     estado_stock: 'poco_stock',
     estado_vencimiento: 'normal',
   },
 ];
 
-const renderizarCatalogo = (onAgregar = vi.fn()) => {
+const renderizarCatalogo = (onSeleccionar = vi.fn()) => {
   render(
     <CatalogoProductosPOS
       productos={productos}
       cargando={false}
       error={null}
-      onAgregar={onAgregar}
+      onSeleccionar={onSeleccionar}
       onRefrescar={() => {}}
     />,
   );
-  return onAgregar;
+  return onSeleccionar;
 };
 
 describe('CatalogoProductosPOS', () => {
@@ -60,14 +60,14 @@ describe('CatalogoProductosPOS', () => {
     expect(screen.queryByText('Paracetamol')).not.toBeInTheDocument();
   });
 
-  it('agrega el primer resultado al presionar Enter, como haría un lector', async () => {
+  it('selecciona el primer resultado al presionar Enter, como haría un lector', async () => {
     const user = userEvent.setup();
-    const onAgregar = renderizarCatalogo();
+    const onSeleccionar = renderizarCatalogo();
     const buscador = screen.getByLabelText('Buscar productos');
 
     await user.type(buscador, 'MED-001{Enter}');
 
-    expect(onAgregar).toHaveBeenCalledWith(productos[0]);
-    expect(buscador).toHaveValue('');
+    expect(onSeleccionar).toHaveBeenCalledWith(productos[0]);
+    expect(buscador).toHaveValue('MED-001');
   });
 });

@@ -1,14 +1,7 @@
-export const mensajeStockAgotado = (producto) => {
-  const disponible = Number(producto.stock_disponible) || 0;
-  return disponible === 0
-    ? `No hay existencias disponibles de ${producto.nombre_comercial}.`
-    : `Solo hay ${disponible} unidades disponibles para este producto.`;
-};
-
 export const validarProductoAgregable = (items, producto) => {
   const existente = items.find((item) => item.clave === producto.carritoKey);
   return Number(existente?.cantidad || 0) >= Number(producto.stock_disponible || 0)
-    ? `No hay más existencias disponibles de ${producto.nombre_comercial}.`
+    ? `No hay más existencias disponibles en el lote ${producto.numero_lote} de ${producto.nombre_comercial}.`
     : null;
 };
 

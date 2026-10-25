@@ -12,17 +12,12 @@ import {
 import useCaja from '../../hooks/useCaja';
 
 const productoNormal = {
-  carritoKey: 'producto-1',
-  clave: 'producto-1',
   id_producto: 1,
-  id_lote: 1,
   nombre_comercial: 'Paracetamol',
-  numero_lote: 'L-001',
-  fecha_vencimiento: '2027-01-01',
   stock_disponible: 5,
-  precio_venta: 8.5,
+  precio_minimo: 8.5,
+  precio_maximo: 8.5,
   tiene_precio: true,
-  estado_vencimiento: 'normal',
   cantidad_lotes: 1,
   lotes: [{
     id_lote: 1,
@@ -30,21 +25,18 @@ const productoNormal = {
     fecha_vencimiento: '2027-01-01',
     stock_disponible: 5,
     precio_venta: 8.5,
+    tiene_precio: true,
+    estado_vencimiento: 'normal',
   }],
 };
 
 const productoProximoAVencer = {
-  carritoKey: 'producto-2',
-  clave: 'producto-2',
   id_producto: 2,
-  id_lote: 2,
   nombre_comercial: 'Ibuprofeno',
-  numero_lote: 'L-002',
-  fecha_vencimiento: '2026-08-01',
   stock_disponible: 5,
-  precio_venta: 12,
+  precio_minimo: 12,
+  precio_maximo: 12,
   tiene_precio: true,
-  estado_vencimiento: 'proximo_a_vencer',
   cantidad_lotes: 1,
   lotes: [{
     id_lote: 2,
@@ -52,17 +44,25 @@ const productoProximoAVencer = {
     fecha_vencimiento: '2026-08-01',
     stock_disponible: 5,
     precio_venta: 12,
+    tiene_precio: true,
+    estado_vencimiento: 'proximo_a_vencer',
   }],
 };
 
-const productoAgrupado = {
+const itemNormal = {
   ...productoNormal,
-  stock_disponible: 8,
-  cantidad_lotes: 2,
-  lotes: [
-    { id_lote: 1, numero_lote: 'L-001', fecha_vencimiento: '2027-01-01', stock_disponible: 3, precio_venta: 8.5 },
-    { id_lote: 3, numero_lote: 'L-003', fecha_vencimiento: '2027-06-01', stock_disponible: 5, precio_venta: 8.5 },
-  ],
+  ...productoNormal.lotes[0],
+  lotes: undefined,
+  carritoKey: 'lote-1',
+  clave: 'lote-1',
+};
+
+const itemProximoAVencer = {
+  ...productoProximoAVencer,
+  ...productoProximoAVencer.lotes[0],
+  lotes: undefined,
+  carritoKey: 'lote-2',
+  clave: 'lote-2',
 };
 
 let carritoItems = [];
@@ -242,34 +242,51 @@ describe('PuntoVenta', () => {
     await user.type(screen.getByLabelText('Buscar productos'), 'ibuprofeno');
     await user.click(screen.getByText('Ibuprofeno'));
 
+    expect(screen.getByRole('dialog', { name: 'Seleccionar lote' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Seleccionar lote L-002' }));
+
     expect(screen.getByText(/Producto pr.ximo a vencer/)).toBeInTheDocument();
     expect(agregarAlCarrito).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: /S., continuar/ }));
 
     expect(agregarAlCarrito).toHaveBeenCalledWith(
-      productoProximoAVencer,
-      { precioUnitario: productoProximoAVencer.precio_venta },
+      expect.objectContaining({
+        id_producto: 2,
+        id_lote: 2,
+        carritoKey: 'lote-2',
+        numero_lote: 'L-002',
+      }),
+      { precioUnitario: 12 },
     );
   });
 
-  it('agrega directo al carrito un producto sin alerta de vencimiento', async () => {
+  it('muestra los lotes del producto y agrega solamente el lote elegido', async () => {
     productosCatalogo = [productoNormal];
     const user = userEvent.setup();
     render(<PuntoVenta />);
 
     await user.type(screen.getByLabelText('Buscar productos'), 'paracetamol');
     await user.click(screen.getByText('Paracetamol'));
+    await user.click(screen.getByRole('button', { name: 'Seleccionar lote L-001' }));
 
     expect(agregarAlCarrito).toHaveBeenCalledWith(
-      productoNormal,
-      { precioUnitario: productoNormal.precio_venta },
+      expect.objectContaining({
+        id_producto: 1,
+        id_lote: 1,
+        carritoKey: 'lote-1',
+        numero_lote: 'L-001',
+      }),
+      { precioUnitario: 8.5 },
     );
+    expect(screen.getByLabelText('Buscar productos')).toHaveValue('paracetamol');
+    expect(screen.getByRole('button', { name: 'Seleccionar lote de Paracetamol' }))
+      .toBeInTheDocument();
     expect(screen.queryByText(/Producto pr.ximo a vencer/)).not.toBeInTheDocument();
   });
 
   it('avisa antes de cobrar una venta con productos proximos a vencer en el carrito', async () => {
-    carritoItems = [{ ...productoProximoAVencer, cantidad: 1, precioUnitario: 12 }];
+    carritoItems = [{ ...itemProximoAVencer, cantidad: 1, precioUnitario: 12 }];
     const user = userEvent.setup();
     render(<PuntoVenta />);
 
@@ -283,7 +300,7 @@ describe('PuntoVenta', () => {
   });
 
   it('impide procesar una venta sin una sesión de caja abierta', async () => {
-    carritoItems = [{ ...productoNormal, cantidad: 1, precioUnitario: 8.5 }];
+    carritoItems = [{ ...itemNormal, cantidad: 1, precioUnitario: 8.5 }];
     useCaja.mockReturnValue({
       cajas: [{ id_caja: 3, nombre: 'Caja principal', id_sesion_abierta: null }],
       cajaSeleccionada: { id_caja: 3, nombre: 'Caja principal' },
@@ -306,7 +323,7 @@ describe('PuntoVenta', () => {
   });
 
   it('registra una venta en efectivo desde el modal de cobro', async () => {
-    carritoItems = [{ ...productoNormal, cantidad: 2, precioUnitario: 8.5 }];
+    carritoItems = [{ ...itemNormal, cantidad: 2, precioUnitario: 8.5 }];
     const user = userEvent.setup();
     render(<PuntoVenta />);
 
@@ -333,8 +350,20 @@ describe('PuntoVenta', () => {
     expect(screen.getByRole('button', { name: 'Imprimir comprobante' })).toBeInTheDocument();
   });
 
-  it('envía varios detalles de lote en orden FEFO para un producto agrupado', async () => {
-    carritoItems = [{ ...productoAgrupado, cantidad: 7, precioUnitario: 8.5 }];
+  it('envía exclusivamente las cantidades de los lotes elegidos', async () => {
+    carritoItems = [
+      { ...itemNormal, stock_disponible: 3, cantidad: 2, precioUnitario: 8.5 },
+      {
+        ...itemNormal,
+        id_lote: 3,
+        numero_lote: 'L-003',
+        carritoKey: 'lote-3',
+        clave: 'lote-3',
+        stock_disponible: 5,
+        cantidad: 4,
+        precioUnitario: 8.5,
+      },
+    ];
     const user = userEvent.setup();
     render(<PuntoVenta />);
 
@@ -344,7 +373,7 @@ describe('PuntoVenta', () => {
     await waitFor(() => {
       expect(crearVenta).toHaveBeenCalledWith(expect.objectContaining({
         detalles: [
-          { id_lote: 1, cantidad: 3 },
+          { id_lote: 1, cantidad: 2 },
           { id_lote: 3, cantidad: 4 },
         ],
       }));
@@ -352,7 +381,7 @@ describe('PuntoVenta', () => {
   });
 
   it('envia el cobro al POS para que el webhook confirme la venta', async () => {
-    carritoItems = [{ ...productoNormal, cantidad: 2, precioUnitario: 8.5 }];
+    carritoItems = [{ ...itemNormal, cantidad: 2, precioUnitario: 8.5 }];
     crearVenta.mockResolvedValue({
       id_venta: 16,
       metodo_pago: 'tarjeta',
@@ -384,7 +413,7 @@ describe('PuntoVenta', () => {
     crearPagoPOS.mockImplementation(() => new Promise((resolve) => {
       resolverPago = resolve;
     }));
-    carritoItems = [{ ...productoNormal, cantidad: 1, precioUnitario: 8.5 }];
+    carritoItems = [{ ...itemNormal, cantidad: 1, precioUnitario: 8.5 }];
     const user = userEvent.setup();
     render(<PuntoVenta />);
 
@@ -437,7 +466,7 @@ describe('PuntoVenta', () => {
       id_venta: 22,
     });
     obtenerVentaPorId.mockResolvedValue(ventaPOS);
-    carritoItems = [{ ...productoNormal, cantidad: 1, precioUnitario: 8.5 }];
+    carritoItems = [{ ...itemNormal, cantidad: 1, precioUnitario: 8.5 }];
     const user = userEvent.setup();
     render(<PuntoVenta />);
 
@@ -462,7 +491,7 @@ describe('PuntoVenta', () => {
       external_id: 'farmacom-pos-test',
       estado: 'rechazado',
     });
-    carritoItems = [{ ...productoNormal, cantidad: 1, precioUnitario: 8.5 }];
+    carritoItems = [{ ...itemNormal, cantidad: 1, precioUnitario: 8.5 }];
     const user = userEvent.setup();
     render(<PuntoVenta />);
 
@@ -477,7 +506,7 @@ describe('PuntoVenta', () => {
 
   it('muestra el error del backend si no se puede enviar el cobro al POS', async () => {
     crearPagoPOS.mockRejectedValue(new Error('El dispositivo no está listo para cobrar. Verifica que esté abierto e inténtalo de nuevo.'));
-    carritoItems = [{ ...productoNormal, cantidad: 1, precioUnitario: 8.5 }];
+    carritoItems = [{ ...itemNormal, cantidad: 1, precioUnitario: 8.5 }];
     const user = userEvent.setup();
     render(<PuntoVenta />);
 
