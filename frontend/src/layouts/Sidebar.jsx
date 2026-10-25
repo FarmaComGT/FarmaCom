@@ -5,6 +5,7 @@ import {
   Package,
   ChevronDown,
   Tag,
+  BadgePercent,
   Truck,
   Warehouse,
   Building2,
@@ -30,6 +31,7 @@ const inventarioSubItems = [
   { icon: Tag, label: 'Categorías', path: '/inventario/categorias' },
   { icon: Truck, label: 'Proveedores', path: '/inventario/proveedores' },
   { icon: Building2, label: 'Casas', path: '/inventario/casas' },
+  { icon: BadgePercent, label: 'Promociones', path: '/inventario/promociones', roles: ['dueno', 'administrador'] },
 ];
 
 const ROLES_FARMACIA = ['dueno', 'administrador', 'dependiente'];
@@ -198,7 +200,9 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
 
           {inventarioAbierto && (
             <div className="mt-1 ml-4 space-y-0.5 border-l-2 border-primary/10 pl-3">
-              {inventarioSubItems.map(({ icon: Icon, label, path }) => (
+              {inventarioSubItems
+                .filter((item) => !item.roles || item.roles.includes(usuario?.rol))
+                .map(({ icon: Icon, label, path }) => (
                 <NavLink
                   key={path}
                   to={path}
