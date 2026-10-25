@@ -24,10 +24,10 @@ const propsBase = {
 };
 
 describe('CarritoVentaItem', () => {
-  it('indica que la salida de lotes se realizará automáticamente por FEFO', () => {
+  it('identifica el lote seleccionado para el artículo', () => {
     render(<CarritoVentaItem {...propsBase} />);
 
-    expect(screen.getByText(/FEFO automático · 2 lotes/)).toBeInTheDocument();
+    expect(screen.getByText(/Lote L-001/)).toBeInTheDocument();
   });
 
   it('avisa en tiempo real, mientras se escribe, si la cantidad excede el stock disponible', async () => {
@@ -67,5 +67,31 @@ describe('CarritoVentaItem', () => {
     await user.tab();
 
     expect(onActualizarCantidad).toHaveBeenCalledWith(item, '4');
+  });
+
+  it('muestra cuánto falta para aplicar una promoción', () => {
+    render(<CarritoVentaItem {...propsBase} item={{
+      ...item,
+      promocion: { cantidad_minima: 3, precio_promocion: 7 },
+      promocionDisponible: true,
+      promocionAplicada: false,
+      precioAplicado: 8.5,
+    }} />);
+
+    expect(screen.getByText('Agrega 1 unidad más para aplicar la promoción')).toBeInTheDocument();
+  });
+
+  it('muestra el precio promocional cuando ya aplica', () => {
+    render(<CarritoVentaItem {...propsBase} item={{
+      ...item,
+      cantidad: 3,
+      promocion: { cantidad_minima: 3, precio_promocion: 7 },
+      promocionDisponible: true,
+      promocionAplicada: true,
+      precioAplicado: 7,
+    }} />);
+
+    expect(screen.getByText(/Promoción aplicada/)).toBeInTheDocument();
+    expect(screen.getByText(/21\.00/)).toBeInTheDocument();
   });
 });

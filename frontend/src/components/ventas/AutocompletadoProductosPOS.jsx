@@ -16,7 +16,7 @@ export default function AutocompletadoProductosPOS({
   productos,
   cargando,
   error,
-  onAgregar,
+  onSeleccionar,
   onBuscarAhora,
   onRefrescar,
 }) {
@@ -45,8 +45,7 @@ export default function AutocompletadoProductosPOS({
     const primerProducto = resultados.find((producto) => producto.tiene_precio);
 
     if (primerProducto) {
-      onAgregar(primerProducto);
-      onBusquedaChange('');
+      onSeleccionar(primerProducto);
     }
     setProcesandoEnter(false);
   };
@@ -112,7 +111,7 @@ export default function AutocompletadoProductosPOS({
             </div>
             <p className="font-headline font-bold text-slate-700">Encuentra un producto</p>
             <p className="mt-1 max-w-sm text-sm">
-              Los resultados aparecerán mientras escribes. Presiona Enter para agregar el primero.
+              Los resultados aparecerán mientras escribes. Selecciona un producto para ver sus lotes.
             </p>
           </div>
         )}
@@ -179,7 +178,7 @@ export default function AutocompletadoProductosPOS({
           <ProductoVentaCard
             key={producto.id_producto}
             producto={producto}
-            onAgregar={onAgregar}
+            onSeleccionar={onSeleccionar}
             busqueda={busqueda}
           />
         ))}
@@ -192,7 +191,7 @@ export default function AutocompletadoProductosPOS({
               ? 'Mostrando las opciones más cercanas'
               : hayCoincidenciasAproximadas
               ? 'Las coincidencias aproximadas aparecen después de las directas'
-              : 'Enter agrega la primera opción'}
+              : 'Enter muestra los lotes de la primera opción'}
           </span>
           <span>{productos.length} {productos.length === 1 ? 'resultado' : 'resultados'}</span>
         </div>

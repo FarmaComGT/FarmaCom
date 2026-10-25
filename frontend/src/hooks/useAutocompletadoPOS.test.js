@@ -25,6 +25,11 @@ describe('useAutocompletadoPOS', () => {
         id_lote: '9',
         stock_disponible: '12',
         precio_venta: '7.50',
+        id_promocion: '3',
+        promocion_cantidad_minima: '4',
+        precio_promocion: '6.25',
+        promocion_fecha_inicio: '2026-10-01',
+        promocion_fecha_fin: '2026-12-31',
       }],
     });
     const { result } = renderHook(() => useAutocompletadoPOS(''));
@@ -39,17 +44,23 @@ describe('useAutocompletadoPOS', () => {
     });
     expect(productos[0]).toMatchObject({
       id_producto: 2,
-      id_lote: 9,
-      carritoKey: 'producto-2',
       stock_disponible: 12,
-      precio_venta: 7.5,
+      precio_minimo: 7.5,
+      precio_maximo: 7.5,
       tiene_precio: true,
       cantidad_lotes: 1,
       lotes: [expect.objectContaining({ id_lote: 9, stock_disponible: 12 })],
+      promocion: {
+        id_promocion: 3,
+        cantidad_minima: 4,
+        precio_promocion: 6.25,
+        fecha_inicio: '2026-10-01',
+        fecha_fin: '2026-12-31',
+      },
     });
   });
 
-  it('devuelve un resultado por producto con el stock acumulado de sus lotes', async () => {
+  it('devuelve un resultado por producto con todos sus lotes disponibles', async () => {
     api.get.mockResolvedValue({
       data: [
         {
@@ -72,9 +83,10 @@ describe('useAutocompletadoPOS', () => {
     expect(productos).toHaveLength(1);
     expect(productos[0]).toMatchObject({
       id_producto: 2,
-      id_lote: 9,
       stock_disponible: 7,
       cantidad_lotes: 2,
+      precio_minimo: 7.5,
+      precio_maximo: 7.5,
     });
     expect(productos[0].lotes.map(({ id_lote }) => id_lote)).toEqual([9, 10]);
   });

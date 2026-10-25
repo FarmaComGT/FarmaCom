@@ -5,17 +5,14 @@ import userEvent from '@testing-library/user-event';
 import AutocompletadoProductosPOS from './AutocompletadoProductosPOS';
 
 const producto = {
-  carritoKey: 'producto-1',
   id_producto: 1,
-  id_lote: 1,
   codigo: 'MED-001',
   nombre_comercial: 'Paracetamol',
   nombre_generico: 'Acetaminofén',
   presentacion: 'Blíster',
-  numero_lote: 'L-001',
-  fecha_vencimiento: '2027-01-01',
   stock_disponible: 5,
-  precio_venta: 8.5,
+  precio_minimo: 8.5,
+  precio_maximo: 8.5,
   tiene_precio: true,
   estado_stock: 'normal',
   estado_vencimiento: 'normal',
@@ -26,6 +23,7 @@ const producto = {
     fecha_vencimiento: '2027-01-01',
     stock_disponible: 5,
     precio_venta: 8.5,
+    tiene_precio: true,
   }],
 };
 
@@ -33,7 +31,7 @@ function Escenario({
   productos = [],
   cargando = false,
   error = null,
-  onAgregar = vi.fn(),
+  onSeleccionar = vi.fn(),
   onBuscarAhora = vi.fn(async () => productos),
 }) {
   const [busqueda, setBusqueda] = useState('');
@@ -45,7 +43,7 @@ function Escenario({
       productos={productos}
       cargando={cargando}
       error={error}
-      onAgregar={onAgregar}
+      onSeleccionar={onSeleccionar}
       onBuscarAhora={onBuscarAhora}
       onRefrescar={() => {}}
     />
@@ -67,7 +65,7 @@ describe('AutocompletadoProductosPOS', () => {
     const buscador = screen.getByLabelText('Buscar productos');
     await user.type(buscador, 'para');
 
-    expect(screen.getByRole('button', { name: 'Agregar Paracetamol' }))
+    expect(screen.getByRole('button', { name: 'Seleccionar lote de Paracetamol' }))
       .toBeInTheDocument();
     expect(screen.getByText('1 resultado')).toBeInTheDocument();
 
@@ -76,13 +74,13 @@ describe('AutocompletadoProductosPOS', () => {
     expect(screen.queryByText('Paracetamol')).not.toBeInTheDocument();
   });
 
-  it('busca inmediatamente y agrega el primer resultado al presionar Enter', async () => {
+  it('busca inmediatamente y abre los lotes del primer resultado al presionar Enter', async () => {
     const user = userEvent.setup();
-    const onAgregar = vi.fn();
+    const onSeleccionar = vi.fn();
     const onBuscarAhora = vi.fn(async () => [producto]);
     render(
       <Escenario
-        onAgregar={onAgregar}
+        onSeleccionar={onSeleccionar}
         onBuscarAhora={onBuscarAhora}
       />,
     );
@@ -90,9 +88,9 @@ describe('AutocompletadoProductosPOS', () => {
     const buscador = screen.getByLabelText('Buscar productos');
     await user.type(buscador, 'MED-001{Enter}');
 
-    await waitFor(() => expect(onAgregar).toHaveBeenCalledWith(producto));
+    await waitFor(() => expect(onSeleccionar).toHaveBeenCalledWith(producto));
     expect(onBuscarAhora).toHaveBeenCalledWith('MED-001');
-    expect(buscador).toHaveValue('');
+    expect(buscador).toHaveValue('MED-001');
   });
 
   it('presenta un estado vacío después de una búsqueda sin resultados', async () => {
@@ -129,9 +127,6 @@ describe('AutocompletadoProductosPOS', () => {
       {
         ...producto,
         id_producto: 2,
-        id_lote: 2,
-        carritoKey: 'producto-2',
-        numero_lote: 'L-002',
         nombre_comercial: 'Paracetamol Forte',
         tipo_coincidencia: 'aproximada',
       },
@@ -155,9 +150,9 @@ describe('AutocompletadoProductosPOS', () => {
     expect(container.querySelector('mark')).toHaveTextContent('Paracetam');
   });
 
-  it('agrega una sola opción agrupada con todos los lotes del producto', async () => {
+  it('selecciona el producto agrupado para consultar todos sus lotes', async () => {
     const user = userEvent.setup();
-    const onAgregar = vi.fn();
+    const onSeleccionar = vi.fn();
     const productoAgrupado = {
       ...producto,
       cantidad_lotes: 2,
@@ -170,19 +165,19 @@ describe('AutocompletadoProductosPOS', () => {
           fecha_vencimiento: '2027-06-01',
           stock_disponible: 3,
           precio_venta: 8.5,
+          tiene_precio: true,
         },
       ],
     };
-    render(<Escenario productos={[productoAgrupado]} onAgregar={onAgregar} />);
+    render(<Escenario productos={[productoAgrupado]} onSeleccionar={onSeleccionar} />);
 
     await user.type(screen.getByLabelText('Buscar productos'), 'para');
-    await user.click(screen.getByRole('button', { name: 'Agregar Paracetamol' }));
+    await user.click(screen.getByRole('button', { name: 'Seleccionar lote de Paracetamol' }));
 
-    expect(screen.getByText('2 lotes')).toBeInTheDocument();
-    expect(onAgregar).toHaveBeenCalledWith(productoAgrupado);
-    expect(onAgregar.mock.calls[0][0]).toMatchObject({
+    expect(screen.getByText('2 lotes disponibles')).toBeInTheDocument();
+    expect(onSeleccionar).toHaveBeenCalledWith(productoAgrupado);
+    expect(onSeleccionar.mock.calls[0][0]).toMatchObject({
       id_producto: 1,
-      carritoKey: 'producto-1',
       stock_disponible: 8,
       cantidad_lotes: 2,
     });

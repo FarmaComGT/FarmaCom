@@ -210,7 +210,7 @@ describe('VentaPreparacionService', () => {
       expect(resultado.detallesCalculados[0].precio_unitario).toBe('8.50');
     });
 
-    it('aplica el mismo precio promocional a los lotes FEFO del producto', async () => {
+    it('aplica el mismo precio promocional a los lotes seleccionados del producto', async () => {
       VentaDAO.obtenerLotesParaVenta.mockResolvedValue([
         { ...loteBase, id_lote: 10, stock_actual: 2 },
         { ...loteBase, id_lote: 11, stock_actual: 3, precio_venta: '9.00' },

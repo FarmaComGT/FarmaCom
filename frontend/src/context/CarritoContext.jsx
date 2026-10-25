@@ -26,6 +26,23 @@ function obtenerPrecio(producto, precioUnitario) {
   return Math.max(0, Number(precio) || 0);
 }
 
+export function calcularPrecioAplicado(item, cantidadProducto = item.cantidad) {
+  const minimo = Number(item.promocion?.cantidad_minima);
+  const precioPromocional = Number(item.promocion?.precio_promocion);
+  const promocionDisponible = Number.isFinite(minimo)
+    && minimo > 0
+    && Number.isFinite(precioPromocional)
+    && precioPromocional > 0
+    && precioPromocional < item.precioUnitario;
+  const aplicaPromocion = promocionDisponible && cantidadProducto >= minimo;
+
+  return {
+    precioAplicado: aplicaPromocion ? precioPromocional : item.precioUnitario,
+    promocionAplicada: aplicaPromocion,
+    promocionDisponible,
+  };
+}
+
 function reducer(estado, accion) {
   switch (accion.type) {
     case ACCIONES.AGREGAR: {
@@ -94,10 +111,25 @@ export function CarritoProvider({ children }) {
 
   const valor = useMemo(() => {
     const cantidadTotal = items.reduce((total, item) => total + item.cantidad, 0);
-    const subtotal = items.reduce((total, item) => total + item.precioUnitario * item.cantidad, 0);
+    const cantidadesPorProducto = items.reduce((cantidades, item) => {
+      const idProducto = Number(item.id_producto);
+      cantidades.set(idProducto, (cantidades.get(idProducto) || 0) + item.cantidad);
+      return cantidades;
+    }, new Map());
+    const itemsCalculados = items.map((item) => ({
+      ...item,
+      ...calcularPrecioAplicado(
+        item,
+        cantidadesPorProducto.get(Number(item.id_producto)) || item.cantidad,
+      ),
+    }));
+    const subtotal = itemsCalculados.reduce(
+      (total, item) => total + item.precioAplicado * item.cantidad,
+      0,
+    );
     return {
-      items,
-      carrito: items,
+      items: itemsCalculados,
+      carrito: itemsCalculados,
       cantidadTotal,
       subtotal,
       total: subtotal,

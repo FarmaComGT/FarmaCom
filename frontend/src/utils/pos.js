@@ -36,15 +36,12 @@ const normalizarLotePOS = (lote) => {
   };
 };
 
-const fechaFEFO = (lote) => {
-  if (!lote.fecha_vencimiento) return Number.POSITIVE_INFINITY;
-  const fecha = new Date(lote.fecha_vencimiento).getTime();
-  return Number.isFinite(fecha) ? fecha : Number.POSITIVE_INFINITY;
-};
-
-export const ordenarLotesFEFO = (lotes = []) => [...lotes].sort((primero, segundo) => (
-  fechaFEFO(primero) - fechaFEFO(segundo)
-  || Number(primero.id_lote) - Number(segundo.id_lote)
+const ordenarLotesPorNumero = (lotes = []) => [...lotes].sort((primero, segundo) => (
+  String(primero.numero_lote || '').localeCompare(
+    String(segundo.numero_lote || ''),
+    'es',
+    { numeric: true },
+  ) || Number(primero.id_lote) - Number(segundo.id_lote)
 ));
 
 export const agruparLotesPorProductoPOS = (filas = []) => {
@@ -68,63 +65,55 @@ export const agruparLotesPorProductoPOS = (filas = []) => {
   });
 
   return [...productos.values()].map(({ datos, lotes: lotesPorId }) => {
-    const todosLosLotes = ordenarLotesFEFO([...lotesPorId.values()]);
-    const lotesConPrecio = todosLosLotes.filter((lote) => lote.tiene_precio);
-    const lotesDisponibles = lotesConPrecio.length > 0 ? lotesConPrecio : todosLosLotes;
-    const loteFEFO = lotesDisponibles[0];
+    const lotesDisponibles = ordenarLotesPorNumero([...lotesPorId.values()]);
+    const precios = lotesDisponibles
+      .filter((lote) => lote.tiene_precio)
+      .map((lote) => lote.precio_venta);
+    const {
+      id_lote: _idLote,
+      numero_lote: _numeroLote,
+      fecha_vencimiento: _fechaVencimiento,
+      estado_vencimiento: _estadoVencimiento,
+      estado_stock: _estadoStock,
+      precio_venta: _precioVenta,
+      stock_disponible: _stockDisponible,
+      ...datosProducto
+    } = datos;
 
     return {
-      ...datos,
+      ...datosProducto,
       id_producto: Number(datos.id_producto),
-      id_lote: loteFEFO?.id_lote ?? null,
-      carritoKey: `producto-${datos.id_producto}`,
       lotes: lotesDisponibles,
       cantidad_lotes: lotesDisponibles.length,
-      numero_lote: loteFEFO?.numero_lote,
-      fecha_vencimiento: loteFEFO?.fecha_vencimiento ?? null,
-      estado_vencimiento: loteFEFO?.estado_vencimiento,
-      estado_stock: loteFEFO?.estado_stock,
       stock_disponible: lotesDisponibles.reduce(
         (total, lote) => total + lote.stock_disponible,
         0,
       ),
-      precio_venta: loteFEFO?.precio_venta ?? null,
-      tiene_precio: lotesConPrecio.length > 0,
+      precio_minimo: precios.length ? Math.min(...precios) : null,
+      precio_maximo: precios.length ? Math.max(...precios) : null,
+      tiene_precio: precios.length > 0,
     };
   });
 };
 
-export const asignarLotesFEFO = (producto, cantidad) => {
-  const cantidadSolicitada = Number(cantidad);
-  if (!Number.isInteger(cantidadSolicitada) || cantidadSolicitada <= 0) {
-    throw new Error('El carrito contiene una cantidad inválida.');
-  }
+export const crearItemLotePOS = (producto, lote) => {
+  const {
+    lotes: _lotes,
+    cantidad_lotes: _cantidadLotes,
+    precio_minimo: _precioMinimo,
+    precio_maximo: _precioMaximo,
+    stock_disponible: _stockProducto,
+    ...datosProducto
+  } = producto;
 
-  const lotes = producto.lotes?.length
-    ? ordenarLotesFEFO(producto.lotes)
-    : ordenarLotesFEFO([{
-      id_lote: producto.id_lote,
-      fecha_vencimiento: producto.fecha_vencimiento,
-      stock_disponible: producto.stock_disponible,
-    }]);
-  const detalles = [];
-  let pendiente = cantidadSolicitada;
-
-  for (const lote of lotes) {
-    const stockDisponible = Math.max(0, numeroSeguro(lote.stock_disponible));
-    const cantidadLote = Math.min(pendiente, stockDisponible);
-    if (!lote.id_lote || cantidadLote <= 0) continue;
-
-    detalles.push({ id_lote: Number(lote.id_lote), cantidad: cantidadLote });
-    pendiente -= cantidadLote;
-    if (pendiente === 0) break;
-  }
-
-  if (pendiente > 0) {
-    throw new Error(`Stock insuficiente para ${producto.nombre_comercial || 'el producto'}.`);
-  }
-
-  return detalles;
+  return {
+    ...datosProducto,
+    ...lote,
+    id_producto: Number(producto.id_producto),
+    id_lote: Number(lote.id_lote),
+    carritoKey: `lote-${lote.id_lote}`,
+    tiene_precio: Boolean(lote.tiene_precio),
+  };
 };
 
 export const construirCatalogoPOS = (inventario = [], lotes = []) => {

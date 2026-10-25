@@ -221,6 +221,76 @@ describe('CarritoContext', () => {
     expect(result.current.total).toBe(35);
   });
 
+  it('aplica el precio promocional al alcanzar la cantidad mínima', () => {
+    const { result } = renderHook(() => useCarrito(), { wrapper });
+    const producto = {
+      id_producto: 1,
+      precio_venta: 10,
+      promocion: { cantidad_minima: 3, precio_promocion: 7.5 },
+    };
+
+    act(() => {
+      result.current.agregarAlCarrito(producto, { cantidad: 2 });
+    });
+    expect(result.current.items[0].promocionAplicada).toBe(false);
+    expect(result.current.total).toBe(20);
+
+    act(() => {
+      result.current.incrementarCantidad('producto-1');
+    });
+    expect(result.current.items[0]).toMatchObject({
+      promocionAplicada: true,
+      promocionDisponible: true,
+      precioAplicado: 7.5,
+    });
+    expect(result.current.total).toBe(22.5);
+  });
+
+  it('acumula la cantidad promocional del producto entre lotes seleccionados', () => {
+    const { result } = renderHook(() => useCarrito(), { wrapper });
+    const promocion = { cantidad_minima: 3, precio_promocion: 7.5 };
+
+    act(() => {
+      result.current.agregarAlCarrito({
+        id_producto: 1,
+        id_lote: 10,
+        precio_venta: 10,
+        promocion,
+      }, { cantidad: 1 });
+      result.current.agregarAlCarrito({
+        id_producto: 1,
+        id_lote: 11,
+        precio_venta: 11,
+        promocion,
+      }, { cantidad: 2 });
+    });
+
+    expect(result.current.items).toEqual([
+      expect.objectContaining({ id_lote: 10, promocionAplicada: true, precioAplicado: 7.5 }),
+      expect.objectContaining({ id_lote: 11, promocionAplicada: true, precioAplicado: 7.5 }),
+    ]);
+    expect(result.current.total).toBe(22.5);
+  });
+
+  it('ignora una promoción que ya no sea menor al precio normal', () => {
+    const { result } = renderHook(() => useCarrito(), { wrapper });
+
+    act(() => {
+      result.current.agregarAlCarrito({
+        id_producto: 1,
+        precio_venta: 10,
+        promocion: { cantidad_minima: 2, precio_promocion: 12 },
+      }, { cantidad: 2 });
+    });
+
+    expect(result.current.items[0]).toMatchObject({
+      promocionAplicada: false,
+      promocionDisponible: false,
+      precioAplicado: 10,
+    });
+    expect(result.current.total).toBe(20);
+  });
+
   it('indica si una clave está en el carrito', () => {
     const { result } = renderHook(() => useCarrito(), { wrapper });
 

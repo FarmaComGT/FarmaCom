@@ -13,7 +13,7 @@ export default function CatalogoProductosPOS({
   productos,
   cargando,
   error,
-  onAgregar,
+  onSeleccionar,
   onRefrescar,
 }) {
   const [busqueda, setBusqueda] = useState('');
@@ -31,8 +31,7 @@ export default function CatalogoProductosPOS({
     if (!primerProductoDisponible) return;
 
     evento.preventDefault();
-    onAgregar(primerProductoDisponible);
-    setBusqueda('');
+    onSeleccionar(primerProductoDisponible);
   };
 
   return (
@@ -44,7 +43,7 @@ export default function CatalogoProductosPOS({
               Catálogo de productos
             </h1>
             <p className="mt-1 text-sm font-medium text-slate-500">
-              Busca o escanea un producto para agregarlo.
+              Busca o escanea un producto para seleccionar uno de sus lotes.
             </p>
           </div>
           <button
@@ -109,9 +108,9 @@ export default function CatalogoProductosPOS({
 
         {!cargando && !error && productosFiltrados.map((producto) => (
           <ProductoVentaCard
-            key={producto.carritoKey}
+            key={producto.id_producto}
             producto={producto}
-            onAgregar={onAgregar}
+            onSeleccionar={onSeleccionar}
           />
         ))}
       </div>
