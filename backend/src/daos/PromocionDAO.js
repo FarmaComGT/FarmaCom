@@ -4,13 +4,18 @@ class PromocionDAO {
 
   async crear({ id_producto, id_sucursal, cantidad_minima, precio_promocion, fecha_inicio, fecha_fin }) {
     const query = `
-      INSERT INTO promocion (
-        id_producto, id_sucursal,
-        cantidad_minima, precio_promocion,
-        fecha_inicio, fecha_fin
+      WITH creada AS (
+        INSERT INTO promocion (
+          id_producto, id_sucursal,
+          cantidad_minima, precio_promocion,
+          fecha_inicio, fecha_fin
+        )
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *
+      SELECT creada.*, s.nombre_sucursal
+      FROM creada
+      JOIN sucursal s ON s.id_sucursal = creada.id_sucursal
     `;
     const valores = [
       id_producto,
@@ -49,6 +54,23 @@ class PromocionDAO {
     `;
     const { rows } = await pool.query(query, [id_promocion]);
     return rows[0] || null;
+  }
+
+  async obtenerPrecioVentaMinimoDisponible(id_producto, id_sucursal, client = pool) {
+    const { rows } = await client.query(
+      `SELECT MIN(precio_venta) AS precio_venta_minimo
+       FROM lote
+       WHERE id_producto = $1
+         AND id_sucursal = $2
+         AND stock_actual > 0
+         AND precio_venta > 0
+         AND (
+           fecha_vencimiento IS NULL
+           OR fecha_vencimiento >= CURRENT_DATE
+         )`,
+      [id_producto, id_sucursal],
+    );
+    return rows[0]?.precio_venta_minimo ?? null;
   }
 
   async obtenerVigentesParaVenta(idsProducto, idSucursal, client = pool) {

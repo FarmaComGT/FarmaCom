@@ -1,5 +1,4 @@
 const PromocionService = require('../services/PromocionService');
-const AppError = require('../errors/AppError');
 const asyncHandler = require('../middlewares/asyncHandler');
 
 const crear = asyncHandler(async (req, res) => {
@@ -25,16 +24,13 @@ const actualizar = asyncHandler(async (req, res) => {
   return res.status(200).json(promocion);
 });
 
-// PATCH /api/promociones/:id/estado — cancelación manual antes de fecha_fin
+// PATCH /api/promociones/:id/estado
 const cambiarEstado = asyncHandler(async (req, res) => {
   const { activo } = req.body;
-
-  // Solo se puede desactivar desde este endpoint (la activación es al crear)
-  if (activo === true) {
-    throw new AppError('Para activar una promoción, créela nuevamente', 400);
-  }
-
-  const resultado = await PromocionService.desactivarPromocion(Number(req.params.id));
+  const resultado = await PromocionService.cambiarEstadoPromocion(
+    Number(req.params.id),
+    activo,
+  );
   return res.status(200).json(resultado);
 });
 

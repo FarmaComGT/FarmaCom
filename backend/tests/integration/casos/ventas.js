@@ -117,6 +117,21 @@ module.exports = ({ app, iniciarSesion, pool, request }) => {
         [contexto.id_producto, contexto.id_sucursal],
       );
 
+      const promocionSinDescuento = await request(app)
+        .post(`/api/productos/${contexto.id_producto}/promociones`)
+        .set('Cookie', cookie)
+        .send({
+          id_sucursal: contexto.id_sucursal,
+          cantidad_minima: 3,
+          precio_promocion: 15,
+          fecha_inicio: '2020-01-01',
+          fecha_fin: '2099-12-31',
+        })
+        .expect(400);
+      expect(promocionSinDescuento.body.mensaje).toContain(
+        'debe ser menor que el precio normal mínimo de Q15.00',
+      );
+
       const promocion = await request(app)
         .post(`/api/productos/${contexto.id_producto}/promociones`)
         .set('Cookie', cookie)
@@ -128,6 +143,20 @@ module.exports = ({ app, iniciarSesion, pool, request }) => {
           fecha_fin: '2099-12-31',
         })
         .expect(201);
+
+      const catalogoPOS = await request(app)
+        .get('/api/productos/autocompletar')
+        .query({ busqueda: 'INT-ACIDO-001', limite: 10 })
+        .set('Cookie', cookie)
+        .expect(200);
+      expect(catalogoPOS.body).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          id_producto: contexto.id_producto,
+          id_promocion: promocion.body.id_promocion,
+          promocion_cantidad_minima: 3,
+          precio_promocion: '12.00',
+        }),
+      ]));
 
       const venta = await request(app)
         .post('/api/ventas')

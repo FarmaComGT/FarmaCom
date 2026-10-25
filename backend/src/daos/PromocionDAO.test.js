@@ -31,6 +31,26 @@ describe('PromocionDAO', () => {
     await expect(PromocionDAO.obtenerPorId(99)).resolves.toBeNull();
   });
 
+  it('obtiene el menor precio de un lote vendible del producto en la sucursal', async () => {
+    pool.query.mockResolvedValue({ rows: [{ precio_venta_minimo: '12.50' }] });
+
+    await expect(PromocionDAO.obtenerPrecioVentaMinimoDisponible(2, 3))
+      .resolves.toBe('12.50');
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /MIN\(precio_venta\)[\s\S]*id_producto = \$1[\s\S]*id_sucursal = \$2[\s\S]*stock_actual > 0[\s\S]*fecha_vencimiento >= CURRENT_DATE/,
+      ),
+      [2, 3],
+    );
+  });
+
+  it('devuelve null si no existen lotes vendibles con precio', async () => {
+    pool.query.mockResolvedValue({ rows: [{ precio_venta_minimo: null }] });
+
+    await expect(PromocionDAO.obtenerPrecioVentaMinimoDisponible(2, 3))
+      .resolves.toBeNull();
+  });
+
   it('consulta promociones activas y vigentes para los productos y la sucursal de la venta', async () => {
     const client = {
       query: jest.fn().mockResolvedValue({

@@ -80,15 +80,17 @@ describe('manejo centralizado de Promoción', () => {
     expect(respuesta.body).toEqual({ mensaje: 'Promoción no encontrada' });
   });
 
-  it('conserva la regla que impide reactivar una promoción', async () => {
+  it('permite solicitar la reactivación de una promoción', async () => {
+    PromocionService.cambiarEstadoPromocion.mockResolvedValue({
+      mensaje: 'Promoción activada correctamente',
+      promocion: { id_promocion: 1, activo: true },
+    });
+
     const respuesta = await request(app)
       .patch('/api/promociones/1/estado')
       .send({ activo: true });
 
-    expect(respuesta.status).toBe(400);
-    expect(respuesta.body).toEqual({
-      mensaje: 'Para activar una promoción, créela nuevamente',
-    });
-    expect(PromocionService.desactivarPromocion).not.toHaveBeenCalled();
+    expect(respuesta.status).toBe(200);
+    expect(PromocionService.cambiarEstadoPromocion).toHaveBeenCalledWith(1, true);
   });
 });

@@ -59,6 +59,26 @@ describe('VentaMonetariaService', () => {
     });
   });
 
+  it('nunca usa una promoción más cara que el precio normal del lote', () => {
+    const promociones = new Map([
+      [1, { id_promocion: 9, precio_promocion: '9.50' }],
+    ]);
+
+    expect(calcularDetalles([{
+      id_lote: 4,
+      cantidad: 2,
+      lote: { id_producto: 1, precio_venta: '8.00', precio_compra: '4.00' },
+    }], promociones)).toEqual({
+      totalCentavos: 1600,
+      detallesCalculados: [{
+        id_lote: 4,
+        cantidad: 2,
+        precio_unitario: '8.00',
+        costo_unitario: '4.00',
+      }],
+    });
+  });
+
   it('calcula el cambio y mantiene el error por monto insuficiente', () => {
     expect(calcularCobroEfectivo('30.00', 2500)).toEqual({
       recibidoCentavos: 3000,

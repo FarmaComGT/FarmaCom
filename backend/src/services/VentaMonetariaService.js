@@ -10,8 +10,11 @@ const calcularDetalles = (detallesValidados, promocionesPorProducto = new Map())
 
   const detallesCalculados = detallesValidados.map(({ id_lote, cantidad, lote }) => {
     const promocion = promocionesPorProducto.get(Number(lote.id_producto));
-    const precioAplicado = promocion?.precio_promocion ?? lote.precio_venta;
-    const precioCentavos = aCentavos(precioAplicado);
+    const precioNormalCentavos = aCentavos(lote.precio_venta);
+    const precioPromocionalCentavos = promocion
+      ? aCentavos(promocion.precio_promocion)
+      : precioNormalCentavos;
+    const precioCentavos = Math.min(precioNormalCentavos, precioPromocionalCentavos);
     const costoCentavos = aCentavos(lote.precio_compra);
     const subtotalCentavos = precioCentavos * cantidad;
 

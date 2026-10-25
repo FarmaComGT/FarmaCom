@@ -66,7 +66,7 @@ router.put('/:id',
   PromocionController.actualizar,
 );
 
-// PATCH  /api/promociones/:id/estado — cancelación manual
+// PATCH  /api/promociones/:id/estado
 router.patch('/:id/estado',
   verificarToken,
   rolesAdministracion,
