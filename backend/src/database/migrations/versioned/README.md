@@ -18,8 +18,10 @@ Los archivos deben usar tres dígitos, letras minúsculas y guiones bajos:
 
 ```text
 001_precio_compra_por_lote.sql
-002_contactos_cliente.sql
-003_ajustes_cancelacion_venta.sql
+002_eliminacion_segura_catalogos.sql
+003_contactos_cliente.sql
+004_historial_precio_por_ingreso_lote.sql
+005_vista_lote_fecha_ingreso.sql
 ```
 
 Antes de crear un archivo, se debe revisar el último número disponible. Una

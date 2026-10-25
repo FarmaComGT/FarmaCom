@@ -33,7 +33,7 @@ const validarProveedorActivo = async (id_proveedor, client) => {
 
 //  Lote 
 
-const crearLote = async (datos) => {
+const crearLoteEnTransaccion = async (datos, id_usuario, client) => {
   const {
     id_producto,
     id_proveedor,
@@ -48,11 +48,15 @@ const crearLote = async (datos) => {
     cantidad_mayoreo,
   } = datos;
 
+  if (!Number.isInteger(Number(id_usuario)) || Number(id_usuario) <= 0) {
+    lanzarError('Se requiere un usuario válido para registrar los precios', 400);
+  }
+
   // Verificar que el producto exista y esté activo
-  const producto = await ProductoDAO.obtenerPorId(id_producto);
+  const producto = await ProductoDAO.obtenerPorId(id_producto, client);
   if (!producto)        lanzarError('Producto no encontrado', 404);
   if (!producto.activo) lanzarError('No se puede agregar un lote a un producto inactivo', 409);
-  await validarProveedorActivo(id_proveedor);
+  await validarProveedorActivo(id_proveedor, client);
 
   const precioCompraNumerico = Number(precio_compra);
   if (
@@ -71,8 +75,16 @@ const crearLote = async (datos) => {
   if (!Number.isInteger(Number(cantidad_ingresada)) || Number(cantidad_ingresada) <= 0)
     lanzarError('La cantidad ingresada debe ser un entero mayor a 0', 400);
 
+  await LoteDAO.bloquearHistorialProductoSucursal(id_producto, id_sucursal, client);
+
   // Número de lote único por producto y sucursal
-  const duplicado = await LoteDAO.obtenerPorNumeroLote(numero_lote, id_producto, id_sucursal);
+  const duplicado = await LoteDAO.obtenerPorNumeroLote(
+    numero_lote,
+    id_producto,
+    id_sucursal,
+    null,
+    client,
+  );
   if (duplicado)
     lanzarError(
       `Ya existe un lote con el número "${numero_lote}" para este producto en esta sucursal`,
@@ -91,6 +103,11 @@ const crearLote = async (datos) => {
   if (tienePrecioMayoreo !== tieneCantidadMayoreo)
     lanzarError('precio_mayoreo y cantidad_mayoreo deben definirse juntos', 400);
 
+  const loteAnterior = await LoteDAO.obtenerUltimoPorProductoSucursal(
+    id_producto,
+    id_sucursal,
+    client,
+  );
   const lote = await LoteDAO.crear({
     id_producto,
     id_proveedor,
@@ -103,10 +120,23 @@ const crearLote = async (datos) => {
     margen_ganancia,
     precio_mayoreo:   precio_mayoreo   ?? null,
     cantidad_mayoreo: cantidad_mayoreo ?? null,
-  });
+  }, client);
 
-  return await LoteDAO.obtenerPorId(lote.id_lote);
+  await HistorialPrecioLoteDAO.registrarPorIngreso(
+    loteAnterior,
+    lote,
+    Number(id_usuario),
+    client,
+  );
+
+  return await LoteDAO.obtenerPorId(lote.id_lote, client);
 };
+
+const crearLote = async (datos, id_usuario) => (
+  LoteDAO.ejecutarEnTransaccion(
+    (client) => crearLoteEnTransaccion(datos, id_usuario, client),
+  )
+);
 
 const obtenerPorSucursal = async (id_sucursal) => {
   return await LoteDAO.obtenerPorSucursal(id_sucursal);
@@ -128,7 +158,7 @@ const obtenerPorId = async (id_lote) => {
  * Permite actualizar los datos propios del lote.
  * El stock no puede quedar negativo ni superar la cantidad ingresada.
  */
-const actualizarLoteEnTransaccion = async (id_lote, campos, id_usuario, client) => {
+const actualizarLoteEnTransaccion = async (id_lote, campos, client) => {
   const lote = await LoteDAO.obtenerFilaPorId(id_lote, client, true);
   if (!lote) lanzarError('Lote no encontrado', 404);
 
@@ -240,29 +270,12 @@ const actualizarLoteEnTransaccion = async (id_lote, campos, id_usuario, client) 
   }
   if (!actualizado) lanzarError('No se pudo actualizar el lote', 500);
 
-  const cambioPrecio = (
-    Number(lote.precio_compra) !== Number(actualizado.precio_compra)
-    || Number(lote.precio_venta) !== Number(actualizado.precio_venta)
-  );
-  if (cambioPrecio) {
-    if (!Number.isInteger(Number(id_usuario)) || Number(id_usuario) <= 0) {
-      lanzarError('Se requiere un usuario valido para cambiar precios', 400);
-    }
-    await HistorialPrecioLoteDAO.registrarCambios(
-      id_lote,
-      Number(id_usuario),
-      lote,
-      actualizado,
-      client,
-    );
-  }
-
   return await LoteDAO.obtenerPorId(id_lote, client);
 };
 
-const actualizarLote = async (id_lote, campos, id_usuario) => (
+const actualizarLote = async (id_lote, campos) => (
   LoteDAO.ejecutarEnTransaccion(
-    (client) => actualizarLoteEnTransaccion(id_lote, campos, id_usuario, client),
+    (client) => actualizarLoteEnTransaccion(id_lote, campos, client),
   )
 );
 

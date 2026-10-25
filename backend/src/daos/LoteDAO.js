@@ -32,7 +32,7 @@ class LoteDAO {
     margen_ganancia,
     precio_mayoreo,
     cantidad_mayoreo,
-  }) {
+  }, client = pool) {
     const query = `
       INSERT INTO lote (
         id_producto, id_proveedor, id_sucursal,
@@ -43,7 +43,7 @@ class LoteDAO {
       VALUES ($1, $2, $3, $4, $5, $6, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `;
-    const { rows } = await pool.query(query, [
+    const { rows } = await client.query(query, [
       id_producto,
       id_proveedor,
       id_sucursal,
@@ -60,6 +60,26 @@ class LoteDAO {
   }
 
   // OBTENER
+
+  async bloquearHistorialProductoSucursal(id_producto, id_sucursal, client = pool) {
+    await client.query(
+      'SELECT pg_advisory_xact_lock($1, $2)',
+      [id_producto, id_sucursal],
+    );
+  }
+
+  async obtenerUltimoPorProductoSucursal(id_producto, id_sucursal, client = pool) {
+    const { rows } = await client.query(
+      `SELECT *
+       FROM lote
+       WHERE id_producto = $1
+         AND id_sucursal = $2
+       ORDER BY fecha_ingreso DESC, id_lote DESC
+       LIMIT 1`,
+      [id_producto, id_sucursal],
+    );
+    return rows[0] || null;
+  }
 
   // Lista todos los lotes de una sucursal con estados calculados utilizando la vista v_lote_estado
   async obtenerPorSucursal(id_sucursal) {

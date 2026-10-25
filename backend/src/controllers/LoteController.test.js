@@ -14,11 +14,12 @@ describe('LoteController', () => {
   it('crea un lote', async () => {
     LoteService.crearLote.mockResolvedValue({ id_lote: 1 });
     const body = { numero_lote: 'L-001' };
+    const req = { body, usuario: { id_usuario: 9 } };
     const res = mockResponse();
 
-    await LoteController.crear({ body }, res, jest.fn());
+    await LoteController.crear(req, res, jest.fn());
 
-    expect(LoteService.crearLote).toHaveBeenCalledWith(body);
+    expect(LoteService.crearLote).toHaveBeenCalledWith(body, 9);
     expect(res.status).toHaveBeenCalledWith(201);
   });
 
@@ -46,7 +47,7 @@ describe('LoteController', () => {
     expect(LoteService.eliminarLote).toHaveBeenCalledWith(7);
   });
 
-  it('actualiza con el usuario autenticado', async () => {
+  it('actualiza los datos del lote', async () => {
     LoteService.actualizarLote.mockResolvedValue({ id_lote: 7 });
     const req = {
       params: { id: '7' },
@@ -57,7 +58,7 @@ describe('LoteController', () => {
 
     await LoteController.actualizar(req, res, jest.fn());
 
-    expect(LoteService.actualizarLote).toHaveBeenCalledWith(7, { precio_venta: 20 }, 9);
+    expect(LoteService.actualizarLote).toHaveBeenCalledWith(7, { precio_venta: 20 });
     expect(res.status).toHaveBeenCalledWith(200);
   });
 

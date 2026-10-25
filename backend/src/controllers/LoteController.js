@@ -2,7 +2,7 @@ const LoteService = require('../services/LoteService');
 const asyncHandler = require('../middlewares/asyncHandler');
 
 const crear = asyncHandler(async (req, res) => {
-  const resultado = await LoteService.crearLote(req.body);
+  const resultado = await LoteService.crearLote(req.body, req.usuario.id_usuario);
   return res.status(201).json(resultado);
 });
 
@@ -25,7 +25,6 @@ const actualizar = asyncHandler(async (req, res) => {
   const lote = await LoteService.actualizarLote(
     Number(req.params.id),
     req.body,
-    req.usuario.id_usuario,
   );
   return res.status(200).json(lote);
 });

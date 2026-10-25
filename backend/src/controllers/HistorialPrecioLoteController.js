@@ -8,4 +8,11 @@ const obtenerPorLote = asyncHandler(async (req, res) => {
   return res.status(200).json(historial);
 });
 
-module.exports = { obtenerPorLote };
+const obtenerPorProducto = asyncHandler(async (req, res) => {
+  const historial = await HistorialPrecioLoteService.obtenerPorProducto(
+    Number(req.params.id),
+  );
+  return res.status(200).json(historial);
+});
+
+module.exports = { obtenerPorLote, obtenerPorProducto };

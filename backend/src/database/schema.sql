@@ -589,6 +589,7 @@ CREATE TABLE IF NOT EXISTS lote (
     id_proveedor          INTEGER       NOT NULL,
     id_sucursal           INTEGER       NOT NULL,
     numero_lote           VARCHAR(100)  NOT NULL,
+    fecha_ingreso         TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_vencimiento     DATE,
     cantidad_ingresada    INTEGER       NOT NULL CHECK (cantidad_ingresada > 0),
     stock_actual          INTEGER       NOT NULL CHECK (stock_actual >= 0),
@@ -629,6 +630,12 @@ CREATE TABLE IF NOT EXISTS lote (
         UNIQUE (numero_lote, id_producto, id_sucursal)
 );
 
+-- Permite aplicar este esquema sobre instalaciones creadas antes de que los
+-- lotes registraran su fecha de ingreso. La migración versionada conserva la
+-- misma operación para los despliegues incrementales.
+ALTER TABLE lote
+    ADD COLUMN IF NOT EXISTS fecha_ingreso TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
 CREATE INDEX IF NOT EXISTS idx_lote_proveedor
     ON lote (id_proveedor);
 
@@ -640,8 +647,9 @@ CREATE TABLE IF NOT EXISTS historial_precio_lote (
     id_historial_precio BIGSERIAL PRIMARY KEY,
     id_lote             INTEGER       NOT NULL,
     tipo_precio         VARCHAR(10)   NOT NULL,
-    valor_anterior      NUMERIC(10,2) NOT NULL,
+    valor_anterior      NUMERIC(10,2),
     valor_nuevo         NUMERIC(10,2) NOT NULL,
+    origen              VARCHAR(30)   NOT NULL DEFAULT 'correccion_lote',
     id_usuario          INTEGER       NOT NULL,
     fecha_cambio        TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
 
@@ -658,12 +666,21 @@ CREATE TABLE IF NOT EXISTS historial_precio_lote (
     CONSTRAINT chk_historial_tipo_precio
         CHECK (tipo_precio IN ('compra', 'venta')),
 
+    CONSTRAINT chk_historial_origen
+        CHECK (origen IN ('ingreso_lote', 'correccion_lote')),
+
     CONSTRAINT chk_historial_valores_no_negativos
-        CHECK (valor_anterior >= 0 AND valor_nuevo >= 0),
+        CHECK (
+            (valor_anterior IS NULL OR valor_anterior >= 0)
+            AND valor_nuevo >= 0
+        ),
 
     CONSTRAINT chk_historial_valores_distintos
-        CHECK (valor_anterior <> valor_nuevo)
+        CHECK (valor_anterior IS NULL OR valor_anterior <> valor_nuevo)
 );
+
+CREATE INDEX IF NOT EXISTS idx_lote_producto_sucursal_ingreso
+    ON lote (id_producto, id_sucursal, fecha_ingreso DESC, id_lote DESC);
 
 CREATE INDEX IF NOT EXISTS idx_historial_precio_lote_fecha
     ON historial_precio_lote (id_lote, fecha_cambio DESC, id_historial_precio DESC);
@@ -998,7 +1015,9 @@ CREATE INDEX IF NOT EXISTS idx_detalle_venta_lote
 -- Usar esta vista en lugar de la tabla directa cuando se necesiten
 -- estado_vencimiento y estado_stock.
 -- =========================
-CREATE OR REPLACE VIEW v_lote_estado AS
+DROP VIEW IF EXISTS v_lote_estado;
+
+CREATE VIEW v_lote_estado AS
 SELECT
     l.*,
     CASE
