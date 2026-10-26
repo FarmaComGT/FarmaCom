@@ -109,4 +109,94 @@ describe('VentaDetalleModal', () => {
     expect(await screen.findByText(/Solo el responsable de la venta/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Anular venta' })).not.toBeInTheDocument();
   });
+
+  it('no consulta ni muestra nada sin una venta seleccionada', () => {
+    const { container } = render(<VentaDetalleModal idVenta={null} onClose={vi.fn()} />);
+
+    expect(container).toBeEmptyDOMElement();
+    expect(mocks.obtenerVentaPorId).not.toHaveBeenCalled();
+  });
+
+  it('muestra el estado de carga y luego los datos de la venta', async () => {
+    mocks.obtenerVentaPorId.mockResolvedValue({ ...ventaBase, nombre_cliente: 'María López', fecha_venta: null });
+
+    render(<VentaDetalleModal idVenta={21} onClose={vi.fn()} />);
+
+    expect(screen.getByRole('status', { name: 'Cargando detalle de venta' })).toBeInTheDocument();
+    expect(await screen.findByText('María López')).toBeInTheDocument();
+    expect(screen.getByText('No disponible')).toBeInTheDocument();
+    expect(mocks.obtenerVentaPorId).toHaveBeenCalledWith(21);
+  });
+
+  it('muestra el error si no se pudo cargar la venta', async () => {
+    mocks.obtenerVentaPorId.mockRejectedValue(new Error('Venta no encontrada'));
+
+    render(<VentaDetalleModal idVenta={99} onClose={vi.fn()} />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Venta no encontrada');
+    expect(screen.queryByRole('button', { name: 'Anular venta' })).not.toBeInTheDocument();
+  });
+
+  it('permite al dependiente responsable cancelar su venta', async () => {
+    const user = userEvent.setup();
+    mocks.useAuth.mockReturnValue({ usuario: { id_usuario: 7, rol: 'dependiente' } });
+
+    render(<VentaDetalleModal idVenta={21} onClose={vi.fn()} />);
+
+    await user.click(await screen.findByRole('button', { name: 'Anular venta' }));
+    expect(screen.getByRole('button', { name: 'Sí, anular venta' })).toBeInTheDocument();
+  });
+
+  it('mantiene la confirmación abierta y muestra el error si la cancelación falla', async () => {
+    const user = userEvent.setup();
+    mocks.anularVenta.mockRejectedValue(new Error('No se puede anular una venta con la sesión de caja cerrada'));
+
+    render(<VentaDetalleModal idVenta={21} onClose={vi.fn()} />);
+
+    await user.click(await screen.findByRole('button', { name: 'Anular venta' }));
+    await user.type(screen.getByLabelText(/Motivo de anulación/), 'Error de cobro');
+    await user.click(screen.getByRole('button', { name: 'Sí, anular venta' }));
+
+    expect(await screen.findByText('No se puede anular una venta con la sesión de caja cerrada')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sí, anular venta' })).toBeEnabled();
+  });
+
+  it('usa un mensaje genérico si la cancelación falla sin detalle', async () => {
+    const user = userEvent.setup();
+    mocks.anularVenta.mockRejectedValue(new Error(''));
+
+    render(<VentaDetalleModal idVenta={21} onClose={vi.fn()} />);
+
+    await user.click(await screen.findByRole('button', { name: 'Anular venta' }));
+    await user.type(screen.getByLabelText(/Motivo de anulación/), 'Error de cobro');
+    await user.click(screen.getByRole('button', { name: 'Sí, anular venta' }));
+
+    expect(await screen.findByText('No se pudo anular la venta.')).toBeInTheDocument();
+  });
+
+  it('vuelve al detalle sin cancelar la venta', async () => {
+    const user = userEvent.setup();
+
+    render(<VentaDetalleModal idVenta={21} onClose={vi.fn()} />);
+
+    await user.click(await screen.findByRole('button', { name: 'Anular venta' }));
+    await user.click(screen.getByRole('button', { name: 'Volver' }));
+
+    expect(screen.queryByRole('button', { name: 'Sí, anular venta' })).not.toBeInTheDocument();
+    expect(mocks.anularVenta).not.toHaveBeenCalled();
+  });
+
+  it('cierra el detalle con el botón o al hacer clic fuera del cuadro', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+
+    render(<VentaDetalleModal idVenta={21} onClose={onClose} />);
+    await screen.findByText('Sucursal Central');
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar detalle de venta' }));
+    await user.click(screen.getByRole('dialog', { name: /Detalle de venta/ }).parentElement);
+    await user.click(screen.getByText('Sucursal Central'));
+
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
 });

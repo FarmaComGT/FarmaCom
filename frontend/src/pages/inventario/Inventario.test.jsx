@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   crearProducto: vi.fn(),
   crearLote: vi.fn(),
   refrescarInventario: vi.fn(),
+  sucursalConsultada: vi.fn(),
+  sucursales: [],
 }));
 
 const productos = [
@@ -49,7 +51,8 @@ const productos = [
 
 vi.mock('../../context/AuthContext.jsx', () => ({ useAuth: mocks.useAuth }));
 vi.mock('../../hooks/useInventarioSucursal.js', () => ({
-  default: () => ({
+  default: (idSucursal) => ({
+    ...mocks.sucursalConsultada(idSucursal),
     productos,
     resumen: {
       total_productos: 2,
@@ -86,7 +89,7 @@ vi.mock('../../hooks/useCasas.js', () => ({ default: () => ({ casas: [], cargand
 vi.mock('../../hooks/useProveedores.js', () => ({ default: () => ({ proveedores: [], cargando: false }) }));
 vi.mock('../../hooks/useSucursales.js', () => ({
   default: () => ({
-    sucursales: [{ id_sucursal: 1, nombre_sucursal: 'Central' }],
+    sucursales: mocks.sucursales,
     cargando: false,
   }),
 }));
@@ -124,6 +127,7 @@ vi.mock('../../components/inventario/productos/HistorialPrecioProductoModal.jsx'
 describe('Inventario unificado', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.sucursales = [{ id_sucursal: 1, nombre_sucursal: 'Central' }];
     mocks.useAuth.mockReturnValue({
       sucursalActivaId: 1,
       usuario: { rol: 'administrador' },
@@ -159,6 +163,116 @@ describe('Inventario unificado', () => {
     expect(screen.queryByText('Paracetamol')).not.toBeInTheDocument();
     expect(screen.queryByText('Loratadina')).not.toBeInTheDocument();
     expect(screen.getByText('No hay productos que coincidan con los filtros.')).toBeInTheDocument();
+  });
+
+  it('filtra los agotados desde el resumen y quita el filtro al pulsar de nuevo', async () => {
+    const usuario = userEvent.setup();
+    renderizar();
+    const agotados = screen.getByRole('button', { name: /Agotados/ });
+
+    await usuario.click(agotados);
+
+    expect(agotados).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Stock')).toHaveValue('agotado');
+    expect(screen.queryByRole('button', { name: 'Ver lotes de Paracetamol' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
+
+    await usuario.click(agotados);
+
+    expect(agotados).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByLabelText('Stock')).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
+  });
+
+  it('limpia stock y vencimiento desde Productos y conserva la categoría y el catálogo', async () => {
+    const usuario = userEvent.setup();
+    renderizar();
+
+    await usuario.selectOptions(screen.getByLabelText('Categoría'), '1');
+    await usuario.selectOptions(screen.getByLabelText('Catálogo'), 'true');
+    await usuario.click(screen.getByRole('button', { name: /Agotados/ }));
+    await usuario.click(screen.getByRole('button', { name: /Vencidos/ }));
+    expect(screen.getByText('No hay productos que coincidan con los filtros.')).toBeInTheDocument();
+
+    const resumenProductos = screen.getByRole('button', { name: /Productos/ });
+    await usuario.click(resumenProductos);
+
+    expect(resumenProductos).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Stock')).toHaveValue('');
+    expect(screen.getByLabelText('Vencimiento')).toHaveValue('');
+    expect(screen.getByLabelText('Categoría')).toHaveValue('1');
+    expect(screen.getByLabelText('Catálogo')).toHaveValue('true');
+    expect(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver lotes de Loratadina' })).not.toBeInTheDocument();
+  });
+
+  it.each(['  pArAcEtAmOl  ', 'MED001-TAB'])('busca productos por texto: %s', async (busqueda) => {
+    const usuario = userEvent.setup();
+    renderizar();
+
+    await usuario.type(screen.getByRole('searchbox', { name: 'Buscar productos' }), busqueda);
+
+    expect(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver lotes de Loratadina' })).not.toBeInTheDocument();
+
+    await usuario.clear(screen.getByRole('searchbox', { name: 'Buscar productos' }));
+
+    expect(screen.getByRole('button', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
+  });
+
+  it('combina la categoría con los productos activos e inactivos', async () => {
+    const usuario = userEvent.setup();
+    renderizar();
+
+    await usuario.selectOptions(screen.getByLabelText('Categoría'), '2');
+    expect(screen.queryByRole('button', { name: 'Ver lotes de Paracetamol' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
+
+    await usuario.selectOptions(screen.getByLabelText('Catálogo'), 'true');
+    expect(screen.getByText('No hay productos que coincidan con los filtros.')).toBeInTheDocument();
+
+    await usuario.selectOptions(screen.getByLabelText('Catálogo'), 'false');
+    expect(screen.getByRole('button', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
+
+    await usuario.selectOptions(screen.getByLabelText('Categoría'), '');
+    await usuario.selectOptions(screen.getByLabelText('Catálogo'), 'true');
+    expect(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver lotes de Loratadina' })).not.toBeInTheDocument();
+  });
+
+  it('consulta otra sucursal y limpia la búsqueda y todos los filtros', async () => {
+    const usuario = userEvent.setup();
+    mocks.sucursales.push({ id_sucursal: 2, nombre_sucursal: 'Norte' });
+    renderizar();
+
+    expect(mocks.sucursalConsultada).toHaveBeenLastCalledWith(1);
+    await usuario.type(screen.getByRole('searchbox', { name: 'Buscar productos' }), 'Paracetamol');
+    await usuario.selectOptions(screen.getByLabelText('Categoría'), '1');
+    await usuario.selectOptions(screen.getByLabelText('Catálogo'), 'true');
+    await usuario.selectOptions(screen.getByLabelText('Stock'), 'poco_stock');
+    await usuario.selectOptions(screen.getByLabelText('Vencimiento'), 'proximo_a_vencer');
+
+    await usuario.selectOptions(screen.getByLabelText('Sucursal'), '2');
+
+    expect(mocks.sucursalConsultada).toHaveBeenLastCalledWith(2);
+    expect(screen.getByLabelText('Sucursal')).toHaveValue('2');
+    expect(screen.getByRole('searchbox', { name: 'Buscar productos' })).toHaveValue('');
+    for (const filtro of ['Categoría', 'Catálogo', 'Stock', 'Vencimiento']) {
+      expect(screen.getByLabelText(filtro)).toHaveValue('');
+    }
+    expect(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
+  });
+
+  it('oculta la gestión de lotes y el historial para un vendedor con una sola sucursal', () => {
+    mocks.useAuth.mockReturnValue({ sucursalActivaId: 1, usuario: { rol: 'vendedor' } });
+    renderizar();
+
+    expect(screen.queryByLabelText('Sucursal')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ingresar lote' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Ver historial de precios/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
   });
 
   it('abre las acciones globales de producto y lote', async () => {
