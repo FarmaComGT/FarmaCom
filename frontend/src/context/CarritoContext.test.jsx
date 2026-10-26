@@ -301,4 +301,113 @@ describe('CarritoContext', () => {
     expect(result.current.estaEnCarrito('producto-1')).toBe(true);
     expect(result.current.estaEnCarrito('producto-99')).toBe(false);
   });
+
+  it('crea carritos independientes y conserva sus productos al cambiar', () => {
+    const { result } = renderHook(() => useCarrito(), { wrapper });
+
+    act(() => {
+      result.current.agregarAlCarrito({ id_producto: 1, precio_venta: 10 });
+    });
+    act(() => {
+      result.current.crearCarrito();
+    });
+
+    expect(result.current.carritoActivoId).toBe('carrito-2');
+    expect(result.current.items).toEqual([]);
+
+    act(() => {
+      result.current.agregarAlCarrito(
+        { id_producto: 2, precio_venta: 5 },
+        { cantidad: 3 },
+      );
+    });
+    expect(result.current.cantidadTotal).toBe(3);
+
+    act(() => {
+      result.current.cambiarCarrito('carrito-1');
+    });
+    expect(result.current.items).toEqual([
+      expect.objectContaining({ clave: 'producto-1', cantidad: 1 }),
+    ]);
+
+    act(() => {
+      result.current.cambiarCarrito('carrito-2');
+    });
+    expect(result.current.items).toEqual([
+      expect.objectContaining({ clave: 'producto-2', cantidad: 3 }),
+    ]);
+  });
+
+  it('conserva un cliente diferente en cada carrito', () => {
+    const { result } = renderHook(() => useCarrito(), { wrapper });
+    const clienteMostrador = { id_cliente: 1, nombre_cliente: 'Cliente mostrador' };
+    const clienteDomicilio = { id_cliente: 2, nombre_cliente: 'Cliente domicilio' };
+
+    act(() => {
+      result.current.seleccionarCliente(clienteMostrador);
+      result.current.crearCarrito();
+    });
+    act(() => {
+      result.current.seleccionarCliente(clienteDomicilio);
+    });
+    expect(result.current.clienteSeleccionado).toEqual(clienteDomicilio);
+
+    act(() => {
+      result.current.cambiarCarrito('carrito-1');
+    });
+    expect(result.current.clienteSeleccionado).toEqual(clienteMostrador);
+  });
+
+  it('renombra un carrito, recorta espacios y rechaza nombres vacíos', () => {
+    const { result } = renderHook(() => useCarrito(), { wrapper });
+    let renombrado;
+    let rechazado;
+
+    act(() => {
+      renombrado = result.current.renombrarCarrito('carrito-1', '  Pedido pendiente  ');
+    });
+    expect(renombrado).toBe(true);
+    expect(result.current.carritoActivo.nombre).toBe('Pedido pendiente');
+
+    act(() => {
+      rechazado = result.current.renombrarCarrito('carrito-1', '   ');
+    });
+    expect(rechazado).toBe(false);
+    expect(result.current.carritoActivo.nombre).toBe('Pedido pendiente');
+  });
+
+  it('cierra el carrito activo y cambia a uno de los carritos restantes', () => {
+    const { result } = renderHook(() => useCarrito(), { wrapper });
+
+    act(() => {
+      result.current.agregarAlCarrito({ id_producto: 1, precio_venta: 10 });
+      result.current.crearCarrito();
+    });
+    act(() => {
+      result.current.cerrarCarrito('carrito-2');
+    });
+
+    expect(result.current.carritos).toHaveLength(1);
+    expect(result.current.carritoActivoId).toBe('carrito-1');
+    expect(result.current.items).toEqual([
+      expect.objectContaining({ clave: 'producto-1' }),
+    ]);
+  });
+
+  it('al cerrar el último carrito crea uno nuevo, vacío y sin cliente', () => {
+    const { result } = renderHook(() => useCarrito(), { wrapper });
+
+    act(() => {
+      result.current.agregarAlCarrito({ id_producto: 1, precio_venta: 10 });
+      result.current.seleccionarCliente({ id_cliente: 1, nombre_cliente: 'Cliente' });
+    });
+    act(() => {
+      result.current.cerrarCarrito('carrito-1');
+    });
+
+    expect(result.current.carritos).toHaveLength(1);
+    expect(result.current.carritoActivoId).toBe('carrito-2');
+    expect(result.current.items).toEqual([]);
+    expect(result.current.clienteSeleccionado).toBeNull();
+  });
 });

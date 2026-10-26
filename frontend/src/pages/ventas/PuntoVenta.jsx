@@ -3,6 +3,7 @@ import AvisoPuntoVenta from '../../components/ventas/AvisoPuntoVenta';
 import CajaVentaContexto from '../../components/ventas/CajaVentaContexto';
 import AutocompletadoProductosPOS from '../../components/ventas/AutocompletadoProductosPOS';
 import CarritoVenta from '../../components/ventas/CarritoVenta';
+import CarritosVentaBar from '../../components/ventas/CarritosVentaBar';
 import CobroModal from '../../components/ventas/CobroModal';
 import ComprobanteModal from '../../components/ventas/ComprobanteModal';
 import NuevoClienteModal from '../../components/ventas/NuevoClienteModal';
@@ -32,6 +33,8 @@ export default function PuntoVenta() {
   } = useCaja(sucursalActivaId);
   const [busquedaProducto, setBusquedaProducto] = useState('');
   const {
+    carritos,
+    carritoActivoId,
     items,
     cantidadTotal,
     total,
@@ -41,6 +44,12 @@ export default function PuntoVenta() {
     disminuirCantidad,
     eliminarDelCarrito,
     vaciarCarrito,
+    clienteSeleccionado,
+    seleccionarCliente,
+    crearCarrito,
+    cambiarCarrito,
+    renombrarCarrito,
+    cerrarCarrito,
   } = useCarrito();
   const {
     productos,
@@ -56,7 +65,6 @@ export default function PuntoVenta() {
   } = useClientes();
 
   const [aviso, setAviso] = useState(null);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [productoSeleccionandoLote, setProductoSeleccionandoLote] = useState(null);
   const [productoPendiente, setProductoPendiente] = useState(null);
   const [mostrandoNuevoCliente, setMostrandoNuevoCliente] = useState(false);
@@ -139,10 +147,10 @@ export default function PuntoVenta() {
 
   const agregarCliente = useCallback(async (datosCliente) => {
     const nuevoCliente = await crearCliente(datosCliente);
-    setClienteSeleccionado(nuevoCliente);
+    seleccionarCliente(nuevoCliente);
     setMostrandoNuevoCliente(false);
     setAviso(`Cliente ${nuevoCliente.nombre_cliente} agregado y seleccionado.`);
-  }, [crearCliente]);
+  }, [crearCliente, seleccionarCliente]);
 
   /* Flujo de pago extraído a useFlujoVenta.
   useEffect(() => {
@@ -304,6 +312,16 @@ export default function PuntoVenta() {
 
       <AvisoPuntoVenta mensaje={aviso} onCerrar={() => setAviso(null)} />
 
+      <CarritosVentaBar
+        carritos={carritos}
+        carritoActivoId={carritoActivoId}
+        bloqueado={Boolean(flujoVenta.modalActivo) || flujoVenta.procesandoCobro}
+        onCrear={crearCarrito}
+        onCambiar={cambiarCarrito}
+        onRenombrar={renombrarCarrito}
+        onCerrar={cerrarCarrito}
+      />
+
       <div className="grid w-full items-stretch gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(390px,0.65fr)]">
         <AutocompletadoProductosPOS
           busqueda={busquedaProducto}
@@ -325,7 +343,7 @@ export default function PuntoVenta() {
           clientes={clientes}
           cargandoClientes={cargandoClientes}
           clienteSeleccionado={clienteSeleccionado}
-          onClienteChange={setClienteSeleccionado}
+          onClienteChange={seleccionarCliente}
           onNuevoCliente={() => setMostrandoNuevoCliente(true)}
           onIncrementar={incrementarProducto}
           onDisminuir={disminuirProducto}
