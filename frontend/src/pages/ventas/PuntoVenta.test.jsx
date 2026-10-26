@@ -66,6 +66,7 @@ const itemProximoAVencer = {
 };
 
 let carritoItems = [];
+let clienteCarrito = null;
 const agregarAlCarrito = vi.fn((producto, opciones = {}) => {
   carritoItems.push({
     ...producto,
@@ -79,6 +80,11 @@ const vaciarCarrito = vi.fn(() => {
 });
 const refrescarCatalogo = vi.fn();
 const mockCrearCliente = vi.fn();
+const seleccionarCliente = vi.fn();
+const crearCarrito = vi.fn();
+const cambiarCarrito = vi.fn();
+const renombrarCarrito = vi.fn(() => true);
+const cerrarCarrito = vi.fn();
 
 vi.mock('../../api/ventas', () => ({
   crearPagoPOS: vi.fn(),
@@ -92,17 +98,39 @@ vi.mock('../../context/AuthContext', () => ({
 }));
 
 vi.mock('../../context/CarritoContext', () => ({
-  useCarrito: () => ({
-    items: carritoItems,
-    cantidadTotal: carritoItems.length,
-    total: carritoItems.reduce((total, item) => total + item.cantidad * item.precioUnitario, 0),
-    agregarAlCarrito,
-    actualizarCantidad: vi.fn(),
-    incrementarCantidad: vi.fn(),
-    disminuirCantidad: vi.fn(),
-    eliminarDelCarrito: vi.fn(),
-    vaciarCarrito,
-  }),
+  useCarrito: () => {
+    const [clienteSeleccionado, setClienteSeleccionado] = React.useState(clienteCarrito);
+    const cambiarCliente = (cliente) => {
+      clienteCarrito = cliente;
+      seleccionarCliente(cliente);
+      setClienteSeleccionado(cliente);
+    };
+
+    return {
+      carritos: [{
+        id: 'carrito-1',
+        nombre: 'Carrito 1',
+        items: carritoItems,
+        clienteSeleccionado,
+      }],
+      carritoActivoId: 'carrito-1',
+      items: carritoItems,
+      cantidadTotal: carritoItems.reduce((total, item) => total + item.cantidad, 0),
+      total: carritoItems.reduce((total, item) => total + item.cantidad * item.precioUnitario, 0),
+      agregarAlCarrito,
+      actualizarCantidad: vi.fn(),
+      incrementarCantidad: vi.fn(),
+      disminuirCantidad: vi.fn(),
+      eliminarDelCarrito: vi.fn(),
+      vaciarCarrito,
+      clienteSeleccionado,
+      seleccionarCliente: cambiarCliente,
+      crearCarrito,
+      cambiarCarrito,
+      renombrarCarrito,
+      cerrarCarrito,
+    };
+  },
 }));
 
 let productosCatalogo = [];
@@ -131,6 +159,7 @@ vi.mock('../../hooks/useCaja', () => ({
 describe('PuntoVenta', () => {
   beforeEach(() => {
     carritoItems = [];
+    clienteCarrito = null;
     productosCatalogo = [];
     useCaja.mockReturnValue({
       cajas: [{ id_caja: 3, nombre: 'Caja principal', id_sesion_abierta: 9 }],
@@ -151,6 +180,11 @@ describe('PuntoVenta', () => {
       nombre_cliente: 'Ana Pérez',
       observaciones: null,
     });
+    seleccionarCliente.mockClear();
+    crearCarrito.mockClear();
+    cambiarCarrito.mockClear();
+    renombrarCarrito.mockClear();
+    cerrarCarrito.mockClear();
     crearPagoPOS.mockReset();
     crearPagoPOS.mockResolvedValue({
       id_pago_pos: 5,
@@ -200,6 +234,16 @@ describe('PuntoVenta', () => {
     expect(screen.getByRole('button', { name: 'Efectivo' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tarjeta' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Mixto' })).not.toBeInTheDocument();
+  });
+
+  it('muestra los carritos de venta y permite crear uno nuevo', async () => {
+    const user = userEvent.setup();
+    render(<PuntoVenta />);
+
+    expect(screen.getByRole('region', { name: 'Carritos de venta' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Nuevo carrito' }));
+
+    expect(crearCarrito).toHaveBeenCalledTimes(1);
   });
 
   it('permite seleccionar un cliente existente', async () => {
