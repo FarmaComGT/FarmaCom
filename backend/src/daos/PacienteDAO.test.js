@@ -65,3 +65,69 @@ describe('PacienteDAO.obtenerPorNombre', () => {
     expect(paciente).toBeNull();
   });
 });
+
+describe('PacienteDAO consultas', () => {
+  it('obtiene un paciente con su laboratorio y expediente, o null', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ id_paciente: 3, id_expediente: 8 }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await expect(PacienteDAO.obtenerPorId(3)).resolves.toEqual({ id_paciente: 3, id_expediente: 8 });
+    await expect(PacienteDAO.obtenerPorId(99)).resolves.toBeNull();
+    expect(pool.query.mock.calls[0][0]).toContain('LEFT JOIN expediente_laboratorio');
+  });
+
+  it('bloquea al paciente para actualizarlo dentro de una transacción', async () => {
+    const clienteFalso = { query: jest.fn().mockResolvedValueOnce({ rows: [{ id_paciente: 3 }] })
+      .mockResolvedValueOnce({ rows: [] }) };
+
+    await expect(PacienteDAO.obtenerParaActualizar(3, clienteFalso)).resolves.toEqual({ id_paciente: 3 });
+    await expect(PacienteDAO.obtenerParaActualizar(4, clienteFalso)).resolves.toBeNull();
+    expect(clienteFalso.query).toHaveBeenCalledWith(expect.stringContaining('FOR UPDATE'), [3]);
+  });
+
+  it('busca un paciente por DPI', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ id_paciente: 3, dpi: '1234567890101' }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await expect(PacienteDAO.obtenerPorDpi('1234567890101')).resolves.toMatchObject({ id_paciente: 3 });
+    await expect(PacienteDAO.obtenerPorDpi('0000000000000')).resolves.toBeNull();
+  });
+
+  describe('buscar', () => {
+    it('filtra solo por laboratorio y calcula la paginación', async () => {
+      pool.query.mockResolvedValue({ rows: [
+        { id_paciente: 1, nombre_paciente: 'Ana', total_registros: 12 },
+        { id_paciente: 2, nombre_paciente: 'Luis', total_registros: 12 },
+      ] });
+
+      const resultado = await PacienteDAO.buscar({ id_laboratorio: 1, pagina: 3, limite: 5 });
+
+      expect(resultado).toEqual({
+        datos: [{ id_paciente: 1, nombre_paciente: 'Ana' }, { id_paciente: 2, nombre_paciente: 'Luis' }],
+        total: 12,
+      });
+      const [sql, valores] = pool.query.mock.calls[0];
+      expect(sql).toContain('WHERE p.id_laboratorio = $1');
+      expect(sql).toContain('LIMIT $2 OFFSET $3');
+      expect(valores).toEqual([1, 5, 10]);
+    });
+
+    it('agrega estado y búsqueda escapando comodines de LIKE', async () => {
+      pool.query.mockResolvedValue({ rows: [] });
+
+      const resultado = await PacienteDAO.buscar({
+        id_laboratorio: 2,
+        estado: 'activo',
+        busqueda: '50%_a\\b',
+        pagina: 1,
+        limite: 10,
+      });
+
+      expect(resultado).toEqual({ datos: [], total: 0 });
+      const [sql, valores] = pool.query.mock.calls[0];
+      expect(sql).toContain('p.estado = $2');
+      expect(sql).toContain("p.nombre_paciente ILIKE $3 ESCAPE '\\'");
+      expect(valores).toEqual([2, 'activo', '%50\\%\\_a\\\\b%', 10, 0]);
+    });
+  });
+});

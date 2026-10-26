@@ -138,3 +138,85 @@ describe('ProductoDAO - autocompletado para POS', () => {
     ]);
   });
 });
+
+describe('ProductoDAO - catálogo', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('crea un producto aplicando los valores por defecto', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_producto: 10 }] });
+
+    await expect(ProductoDAO.crear({
+      codigo: 'MED-010',
+      nombre_comercial: 'Dolofin',
+      nombre_generico: 'Ibuprofeno',
+      id_presentacion: 2,
+      id_categoria: 3,
+      id_casa: 4,
+      meses_alerta_vencimiento: 6,
+    })).resolves.toEqual({ id_producto: 10 });
+
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO producto'),
+      ['MED-010', 'Dolofin', 'Ibuprofeno', null, 2, null, 3, 4, null, 5, 6, false],
+    );
+  });
+
+  it('respeta los valores opcionales enviados al crear', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_producto: 11 }] });
+
+    await ProductoDAO.crear({
+      codigo: 'MED-011',
+      nombre_comercial: 'Amoxil',
+      nombre_generico: 'Amoxicilina',
+      concentracion: '500 mg',
+      id_presentacion: 2,
+      descripcion: 'Cápsulas',
+      id_categoria: 3,
+      id_casa: 4,
+      id_proveedor: 7,
+      stock_minimo: 10,
+      meses_alerta_vencimiento: 3,
+      aplica_mayoreo: true,
+    });
+
+    expect(pool.query.mock.calls[0][1]).toEqual([
+      'MED-011', 'Amoxil', 'Amoxicilina', '500 mg', 2, 'Cápsulas', 3, 4, 7, 10, 3, true,
+    ]);
+  });
+
+  it('lista todos los productos con sus catálogos relacionados', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_producto: 1 }] });
+
+    await expect(ProductoDAO.obtenerTodos()).resolves.toEqual([{ id_producto: 1 }]);
+    expect(pool.query.mock.calls[0][0]).toContain('LEFT JOIN proveedor');
+  });
+
+  it('obtiene un producto por id con la conexión indicada', async () => {
+    const clienteFalso = { query: jest.fn().mockResolvedValueOnce({ rows: [{ id_producto: 1 }] })
+      .mockResolvedValueOnce({ rows: [] }) };
+
+    await expect(ProductoDAO.obtenerPorId(1, clienteFalso)).resolves.toEqual({ id_producto: 1 });
+    await expect(ProductoDAO.obtenerPorId(99, clienteFalso)).resolves.toBeNull();
+    expect(clienteFalso.query).toHaveBeenCalledWith(expect.stringContaining('WHERE p.id_producto = $1'), [1]);
+  });
+
+  it('busca por código sin distinguir mayúsculas', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ id_producto: 1 }] }).mockResolvedValueOnce({ rows: [] });
+
+    await expect(ProductoDAO.obtenerPorCodigo('med-001')).resolves.toEqual({ id_producto: 1 });
+    await expect(ProductoDAO.obtenerPorCodigo('NO-EXISTE')).resolves.toBeNull();
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('LOWER(codigo) = LOWER($1)'), ['med-001']);
+  });
+
+  it.each([
+    ['cambiarAplicaMayoreo', 'aplica_mayoreo', true],
+    ['cambiarActivo', 'activo', false],
+  ])('%s actualiza %s y devuelve null si el producto no existe', async (metodo, columna, valor) => {
+    pool.query.mockResolvedValueOnce({ rows: [{ id_producto: 1, [columna]: valor }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await expect(ProductoDAO[metodo](1, valor)).resolves.toEqual({ id_producto: 1, [columna]: valor });
+    await expect(ProductoDAO[metodo](99, valor)).resolves.toBeNull();
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining(`SET ${columna} = $1`), [valor, 1]);
+  });
+});

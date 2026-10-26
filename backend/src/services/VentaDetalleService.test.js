@@ -55,4 +55,13 @@ describe('VentaDetalleService', () => {
       [1, 1, client],
     ]);
   });
+
+  it('interrumpe la cancelación si no puede restaurar el stock de un lote', async () => {
+    VentaDAO.restaurarStock.mockResolvedValueOnce({ id_lote: 2 }).mockResolvedValueOnce(null);
+
+    await expect(restaurarExistenciasDeDetalles(detalles, client)).rejects.toMatchObject({
+      status: 500,
+      message: 'No se pudo restaurar el stock del lote 1',
+    });
+  });
 });

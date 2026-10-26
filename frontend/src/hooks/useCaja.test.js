@@ -205,4 +205,102 @@ describe('useCaja', () => {
     expect(result.current.error).toBe('La salida supera el efectivo disponible.');
     expect(result.current.procesando).toBe(false);
   });
+
+  describe('turnos', () => {
+    it('muestra el error si no puede cargar las cajas', async () => {
+      obtenerCajas.mockRejectedValue(new Error(''));
+
+      const { result } = renderHook(() => useCaja(2));
+
+      await waitFor(() => expect(result.current.error).toBe('No se pudieron cargar las cajas.'));
+      expect(result.current.cajas).toEqual([]);
+      expect(result.current.cargandoCajas).toBe(false);
+    });
+
+    it('muestra el error de validación del backend al consultar el turno', async () => {
+      obtenerSesionActual.mockRejectedValue({
+        response: { status: 400, data: { errores: [{ msg: 'El id debe ser un entero positivo' }] } },
+      });
+      const { result } = renderHook(() => useCaja(2));
+      await waitFor(() => expect(result.current.cargandoCajas).toBe(false));
+
+      act(() => result.current.seleccionarCaja(3));
+
+      await waitFor(() => expect(result.current.error).toBe('El id debe ser un entero positivo'));
+      expect(result.current.sesionActual).toBeNull();
+
+      act(() => result.current.limpiarError());
+      expect(result.current.error).toBeNull();
+    });
+
+    it('exige elegir una caja antes de abrir el turno', async () => {
+      const { result } = renderHook(() => useCaja(2));
+      await waitFor(() => expect(result.current.cargandoCajas).toBe(false));
+
+      await act(async () => {
+        await expect(result.current.abrir({ turno: 'mañana', fondo_inicial: '100' }))
+          .rejects.toThrow('Selecciona una caja antes de abrir el turno.');
+      });
+      expect(abrirSesion).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['registrar un movimiento', (r) => r.registrar({ tipo: 'entrada', monto: '10', motivo: 'Cambio' })],
+      ['cerrar el turno', (r) => r.cerrar({ efectivo_contado: '100' })],
+    ])('no permite %s sin un turno abierto', async (_caso, operacion) => {
+      const { result } = renderHook(() => useCaja(2));
+      await waitFor(() => expect(result.current.cargandoCajas).toBe(false));
+
+      await act(async () => {
+        await expect(operacion(result.current)).rejects.toThrow('No hay una sesión de caja abierta.');
+      });
+      expect(registrarMovimiento).not.toHaveBeenCalled();
+      expect(cerrarSesion).not.toHaveBeenCalled();
+    });
+
+    it('olvida la caja elegida al quitar la selección', async () => {
+      obtenerSesionActual.mockResolvedValue({ id_sesion_caja: 9 });
+      const { result } = renderHook(() => useCaja(2));
+      await waitFor(() => expect(result.current.cargandoCajas).toBe(false));
+      act(() => result.current.seleccionarCaja(3));
+      await waitFor(() => expect(result.current.sesionActual).not.toBeNull());
+
+      act(() => result.current.seleccionarCaja(''));
+
+      expect(result.current.idCajaSeleccionada).toBeNull();
+      expect(result.current.sesionActual).toBeNull();
+      expect(window.sessionStorage.getItem('farmacom:caja-seleccionada:2')).toBeNull();
+    });
+
+    it('sigue funcionando si el navegador bloquea el almacenamiento de sesión', async () => {
+      const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('Bloqueado');
+      });
+      obtenerSesionActual.mockResolvedValue({ id_sesion_caja: 9 });
+      const { result } = renderHook(() => useCaja(2));
+      await waitFor(() => expect(result.current.cargandoCajas).toBe(false));
+
+      act(() => result.current.seleccionarCaja(4));
+
+      expect(result.current.idCajaSeleccionada).toBe(4);
+      await waitFor(() => expect(result.current.sesionActual).toEqual({ id_sesion_caja: 9 }));
+      setItem.mockRestore();
+    });
+
+    it('vuelve a consultar las cajas al refrescar', async () => {
+      const { result } = renderHook(() => useCaja(2));
+      await waitFor(() => expect(obtenerCajas).toHaveBeenCalledTimes(1));
+
+      act(() => result.current.refrescarCajas());
+
+      await waitFor(() => expect(obtenerCajas).toHaveBeenCalledTimes(2));
+    });
+
+    it('no restaura una caja guardada cuando no hay sucursal', async () => {
+      const { result } = renderHook(() => useCaja(null));
+
+      await waitFor(() => expect(result.current.cargandoCajas).toBe(false));
+      expect(result.current.idCajaSeleccionada).toBeNull();
+    });
+  });
 });

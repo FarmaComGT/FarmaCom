@@ -32,4 +32,33 @@ describe('hooks del historial de ventas', () => {
     expect(result.current.error).toBe('No disponible');
     expect(result.current.datos).toEqual([]);
   });
+
+  it('usa el mensaje predeterminado si el error no trae detalle', async () => {
+    obtenerVentas.mockRejectedValue({});
+    const { result } = renderHook(() => useVentas(filtros));
+    await waitFor(() => expect(result.current.error).toBe('No se pudo cargar el historial de ventas.'));
+  });
+
+  it('envía filtros vacíos cuando no se reciben filtros', async () => {
+    obtenerVentas.mockResolvedValue([]);
+    renderHook(() => useVentas(undefined));
+    await waitFor(() => expect(obtenerVentas).toHaveBeenCalledWith(
+      { id_sucursal: '', fecha_desde: '', fecha_hasta: '' },
+      { signal: expect.any(AbortSignal) },
+    ));
+  });
+
+  it('descarta la respuesta de una consulta reemplazada por nuevos filtros', async () => {
+    let resolverPrimera;
+    obtenerVentas
+      .mockImplementationOnce(() => new Promise((resolve) => { resolverPrimera = resolve; }))
+      .mockResolvedValueOnce([{ id_venta: 2 }]);
+    const { result, rerender } = renderHook(({ f }) => useVentas(f), { initialProps: { f: filtros } });
+
+    rerender({ f: { ...filtros, id_sucursal: 3 } });
+    await waitFor(() => expect(result.current.datos).toEqual([{ id_venta: 2 }]));
+    await act(async () => resolverPrimera([{ id_venta: 1 }]));
+
+    expect(result.current.datos).toEqual([{ id_venta: 2 }]);
+  });
 });

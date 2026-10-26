@@ -439,3 +439,51 @@ describe('VentaDAO', () => {
     ).resolves.toBeNull();
   });
 });
+
+describe('VentaDAO - stock del carrito y cancelación', () => {
+  const crearCliente = (filas = []) => ({ query: jest.fn().mockResolvedValue({ rows: filas }) });
+
+  it.each([
+    ['descontarStock', (c) => VentaDAO.descontarStock(1, 99, c)],
+    ['restaurarStock', (c) => VentaDAO.restaurarStock(1, 2, c)],
+    ['obtenerParaActualizar', (c) => VentaDAO.obtenerParaActualizar(99, c)],
+    ['actualizarCliente', (c) => VentaDAO.actualizarCliente(99, 3, c)],
+    ['obtenerPagoPOSPorExternalId', (c) => VentaDAO.obtenerPagoPOSPorExternalId('no-existe', c)],
+    ['actualizarPagoPOS', (c) => VentaDAO.actualizarPagoPOS({ external_id: 'no-existe' }, c)],
+  ])('%s devuelve null cuando no afecta ninguna fila', async (_metodo, operacion) => {
+    await expect(operacion(crearCliente())).resolves.toBeNull();
+  });
+
+  it('restaura el stock sumando la cantidad devuelta', async () => {
+    const cliente = crearCliente([{ id_lote: 1, stock_actual: 6 }]);
+
+    await expect(VentaDAO.restaurarStock(1, 2, cliente)).resolves.toEqual({ id_lote: 1, stock_actual: 6 });
+    expect(cliente.query).toHaveBeenCalledWith(expect.stringContaining('stock_actual = stock_actual + $1'), [2, 1]);
+  });
+
+  it('desasocia el cliente de una venta cuando se envía undefined', async () => {
+    const cliente = crearCliente([{ id_venta: 21, id_cliente: null }]);
+
+    await VentaDAO.actualizarCliente(21, undefined, cliente);
+
+    expect(cliente.query).toHaveBeenCalledWith(expect.any(String), [null, 21]);
+  });
+
+  it('consulta un pago POS sin bloquearlo por defecto', async () => {
+    const cliente = crearCliente([{ external_id: 'farmacom-pos-1' }]);
+
+    await VentaDAO.obtenerPagoPOSPorExternalId('farmacom-pos-1', cliente);
+
+    expect(cliente.query.mock.calls[0][0]).not.toContain('FOR UPDATE');
+  });
+
+  it('actualiza solo el estado de un pago POS conservando el resto de campos', async () => {
+    const cliente = crearCliente([{ external_id: 'farmacom-pos-1', estado: 'fallido' }]);
+
+    await VentaDAO.actualizarPagoPOS({ external_id: 'farmacom-pos-1', estado: 'fallido' }, cliente);
+
+    expect(cliente.query.mock.calls[0][1]).toEqual([
+      'farmacom-pos-1', 'fallido', null, null, null, null, null, null, null,
+    ]);
+  });
+});

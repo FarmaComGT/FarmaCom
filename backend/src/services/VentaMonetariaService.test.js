@@ -91,4 +91,26 @@ describe('VentaMonetariaService', () => {
       'El monto recibido es insuficiente. El total es Q25.00',
     );
   });
+
+  it('aplica la promoción a cada lote del mismo producto en el carrito', () => {
+    const { totalCentavos, detallesCalculados } = calcularDetalles([
+      { id_lote: 1, cantidad: 2, lote: { id_producto: 5, precio_venta: '10.00', precio_compra: '6.00' } },
+      { id_lote: 3, cantidad: 1, lote: { id_producto: 5, precio_venta: '8.00', precio_compra: '5.00' } },
+    ], new Map([[5, { precio_promocion: '8.50' }]]));
+
+    expect(detallesCalculados.map(({ precio_unitario: precio }) => precio)).toEqual(['8.50', '8.00']);
+    expect(totalCentavos).toBe(2500);
+  });
+
+  it('rechaza un carrito cuyo total es cero', () => {
+    expect(() => calcularDetalles([
+      { id_lote: 1, cantidad: 1, lote: { id_producto: 1, precio_venta: '0', precio_compra: '0' } },
+    ])).toThrow('El total de la venta debe ser mayor a cero');
+  });
+
+  it('rechaza un carrito que supera el monto máximo permitido', () => {
+    expect(() => calcularDetalles([
+      { id_lote: 1, cantidad: 2, lote: { id_producto: 1, precio_venta: '9999999999.99', precio_compra: '1' } },
+    ])).toThrow('El total de la venta supera el monto maximo permitido');
+  });
 });

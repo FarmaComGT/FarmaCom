@@ -191,3 +191,168 @@ describe('ProductoFormModal', () => {
     expect(screen.queryByRole('button', { name: 'Sí, eliminar' })).not.toBeInTheDocument();
   });
 });
+
+describe('regresión del formulario de producto dividido en secciones', () => {
+  const producto = {
+    id_producto: 9, codigo: 'MED009-CA', nombre_comercial: 'Aspirina',
+    nombre_generico: 'Ácido acetilsalicílico', concentracion: '500 mg',
+    id_presentacion: 1, id_categoria: 1, id_casa: 1, id_proveedor: 3,
+    precio_compra: 10, stock_minimo: 0, meses_alerta_vencimiento: 6,
+    aplica_mayoreo: true, activo: false,
+  };
+  const proveedores = [{ id_proveedor: 3, nombre: 'Distribuidora', activo: true }];
+  // Algunas etiquetas de las secciones no están asociadas al input.
+  const campo = (nombre) => screen.getByRole('dialog').querySelector(`[name="${nombre}"]`);
+
+  it('envía un único payload normalizado con los valores de todas las secciones', async () => {
+    const usuario = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<ProductoFormModal {...propsBase} proveedores={proveedores} onSubmit={onSubmit} />);
+
+    await usuario.type(campo('nombre_comercial'), ' Aspirina Forte ');
+    await usuario.type(campo('nombre_generico'), ' Ácido acetilsalicílico ');
+    await usuario.type(campo('concentracion'), ' 500 mg ');
+    await usuario.selectOptions(campo('id_presentacion'), '1');
+    await usuario.selectOptions(campo('id_categoria'), '1');
+    await usuario.selectOptions(campo('id_casa'), '1');
+    await usuario.selectOptions(campo('id_proveedor'), '3');
+    await usuario.type(campo('precio_compra'), '12.50');
+    await usuario.type(campo('stock_minimo'), '0');
+    await usuario.type(campo('meses_alerta_vencimiento'), '6');
+    await usuario.click(screen.getByRole('checkbox', { name: /Aplica para mayoreo/ }));
+    expect(screen.getByDisplayValue('MED004-CA')).toBeDisabled();
+
+    await usuario.click(screen.getByRole('button', { name: 'Guardar producto' }));
+
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+      codigo: 'MED004-CA', nombre_comercial: 'Aspirina Forte', nombre_generico: 'Ácido acetilsalicílico',
+      concentracion: '500 mg', id_presentacion: 1, id_categoria: 1, id_casa: 1,
+      id_proveedor: 3, precio_compra: 12.5, stock_minimo: 0,
+      meses_alerta_vencimiento: 6, aplica_mayoreo: true,
+    });
+  });
+
+  it('precarga la edición, conserva el código y permite limpiar campos opcionales', async () => {
+    const usuario = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<ProductoFormModal {...propsBase} modoEdicion producto={producto} proveedores={proveedores} onSubmit={onSubmit} />);
+
+    expect(screen.getByRole('dialog', { name: 'Editar producto' })).toBeInTheDocument();
+    expect(campo('nombre_comercial')).toHaveValue('Aspirina');
+    expect(campo('id_proveedor')).toHaveValue('3');
+    expect(campo('stock_minimo')).toHaveValue(0);
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
+    expect(campo('aplica_mayoreo')).toBeChecked();
+
+    await usuario.selectOptions(campo('id_presentacion'), '2');
+    await usuario.selectOptions(campo('id_proveedor'), '');
+    await usuario.clear(campo('concentracion'));
+    await usuario.click(campo('aplica_mayoreo'));
+    await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(screen.getByDisplayValue('MED009-CA')).toBeDisabled();
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+      codigo: 'MED009-CA', nombre_comercial: 'Aspirina', nombre_generico: 'Ácido acetilsalicílico',
+      concentracion: null, id_presentacion: 2, id_categoria: 1, id_casa: 1,
+      id_proveedor: undefined, precio_compra: 10, stock_minimo: 0,
+      meses_alerta_vencimiento: 6, aplica_mayoreo: false,
+    });
+  });
+
+  it('rechaza un nombre en blanco y limpia el error al corregirlo sin perder el resto', async () => {
+    const usuario = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<ProductoFormModal {...propsBase} modoEdicion producto={producto} proveedores={proveedores} onSubmit={onSubmit} />);
+
+    await usuario.clear(campo('nombre_comercial'));
+    await usuario.type(campo('nombre_comercial'), ' ');
+    await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(screen.getByText('El nombre comercial es requerido.')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    await usuario.type(campo('nombre_comercial'), 'Corregido');
+
+    expect(screen.queryByText('El nombre comercial es requerido.')).not.toBeInTheDocument();
+    expect(campo('precio_compra')).toHaveValue(10);
+    expect(campo('id_presentacion')).toHaveValue('1');
+    await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ nombre_comercial: 'Corregido' }));
+  });
+
+  it('presenta el error del servidor y conserva los datos editados para reintentar', async () => {
+    const usuario = userEvent.setup();
+    const props = { ...propsBase, modoEdicion: true, producto, proveedores, onSubmit: vi.fn() };
+    const { rerender } = render(<ProductoFormModal {...props} />);
+    await usuario.clear(campo('nombre_comercial'));
+    await usuario.type(campo('nombre_comercial'), 'Nombre editado');
+
+    rerender(<ProductoFormModal {...props} errorFormulario="Ya existe ese producto" />);
+
+    expect(screen.getByText('Ya existe ese producto')).toBeInTheDocument();
+    expect(campo('nombre_comercial')).toHaveValue('Nombre editado');
+    expect(campo('precio_compra')).toHaveValue(10);
+  });
+
+  it('reinicia valores y errores al cerrar una edición y abrir un producto nuevo', async () => {
+    const usuario = userEvent.setup();
+    const props = { ...propsBase, modoEdicion: true, producto, proveedores, onSubmit: vi.fn() };
+    const { rerender } = render(<ProductoFormModal {...props} />);
+    await usuario.clear(campo('nombre_comercial'));
+    await usuario.type(campo('nombre_comercial'), ' ');
+    await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    expect(screen.getByText('El nombre comercial es requerido.')).toBeInTheDocument();
+
+    rerender(<ProductoFormModal {...props} isOpen={false} />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    rerender(<ProductoFormModal {...props} modoEdicion={false} producto={null} codigoSugerido="MED010" />);
+
+    expect(screen.getByRole('dialog', { name: 'Nuevo producto' })).toBeInTheDocument();
+    expect(campo('nombre_comercial')).toHaveValue('');
+    expect(campo('id_presentacion')).toHaveValue('');
+    expect(campo('id_proveedor')).toHaveValue('');
+    expect(campo('precio_compra')).toHaveValue(null);
+    expect(campo('aplica_mayoreo')).not.toBeChecked();
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByDisplayValue('MED010')).toBeInTheDocument();
+    expect(screen.queryByText('El nombre comercial es requerido.')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { estado: 'cargando catálogos', cargandoDatos: true, guardando: false, nombre: 'Guardar producto' },
+    { estado: 'guardando', cargandoDatos: false, guardando: true, nombre: 'Guardando...' },
+  ])('bloquea el envío mientras está $estado', async ({ cargandoDatos, guardando, nombre }) => {
+    const usuario = userEvent.setup();
+    const onSubmit = vi.fn();
+    const onClose = vi.fn();
+    render(<ProductoFormModal {...propsBase} cargandoDatos={cargandoDatos} guardando={guardando} onSubmit={onSubmit} onClose={onClose} />);
+
+    const guardar = screen.getByRole('button', { name: nombre });
+    expect(guardar).toBeDisabled();
+    await usuario.click(guardar);
+    expect(onSubmit).not.toHaveBeenCalled();
+    if (guardando) {
+      expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Cerrar' })).toBeDisabled();
+      await usuario.click(screen.getByRole('button', { name: 'Cerrar' }));
+      expect(onClose).not.toHaveBeenCalled();
+    } else {
+      expect(campo('id_categoria')).toBeDisabled();
+      expect(campo('id_casa')).toBeDisabled();
+      expect(campo('id_presentacion')).toBeDisabled();
+    }
+  });
+
+  it('conserva las dos acciones de cierre sin enviar el formulario', async () => {
+    const usuario = userEvent.setup();
+    const onClose = vi.fn();
+    const onSubmit = vi.fn();
+    render(<ProductoFormModal {...propsBase} onClose={onClose} onSubmit={onSubmit} />);
+
+    await usuario.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await usuario.click(screen.getByRole('button', { name: 'Cerrar' }));
+
+    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});

@@ -85,6 +85,12 @@ const crearCarrito = vi.fn();
 const cambiarCarrito = vi.fn();
 const renombrarCarrito = vi.fn(() => true);
 const cerrarCarrito = vi.fn();
+const accionesItem = {
+  actualizarCantidad: vi.fn(),
+  incrementarCantidad: vi.fn(),
+  disminuirCantidad: vi.fn(),
+  eliminarDelCarrito: vi.fn(),
+};
 
 vi.mock('../../api/ventas', () => ({
   crearPagoPOS: vi.fn(),
@@ -118,10 +124,7 @@ vi.mock('../../context/CarritoContext', () => ({
       cantidadTotal: carritoItems.reduce((total, item) => total + item.cantidad, 0),
       total: carritoItems.reduce((total, item) => total + item.cantidad * item.precioUnitario, 0),
       agregarAlCarrito,
-      actualizarCantidad: vi.fn(),
-      incrementarCantidad: vi.fn(),
-      disminuirCantidad: vi.fn(),
-      eliminarDelCarrito: vi.fn(),
+      ...accionesItem,
       vaciarCarrito,
       clienteSeleccionado,
       seleccionarCliente: cambiarCliente,
@@ -560,5 +563,66 @@ describe('PuntoVenta', () => {
 
     expect(await screen.findByText(/El dispositivo no está listo para cobrar/)).toBeInTheDocument();
     expect(crearVenta).not.toHaveBeenCalled();
+  });
+
+  describe('acciones sobre los productos del carrito', () => {
+    beforeEach(() => {
+      Object.values(accionesItem).forEach((accion) => accion.mockClear());
+    });
+
+    it('no supera el stock del lote al aumentar la cantidad', async () => {
+      carritoItems = [{ ...itemNormal, cantidad: 5, precioUnitario: 8.5 }];
+      const user = userEvent.setup();
+      render(<PuntoVenta />);
+
+      await user.click(screen.getByRole('button', { name: 'Aumentar Paracetamol' }));
+
+      expect(screen.getByText('Solo hay 5 unidades disponibles en el lote L-001.')).toBeInTheDocument();
+      expect(accionesItem.incrementarCantidad).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole('button', { name: 'Cerrar aviso' }));
+      expect(screen.queryByText('Solo hay 5 unidades disponibles en el lote L-001.')).not.toBeInTheDocument();
+    });
+
+    it('aumenta, disminuye y elimina un producto del carrito', async () => {
+      carritoItems = [{ ...itemNormal, cantidad: 2, precioUnitario: 8.5 }];
+      const user = userEvent.setup();
+      render(<PuntoVenta />);
+
+      await user.click(screen.getByRole('button', { name: 'Aumentar Paracetamol' }));
+      await user.click(screen.getByRole('button', { name: 'Disminuir Paracetamol' }));
+      await user.click(screen.getByRole('button', { name: 'Eliminar Paracetamol' }));
+
+      expect(accionesItem.incrementarCantidad).toHaveBeenCalledWith('lote-1');
+      expect(accionesItem.disminuirCantidad).toHaveBeenCalledWith('lote-1');
+      expect(accionesItem.eliminarDelCarrito).toHaveBeenCalledWith('lote-1');
+    });
+
+    it('ajusta al stock disponible una cantidad escrita mayor', async () => {
+      carritoItems = [{ ...itemNormal, cantidad: 2, precioUnitario: 8.5 }];
+      const user = userEvent.setup();
+      render(<PuntoVenta />);
+
+      const campo = screen.getByRole('textbox', { name: 'Cantidad de Paracetamol' });
+      await user.clear(campo);
+      await user.type(campo, '9{Enter}');
+
+      expect(accionesItem.actualizarCantidad).toHaveBeenCalledWith('lote-1', 5);
+      expect(screen.getByText('Solo hay 5 unidades disponibles para este producto.')).toBeInTheDocument();
+    });
+
+    it('no agrega otra unidad de un lote que ya alcanzó su stock', async () => {
+      productosCatalogo = [productoNormal];
+      carritoItems = [{ ...itemNormal, cantidad: 5, precioUnitario: 8.5 }];
+      const user = userEvent.setup();
+      render(<PuntoVenta />);
+
+      await user.type(screen.getByLabelText('Buscar productos'), 'paracetamol');
+      await user.click(screen.getAllByText('Paracetamol')[0]);
+      await user.click(screen.getByRole('button', { name: 'Seleccionar lote L-001' }));
+
+      expect(screen.getByText('No hay más existencias disponibles en el lote L-001 de Paracetamol.')).toBeInTheDocument();
+      expect(agregarAlCarrito).not.toHaveBeenCalled();
+    });
   });
 });

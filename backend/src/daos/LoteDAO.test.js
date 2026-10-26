@@ -162,3 +162,73 @@ describe('LoteDAO', () => {
     });
   });
 });
+
+describe('LoteDAO - consultas de inventario', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('lista los lotes de una sucursal ordenados por vencimiento', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_lote: 1 }] });
+
+    await expect(LoteDAO.obtenerPorSucursal(2)).resolves.toEqual([{ id_lote: 1 }]);
+    const [sql, valores] = pool.query.mock.calls[0];
+    expect(sql).toContain('WHERE v.id_sucursal = $1');
+    expect(sql).toContain('ORDER BY v.fecha_vencimiento ASC NULLS LAST');
+    expect(valores).toEqual([2]);
+  });
+
+  it('lista los lotes de un producto en todas las sucursales', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_lote: 1, nombre_sucursal: 'Central' }] });
+
+    await expect(LoteDAO.obtenerPorProducto(5)).resolves.toEqual([{ id_lote: 1, nombre_sucursal: 'Central' }]);
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('WHERE v.id_producto = $1'), [5]);
+  });
+
+  it('obtiene un lote con su estado calculado o null', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ id_lote: 3, estado_stock: 'normal' }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await expect(LoteDAO.obtenerPorId(3)).resolves.toEqual({ id_lote: 3, estado_stock: 'normal' });
+    await expect(LoteDAO.obtenerPorId(99)).resolves.toBeNull();
+    expect(pool.query.mock.calls[0][0]).toContain('FROM v_lote_estado v');
+  });
+
+  it('obtiene la fila del lote y la bloquea solo cuando se pide', async () => {
+    const clienteFalso = { query: jest.fn().mockResolvedValue({ rows: [{ id_lote: 3 }] }) };
+
+    await LoteDAO.obtenerFilaPorId(3, clienteFalso);
+    await LoteDAO.obtenerFilaPorId(3, clienteFalso, true);
+
+    expect(clienteFalso.query.mock.calls[0][0]).not.toContain('FOR UPDATE');
+    expect(clienteFalso.query.mock.calls[1][0]).toContain('FOR UPDATE');
+  });
+
+  it('descuenta stock solo cuando alcanza la existencia', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ id_lote: 3, stock_actual: 7 }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await expect(LoteDAO.decrementarStock(3, 2)).resolves.toEqual({ id_lote: 3, stock_actual: 7 });
+    await expect(LoteDAO.decrementarStock(3, 50)).resolves.toBeNull();
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('AND stock_actual >= $1'), [2, 3]);
+  });
+
+  it('lista alertas de todas las sucursales', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_lote: 1, estado_vencimiento: 'vencido' }] });
+
+    await LoteDAO.obtenerAlertas();
+
+    const [sql, valores] = pool.query.mock.calls[0];
+    expect(sql).toContain("v.estado_vencimiento != 'normal' OR v.estado_stock != 'normal'");
+    expect(sql).not.toContain('AND v.id_sucursal');
+    expect(valores).toEqual([]);
+  });
+
+  it('filtra las alertas por sucursal', async () => {
+    pool.query.mockResolvedValue({ rows: [] });
+
+    await LoteDAO.obtenerAlertas(2);
+
+    const [sql, valores] = pool.query.mock.calls[0];
+    expect(sql).toContain('AND v.id_sucursal = $1');
+    expect(valores).toEqual([2]);
+  });
+});

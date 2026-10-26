@@ -15,24 +15,51 @@ import {
   solicitarPermiso,
 } from './almacenamientoLocal';
 
-const crearIndexedDBFake = () => {
+const crearIndexedDBFake = ({
+  almacenesExistentes = [],
+  errorApertura,
+  errorTransaccion,
+  errorSolicitud,
+} = {}) => {
   const almacenes = { configuracion: new Map(), respaldos: new Map() };
   const keyPaths = { configuracion: 'id', respaldos: 'id_resultado' };
+  const nombresAlmacenes = new Set(almacenesExistentes);
+  const createObjectStore = vi.fn((nombre) => { nombresAlmacenes.add(nombre); });
+  let primeraApertura = true;
 
   const open = () => {
     const peticion = {};
     setTimeout(() => {
+      if (errorApertura) {
+        peticion.error = errorApertura;
+        peticion.onerror();
+        return;
+      }
       const db = {
-        objectStoreNames: { contains: () => true },
-        createObjectStore: () => {},
+        objectStoreNames: { contains: (nombre) => nombresAlmacenes.has(nombre) },
+        createObjectStore,
         transaction: (nombreAlmacen) => {
           const tx = {};
           const hacerRequest = (ejecutar) => {
             const req = {};
             setTimeout(() => {
+              if (errorSolicitud) {
+                req.error = errorSolicitud;
+                req.onerror();
+                tx.error = errorSolicitud;
+                tx.onerror();
+                return;
+              }
               req.result = ejecutar();
               req.onsuccess && req.onsuccess();
-              setTimeout(() => tx.oncomplete && tx.oncomplete(), 0);
+              setTimeout(() => {
+                if (errorTransaccion) {
+                  tx.error = errorTransaccion;
+                  tx.onerror();
+                } else {
+                  tx.oncomplete && tx.oncomplete();
+                }
+              }, 0);
             }, 0);
             return req;
           };
@@ -47,12 +74,16 @@ const crearIndexedDBFake = () => {
         },
       };
       peticion.result = db;
+      if (primeraApertura) {
+        primeraApertura = false;
+        peticion.onupgradeneeded && peticion.onupgradeneeded();
+      }
       peticion.onsuccess && peticion.onsuccess();
     }, 0);
     return peticion;
   };
 
-  return { open, _almacenes: almacenes };
+  return { open, _almacenes: almacenes, createObjectStore };
 };
 
 describe('almacenamientoLocal', () => {
@@ -194,6 +225,48 @@ describe('almacenamientoLocal', () => {
 
     afterEach(() => {
       vi.unstubAllGlobals();
+    });
+
+    it.each([
+      { existentes: [], faltantes: ['configuracion', 'respaldos'] },
+      { existentes: ['configuracion'], faltantes: ['respaldos'] },
+      { existentes: ['respaldos'], faltantes: ['configuracion'] },
+      { existentes: ['configuracion', 'respaldos'], faltantes: [] },
+    ])('crea solo los almacenes faltantes al actualizar IndexedDB: $faltantes', async ({ existentes, faltantes }) => {
+      const indexedDBFake = crearIndexedDBFake({ almacenesExistentes: existentes });
+      vi.stubGlobal('indexedDB', indexedDBFake);
+
+      await guardarCarpetaRaiz({ name: 'Respaldos' });
+
+      expect(indexedDBFake.createObjectStore).toHaveBeenCalledTimes(faltantes.length);
+      for (const nombre of faltantes) {
+        expect(indexedDBFake.createObjectStore).toHaveBeenCalledWith(nombre, {
+          keyPath: nombre === 'configuracion' ? 'id' : 'id_resultado',
+        });
+      }
+      await expect(obtenerCarpetaRaiz()).resolves.toEqual({ name: 'Respaldos' });
+      expect(indexedDBFake.createObjectStore).toHaveBeenCalledTimes(faltantes.length);
+    });
+
+    it('propaga el error si no se puede abrir IndexedDB', async () => {
+      const error = new DOMException('No se pudo abrir la base de datos', 'UnknownError');
+      vi.stubGlobal('indexedDB', crearIndexedDBFake({ errorApertura: error }));
+
+      await expect(obtenerCarpetaRaiz()).rejects.toBe(error);
+    });
+
+    it('rechaza el respaldo si falla la transacción aunque la solicitud haya terminado', async () => {
+      const error = new DOMException('Transacción abortada', 'AbortError');
+      vi.stubGlobal('indexedDB', crearIndexedDBFake({ errorTransaccion: error }));
+
+      await expect(registrarRespaldo({ id_resultado: 1, id_paciente: 10 })).rejects.toBe(error);
+    });
+
+    it('propaga el error de una solicitud de IndexedDB', async () => {
+      const error = new DOMException('No se pudo leer la carpeta', 'UnknownError');
+      vi.stubGlobal('indexedDB', crearIndexedDBFake({ errorSolicitud: error }));
+
+      await expect(obtenerCarpetaRaiz()).rejects.toBe(error);
     });
 
     it('guarda y recupera la carpeta raíz', async () => {
