@@ -1085,5 +1085,116 @@ describe('VentaService', () => {
       ).resolves.toMatchObject({ estado: 'anulada' });
       expect(VentaDAO.anular).toHaveBeenCalledTimes(1);
     });
+
+    it.each([undefined, '   '])('exige un motivo de anulación (%p)', async (motivo) => {
+      await expect(VentaService.anularVenta(21, motivo, usuarioDependiente))
+        .rejects.toMatchObject({ status: 400, message: 'El motivo de anulación es requerido' });
+      expect(VentaDAO.ejecutarEnTransaccion).not.toHaveBeenCalled();
+    });
+
+    it('rechaza anular una venta que no está completada', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue({ ...ventaEfectivo, estado: 'pendiente' });
+
+      await expect(VentaService.anularVenta(21, 'Error de cobro', usuarioDependiente))
+        .rejects.toMatchObject({ status: 409, message: 'La venta no se encuentra completada' });
+      expect(VentaDAO.anular).not.toHaveBeenCalled();
+    });
+
+    it('rechaza anular localmente un método de pago no soportado', async () => {
+      VentaDAO.obtenerParaActualizar.mockResolvedValue({ ...ventaEfectivo, metodo_pago: 'transferencia' });
+
+      await expect(VentaService.anularVenta(21, 'Error de cobro', usuarioDependiente))
+        .rejects.toMatchObject({ status: 409, message: 'El método de pago de la venta no permite anulación' });
+    });
+  });
+
+  describe('carrito con varios lotes del mismo producto', () => {
+    it('suma las cantidades por producto para alcanzar la promoción y descuenta cada lote', async () => {
+      VentaDAO.obtenerLotesParaVenta.mockResolvedValue([
+        { ...lotesDisponibles[0], id_lote: 1, id_producto: 5, precio_venta: '10.00' },
+        { ...lotesDisponibles[0], id_lote: 3, id_producto: 5, precio_venta: '8.00', precio_compra: '5.00' },
+      ]);
+      PromocionDAO.obtenerVigentesParaVenta.mockResolvedValue([
+        { id_promocion: 4, id_producto: 5, cantidad_minima: 3, precio_promocion: '8.50' },
+      ]);
+      VentaDAO.crearVenta.mockResolvedValue({ id_venta: 30 });
+      VentaDAO.descontarStock.mockResolvedValue({ id_lote: 1 });
+      VentaDAO.obtenerPorId.mockResolvedValue({ id_venta: 30 });
+
+      await VentaService.crearVenta({
+        ...datosVenta,
+        monto_recibido: 30,
+        detalles: [{ id_lote: 1, cantidad: 2 }, { id_lote: 3, cantidad: 1 }],
+      }, usuarioDependiente);
+
+      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([5], 1, {});
+      expect(VentaDAO.crearVenta).toHaveBeenCalledWith(
+        expect.objectContaining({ total: '25.00', monto_recibido: '30.00', cambio: '5.00' }),
+        {},
+      );
+      expect(VentaDAO.descontarStock.mock.calls).toEqual([[1, 2, {}], [3, 1, {}]]);
+      expect(VentaDAO.crearDetalle.mock.calls.map(([detalle]) => detalle.precio_unitario))
+        .toEqual(['8.50', '8.00']);
+    });
+
+    it('no aplica la promoción si el total del producto no alcanza el mínimo', async () => {
+      VentaDAO.obtenerLotesParaVenta.mockResolvedValue([
+        { ...lotesDisponibles[0], id_lote: 1, id_producto: 5, precio_venta: '10.00' },
+      ]);
+      PromocionDAO.obtenerVigentesParaVenta.mockResolvedValue([
+        { id_promocion: 4, id_producto: 5, cantidad_minima: 3, precio_promocion: '8.50' },
+      ]);
+      VentaDAO.crearVenta.mockResolvedValue({ id_venta: 31 });
+      VentaDAO.descontarStock.mockResolvedValue({ id_lote: 1 });
+
+      await VentaService.crearVenta({
+        ...datosVenta,
+        detalles: [{ id_lote: 1, cantidad: 2 }],
+      }, usuarioDependiente);
+
+      expect(VentaDAO.crearVenta).toHaveBeenCalledWith(expect.objectContaining({ total: '20.00' }), {});
+    });
+  });
+
+  describe('consultas de ventas', () => {
+    it('limita al dependiente a las ventas de su sucursal', async () => {
+      VentaDAO.obtenerTodas.mockResolvedValue([]);
+
+      await VentaService.obtenerTodas({ estado: 'completada' }, usuarioDependiente);
+
+      expect(VentaDAO.obtenerTodas).toHaveBeenCalledWith({ estado: 'completada', id_sucursal: 1 });
+    });
+
+    it('impide al dependiente consultar otra sucursal', async () => {
+      await expect(VentaService.obtenerTodas({ id_sucursal: '2' }, usuarioDependiente))
+        .rejects.toMatchObject({ status: 403 });
+      expect(VentaDAO.obtenerTodas).not.toHaveBeenCalled();
+    });
+
+    it('respeta los filtros del administrador', async () => {
+      VentaDAO.obtenerTodas.mockResolvedValue([]);
+
+      await VentaService.obtenerTodas({ id_sucursal: 3 }, usuarioAdministrador);
+
+      expect(VentaDAO.obtenerTodas).toHaveBeenCalledWith({ id_sucursal: 3 });
+    });
+
+    it('obtiene una venta de la sucursal del dependiente', async () => {
+      VentaDAO.obtenerPorId.mockResolvedValue({ id_venta: 21, id_sucursal: 1 });
+
+      await expect(VentaService.obtenerPorId(21, usuarioDependiente)).resolves.toEqual({ id_venta: 21, id_sucursal: 1 });
+    });
+
+    it('responde 404 si la venta no existe', async () => {
+      VentaDAO.obtenerPorId.mockResolvedValue(null);
+
+      await expect(VentaService.obtenerPorId(99, usuarioDependiente)).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('impide al dependiente ver una venta de otra sucursal', async () => {
+      VentaDAO.obtenerPorId.mockResolvedValue({ id_venta: 21, id_sucursal: 2 });
+
+      await expect(VentaService.obtenerPorId(21, usuarioDependiente)).rejects.toMatchObject({ status: 403 });
+    });
   });
 });

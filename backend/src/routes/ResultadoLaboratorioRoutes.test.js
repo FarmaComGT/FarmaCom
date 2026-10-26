@@ -137,4 +137,30 @@ describe('ResultadoLaboratorioRoutes', () => {
     expect(respuesta.status).toBe(404);
     expect(respuesta.body.mensaje).toBe('El enlace no esta disponible');
   });
+
+  it('entrega el PDF almacenado por el enlace público temporal', async () => {
+    const fs = require('fs');
+    const path = require('path');
+    const { RUTA_UPLOADS_RESULTADOS } = require('../config/almacenamiento');
+    const token = '2f4b6b0e-3b1a-4a34-9c2a-8f6c1a2b3c4d';
+    const contenido = '%PDF-1.4 resultado de prueba';
+    fs.mkdirSync(RUTA_UPLOADS_RESULTADOS, { recursive: true });
+    fs.writeFileSync(path.join(RUTA_UPLOADS_RESULTADOS, `${token}.pdf`), contenido);
+    ResultadoLaboratorioService.obtenerPublico.mockResolvedValue({ ruta_archivo: `${token}.pdf` });
+
+    const respuesta = await request(crearApp())
+      .get(`/api/resultados-laboratorio/publico/${token}`)
+      .buffer(true)
+      .parse((res, callback) => {
+        const partes = [];
+        res.on('data', (parte) => partes.push(parte));
+        res.on('end', () => callback(null, Buffer.concat(partes)));
+      });
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.headers['content-type']).toContain('application/pdf');
+    expect(respuesta.headers['content-disposition']).toBe('inline');
+    expect(respuesta.body.toString()).toBe(contenido);
+    expect(ResultadoLaboratorioService.obtenerPublico).toHaveBeenCalledWith(token);
+  });
 });

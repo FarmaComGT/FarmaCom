@@ -105,4 +105,67 @@ describe('ResultadoLaboratorioDAO', () => {
       ['Vencimiento automático (6 meses)', 10],
     );
   });
+
+  describe('ejecutarEnTransaccion', () => {
+    const crearConexion = () => ({ query: jest.fn().mockResolvedValue({ rows: [] }), release: jest.fn() });
+
+    it('confirma la transacción y libera la conexión', async () => {
+      const conexion = crearConexion();
+      pool.connect.mockResolvedValue(conexion);
+      const operacion = jest.fn().mockResolvedValue({ id_resultado: 1 });
+
+      await expect(ResultadoLaboratorioDAO.ejecutarEnTransaccion(operacion)).resolves.toEqual({ id_resultado: 1 });
+
+      expect(operacion).toHaveBeenCalledWith(conexion);
+      expect(conexion.query.mock.calls.map(([sql]) => sql)).toEqual(['BEGIN', 'COMMIT']);
+      expect(conexion.release).toHaveBeenCalledTimes(1);
+    });
+
+    it('revierte y libera la conexión si la operación falla', async () => {
+      const conexion = crearConexion();
+      pool.connect.mockResolvedValue(conexion);
+      const error = new Error('fallo al guardar el PDF');
+
+      await expect(ResultadoLaboratorioDAO.ejecutarEnTransaccion(jest.fn().mockRejectedValue(error)))
+        .rejects.toBe(error);
+
+      expect(conexion.query.mock.calls.map(([sql]) => sql)).toEqual(['BEGIN', 'ROLLBACK']);
+      expect(conexion.release).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('devuelve null cuando el paciente no tiene expediente', async () => {
+    pool.query.mockResolvedValue({ rows: [] });
+
+    await expect(ResultadoLaboratorioDAO.obtenerExpedientePorPaciente(3)).resolves.toBeNull();
+  });
+
+  it('obtiene un resultado por id usando la conexión indicada', async () => {
+    const clienteFalso = { query: jest.fn().mockResolvedValueOnce({ rows: [{ id_resultado: 4 }] })
+      .mockResolvedValueOnce({ rows: [] }) };
+
+    await expect(ResultadoLaboratorioDAO.obtenerPorId(4, clienteFalso)).resolves.toEqual({ id_resultado: 4 });
+    await expect(ResultadoLaboratorioDAO.obtenerPorId(5, clienteFalso)).resolves.toBeNull();
+    expect(clienteFalso.query).toHaveBeenCalledWith(expect.stringContaining('WHERE id_resultado = $1'), [4]);
+  });
+
+  it('bloquea un resultado para actualizarlo dentro de la transacción', async () => {
+    const clienteFalso = { query: jest.fn().mockResolvedValueOnce({ rows: [{ id_resultado: 4 }] })
+      .mockResolvedValueOnce({ rows: [] }) };
+
+    await expect(ResultadoLaboratorioDAO.obtenerParaActualizar(4, clienteFalso)).resolves.toEqual({ id_resultado: 4 });
+    await expect(ResultadoLaboratorioDAO.obtenerParaActualizar(5, clienteFalso)).resolves.toBeNull();
+    expect(clienteFalso.query.mock.calls[0][0]).toContain('FOR UPDATE');
+  });
+
+  it.each([
+    ['obtenerPorToken', () => ResultadoLaboratorioDAO.obtenerPorToken('no-existe')],
+    ['obtenerParaActualizarConLaboratorio', () => ResultadoLaboratorioDAO.obtenerParaActualizarConLaboratorio(9, pool)],
+    ['anular', () => ResultadoLaboratorioDAO.anular(9, 'motivo', pool)],
+    ['marcarVencido', () => ResultadoLaboratorioDAO.marcarVencido(9, 'motivo', pool)],
+  ])('%s devuelve null si el resultado no existe', async (_nombre, consulta) => {
+    pool.query.mockResolvedValue({ rows: [] });
+
+    await expect(consulta()).resolves.toBeNull();
+  });
 });

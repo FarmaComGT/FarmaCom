@@ -388,4 +388,102 @@ describe('LoteService', () => {
       await expect(LoteService.obtenerAlertas(1)).resolves.toEqual([{ id_lote: 1 }]);
     });
   });
+
+  describe('reglas adicionales de lotes', () => {
+    const loteExistente = {
+      id_lote: 1,
+      id_producto: 1,
+      id_proveedor: 1,
+      id_sucursal: 1,
+      numero_lote: 'L-001',
+      cantidad_ingresada: 10,
+      stock_actual: 10,
+    };
+
+    beforeEach(() => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: true });
+      LoteDAO.obtenerPorNumeroLote.mockResolvedValue(null);
+      LoteDAO.obtenerFilaPorId.mockResolvedValue(loteExistente);
+      LoteDAO.actualizar.mockResolvedValue({ id_lote: 1 });
+      LoteDAO.obtenerPorId.mockResolvedValue({ id_lote: 1 });
+    });
+
+    it('rechaza crear un lote con una fecha de vencimiento inválida', async () => {
+      await expect(LoteService.crearLote({ ...datosLoteBase, fecha_vencimiento: 'no-es-fecha' }, 9))
+        .rejects.toMatchObject({ status: 400, message: 'fecha_vencimiento no es una fecha válida' });
+    });
+
+    it.each([-1, 10000])('rechaza crear un lote con margen de ganancia %p', async (margen) => {
+      await expect(LoteService.crearLote({ ...datosLoteBase, margen_ganancia: margen }, 9))
+        .rejects.toMatchObject({ status: 400 });
+    });
+
+    it('devuelve los lotes de un producto existente', async () => {
+      LoteDAO.obtenerPorProducto.mockResolvedValue([{ id_lote: 1 }]);
+
+      await expect(LoteService.obtenerPorProducto(1)).resolves.toEqual([{ id_lote: 1 }]);
+    });
+
+    it('devuelve un lote existente por id', async () => {
+      await expect(LoteService.obtenerPorId(1)).resolves.toEqual({ id_lote: 1 });
+    });
+
+    it('permite mover el lote a otro producto activo', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 2, activo: true });
+
+      await expect(LoteService.actualizarLote(1, { id_producto: 2 })).resolves.toEqual({ id_lote: 1 });
+      expect(ProductoDAO.obtenerPorId).toHaveBeenCalledWith(2, mockClient);
+      expect(LoteDAO.obtenerPorNumeroLote).toHaveBeenCalledWith('L-001', 2, 1, 1, mockClient);
+    });
+
+    it.each([
+      ['inexistente', null, 404],
+      ['inactivo', { id_producto: 2, activo: false }, 409],
+    ])('rechaza mover el lote a un producto %s', async (_caso, producto, status) => {
+      ProductoDAO.obtenerPorId.mockResolvedValue(producto);
+
+      await expect(LoteService.actualizarLote(1, { id_producto: 2 })).rejects.toMatchObject({ status });
+      expect(LoteDAO.actualizar).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['stock negativo', { stock_actual: -1 }, 'El stock actual no puede ser negativo'],
+      ['precio de compra vacío', { precio_compra: ' ' }, 'El precio de compra no puede ser negativo'],
+      ['precio de compra nulo', { precio_compra: null }, 'El precio de compra no puede ser negativo'],
+      ['precio de compra negativo', { precio_compra: -2 }, 'El precio de compra no puede ser negativo'],
+      ['precio de venta negativo', { precio_venta: -1 }, 'El precio de venta no puede ser negativo'],
+      ['margen excesivo', { margen_ganancia: 10000 }, 'El margen de ganancia debe estar entre 0 y 9999.9999'],
+      ['mayoreo sin cantidad', { precio_mayoreo: 7 }, 'precio_mayoreo y cantidad_mayoreo deben definirse juntos'],
+    ])('rechaza actualizar con %s', async (_caso, cambios, mensaje) => {
+      await expect(LoteService.actualizarLote(1, cambios)).rejects.toMatchObject({ status: 400, message: mensaje });
+      expect(LoteDAO.actualizar).not.toHaveBeenCalled();
+    });
+
+    it('traduce una llave foránea inválida al actualizar en 400', async () => {
+      LoteDAO.actualizar.mockRejectedValue(Object.assign(new Error('fk'), { code: '23503' }));
+
+      await expect(LoteService.actualizarLote(1, { stock_actual: 5 }))
+        .rejects.toMatchObject({ status: 400, message: 'El producto, proveedor o sucursal indicado no existe' });
+    });
+
+    it('propaga errores inesperados al actualizar', async () => {
+      const error = new Error('conexión perdida');
+      LoteDAO.actualizar.mockRejectedValue(error);
+
+      await expect(LoteService.actualizarLote(1, { stock_actual: 5 })).rejects.toBe(error);
+    });
+
+    it('responde 500 si la actualización no devolvió el lote', async () => {
+      LoteDAO.actualizar.mockResolvedValue(null);
+
+      await expect(LoteService.actualizarLote(1, { stock_actual: 5 })).rejects.toMatchObject({ status: 500 });
+    });
+
+    it('propaga errores inesperados al eliminar', async () => {
+      const error = new Error('conexión perdida');
+      LoteDAO.eliminar.mockRejectedValue(error);
+
+      await expect(LoteService.eliminarLote(1)).rejects.toBe(error);
+    });
+  });
 });

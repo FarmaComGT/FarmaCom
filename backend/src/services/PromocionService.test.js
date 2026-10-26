@@ -260,5 +260,82 @@ describe('PromocionService', () => {
 
       await expect(PromocionService.eliminarPromocion(99)).rejects.toMatchObject({ status: 404 });
     });
+
+    it('elimina una promoción existente', async () => {
+      PromocionDAO.obtenerPorId.mockResolvedValue({ id_promocion: 1 });
+      PromocionDAO.eliminar.mockResolvedValue({ id_promocion: 1 });
+
+      await expect(PromocionService.eliminarPromocion(1)).resolves.toEqual({
+        mensaje: 'Promoción eliminada correctamente',
+      });
+    });
+
+    it('responde 500 si la eliminación no afectó ningún registro', async () => {
+      PromocionDAO.obtenerPorId.mockResolvedValue({ id_promocion: 1 });
+      PromocionDAO.eliminar.mockResolvedValue(null);
+
+      await expect(PromocionService.eliminarPromocion(1)).rejects.toMatchObject({ status: 500 });
+    });
+  });
+
+  describe('consultas', () => {
+    it('lista las promociones de un producto existente', async () => {
+      ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1 });
+      PromocionDAO.obtenerPorProducto.mockResolvedValue([{ id_promocion: 1 }]);
+
+      await expect(PromocionService.obtenerPorProducto(1)).resolves.toEqual([{ id_promocion: 1 }]);
+    });
+
+    it('obtiene una promoción existente por id', async () => {
+      PromocionDAO.obtenerPorId.mockResolvedValue({ id_promocion: 3 });
+
+      await expect(PromocionService.obtenerPorId(3)).resolves.toEqual({ id_promocion: 3 });
+    });
+  });
+
+  describe('validaciones al editar', () => {
+    const existente = {
+      id_promocion: 1,
+      id_producto: 1,
+      id_sucursal: 1,
+      precio_promocion: '10.00',
+      fecha_inicio: '2026-01-01',
+      fecha_fin: '2026-01-31',
+    };
+
+    it.each([
+      ['una cantidad mínima de cero', { cantidad_minima: 0 }, 'La cantidad mínima debe ser mayor a 0'],
+      ['un precio de promoción negativo', { precio_promocion: -1 }, 'El precio de promoción debe ser mayor a 0'],
+    ])('rechaza %s', async (_caso, campos, mensaje) => {
+      PromocionDAO.obtenerPorId.mockResolvedValue(existente);
+
+      await expect(PromocionService.actualizarPromocion(1, campos))
+        .rejects.toMatchObject({ status: 400, message: mensaje });
+      expect(PromocionDAO.actualizar).not.toHaveBeenCalled();
+    });
+
+    it('rechaza fechas incoherentes al editar', async () => {
+      PromocionDAO.obtenerPorId.mockResolvedValue(existente);
+
+      await expect(PromocionService.actualizarPromocion(1, { fecha_fin: '2025-12-01' }))
+        .rejects.toMatchObject({ status: 400 });
+      expect(PromocionDAO.existeActivaSolapada).not.toHaveBeenCalled();
+    });
+
+    it('excluye la propia promoción al validar el solapamiento', async () => {
+      PromocionDAO.obtenerPorId.mockResolvedValue(existente);
+      PromocionDAO.existeActivaSolapada.mockResolvedValue(false);
+      PromocionDAO.actualizar.mockResolvedValue({ ...existente, fecha_fin: '2026-02-28' });
+
+      await PromocionService.actualizarPromocion(1, { fecha_fin: '2026-02-28' });
+
+      expect(PromocionDAO.existeActivaSolapada).toHaveBeenCalledWith({
+        id_producto: 1,
+        id_sucursal: 1,
+        fecha_inicio: '2026-01-01',
+        fecha_fin: '2026-02-28',
+        excluir_id: 1,
+      });
+    });
   });
 });
