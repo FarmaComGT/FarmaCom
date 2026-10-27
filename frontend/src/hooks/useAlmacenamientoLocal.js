@@ -7,6 +7,8 @@ import {
   solicitarPermiso,
   elegirCarpetaRaiz,
   crearCarpetaPaciente,
+  eliminarCarpetaPaciente,
+  eliminarRespaldosPorPaciente,
   guardarPdfLocal,
   registrarRespaldo,
   listarRespaldosPorPaciente,
@@ -93,6 +95,24 @@ const useAlmacenamientoLocal = () => {
 
   const respaldosDe = useCallback((idPaciente) => listarRespaldosPorPaciente(idPaciente), []);
 
+  // Mejor esfuerzo: limpia los metadatos locales (IndexedDB) y, si esta
+  // computadora tiene la carpeta raiz conectada, tambien su subcarpeta en
+  // disco. Nunca lanza: una falla aqui no debe impedir que el paciente ya
+  // eliminado del servidor se reporte como eliminado.
+  const eliminarCarpetaDePaciente = useCallback(async (idPaciente, nombrePaciente) => {
+    try {
+      await eliminarRespaldosPorPaciente(idPaciente);
+    } catch (error) {
+      console.error('No se pudo limpiar el respaldo local registrado del paciente:', error);
+    }
+    if (!raizHandle || !permisoOk) return;
+    try {
+      await eliminarCarpetaPaciente(raizHandle, idPaciente, nombrePaciente);
+    } catch (error) {
+      console.error('No se pudo borrar la carpeta local del paciente:', error);
+    }
+  }, [raizHandle, permisoOk]);
+
   const abrirArchivoLocal = useCallback(async (respaldo) => {
     if (!raizHandle) return;
     const archivo = await obtenerArchivoLocal(
@@ -113,6 +133,7 @@ const useAlmacenamientoLocal = () => {
     elegirCarpeta,
     reconectar,
     crearCarpetaDePaciente,
+    eliminarCarpetaDePaciente,
     guardarRespaldo,
     respaldosDe,
     abrirArchivoLocal,

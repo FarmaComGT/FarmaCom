@@ -63,6 +63,7 @@ export default function Pacientes() {
     elegirCarpeta,
     reconectar,
     crearCarpetaDePaciente,
+    eliminarCarpetaDePaciente,
   } = useAlmacenamientoLocal();
   const [mostrarModalAlmacenamiento, setMostrarModalAlmacenamiento] = useState(false);
 
@@ -163,6 +164,7 @@ export default function Pacientes() {
       setEliminando(true);
       setErrorAccion(null);
       await eliminar(pacienteAEliminar.id_paciente);
+      await eliminarCarpetaDePaciente(pacienteAEliminar.id_paciente, pacienteAEliminar.nombre_paciente);
       setPacienteAEliminar(null);
       setMensajeExito('Paciente eliminado correctamente.');
     } catch (err) {
