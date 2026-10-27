@@ -93,6 +93,26 @@ describe('PacienteDAO consultas', () => {
     await expect(PacienteDAO.obtenerPorDpi('0000000000000')).resolves.toBeNull();
   });
 
+  describe('eliminar', () => {
+    it('borra al paciente y devuelve la fila eliminada', async () => {
+      const clienteFalso = { query: jest.fn().mockResolvedValue({ rows: [{ id_paciente: 3 }] }) };
+
+      const resultado = await PacienteDAO.eliminar(3, clienteFalso);
+
+      expect(clienteFalso.query).toHaveBeenCalledWith(
+        expect.stringContaining('DELETE FROM paciente'),
+        [3],
+      );
+      expect(resultado).toEqual({ id_paciente: 3 });
+    });
+
+    it('devuelve null si el paciente no existia', async () => {
+      const clienteFalso = { query: jest.fn().mockResolvedValue({ rows: [] }) };
+
+      await expect(PacienteDAO.eliminar(99, clienteFalso)).resolves.toBeNull();
+    });
+  });
+
   describe('buscar', () => {
     it('filtra solo por laboratorio y calcula la paginación', async () => {
       pool.query.mockResolvedValue({ rows: [

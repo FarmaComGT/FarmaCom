@@ -68,6 +68,18 @@ describe('PacienteController', () => {
     expect(res.json).toHaveBeenCalledWith({ id_paciente: 3, estado: 'anulado' });
   });
 
+  it('elimina un paciente por completo', async () => {
+    PacienteService.eliminarPaciente.mockResolvedValue(undefined);
+    const res = mockResponse();
+    res.send = jest.fn().mockReturnValue(res);
+
+    await PacienteController.eliminar({ params: { id: '3' }, usuario }, res);
+
+    expect(PacienteService.eliminarPaciente).toHaveBeenCalledWith(3, usuario);
+    expect(res.status).toHaveBeenCalledWith(204);
+    expect(res.send).toHaveBeenCalled();
+  });
+
   it('envía al middleware el error del servicio', async () => {
     const error = Object.assign(new Error('No tienes acceso al recurso solicitado.'), { statusCode: 403 });
     PacienteService.obtenerPorId.mockRejectedValue(error);

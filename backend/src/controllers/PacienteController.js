@@ -36,4 +36,11 @@ const anular = asyncHandler(async (req, res) => {
   return res.status(200).json(paciente);
 });
 
-module.exports = { registrar, buscar, obtenerPorId, actualizar, anular };
+const eliminar = asyncHandler(async (req, res) => {
+  await PacienteService.eliminarPaciente(Number(req.params.id), req.usuario);
+  return res.status(204).send();
+});
+
+module.exports = {
+  registrar, buscar, obtenerPorId, actualizar, anular, eliminar,
+};

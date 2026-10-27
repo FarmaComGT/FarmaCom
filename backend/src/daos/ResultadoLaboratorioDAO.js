@@ -85,8 +85,8 @@ class ResultadoLaboratorioDAO {
     return rows[0] || null;
   }
 
-  async listarPorPaciente(id_paciente) {
-    const { rows } = await pool.query(
+  async listarPorPaciente(id_paciente, client = pool) {
+    const { rows } = await client.query(
       `SELECT r.*
        FROM resultado_laboratorio r
        JOIN expediente_laboratorio e ON e.id_expediente = r.id_expediente

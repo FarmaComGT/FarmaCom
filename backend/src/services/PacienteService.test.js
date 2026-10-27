@@ -1,7 +1,11 @@
 jest.mock('../daos/PacienteDAO');
+jest.mock('../daos/ResultadoLaboratorioDAO');
 jest.mock('./BitacoraLaboratorioService');
+jest.mock('fs/promises');
 
+const fs = require('fs/promises');
 const PacienteDAO = require('../daos/PacienteDAO');
+const ResultadoLaboratorioDAO = require('../daos/ResultadoLaboratorioDAO');
 const BitacoraLaboratorioService = require('./BitacoraLaboratorioService');
 const PacienteService = require('./PacienteService');
 
@@ -199,6 +203,53 @@ describe('PacienteService.anularPaciente', () => {
   });
 });
 
+describe('PacienteService.eliminarPaciente', () => {
+  beforeEach(() => {
+    PacienteDAO.ejecutarEnTransaccion.mockImplementation((fn) => fn(mockClient));
+    fs.unlink.mockResolvedValue(undefined);
+  });
+
+  it('lanza 404 si el paciente no existe', async () => {
+    PacienteDAO.obtenerParaActualizar.mockResolvedValue(null);
+
+    await expect(
+      PacienteService.eliminarPaciente(99, usuarioAdministrador),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('elimina al paciente, registra la bitácora y borra los PDF de sus resultados', async () => {
+    const paciente = { id_paciente: 1, id_laboratorio: 1, estado: 'activo' };
+    PacienteDAO.obtenerParaActualizar.mockResolvedValue(paciente);
+    ResultadoLaboratorioDAO.listarPorPaciente.mockResolvedValue([
+      { id_resultado: 1, ruta_archivo: 'a.pdf' },
+      { id_resultado: 2, ruta_archivo: 'b.pdf' },
+    ]);
+    PacienteDAO.eliminar.mockResolvedValue(paciente);
+
+    await PacienteService.eliminarPaciente(1, usuarioAdministrador);
+
+    expect(PacienteDAO.eliminar).toHaveBeenCalledWith(1, mockClient);
+    expect(BitacoraLaboratorioService.registrarCambio).toHaveBeenCalledWith(
+      expect.objectContaining({ accion: 'eliminar', anterior: paciente, nuevo: null }),
+      mockClient,
+    );
+    expect(fs.unlink).toHaveBeenCalledTimes(2);
+    expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining('a.pdf'));
+    expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining('b.pdf'));
+  });
+
+  it('no falla si algún PDF ya no existe en disco', async () => {
+    PacienteDAO.obtenerParaActualizar.mockResolvedValue({ id_paciente: 1, id_laboratorio: 1 });
+    ResultadoLaboratorioDAO.listarPorPaciente.mockResolvedValue([
+      { id_resultado: 1, ruta_archivo: 'a.pdf' },
+    ]);
+    PacienteDAO.eliminar.mockResolvedValue({ id_paciente: 1 });
+    fs.unlink.mockRejectedValue(new Error('ENOENT'));
+
+    await expect(PacienteService.eliminarPaciente(1, usuarioAdministrador)).resolves.toBeUndefined();
+  });
+});
+
 describe('PacienteService - aislamiento por laboratorio', () => {
   it('impide registrar pacientes en otro laboratorio', async () => {
     await expect(PacienteService.registrarPaciente({
@@ -259,5 +310,21 @@ describe('PacienteService - aislamiento por laboratorio', () => {
     )).rejects.toMatchObject({ status: 403 });
 
     expect(PacienteDAO.anular).not.toHaveBeenCalled();
+  });
+
+  it('impide eliminar un paciente de otro laboratorio', async () => {
+    PacienteDAO.ejecutarEnTransaccion.mockImplementation((fn) => fn(mockClient));
+    PacienteDAO.obtenerParaActualizar.mockResolvedValue({
+      id_paciente: 20,
+      id_laboratorio: 2,
+      estado: 'activo',
+    });
+
+    await expect(PacienteService.eliminarPaciente(
+      20,
+      usuarioLaboratorio1,
+    )).rejects.toMatchObject({ status: 403 });
+
+    expect(PacienteDAO.eliminar).not.toHaveBeenCalled();
   });
 });

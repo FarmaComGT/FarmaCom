@@ -187,6 +187,16 @@ class PacienteDAO {
     );
     return rows[0] || null;
   }
+
+  // Borrado permanente: el expediente, las visitas y los resultados del
+  // paciente se eliminan en cascada (ver migracion 006).
+  async eliminar(id_paciente, client) {
+    const { rows } = await client.query(
+      `DELETE FROM paciente WHERE id_paciente = $1 RETURNING *`,
+      [id_paciente],
+    );
+    return rows[0] || null;
+  }
 }
 
 module.exports = new PacienteDAO();
