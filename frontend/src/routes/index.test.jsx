@@ -243,7 +243,7 @@ describe('ruta de pacientes de laboratorio', () => {
     renderizarRutaPacientes();
 
     expect(screen.getByRole('heading', { name: 'Pacientes de laboratorio' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Pacientes' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Laboratorio' })).toBeInTheDocument();
   });
 
   it('bloquea el acceso a un dependiente', () => {
