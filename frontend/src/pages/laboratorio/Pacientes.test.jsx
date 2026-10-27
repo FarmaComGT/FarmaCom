@@ -88,7 +88,8 @@ describe('Pacientes', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Anular Ana López' }));
+    await user.click(screen.getByRole('button', { name: 'Más acciones para Ana López' }));
+    await user.click(screen.getByRole('button', { name: 'Anular' }));
     await user.type(screen.getByLabelText(/Motivo/), 'Registro duplicado');
     await user.click(screen.getByRole('button', { name: 'Sí, anular' }));
 
