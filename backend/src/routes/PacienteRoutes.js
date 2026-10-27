@@ -171,4 +171,14 @@ router.patch(
   PacienteController.anular,
 );
 
+// DELETE /api/pacientes/:id
+router.delete(
+  '/:id',
+  verificarToken,
+  rolesPaciente,
+  validarId,
+  validateRequest,
+  PacienteController.eliminar,
+);
+
 module.exports = router;

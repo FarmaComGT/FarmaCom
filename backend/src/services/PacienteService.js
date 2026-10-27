@@ -1,5 +1,9 @@
+const fs = require('fs/promises');
+const path = require('path');
 const BitacoraLaboratorioService = require('./BitacoraLaboratorioService');
 const PacienteDAO = require('../daos/PacienteDAO');
+const ResultadoLaboratorioDAO = require('../daos/ResultadoLaboratorioDAO');
+const { RUTA_UPLOADS_RESULTADOS } = require('../config/almacenamiento');
 const { calcularEdad } = require('../utils/edad');
 const { obtenerIdUsuario, validarPertenenciaLaboratorio } = require('../utils/accesoLaboratorio');
 const AppError = require('../errors/AppError');
@@ -178,10 +182,42 @@ const anularPaciente = async (id_paciente, motivo_anulacion, usuario) => {
   });
 };
 
+// Borrado permanente: elimina al paciente junto con su expediente, visitas y
+// resultados (cascada en BD, ver migracion 006), y despues borra del disco
+// los PDF de esos resultados. A diferencia de anularPaciente, no hay forma de
+// deshacer esta accion.
+const eliminarPaciente = async (id_paciente, usuario) => {
+  const id_usuario = obtenerIdUsuario(usuario);
+  const { rutasArchivos } = await PacienteDAO.ejecutarEnTransaccion(async (client) => {
+    const paciente = await PacienteDAO.obtenerParaActualizar(id_paciente, client);
+    if (!paciente) throw noEncontrado();
+    validarPertenenciaLaboratorio(usuario, paciente.id_laboratorio);
+
+    const resultados = await ResultadoLaboratorioDAO.listarPorPaciente(id_paciente, client);
+    await PacienteDAO.eliminar(id_paciente, client);
+
+    await BitacoraLaboratorioService.registrarCambio({
+      id_usuario, entidad: 'paciente', id_entidad: id_paciente,
+      accion: 'eliminar', anterior: paciente, nuevo: null,
+    }, client);
+
+    return { rutasArchivos: resultados.map((resultado) => resultado.ruta_archivo) };
+  });
+
+  for (const rutaArchivo of rutasArchivos) {
+    try {
+      await fs.unlink(path.join(RUTA_UPLOADS_RESULTADOS, rutaArchivo));
+    } catch {
+      // Archivo ya ausente o inaccesible: no bloquea la eliminacion del paciente.
+    }
+  }
+};
+
 module.exports = {
   registrarPaciente,
   obtenerPorId,
   buscarPacientes,
   actualizarPaciente,
   anularPaciente,
+  eliminarPaciente,
 };

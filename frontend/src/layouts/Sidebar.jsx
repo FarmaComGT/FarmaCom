@@ -55,7 +55,7 @@ const navItems = [
   { icon: Users, label: 'Clientes', path: '/patients', roles: ROLES_FARMACIA },
   {
     icon: FlaskConical,
-    label: 'Pacientes',
+    label: 'Laboratorio',
     path: '/laboratorio/pacientes',
     roles: ['dueno', 'administrador', 'laboratorista'],
   },
@@ -175,13 +175,15 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto">
-        <NavLink
-          to="/dashboard"
-          className={({ isActive }) => topLevelItemClass(isActive)}
-        >
-          <LayoutDashboard className="h-5 w-5 transition-transform duration-150 group-hover:scale-110" />
-          <span className="text-sm font-headline">Dashboard</span>
-        </NavLink>
+        {usuario?.rol !== 'laboratorista' && (
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) => topLevelItemClass(isActive)}
+          >
+            <LayoutDashboard className="h-5 w-5 transition-transform duration-150 group-hover:scale-110" />
+            <span className="text-sm font-headline">Dashboard</span>
+          </NavLink>
+        )}
 
         {puedeVerInventario && <div>
           <button

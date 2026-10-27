@@ -5,11 +5,14 @@ import {
   anularPaciente,
   buscarPacientes,
   crearPaciente,
+  eliminarPaciente,
   obtenerPaciente,
 } from './pacientes';
 
 vi.mock('./axios', () => ({
-  default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn() },
+  default: {
+    get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn(),
+  },
 }));
 
 describe('API de pacientes', () => {
@@ -54,5 +57,13 @@ describe('API de pacientes', () => {
     await anularPaciente(1, 'Duplicado');
 
     expect(api.patch).toHaveBeenCalledWith('/pacientes/1/anular', { motivo_anulacion: 'Duplicado' });
+  });
+
+  it('elimina un paciente por completo', async () => {
+    api.delete.mockResolvedValue({ data: undefined });
+
+    await eliminarPaciente(1);
+
+    expect(api.delete).toHaveBeenCalledWith('/pacientes/1');
   });
 });

@@ -97,6 +97,17 @@ describe('PacienteRoutes - sexo y edad', () => {
   });
 });
 
+it('elimina un paciente', async () => {
+  PacienteService.eliminarPaciente.mockResolvedValue(undefined);
+
+  const respuesta = await request(crearApp()).delete('/api/pacientes/4');
+
+  expect(respuesta.status).toBe(204);
+  expect(PacienteService.eliminarPaciente).toHaveBeenCalledWith(4, {
+    id_usuario: 9, rol: 'laboratorista', id_laboratorio: 1,
+  });
+});
+
  it('atribuye el alta al usuario autenticado aunque el body indique otro', async () => {
   const respuesta = await request(crearApp()).post('/api/pacientes')
     .send({ ...datosBase, edad_manual: 30, id_usuario: 123 });

@@ -102,6 +102,15 @@ export const crearCarpetaPaciente = async (raizHandle, idPaciente, nombrePacient
   { create: true },
 );
 
+// Borra la subcarpeta del paciente dentro de la carpeta raiz configurada en
+// este navegador. Solo limpia la copia local de esta computadora: si el
+// paciente tambien se respaldo desde otra computadora, esa copia no se ve
+// afectada (el servidor no tiene forma de alcanzarla).
+export const eliminarCarpetaPaciente = async (raizHandle, idPaciente, nombrePaciente) => raizHandle.removeEntry(
+  nombreCarpetaPaciente(idPaciente, nombrePaciente),
+  { recursive: true },
+);
+
 export const guardarPdfLocal = async (carpetaPacienteHandle, nombreArchivo, bytes) => {
   const fileHandle = await carpetaPacienteHandle.getFileHandle(nombreArchivo, { create: true });
   const writable = await fileHandle.createWritable();
@@ -123,6 +132,20 @@ export const listarRespaldosPorPaciente = async (idPaciente) => {
     (almacen) => solicitudAPromesa(almacen.getAll()),
   );
   return (todos || []).filter((respaldo) => String(respaldo.id_paciente) === String(idPaciente));
+};
+
+// Limpia los metadatos de respaldo local (IndexedDB) del paciente eliminado,
+// para que no queden huerfanos apuntando a un paciente que ya no existe.
+export const eliminarRespaldosPorPaciente = async (idPaciente) => {
+  const respaldos = await listarRespaldosPorPaciente(idPaciente);
+  if (!respaldos.length) return;
+  await conAlmacen(
+    ALMACEN_RESPALDOS,
+    'readwrite',
+    (almacen) => Promise.all(
+      respaldos.map((respaldo) => solicitudAPromesa(almacen.delete(respaldo.id_resultado))),
+    ),
+  );
 };
 
 export const obtenerArchivoLocal = async (raizHandle, idPaciente, nombrePaciente, nombreArchivo) => {

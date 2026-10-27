@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS visita_laboratorio (
     CONSTRAINT fk_visita_expediente
         FOREIGN KEY (id_expediente)
         REFERENCES expediente_laboratorio(id_expediente)
-        ON DELETE RESTRICT,
+        ON DELETE CASCADE,
 
     CONSTRAINT fk_visita_usuario
         FOREIGN KEY (id_usuario)
@@ -262,7 +262,7 @@ CREATE TABLE IF NOT EXISTS resultado_laboratorio (
     CONSTRAINT fk_resultado_expediente
         FOREIGN KEY (id_expediente)
         REFERENCES expediente_laboratorio(id_expediente)
-        ON DELETE RESTRICT,
+        ON DELETE CASCADE,
 
     CONSTRAINT fk_resultado_usuario_subida
         FOREIGN KEY (id_usuario_subida)

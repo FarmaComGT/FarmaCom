@@ -5,10 +5,11 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Pacientes from './Pacientes';
 
-const { mockCrear, mockActualizar, mockAnular } = vi.hoisted(() => ({
+const { mockCrear, mockActualizar, mockAnular, mockEliminar } = vi.hoisted(() => ({
   mockCrear: vi.fn(),
   mockActualizar: vi.fn(),
   mockAnular: vi.fn(),
+  mockEliminar: vi.fn(),
 }));
 
 vi.mock('../../context/AuthContext', () => ({
@@ -42,6 +43,7 @@ vi.mock('../../hooks/usePacientes', () => ({
     crear: mockCrear,
     actualizar: mockActualizar,
     anular: mockAnular,
+    eliminar: mockEliminar,
   }),
 }));
 
@@ -56,6 +58,7 @@ describe('Pacientes', () => {
     mockCrear.mockReset();
     mockActualizar.mockReset();
     mockAnular.mockReset();
+    mockEliminar.mockReset();
   });
 
   it('muestra el listado de pacientes con sus datos', () => {
@@ -88,10 +91,27 @@ describe('Pacientes', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Anular Ana López' }));
+    await user.click(screen.getByRole('button', { name: 'Más acciones para Ana López' }));
+    await user.click(screen.getByRole('button', { name: 'Anular' }));
     await user.type(screen.getByLabelText(/Motivo/), 'Registro duplicado');
     await user.click(screen.getByRole('button', { name: 'Sí, anular' }));
 
     expect(mockAnular).toHaveBeenCalledWith(3, 'Registro duplicado');
+  });
+
+  it('elimina un paciente tras confirmar la advertencia', async () => {
+    mockEliminar.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderizar();
+
+    await user.click(screen.getByRole('button', { name: 'Más acciones para Ana López' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+
+    expect(screen.getByText('Eliminar paciente')).toBeInTheDocument();
+    expect(screen.getByText(/No se puede deshacer/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar definitivamente' }));
+
+    expect(mockEliminar).toHaveBeenCalledWith(3);
   });
 });

@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   crearCarpetaPaciente,
   elegirCarpetaRaiz,
+  eliminarCarpetaPaciente,
+  eliminarRespaldosPorPaciente,
   guardarCarpetaRaiz,
   guardarPdfLocal,
   listarRespaldosPorPaciente,
@@ -69,6 +71,7 @@ const crearIndexedDBFake = ({
             }),
             get: (clave) => hacerRequest(() => almacenes[nombreAlmacen].get(clave)),
             getAll: () => hacerRequest(() => Array.from(almacenes[nombreAlmacen].values())),
+            delete: (clave) => hacerRequest(() => almacenes[nombreAlmacen].delete(clave)),
           });
           return tx;
         },
@@ -216,6 +219,14 @@ describe('almacenamientoLocal', () => {
       expect(carpetaHandle.getFileHandle).toHaveBeenCalledWith('archivo.pdf');
       expect(resultado).toBe(archivoFalso);
     });
+
+    it('borra la carpeta del paciente dentro de la raíz', async () => {
+      const raizHandle = { removeEntry: vi.fn().mockResolvedValue(undefined) };
+
+      await eliminarCarpetaPaciente(raizHandle, 3, 'Juan Perez');
+
+      expect(raizHandle.removeEntry).toHaveBeenCalledWith('Juan Perez_3', { recursive: true });
+    });
   });
 
   describe('persistencia en IndexedDB', () => {
@@ -303,6 +314,23 @@ describe('almacenamientoLocal', () => {
 
     it('devuelve una lista vacía si el paciente no tiene respaldos', async () => {
       await expect(listarRespaldosPorPaciente(999)).resolves.toEqual([]);
+    });
+
+    it('elimina solo los respaldos del paciente indicado', async () => {
+      await registrarRespaldo({ id_resultado: 1, id_paciente: 10, nombre_archivo: 'a.pdf' });
+      await registrarRespaldo({ id_resultado: 2, id_paciente: 10, nombre_archivo: 'b.pdf' });
+      await registrarRespaldo({ id_resultado: 3, id_paciente: 20, nombre_archivo: 'c.pdf' });
+
+      await eliminarRespaldosPorPaciente(10);
+
+      await expect(listarRespaldosPorPaciente(10)).resolves.toEqual([]);
+      await expect(listarRespaldosPorPaciente(20)).resolves.toEqual([
+        { id_resultado: 3, id_paciente: 20, nombre_archivo: 'c.pdf' },
+      ]);
+    });
+
+    it('no hace nada si el paciente no tiene respaldos registrados', async () => {
+      await expect(eliminarRespaldosPorPaciente(999)).resolves.toBeUndefined();
     });
   });
 });

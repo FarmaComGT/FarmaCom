@@ -11,6 +11,8 @@ vi.mock('../utils/almacenamientoLocal', () => ({
   solicitarPermiso: vi.fn(),
   elegirCarpetaRaiz: vi.fn(),
   crearCarpetaPaciente: vi.fn(),
+  eliminarCarpetaPaciente: vi.fn(),
+  eliminarRespaldosPorPaciente: vi.fn(),
   guardarPdfLocal: vi.fn(),
   registrarRespaldo: vi.fn(),
   listarRespaldosPorPaciente: vi.fn(),
@@ -162,6 +164,57 @@ describe('useAlmacenamientoLocal', () => {
 
     await expect(result.current.crearCarpetaDePaciente(1, 'Juan')).resolves.toBeUndefined();
     expect(consoleError).toHaveBeenCalled();
+
+    consoleError.mockRestore();
+  });
+
+  it('elimina la carpeta del paciente y sus respaldos cuando hay permiso', async () => {
+    almacenamientoLocal.soportaAlmacenamientoLocal.mockReturnValue(true);
+    const raizHandle = {};
+    almacenamientoLocal.obtenerCarpetaRaiz.mockResolvedValue(raizHandle);
+    almacenamientoLocal.verificarPermiso.mockResolvedValue('granted');
+    almacenamientoLocal.eliminarRespaldosPorPaciente.mockResolvedValue();
+    almacenamientoLocal.eliminarCarpetaPaciente.mockResolvedValue();
+
+    const { result } = renderHook(() => useAlmacenamientoLocal());
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    await act(async () => {
+      await result.current.eliminarCarpetaDePaciente(1, 'Juan');
+    });
+
+    expect(almacenamientoLocal.eliminarRespaldosPorPaciente).toHaveBeenCalledWith(1);
+    expect(almacenamientoLocal.eliminarCarpetaPaciente).toHaveBeenCalledWith(raizHandle, 1, 'Juan');
+  });
+
+  it('limpia los respaldos pero no intenta borrar la carpeta sin permiso', async () => {
+    almacenamientoLocal.soportaAlmacenamientoLocal.mockReturnValue(false);
+    almacenamientoLocal.eliminarRespaldosPorPaciente.mockResolvedValue();
+
+    const { result } = renderHook(() => useAlmacenamientoLocal());
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    await act(async () => {
+      await result.current.eliminarCarpetaDePaciente(1, 'Juan');
+    });
+
+    expect(almacenamientoLocal.eliminarRespaldosPorPaciente).toHaveBeenCalledWith(1);
+    expect(almacenamientoLocal.eliminarCarpetaPaciente).not.toHaveBeenCalled();
+  });
+
+  it('no bloquea el flujo si falla la limpieza local al eliminar un paciente', async () => {
+    almacenamientoLocal.soportaAlmacenamientoLocal.mockReturnValue(true);
+    almacenamientoLocal.obtenerCarpetaRaiz.mockResolvedValue({});
+    almacenamientoLocal.verificarPermiso.mockResolvedValue('granted');
+    almacenamientoLocal.eliminarRespaldosPorPaciente.mockRejectedValue(new Error('fallo indexeddb'));
+    almacenamientoLocal.eliminarCarpetaPaciente.mockRejectedValue(new Error('fallo de disco'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useAlmacenamientoLocal());
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    await expect(result.current.eliminarCarpetaDePaciente(1, 'Juan')).resolves.toBeUndefined();
+    expect(consoleError).toHaveBeenCalledTimes(2);
 
     consoleError.mockRestore();
   });

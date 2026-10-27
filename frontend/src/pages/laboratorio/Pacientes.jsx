@@ -9,6 +9,7 @@ import PacienteAlert from '../../components/laboratorio/pacientes/PacienteAlert.
 import PacienteTable from '../../components/laboratorio/pacientes/PacienteTable.jsx';
 import PacienteFormModal from '../../components/laboratorio/pacientes/PacienteFormModal.jsx';
 import PacienteAnularModal from '../../components/laboratorio/pacientes/PacienteAnularModal.jsx';
+import PacienteEliminarModal from '../../components/laboratorio/pacientes/PacienteEliminarModal.jsx';
 import ConfiguracionAlmacenamientoModal from '../../components/laboratorio/ConfiguracionAlmacenamientoModal.jsx';
 
 export default function Pacientes() {
@@ -38,6 +39,7 @@ export default function Pacientes() {
     crear,
     actualizar,
     anular,
+    eliminar,
   } = usePacientes({ idLaboratorio: idLaboratorioSeleccionado, busqueda, pagina });
 
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -48,6 +50,8 @@ export default function Pacientes() {
 
   const [pacienteAAnular, setPacienteAAnular] = useState(null);
   const [anulando, setAnulando] = useState(false);
+  const [pacienteAEliminar, setPacienteAEliminar] = useState(null);
+  const [eliminando, setEliminando] = useState(false);
   const [errorAccion, setErrorAccion] = useState(null);
   const [mensajeExito, setMensajeExito] = useState(null);
 
@@ -59,6 +63,7 @@ export default function Pacientes() {
     elegirCarpeta,
     reconectar,
     crearCarpetaDePaciente,
+    eliminarCarpetaDePaciente,
   } = useAlmacenamientoLocal();
   const [mostrarModalAlmacenamiento, setMostrarModalAlmacenamiento] = useState(false);
 
@@ -143,6 +148,32 @@ export default function Pacientes() {
     }
   };
 
+  const solicitarEliminar = (paciente) => {
+    setErrorAccion(null);
+    setPacienteAEliminar(paciente);
+  };
+
+  const cerrarModalEliminar = () => {
+    if (eliminando) return;
+    setPacienteAEliminar(null);
+  };
+
+  const confirmarEliminar = async () => {
+    if (!pacienteAEliminar) return;
+    try {
+      setEliminando(true);
+      setErrorAccion(null);
+      await eliminar(pacienteAEliminar.id_paciente);
+      await eliminarCarpetaDePaciente(pacienteAEliminar.id_paciente, pacienteAEliminar.nombre_paciente);
+      setPacienteAEliminar(null);
+      setMensajeExito('Paciente eliminado correctamente.');
+    } catch (err) {
+      setErrorAccion(err.message || 'No se pudo eliminar el paciente.');
+    } finally {
+      setEliminando(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -186,6 +217,7 @@ export default function Pacientes() {
         pacientes={pacientes}
         onEditar={abrirEditar}
         onAnular={solicitarAnular}
+        onEliminar={solicitarEliminar}
       />
 
       {paginacion.total_paginas > 1 && (
@@ -228,6 +260,14 @@ export default function Pacientes() {
         anulando={anulando}
         onClose={cerrarModalAnular}
         onConfirm={confirmarAnular}
+      />
+
+      <PacienteEliminarModal
+        isOpen={Boolean(pacienteAEliminar)}
+        paciente={pacienteAEliminar}
+        eliminando={eliminando}
+        onClose={cerrarModalEliminar}
+        onConfirm={confirmarEliminar}
       />
 
       <ConfiguracionAlmacenamientoModal

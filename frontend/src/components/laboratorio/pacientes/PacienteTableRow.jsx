@@ -1,15 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Ban, Pencil } from 'lucide-react';
 import PacienteEstadoBadge from './PacienteEstadoBadge.jsx';
+import PacienteAccionesMenu from './PacienteAccionesMenu.jsx';
 
 const ETIQUETAS_SEXO = { M: 'M', F: 'F', Otro: 'Otro' };
 
 const formatearFecha = (fecha) => (fecha ? new Date(fecha).toLocaleDateString('es-GT') : '—');
 
-export default function PacienteTableRow({ paciente, onEditar, onAnular }) {
-  const anulado = paciente.estado === 'anulado';
-
+export default function PacienteTableRow({ paciente, onEditar, onAnular, onEliminar }) {
   return (
     <div className="grid grid-cols-12 gap-4 px-5 py-4 items-center bg-white/60">
       <Link
@@ -26,26 +24,8 @@ export default function PacienteTableRow({ paciente, onEditar, onAnular }) {
       <span className="col-span-1">
         <PacienteEstadoBadge estado={paciente.estado} />
       </span>
-      <div className="col-span-1 flex justify-end gap-1">
-        <button
-          onClick={() => onEditar(paciente)}
-          disabled={anulado}
-          title="Editar"
-          aria-label={`Editar ${paciente.nombre_paciente}`}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-primary border border-primary/20 hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Pencil className="w-3.5 h-3.5" />
-        </button>
-        {!anulado && (
-          <button
-            onClick={() => onAnular(paciente)}
-            title="Anular"
-            aria-label={`Anular ${paciente.nombre_paciente}`}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-600 border border-red-200 hover:bg-red-50"
-          >
-            <Ban className="w-3.5 h-3.5" />
-          </button>
-        )}
+      <div className="col-span-1 flex justify-end">
+        <PacienteAccionesMenu paciente={paciente} onEditar={onEditar} onAnular={onAnular} onEliminar={onEliminar} />
       </div>
     </div>
   );

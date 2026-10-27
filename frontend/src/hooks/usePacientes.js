@@ -4,6 +4,7 @@ import {
   crearPaciente,
   actualizarPaciente,
   anularPaciente,
+  eliminarPaciente,
 } from '../api/pacientes';
 
 const PAGINACION_INICIAL = { pagina: 1, limite: 20, total: 0, total_paginas: 1 };
@@ -83,6 +84,15 @@ const usePacientes = ({ idLaboratorio, busqueda = '', estado, pagina = 1, limite
     }
   };
 
+  const eliminar = async (id) => {
+    try {
+      await eliminarPaciente(id);
+      await Promise.all([obtener(), obtenerResumenEstados()]);
+    } catch (err) {
+      throw new Error(err.response?.data?.mensaje || 'Error al eliminar paciente');
+    }
+  };
+
   useEffect(() => {
     obtener();
   }, [obtener]);
@@ -100,6 +110,7 @@ const usePacientes = ({ idLaboratorio, busqueda = '', estado, pagina = 1, limite
     crear,
     actualizar,
     anular,
+    eliminar,
     refrescar: obtener,
   };
 };
