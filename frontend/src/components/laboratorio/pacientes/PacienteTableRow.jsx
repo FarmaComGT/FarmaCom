@@ -7,7 +7,7 @@ const ETIQUETAS_SEXO = { M: 'M', F: 'F', Otro: 'Otro' };
 
 const formatearFecha = (fecha) => (fecha ? new Date(fecha).toLocaleDateString('es-GT') : '—');
 
-export default function PacienteTableRow({ paciente, onEditar, onAnular }) {
+export default function PacienteTableRow({ paciente, onEditar, onAnular, onEliminar }) {
   return (
     <div className="grid grid-cols-12 gap-4 px-5 py-4 items-center bg-white/60">
       <Link
@@ -25,7 +25,7 @@ export default function PacienteTableRow({ paciente, onEditar, onAnular }) {
         <PacienteEstadoBadge estado={paciente.estado} />
       </span>
       <div className="col-span-1 flex justify-end">
-        <PacienteAccionesMenu paciente={paciente} onEditar={onEditar} onAnular={onAnular} />
+        <PacienteAccionesMenu paciente={paciente} onEditar={onEditar} onAnular={onAnular} onEliminar={onEliminar} />
       </div>
     </div>
   );

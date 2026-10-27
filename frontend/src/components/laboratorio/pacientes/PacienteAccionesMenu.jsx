@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Ban, MoreVertical, Pencil } from 'lucide-react';
+import { Ban, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 
-export default function PacienteAccionesMenu({ paciente, onEditar, onAnular }) {
+export default function PacienteAccionesMenu({ paciente, onEditar, onAnular, onEliminar }) {
   const [abierto, setAbierto] = useState(false);
   const anulado = paciente.estado === 'anulado';
 
@@ -45,6 +45,17 @@ export default function PacienteAccionesMenu({ paciente, onEditar, onAnular }) {
               <Ban className="h-3.5 w-3.5" /> Anular
             </button>
           )}
+          <div className="my-1 border-t border-slate-100" />
+          <button
+            type="button"
+            onClick={() => {
+              cerrar();
+              onEliminar(paciente);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Eliminar
+          </button>
         </div>
       )}
     </div>

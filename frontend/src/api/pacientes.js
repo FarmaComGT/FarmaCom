@@ -24,3 +24,8 @@ export const anularPaciente = async (id, motivo_anulacion) => {
   const { data } = await api.patch(`/pacientes/${id}/anular`, { motivo_anulacion });
   return data;
 };
+
+export const eliminarPaciente = async (id) => {
+  const { data } = await api.delete(`/pacientes/${id}`);
+  return data;
+};

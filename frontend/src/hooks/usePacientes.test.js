@@ -5,6 +5,7 @@ import {
   anularPaciente,
   buscarPacientes,
   crearPaciente,
+  eliminarPaciente,
 } from '../api/pacientes';
 import usePacientes from './usePacientes';
 
@@ -13,6 +14,7 @@ vi.mock('../api/pacientes', () => ({
   crearPaciente: vi.fn(),
   actualizarPaciente: vi.fn(),
   anularPaciente: vi.fn(),
+  eliminarPaciente: vi.fn(),
 }));
 
 const respuestaBusqueda = (datos, total) => ({
@@ -98,5 +100,27 @@ describe('usePacientes', () => {
     });
 
     expect(anularPaciente).toHaveBeenCalledWith(1, 'Duplicado');
+  });
+
+  it('elimina un paciente y refresca lista y resumen', async () => {
+    const { result } = renderHook(() => usePacientes({ idLaboratorio: 1 }));
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    eliminarPaciente.mockResolvedValue(undefined);
+
+    await act(async () => {
+      await result.current.eliminar(1);
+    });
+
+    expect(eliminarPaciente).toHaveBeenCalledWith(1);
+  });
+
+  it('traduce el error al eliminar un paciente', async () => {
+    const { result } = renderHook(() => usePacientes({ idLaboratorio: 1 }));
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    eliminarPaciente.mockRejectedValue({ response: { data: { mensaje: 'No se pudo eliminar' } } });
+
+    await expect(result.current.eliminar(1)).rejects.toThrow('No se pudo eliminar');
   });
 });

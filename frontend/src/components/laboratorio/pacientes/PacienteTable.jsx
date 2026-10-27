@@ -2,7 +2,7 @@ import React from 'react';
 import PacienteTableHeader from './PacienteTableHeader.jsx';
 import PacienteTableRow from './PacienteTableRow.jsx';
 
-export default function PacienteTable({ cargando, pacientes, onEditar, onAnular }) {
+export default function PacienteTable({ cargando, pacientes, onEditar, onAnular, onEliminar }) {
   return (
     <section className="bg-surface-container-low/60 border border-slate-200 rounded-2xl overflow-hidden">
       <div className="overflow-x-auto">
@@ -23,6 +23,7 @@ export default function PacienteTable({ cargando, pacientes, onEditar, onAnular 
                   paciente={paciente}
                   onEditar={onEditar}
                   onAnular={onAnular}
+                  onEliminar={onEliminar}
                 />
               ))}
             </div>
