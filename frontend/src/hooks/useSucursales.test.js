@@ -29,6 +29,14 @@ describe('useSucursales', () => {
     await waitFor(() => expect(result.current.error).toBe('Fallo'));
   });
 
+  it('usa el mensaje predeterminado si falla la carga sin respuesta HTTP', async () => {
+    api.get.mockRejectedValue(new Error('Sin conexión'));
+
+    const { result } = renderHook(() => useSucursales());
+
+    await waitFor(() => expect(result.current.error).toBe('Error al cargar sucursales'));
+  });
+
   it('crea una sucursal y la agrega a la lista', async () => {
     api.get.mockResolvedValue({ data: [] });
     const { result } = renderHook(() => useSucursales());
@@ -53,8 +61,23 @@ describe('useSucursales', () => {
     await expect(result.current.crear({})).rejects.toThrow('Nombre repetido');
   });
 
+  it('usa el mensaje predeterminado si crear falla sin respuesta HTTP', async () => {
+    api.get.mockResolvedValue({ data: [] });
+    const { result } = renderHook(() => useSucursales());
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    api.post.mockRejectedValue(new Error('Sin conexión'));
+
+    await expect(result.current.crear({})).rejects.toThrow('Error al crear sucursal');
+  });
+
   it('actualiza una sucursal existente', async () => {
-    api.get.mockResolvedValue({ data: [{ id_sucursal: 1, nombre_sucursal: 'Central' }] });
+    api.get.mockResolvedValue({
+      data: [
+        { id_sucursal: 1, nombre_sucursal: 'Central' },
+        { id_sucursal: 2, nombre_sucursal: 'Sur' },
+      ],
+    });
     const { result } = renderHook(() => useSucursales());
     await waitFor(() => expect(result.current.cargando).toBe(false));
 
@@ -64,7 +87,22 @@ describe('useSucursales', () => {
       await result.current.actualizar(1, { nombre_sucursal: 'Norte' });
     });
 
-    expect(result.current.sucursales[0].nombre_sucursal).toBe('Norte');
+    expect(result.current.sucursales).toEqual([
+      { id_sucursal: 1, nombre_sucursal: 'Norte' },
+      { id_sucursal: 2, nombre_sucursal: 'Sur' },
+    ]);
+  });
+
+  it('traduce errores del backend y de red al actualizar', async () => {
+    api.get.mockResolvedValue({ data: [] });
+    const { result } = renderHook(() => useSucursales());
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    api.put.mockRejectedValueOnce({ response: { data: { mensaje: 'Sucursal inválida' } } });
+    await expect(result.current.actualizar(1, {})).rejects.toThrow('Sucursal inválida');
+
+    api.put.mockRejectedValueOnce(new Error('Sin conexión'));
+    await expect(result.current.actualizar(1, {})).rejects.toThrow('Error al actualizar sucursal');
   });
 
   it('elimina una sucursal de la lista', async () => {
@@ -89,5 +127,15 @@ describe('useSucursales', () => {
     api.delete.mockRejectedValue({ response: { data: { mensaje: 'Tiene usuarios asignados' } } });
 
     await expect(result.current.eliminar(1)).rejects.toThrow('Tiene usuarios asignados');
+  });
+
+  it('usa el mensaje predeterminado si eliminar falla sin respuesta HTTP', async () => {
+    api.get.mockResolvedValue({ data: [{ id_sucursal: 1 }] });
+    const { result } = renderHook(() => useSucursales());
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    api.delete.mockRejectedValue(new Error('Sin conexión'));
+
+    await expect(result.current.eliminar(1)).rejects.toThrow('Error al eliminar sucursal');
   });
 });
