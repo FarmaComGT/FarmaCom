@@ -44,6 +44,32 @@ describe('useHistorialCaja', () => {
     expect(result.current.error).toBe('No fue posible consultar los cierres.');
   });
 
+  it.each([
+    [{ response: { data: { errores: [{ msg: 'Filtros inválidos.' }] } } }, 'Filtros inválidos.'],
+    [new Error('Error de red.'), 'Error de red.'],
+    [{}, 'No se pudo cargar el historial de cierres.'],
+  ])('selecciona el mensaje alternativo de error', async (errorSolicitud, mensaje) => {
+    obtenerCierres.mockRejectedValue(errorSolicitud);
+
+    const { result } = renderHook(() => useHistorialCaja(filtros));
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    expect(result.current.error).toBe(mensaje);
+  });
+
+  it('consulta sin filtros usando valores vacíos', async () => {
+    const { result } = renderHook(() => useHistorialCaja());
+
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    expect(obtenerCierres).toHaveBeenCalledWith({
+      id_sucursal: '',
+      id_caja: '',
+      fecha_desde: '',
+      fecha_hasta: '',
+    }, { signal: expect.any(AbortSignal) });
+  });
+
   it('permite recargar sin modificar los filtros', async () => {
     const { result } = renderHook(() => useHistorialCaja(filtros));
     await waitFor(() => expect(result.current.cargando).toBe(false));
@@ -65,5 +91,35 @@ describe('useHistorialCaja', () => {
 
     expect(primeraSenal.aborted).toBe(true);
     expect(obtenerCierres).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignora una respuesta que llega después de desmontar el hook', async () => {
+    let resolver;
+    obtenerCierres.mockImplementation(() => new Promise((resolve) => {
+      resolver = resolve;
+    }));
+    const { unmount } = renderHook(() => useHistorialCaja(filtros));
+
+    unmount();
+    await act(async () => {
+      resolver([{ id_sesion_caja: 10 }]);
+    });
+
+    expect(obtenerCierres.mock.calls[0][1].signal.aborted).toBe(true);
+  });
+
+  it('ignora un error que llega después de desmontar el hook', async () => {
+    let rechazar;
+    obtenerCierres.mockImplementation(() => new Promise((_resolve, reject) => {
+      rechazar = reject;
+    }));
+    const { unmount } = renderHook(() => useHistorialCaja(filtros));
+
+    unmount();
+    await act(async () => {
+      rechazar(new Error('Respuesta tardía'));
+    });
+
+    expect(obtenerCierres.mock.calls[0][1].signal.aborted).toBe(true);
   });
 });
