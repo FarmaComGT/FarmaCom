@@ -1,8 +1,11 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render as renderBase, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import InventarioProductosTable from './InventarioProductosTable.jsx';
+
+const render = (ui) => renderBase(<MemoryRouter>{ui}</MemoryRouter>);
 
 const producto = {
   id_producto: 1,
@@ -25,6 +28,7 @@ describe('InventarioProductosTable', () => {
   let props;
 
   beforeEach(() => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     props = {
       productos: [producto],
       cargando: false,
@@ -50,23 +54,25 @@ describe('InventarioProductosTable', () => {
     expect(screen.getByText('Mín. 5')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
 
+    await usuario.click(screen.getByLabelText('Acciones de Paracetamol'));
     await usuario.click(screen.getByRole('button', { name: 'Editar Paracetamol' }));
     expect(props.onEditar).toHaveBeenCalledExactlyOnceWith(producto);
 
+    await usuario.click(screen.getByLabelText('Acciones de Paracetamol'));
     await usuario.click(screen.getByRole('button', { name: 'Desactivar Paracetamol' }));
     expect(props.onCambiarEstado).toHaveBeenCalledExactlyOnceWith(producto);
 
+    await usuario.click(screen.getByLabelText('Acciones de Paracetamol'));
     await usuario.click(screen.getByRole('button', { name: 'Ver historial de precios de Paracetamol' }));
     expect(props.onVerHistorial).toHaveBeenCalledExactlyOnceWith(producto);
 
-    await usuario.click(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' }));
-    expect(props.onVerLotes).toHaveBeenCalledExactlyOnceWith(producto);
+    expect(screen.getByRole('link', { name: 'Ver lotes de Paracetamol' })).toHaveAttribute('href', '/inventario/productos/1/lotes');
   });
 
   it('muestra el estado de carga sin presentar resultados ni acciones', () => {
     render(<InventarioProductosTable {...props} cargando />);
 
-    expect(screen.getByText('Cargando inventario...')).toBeInTheDocument();
+    expect(screen.getByText('Cargando inventario…')).toBeInTheDocument();
     expect(screen.queryByText('Paracetamol')).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.queryByText('No hay productos que coincidan con los filtros.')).not.toBeInTheDocument();
@@ -92,7 +98,7 @@ describe('InventarioProductosTable', () => {
     expect(screen.getByText('Mín. 0')).toBeInTheDocument();
     expect(screen.queryByText('Tableta')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Ver historial de precios/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Activar Producto incompleto' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Activar Producto incompleto', hidden: true })).toBeEnabled();
   });
 
   it('bloquea solo el cambio de estado del producto que se está actualizando', async () => {
@@ -100,12 +106,14 @@ describe('InventarioProductosTable', () => {
     const inactivo = { ...producto, id_producto: 2, nombre_comercial: 'Loratadina', activo: false };
     render(<InventarioProductosTable {...props} productos={[producto, inactivo]} cambiandoEstadoId={1} />);
 
+    await usuario.click(screen.getByLabelText('Acciones de Paracetamol'));
     const desactivar = screen.getByRole('button', { name: 'Desactivar Paracetamol' });
     expect(desactivar).toBeDisabled();
     await usuario.click(desactivar);
     expect(props.onCambiarEstado).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Editar Paracetamol' })).toBeEnabled();
 
+    await usuario.click(screen.getByLabelText('Acciones de Loratadina'));
     await usuario.click(screen.getByRole('button', { name: 'Activar Loratadina' }));
     expect(props.onCambiarEstado).toHaveBeenCalledExactlyOnceWith(inactivo);
   });
