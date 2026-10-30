@@ -97,6 +97,7 @@ describe('MainLayout y Sidebar', () => {
 
     expect(sidebar).toHaveAttribute('aria-hidden', 'true');
     expect(document.body.style.overflow).toBe('');
+    expect(screen.getByRole('button', { name: 'Mostrar menú lateral' })).toHaveFocus();
   });
 
   it('cierra el panel móvil al tocar el fondo o navegar', async () => {
