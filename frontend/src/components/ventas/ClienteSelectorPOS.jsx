@@ -27,7 +27,7 @@ export default function ClienteSelectorPOS({ clientes, cargando, clienteSeleccio
       <button
         type="button"
         onClick={() => setAbierto((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-on-surface shadow-sm transition-colors hover:border-primary/30"
+        className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-left text-sm font-semibold text-on-surface transition-colors hover:border-primary/40"
       >
         <span className="flex min-w-0 items-center gap-2">
           {clienteSeleccionado ? (
