@@ -1,15 +1,11 @@
 import React from 'react';
 import { Pencil, UserCheck, UserX } from 'lucide-react';
+import styles from '../../styles/ManagementUI.module.css';
 
 const ETIQUETAS_ROL = {
   dueno: 'Dueño',
   administrador: 'Administrador',
   dependiente: 'Dependiente',
-};
-
-const ESTILOS_ESTADO = {
-  activo: 'bg-green-100 text-green-700 border border-green-200',
-  inactivo: 'bg-red-100 text-red-700 border border-red-200',
 };
 
 const ETIQUETAS_ESTADO = {
@@ -27,53 +23,41 @@ export default function UsuarioTableRow({
   const esActivo = usuario.estado_usuario === 'activo';
 
   return (
-    <div className="grid grid-cols-12 gap-4 px-5 py-4 items-center bg-white/60">
-      <span className="col-span-2 font-semibold text-primary truncate">
-        {usuario.nombre_usuario}
-      </span>
-      <span className="col-span-3 text-slate-700 truncate text-sm">
-        {usuario.correo_usuario}
-      </span>
-      <span className="col-span-2 text-slate-700 text-sm">
-        {ETIQUETAS_ROL[usuario.rol] || usuario.rol}
-      </span>
-      <span className="col-span-2 text-slate-700 text-sm">{nombreSucursal}</span>
-      <span className="col-span-1">
-        <span
-          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-            ESTILOS_ESTADO[usuario.estado_usuario] || 'bg-slate-100 text-slate-600'
-          }`}
-        >
+    <tr>
+      <td data-label="Nombre"><span className={styles.identity}>{usuario.nombre_usuario}</span></td>
+      <td data-label="Correo" className={styles.secondary}>{usuario.correo_usuario}</td>
+      <td data-label="Rol">{ETIQUETAS_ROL[usuario.rol] || usuario.rol}</td>
+      <td data-label="Sucursal" className={styles.secondary}>{nombreSucursal}</td>
+      <td data-label="Estado">
+        <span className={`${styles.badge} ${esActivo ? styles.badgeActive : styles.badgeInactive}`}>
           {ETIQUETAS_ESTADO[usuario.estado_usuario] || usuario.estado_usuario}
         </span>
-      </span>
-      <div className="col-span-2 flex justify-end">
-        <div className="flex gap-2">
+      </td>
+      <td data-label="Acciones" className={styles.actionsCell}>
+        <div className={styles.rowActions}>
           <button
+            type="button"
             onClick={() => onEditar(usuario)}
-            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold text-primary border border-primary/20 hover:bg-primary/5"
+            className={styles.button}
           >
-            <Pencil className="w-3.5 h-3.5" />
+            <Pencil size={14} aria-hidden="true" />
             Editar
           </button>
           <button
+            type="button"
             onClick={() => onCambiarEstado(usuario)}
             disabled={cambiandoEstado}
-            className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold border disabled:opacity-60 ${
-              esActivo
-                ? 'text-red-600 border-red-200 hover:bg-red-50'
-                : 'text-green-700 border-green-200 hover:bg-green-50'
-            }`}
+            className={`${styles.button} ${esActivo ? styles.danger : ''}`}
           >
             {esActivo ? (
-              <UserX className="w-3.5 h-3.5" />
+              <UserX size={14} aria-hidden="true" />
             ) : (
-              <UserCheck className="w-3.5 h-3.5" />
+              <UserCheck size={14} aria-hidden="true" />
             )}
-            {cambiandoEstado ? 'Guardando...' : esActivo ? 'Desactivar' : 'Activar'}
+            {cambiandoEstado ? 'Guardando…' : esActivo ? 'Desactivar' : 'Activar'}
           </button>
         </div>
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }

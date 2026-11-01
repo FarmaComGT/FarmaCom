@@ -1,34 +1,35 @@
 import React from 'react';
-import { UserCheck, UserX, Users } from 'lucide-react';
-import SummaryCard from '../SummaryCard.jsx';
+import styles from '../../styles/ManagementUI.module.css';
 
-export default function UsuarioStatsGrid({ totalUsuarios, totalActivos, totalInactivos }) {
+const filtros = [
+  { estado: 'todos', etiqueta: 'Todos', totalProp: 'totalUsuarios' },
+  { estado: 'activo', etiqueta: 'Activos', totalProp: 'totalActivos' },
+  { estado: 'inactivo', etiqueta: 'Inactivos', totalProp: 'totalInactivos' },
+];
+
+export default function UsuarioStatsGrid({
+  totalUsuarios,
+  totalActivos,
+  totalInactivos,
+  estadoSeleccionado,
+  onSeleccionarEstado,
+}) {
+  const totales = { totalUsuarios, totalActivos, totalInactivos };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <SummaryCard
-        icon={Users}
-        label="Total"
-        value={String(totalUsuarios)}
-        description="Usuarios registrados"
-        colorClass="bg-primary"
-        delay={0.1}
-      />
-      <SummaryCard
-        icon={UserCheck}
-        label="Activos"
-        value={String(totalActivos)}
-        description="Usuarios activos"
-        colorClass="bg-green-500"
-        delay={0.2}
-      />
-      <SummaryCard
-        icon={UserX}
-        label="Inactivos"
-        value={String(totalInactivos)}
-        description="Usuarios inactivos"
-        colorClass="bg-red-500"
-        delay={0.3}
-      />
+    <div className={styles.quickFilters} role="group" aria-label="Filtrar usuarios por estado">
+      {filtros.map(({ estado, etiqueta, totalProp }) => (
+        <button
+          key={estado}
+          type="button"
+          className={styles.quickFilter}
+          aria-pressed={estadoSeleccionado === estado}
+          onClick={() => onSeleccionarEstado(estado)}
+        >
+          <strong>{totales[totalProp]}</strong>
+          <span>{etiqueta}</span>
+        </button>
+      ))}
     </div>
   );
 }
