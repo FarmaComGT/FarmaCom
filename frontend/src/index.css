@@ -3,7 +3,7 @@
 
 @theme {
   --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-headline: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-headline: var(--font-sans);
 
   --color-primary: #005147;
   --color-primary-container: #006b5f;
