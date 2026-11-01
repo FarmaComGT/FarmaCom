@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import './PuntoVenta.css';
 import AvisoPuntoVenta from '../../components/ventas/AvisoPuntoVenta';
 import CajaVentaContexto from '../../components/ventas/CajaVentaContexto';
 import AutocompletadoProductosPOS from '../../components/ventas/AutocompletadoProductosPOS';
@@ -68,6 +69,10 @@ export default function PuntoVenta() {
   const [productoSeleccionandoLote, setProductoSeleccionandoLote] = useState(null);
   const [productoPendiente, setProductoPendiente] = useState(null);
   const [mostrandoNuevoCliente, setMostrandoNuevoCliente] = useState(false);
+
+  useEffect(() => {
+    document.title = 'Punto de venta · FarmaCom';
+  }, []);
 
   const { estadoTurno } = useSeleccionCajaVenta({
     cajas, idCajaSeleccionada, cajaSeleccionada, sesionActual, cargandoCajas,
@@ -152,163 +157,23 @@ export default function PuntoVenta() {
     setAviso(`Cliente ${nuevoCliente.nombre_cliente} agregado y seleccionado.`);
   }, [crearCliente, seleccionarCliente]);
 
-  /* Flujo de pago extraído a useFlujoVenta.
-  useEffect(() => {
-    if (!mostrandoCobro || metodoPago !== 'tarjeta' || !pagoPOS?.external_id) {
-      return undefined;
-    }
-
-    let activo = true;
-    let temporizador;
-    const externalId = pagoPOS.external_id;
-
-    const detenerConsulta = () => {
-      activo = false;
-      if (temporizador) window.clearInterval(temporizador);
-    };
-
-    const consultarEstado = async () => {
-      try {
-        const pagoActualizado = await obtenerEstadoPagoPOS(externalId);
-        if (!activo) return;
-
-        setErrorCobro(null);
-        setPagoPOS((pagoAnterior) => ({
-          ...pagoAnterior,
-          ...pagoActualizado,
-        }));
-
-        if (['fallido', 'rechazado', 'cancelado'].includes(pagoActualizado.estado)) {
-          detenerConsulta();
-          setPagoPOS(null);
-          setErrorCobro('El pago no se completó. Puedes intentarlo nuevamente.');
-          return;
-        }
-
-        if (
-          pagoActualizado.estado !== 'pagado'
-          || !pagoActualizado.id_venta
-          || confirmandoPagoPOS.current
-        ) {
-          return;
-        }
-
-        confirmandoPagoPOS.current = true;
-
-        try {
-          const venta = await obtenerVentaPorId(pagoActualizado.id_venta);
-          if (!activo) return;
-
-          detenerConsulta();
-          vaciarCarrito();
-          setMostrandoCobro(false);
-          setPagoPOS(null);
-          setErrorCobro(null);
-          setVentaCompletada(venta);
-          refrescar();
-        } catch (err) {
-          if (activo) {
-            setErrorCobro(err.message || 'No se pudo cargar el comprobante de la venta.');
-          }
-        } finally {
-          confirmandoPagoPOS.current = false;
-        }
-      } catch (err) {
-        // Los errores temporales se reintentan en la siguiente consulta.
-        if (activo) {
-          setErrorCobro(err.message || 'No se pudo verificar el estado del pago.');
-        }
-      }
-    };
-
-    temporizador = window.setInterval(consultarEstado, 2000);
-    consultarEstado();
-
-    return detenerConsulta;
-  }, [metodoPago, mostrandoCobro, pagoPOS?.external_id, refrescar, vaciarCarrito]);
-
-  const confirmarCobro = useCallback(async ({ montoRecibido } = {}) => {
-    if (metodoPago !== 'efectivo') {
-      setErrorCobro('Los pagos con tarjeta deben confirmarse desde el POS.');
-      return;
-    }
-
-    setErrorCobro(null);
-
-    try {
-      setProcesandoCobro(true);
-      const venta = await crearVenta({
-        ...construirPayloadBaseVenta(),
-        metodo_pago: metodoPago,
-        monto_recibido: montoRecibido,
-      });
-
-      vaciarCarrito();
-      setMostrandoCobro(false);
-      setVentaCompletada(venta);
-      setPagoPOS(null);
-      refrescar();
-    } catch (err) {
-      setErrorCobro(err.message || 'No se pudo registrar la venta.');
-    } finally {
-      setProcesandoCobro(false);
-    }
-  }, [
-    construirPayloadBaseVenta,
-    metodoPago,
-    refrescar,
-    vaciarCarrito,
-  ]); */
-
   return (
-    <div className="space-y-4">
-      <CajaVentaContexto
-        cajas={cajas}
-        idCaja={idCajaSeleccionada}
-        sesionActiva={Boolean(sesionActual)}
-        cargandoCajas={cargandoCajas}
-        estadoTurno={estadoTurno}
-        error={errorCaja}
-        onSeleccionar={seleccionarCaja}
-      />
-      {/*
-      <section className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 flex-1">
-            <label htmlFor="caja-punto-venta" className="text-sm font-bold text-slate-700">
-              Caja para esta venta
-            </label>
-            <div className="relative mt-1 max-w-md">
-              <select
-                id="caja-punto-venta"
-                value={idCajaSeleccionada || ''}
-                onChange={(evento) => seleccionarCaja(evento.target.value || null)}
-                disabled={cargandoCajas || cajas.length === 0}
-                className="w-full cursor-pointer appearance-none rounded-xl border border-slate-300 bg-white py-2.5 pl-4 pr-12 text-sm font-medium text-slate-700 outline-none transition-colors hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100"
-              >
-                <option value="">
-                  {cargandoCajas ? 'Cargando cajas...' : 'Selecciona una caja'}
-                </option>
-                {cajas.map((caja) => (
-                  <option key={caja.id_caja} value={caja.id_caja}>
-                    {caja.nombre}{caja.id_sesion_abierta ? ' — turno abierto' : ' — sin turno'}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
-            </div>
-          </div>
-          <div className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${
-            sesionActual
-              ? 'border border-primary/15 bg-primary/5 text-primary'
-              : 'border border-slate-200 bg-slate-50 text-slate-500'
-          }`}>
-            <LockKeyhole className="h-4 w-4" aria-hidden="true" />
-            {estadoTurno}
-          </div>
+    <div className="pos-page">
+      <header className="pos-heading">
+        <div>
+          <h1>Punto de venta</h1>
+          <p>Vende productos y cobra en caja</p>
         </div>
-        {errorCaja && <p className="mt-2 text-sm font-semibold text-red-600">{errorCaja}</p>}
-      </section> */}
+        <CajaVentaContexto
+          cajas={cajas}
+          idCaja={idCajaSeleccionada}
+          sesionActiva={Boolean(sesionActual)}
+          cargandoCajas={cargandoCajas}
+          estadoTurno={estadoTurno}
+          error={errorCaja}
+          onSeleccionar={seleccionarCaja}
+        />
+      </header>
 
       <AvisoPuntoVenta mensaje={aviso} onCerrar={() => setAviso(null)} />
 
@@ -322,7 +187,7 @@ export default function PuntoVenta() {
         onCerrar={cerrarCarrito}
       />
 
-      <div className="grid w-full items-stretch gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(390px,0.65fr)]">
+      <div className="pos-grid">
         <AutocompletadoProductosPOS
           busqueda={busquedaProducto}
           onBusquedaChange={setBusquedaProducto}
