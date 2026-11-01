@@ -8,7 +8,7 @@ Este documento registra la propuesta implementada para evaluar el rediseño de F
 
 Reducir la carga visual y facilitar las tareas diarias: encontrar productos, consultar existencias por sucursal y reconocer problemas de stock o vencimiento.
 
-La prueba actual incluye la navegación compartida (sidebar y navbar) y la pantalla principal de inventario. Los formularios de producto y lote, el detalle de lotes y las demás pantallas conservan su diseño anterior. La convivencia de estilos es temporal.
+La prueba actual incluye la navegación compartida (sidebar y navbar), inventario, punto de venta, caja y las pantallas de acceso y gestión de Login, Usuarios, Sucursales, Laboratorios, Ciudades y Clientes. Los formularios de producto y lote, el detalle de lotes y los módulos no mencionados conservan su diseño anterior. La convivencia de estilos es temporal.
 
 ## Principios de trabajo
 
@@ -79,6 +79,15 @@ Los estados normales son neutros. Las alertas reciben texto más marcado y un fo
 - Paginación de hasta 25 productos; filtros y página reflejados en la URL.
 - En móvil, filas adaptadas a lista y desplazamiento horizontal limitado a los filtros rápidos.
 
+### Acceso y gestión
+
+- Login divide la identidad de FarmaCom y el formulario en dos superficies claras; en móvil prioriza únicamente el acceso.
+- Usuarios, Sucursales, Laboratorios, Ciudades y Clientes comparten una hoja de trabajo, títulos, búsquedas, métricas discretas y acciones compactas.
+- Las búsquedas se reflejan en `?q=` para conservar el estado al navegar.
+- Las tablas usan semántica nativa y se convierten en listas etiquetadas en móvil.
+- Los formularios principales comparten controles, errores con foco y diálogos que atrapan y devuelven el foco.
+- Las pantallas de gestión usan un punto de quiebre amplio para evitar que la sidebar comprima tablas y acciones.
+
 ## Criterios funcionales que se deben conservar
 
 Estos criterios tienen prioridad sobre las preferencias visuales y se complementan con `AGENTS.md`:
@@ -117,6 +126,9 @@ Estas restricciones orientan esta propuesta; cualquier excepción debe tener una
 | `frontend/src/pages/inventario/Inventario.css` | Estilos y variables de la pantalla piloto |
 | `frontend/src/components/inventario/unificado/` | Resumen filtrable, filtros y tabla |
 | `frontend/src/index.css` | Fuentes y estilos globales existentes |
+| `frontend/src/styles/ManagementUI.module.css` | Patrones compartidos de las pantallas de gestión |
+| `frontend/src/components/ui/AccessibleDialog.jsx` | Foco, teclado y bloqueo de desplazamiento en diálogos |
+| `frontend/src/pages/Login.module.css` | Composición responsive de la pantalla de acceso |
 
 Actualmente hay variables locales de navegación e inventario. Si se aprueba la dirección, evaluar su consolidación en tokens compartidos antes de extenderla a todos los módulos. No crear un tercer conjunto independiente para cada pantalla.
 
