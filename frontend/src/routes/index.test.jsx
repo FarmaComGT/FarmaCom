@@ -4,6 +4,11 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AppRoutes from './index';
 
+beforeEach(() => {
+  Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 1440 });
+  window.localStorage.clear();
+});
+
 const estadoAuth = vi.hoisted(() => ({
   usuario: {
     id_usuario: 2,
@@ -300,7 +305,8 @@ describe('ruta de inventario unificado', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Inventario unificado' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Inventario' })).toHaveAttribute('href', '/inventario');
+    expect(screen.getByRole('button', { name: 'Inventario' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: 'Existencias' })).toHaveAttribute('href', '/inventario');
   });
 
   it('permite abrir los lotes de un producto', () => {

@@ -3,6 +3,7 @@ import Sidebar from './Sidebar.jsx';
 import TopNav from './TopNav.jsx';
 import { Outlet, useLocation } from 'react-router-dom';
 import './Navigation.css';
+import cajaStyles from '../pages/caja/CajaShell.module.css';
 
 const ANCHO_ESCRITORIO = 768;
 const CLAVE_PREFERENCIA_SIDEBAR = 'farmacom:sidebar-abierta';
@@ -26,7 +27,8 @@ const obtenerPreferenciaSidebar = () => {
 export default function MainLayout() {
   const location = useLocation();
   const esInventario = location.pathname === '/inventario';
-  const anchoEscritorio = esInventario ? 1100 : ANCHO_ESCRITORIO;
+  const esCaja = location.pathname === '/caja' || location.pathname.startsWith('/caja/');
+  const anchoEscritorio = esInventario || esCaja ? 1100 : ANCHO_ESCRITORIO;
   const [esEscritorio, setEsEscritorio] = useState(() => detectarEscritorio() && window.innerWidth >= anchoEscritorio);
   const [sidebarAbierta, setSidebarAbierta] = useState(() => window.innerWidth >= anchoEscritorio && obtenerPreferenciaSidebar());
 
@@ -48,10 +50,10 @@ export default function MainLayout() {
   }, [esEscritorio, anchoEscritorio]);
 
   useEffect(() => {
-    if (!esEscritorio) {
+    if (!esEscritorio && window.innerWidth < anchoEscritorio) {
       setSidebarAbierta(false);
     }
-  }, [esEscritorio, location.pathname]);
+  }, [esEscritorio, location.pathname, anchoEscritorio]);
 
   useEffect(() => {
     if (!esEscritorio) {
@@ -123,7 +125,7 @@ export default function MainLayout() {
   };
 
   return (
-    <div data-layout={esEscritorio ? 'fixed' : 'overlay'} className={`app-shell flex min-h-screen bg-background relative ${location.pathname === '/inventario' ? 'inventory-shell' : ''}`}>
+    <div data-layout={esEscritorio ? 'fixed' : 'overlay'} className={`app-shell flex min-h-screen bg-background relative ${esInventario ? 'inventory-shell' : ''}`}>
       
       <Sidebar
         abierta={sidebarAbierta}
@@ -148,7 +150,7 @@ export default function MainLayout() {
       >
         <TopNav sidebarAbierta={sidebarAbierta} onAbrirSidebar={abrirSidebar} />
         <div
-          className={`shell-content mx-auto w-full min-w-0 p-4 sm:p-6 lg:p-8 ${
+          className={`shell-content mx-auto w-full min-w-0 p-4 sm:p-6 lg:p-8 ${esCaja ? cajaStyles.sheet : ''} ${
             sidebarAbierta && esEscritorio ? 'max-w-7xl' : 'max-w-none'
           }`}
         >
