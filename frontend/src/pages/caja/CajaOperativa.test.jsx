@@ -269,6 +269,7 @@ describe('CajaOperativa', () => {
       observaciones: 'Conteo físico completado',
     });
     expect(screen.getByRole('heading', { name: 'Caja cuadrada' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Caja cuadrada' })).toHaveFocus();
   });
 
   it('presenta el faltante devuelto al cerrar la sesión', async () => {

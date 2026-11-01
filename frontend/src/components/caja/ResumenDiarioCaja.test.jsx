@@ -1,11 +1,13 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render as renderBase, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { obtenerCajas } from '../../api/cajas';
 import useResumenCaja from '../../hooks/useResumenCaja';
 import useSucursales from '../../hooks/useSucursales';
 import ResumenDiarioCaja from './ResumenDiarioCaja';
+const render = (elemento) => renderBase(<MemoryRouter>{elemento}</MemoryRouter>);
 
 vi.mock('../../hooks/useResumenCaja', () => ({ default: vi.fn() }));
 vi.mock('../../hooks/useSucursales', () => ({ default: vi.fn() }));
@@ -57,12 +59,12 @@ describe('ResumenDiarioCaja', () => {
     render(<ResumenDiarioCaja />);
     await user.selectOptions(screen.getByLabelText('Sucursal'), '2');
 
-    expect(screen.getByText('Ventas en efectivo').parentElement.nextElementSibling)
+    expect(screen.getByText('Ventas en efectivo').nextElementSibling)
       .toHaveTextContent(/Q\s*300\.00/);
-    expect(screen.getByText('Ventas con tarjeta').parentElement.nextElementSibling)
+    expect(screen.getByText('Ventas con tarjeta').nextElementSibling)
       .toHaveTextContent(/Q\s*200\.00/);
     expect(screen.getByText('Sesiones cerradas').nextElementSibling).toHaveTextContent('2');
-    expect(screen.getByText('Sesiones abiertas').parentElement.nextElementSibling)
+    expect(screen.getByText('Sesiones abiertas').nextElementSibling)
       .toHaveTextContent('1');
   });
 
@@ -73,7 +75,7 @@ describe('ResumenDiarioCaja', () => {
     await user.selectOptions(screen.getByLabelText('Caja'), '3');
     const fecha = screen.getByLabelText('Día que deseas consultar');
 
-    expect(fecha).toHaveClass('cursor-pointer', 'mt-2');
+    expect(fecha).toHaveAttribute('type', 'date');
     fireEvent.change(fecha, { target: { value: '2026-09-20' } });
 
     expect(obtenerCajas).toHaveBeenCalledWith(
@@ -93,7 +95,7 @@ describe('ResumenDiarioCaja', () => {
     fireEvent.change(screen.getByLabelText('Sucursal'), { target: { value: '2' } });
 
     expect(screen.getByRole('alert')).toHaveTextContent('No se pudo cargar el resumen diario.');
-    expect(screen.getByText('No hay actividad de caja para la fecha seleccionada.'))
-      .toBeInTheDocument();
+    expect(screen.queryByText('No hay actividad de caja para la fecha seleccionada.'))
+      .not.toBeInTheDocument();
   });
 });

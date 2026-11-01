@@ -1,0 +1,21 @@
+.section { min-width: 0; }
+.filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, .8fr); gap: 16px; margin-top: 16px; }
+.totals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--cash-line); border-radius: 8px; margin-top: 20px; }
+.totals > div { min-width: 0; padding: 16px; }
+.totals > div + div { border-left: 1px solid var(--cash-line); }
+.totals dt, .secondary dt { font-size: 12px; color: var(--cash-muted); }
+.totals dd { font-size: clamp(18px, 1.6vw, 24px); font-weight: 500; margin-top: 8px; overflow-wrap: anywhere; }
+.secondary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.secondary dd { font-size: 18px; margin-top: 4px; font-weight: 500; }
+.negative { color: var(--cash-danger); }
+.positive { color: var(--cash-accent); }
+@media (max-width: 767px) {
+  .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .filters > div:last-child { grid-column: 1 / -1; }
+  .totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .totals dd { font-size: 20px; }
+  .totals > div:nth-child(3) { border-left: 0; }
+  .totals > div:nth-child(n+3) { border-top: 1px solid var(--cash-line); }
+  .secondary { grid-template-columns: 1fr 1fr; }
+  .secondary > div:first-child { grid-column: 1 / -1; }
+}

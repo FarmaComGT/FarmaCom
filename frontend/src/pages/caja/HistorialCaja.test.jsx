@@ -1,11 +1,13 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render as renderBase, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { obtenerCajas } from '../../api/cajas';
 import useHistorialCaja from '../../hooks/useHistorialCaja';
 import useSucursales from '../../hooks/useSucursales';
 import HistorialCaja from './HistorialCaja';
+const render = (elemento) => renderBase(<MemoryRouter>{elemento}</MemoryRouter>);
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({ usuario: { rol: 'administrador' } }),
@@ -49,7 +51,7 @@ describe('HistorialCaja', () => {
   it('muestra los cierres con sus montos principales', () => {
     render(<HistorialCaja />);
 
-    const fila = screen.getByText('Ana Administradora').closest('tr');
+    const fila = screen.getByText(/Cerró: Ana Administradora/).closest('tr');
     expect(within(fila).getByText('Sucursal Central')).toBeInTheDocument();
     expect(within(fila).getByText('Caja principal')).toBeInTheDocument();
     expect(within(fila).getByText(/Q\s*500\.00/)).toBeInTheDocument();
@@ -98,6 +100,6 @@ describe('HistorialCaja', () => {
     render(<HistorialCaja />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('No fue posible consultar los cierres.');
-    expect(screen.getByText(/No hay cierres que coincidan/)).toBeInTheDocument();
+    expect(screen.queryByText(/No hay cierres que coincidan/)).not.toBeInTheDocument();
   });
 });

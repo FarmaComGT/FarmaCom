@@ -49,5 +49,5 @@ export default function useAdministracionCajas() {
     return actualizada;
   };
 
-  return { cajas, cargando, error, crear, actualizar };
+  return { cajas, cargando, error, crear, actualizar, recargar: () => cargar() };
 }
