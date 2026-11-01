@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { motion } from 'motion/react';
-import { AlertTriangle, Building2, Pencil, PlusCircle, Search, Trash2, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { LoaderCircle, Pencil, PlusCircle, Search, Trash2, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import AccessibleDialog from '../components/ui/AccessibleDialog.jsx';
 import SucursalAlert from '../components/sucursales/SucursalAlert.jsx';
 import SucursalesSubNav from '../components/sucursales/SucursalesSubNav.jsx';
 import useCiudades from '../hooks/useCiudades';
+import styles from '../styles/ManagementUI.module.css';
 
 const formularioInicial = { nombre_ciudad: '' };
 
@@ -18,133 +19,89 @@ function CiudadFormModal({
   onSubmit,
   onChange,
 }) {
-  if (!isOpen || typeof document === 'undefined') return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl"
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h3 className="font-headline text-lg font-extrabold text-primary">
-            {modoEdicion ? 'Editar ciudad' : 'Nueva ciudad'}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={guardando}
-            className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
-            aria-label="Cerrar"
-          >
-            <X className="h-5 w-5" />
+  const tituloId = 'ciudad-form-title';
+  const errorRef = React.useRef(null);
+  React.useEffect(() => {
+    if (errorFormulario) errorRef.current?.focus();
+  }, [errorFormulario]);
+  return (
+    <AccessibleDialog open={isOpen} labelledBy={tituloId} onClose={onClose} busy={guardando} size="small">
+      <div className={styles.dialogContent}>
+        <header className={styles.dialogHeader}>
+          <div>
+            <h2 id={tituloId}>{modoEdicion ? 'Editar ciudad' : 'Nueva ciudad'}</h2>
+            <p>Las ciudades se utilizan para organizar las sucursales.</p>
+          </div>
+          <button type="button" onClick={onClose} disabled={guardando} className={`${styles.button} ${styles.iconButton}`} aria-label="Cerrar">
+            <X size={17} aria-hidden="true" />
           </button>
-        </div>
+        </header>
 
-        <form onSubmit={onSubmit} className="space-y-4 px-6 py-5">
-          <div className="space-y-1">
-            <label className="text-sm font-semibold text-slate-700">Nombre</label>
+        <form onSubmit={onSubmit} noValidate className={styles.form}>
+          <div className={styles.field}>
+            <label htmlFor="nombre_ciudad">Nombre</label>
             <input
+              id="nombre_ciudad"
               type="text"
               name="nombre_ciudad"
+              autoComplete="address-level2"
               value={formulario.nombre_ciudad}
               onChange={onChange}
-              maxLength={100}
-              required
-              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-              placeholder="Ej: Guatemala"
+              className={styles.input}
+              placeholder="Ej.: Guatemala…"
             />
           </div>
 
-          {errorFormulario && (
-            <p className="text-sm font-semibold text-red-600">{errorFormulario}</p>
-          )}
+          {errorFormulario && <p ref={errorRef} tabIndex={-1} className={styles.fieldError} role="alert">{errorFormulario}</p>}
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={guardando}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={guardando}
-              className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {guardando ? 'Guardando...' : modoEdicion ? 'Guardar cambios' : 'Crear ciudad'}
+          <div className={styles.dialogActions}>
+            <button type="button" onClick={onClose} disabled={guardando} className={styles.button}>Cancelar</button>
+            <button type="submit" disabled={guardando} className={`${styles.button} ${styles.primary}`}>
+              {guardando && <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" />}
+              {modoEdicion ? 'Guardar cambios' : 'Crear ciudad'}
             </button>
           </div>
         </form>
-      </motion.div>
-    </div>,
-    document.body,
+      </div>
+    </AccessibleDialog>
   );
 }
 
 function CiudadDeleteModal({ isOpen, ciudad, eliminando, onClose, onConfirm }) {
-  if (!isOpen || !ciudad || typeof document === 'undefined') return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl"
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600">
-              <AlertTriangle className="h-4 w-4" />
-            </span>
-            <h3 className="font-headline text-lg font-extrabold text-primary">Confirmar eliminacion</h3>
+  if (!ciudad) return null;
+  const tituloId = 'ciudad-delete-title';
+  const descripcionId = 'ciudad-delete-description';
+  return (
+    <AccessibleDialog open={isOpen} labelledBy={tituloId} describedBy={descripcionId} onClose={onClose} busy={eliminando} size="small">
+      <div className={styles.dialogContent}>
+        <header className={styles.dialogHeader}>
+          <div>
+            <h2 id={tituloId}>Confirmar eliminación</h2>
+            <p>No podrá eliminarse si está asociada a una sucursal.</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={eliminando}
-            className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
-            aria-label="Cerrar"
-          >
-            <X className="h-5 w-5" />
+          <button type="button" onClick={onClose} disabled={eliminando} className={`${styles.button} ${styles.iconButton}`} aria-label="Cerrar">
+            <X size={17} aria-hidden="true" />
+          </button>
+        </header>
+
+        <p id={descripcionId}>¿Deseas eliminar la ciudad <strong>{ciudad.nombre_ciudad}</strong>?</p>
+
+        <div className={styles.dialogActions}>
+          <button type="button" onClick={onClose} disabled={eliminando} className={styles.button}>Cancelar</button>
+          <button type="button" onClick={onConfirm} disabled={eliminando} className={`${styles.button} ${styles.dangerPrimary}`}>
+            {eliminando ? <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />}
+            Sí, eliminar
           </button>
         </div>
-        <div className="space-y-4 px-6 py-5">
-          <p className="text-sm leading-relaxed text-slate-700">
-            Eliminar la ciudad <span className="font-bold text-primary">{ciudad.nombre_ciudad}</span>.
-            No se podra eliminar si esta asociada a una sucursal.
-          </p>
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={eliminando}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={eliminando}
-              className="rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-            >
-              {eliminando ? 'Eliminando...' : 'Si, eliminar'}
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </div>,
-    document.body,
+      </div>
+    </AccessibleDialog>
   );
 }
 
 export default function Ciudades() {
   const { ciudades, cargandoCiudades, errorCiudades, crear, actualizar, eliminar } = useCiudades();
-  const [busqueda, setBusqueda] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const busqueda = searchParams.get('q') || '';
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
@@ -155,11 +112,24 @@ export default function Ciudades() {
   const [eliminandoId, setEliminandoId] = useState(null);
   const [errorAccion, setErrorAccion] = useState(null);
 
+  useEffect(() => {
+    document.title = 'Ciudades · FarmaCom';
+  }, []);
+
   const ciudadesFiltradas = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
     if (!termino) return ciudades;
     return ciudades.filter((ciudad) => ciudad.nombre_ciudad.toLowerCase().includes(termino));
   }, [busqueda, ciudades]);
+
+  const actualizarBusqueda = (valor) => {
+    setSearchParams((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      if (valor) siguientes.set('q', valor);
+      else siguientes.delete('q');
+      return siguientes;
+    }, { replace: true });
+  };
 
   const abrirModalCrear = () => {
     setModoEdicion(false);
@@ -184,20 +154,21 @@ export default function Ciudades() {
   const manejarGuardar = async (event) => {
     event.preventDefault();
     setErrorFormulario(null);
-
     const nombreCiudad = formulario.nombre_ciudad.trim();
+
     if (!nombreCiudad) {
       setErrorFormulario('El nombre de la ciudad es requerido.');
+      return;
+    }
+    if (nombreCiudad.length > 100) {
+      setErrorFormulario('El nombre de la ciudad no puede superar los 100 caracteres.');
       return;
     }
 
     try {
       setGuardando(true);
-      if (modoEdicion && idEditando) {
-        await actualizar(idEditando, { nombre_ciudad: nombreCiudad });
-      } else {
-        await crear({ nombre_ciudad: nombreCiudad });
-      }
+      if (modoEdicion && idEditando) await actualizar(idEditando, { nombre_ciudad: nombreCiudad });
+      else await crear({ nombre_ciudad: nombreCiudad });
       setMostrarModal(false);
       setFormulario(formularioInicial);
     } catch (err) {
@@ -209,7 +180,6 @@ export default function Ciudades() {
 
   const confirmarEliminar = async () => {
     if (!ciudadAEliminar) return;
-
     try {
       setErrorAccion(null);
       setEliminandoId(ciudadAEliminar.id_ciudad);
@@ -223,94 +193,64 @@ export default function Ciudades() {
   };
 
   return (
-    <div className="space-y-6">
+    <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="ciudades-title">
       <SucursalesSubNav />
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-slate-200 bg-surface-container-low/70 px-5 py-5"
-      >
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Building2 className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="font-headline text-xl font-extrabold text-primary">Ciudades</p>
-              <p className="text-sm font-medium text-slate-500">{ciudadesFiltradas.length} registradas</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={abrirModalCrear}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-br from-primary to-primary-container px-6 py-3 font-headline text-sm font-bold text-white shadow-[0_4px_12px_rgba(0,81,71,0.25)] transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,81,71,0.3)] active:translate-y-0 md:w-auto"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Nueva ciudad
-          </button>
+      <header className={styles.heading}>
+        <div>
+          <h1 id="ciudades-title">Ciudades</h1>
+          <p>Mantén el catálogo geográfico utilizado por las sucursales.</p>
         </div>
-      </motion.div>
+      </header>
 
-      <div className="rounded-2xl bg-surface-container-low p-4">
-        <div className="group relative">
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
-          <input
-            type="text"
-            value={busqueda}
-            onChange={(event) => setBusqueda(event.target.value)}
-            placeholder="Buscar por nombre..."
-            className="w-full rounded-xl border-none bg-surface-container-lowest py-3 pl-12 pr-4 text-sm font-medium shadow-sm transition-all placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20"
-          />
-        </div>
+      <div className={styles.summary} aria-label="Resumen de ciudades">
+        <div className={styles.stat}><strong>{ciudades.length}</strong><span>Ciudades registradas</span></div>
+        <div className={styles.stat}><strong>{ciudadesFiltradas.length}</strong><span>Resultados visibles</span></div>
       </div>
 
+      <div className={styles.toolbar}>
+        <label className={styles.search}>
+          <Search size={17} aria-hidden="true" />
+          <span className={styles.visuallyHidden}>Buscar ciudades</span>
+          <input
+            type="search"
+            name="q"
+            autoComplete="off"
+            value={busqueda}
+            onChange={(event) => actualizarBusqueda(event.target.value)}
+            placeholder="Buscar por nombre…"
+          />
+        </label>
+        <button type="button" onClick={abrirModalCrear} className={`${styles.button} ${styles.primary}`}>
+          <PlusCircle size={16} aria-hidden="true" /> Nueva ciudad
+        </button>
+      </div>
+
+      <p className={styles.resultCount} aria-live="polite"><strong>{ciudadesFiltradas.length}</strong> de {ciudades.length} ciudades</p>
       <SucursalAlert mensaje={errorCiudades || errorAccion} />
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-surface-container-low/60">
-        <div className="overflow-x-auto">
-          <div className="min-w-[640px]">
-            <div className="grid grid-cols-12 gap-4 border-b border-slate-200 bg-surface-container-low px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
-              <span className="col-span-1">#</span>
-              <span className="col-span-7">Nombre</span>
-              <span className="col-span-4 text-center">Acciones</span>
-            </div>
-
+      <section className={styles.tablePanel} aria-label="Ciudades registradas">
+        <table className={styles.table} aria-busy={cargandoCiudades}>
+          <thead><tr><th scope="col" style={{ width: '16%' }}>ID</th><th scope="col">Ciudad</th><th scope="col" style={{ width: '32%', textAlign: 'right' }}>Acciones</th></tr></thead>
+          <tbody>
             {cargandoCiudades ? (
-              <div className="px-5 py-10 text-center font-medium text-slate-500">Cargando ciudades...</div>
+              <tr><td colSpan="3" className={styles.loading}>Cargando ciudades…</td></tr>
             ) : ciudadesFiltradas.length === 0 ? (
-              <div className="px-5 py-10 text-center font-medium text-slate-500">No hay ciudades para mostrar.</div>
-            ) : (
-              <div className="divide-y divide-slate-200">
-                {ciudadesFiltradas.map((ciudad) => (
-                  <div key={ciudad.id_ciudad} className="grid grid-cols-12 items-center gap-4 bg-white/60 px-5 py-4">
-                    <span className="col-span-1 font-mono text-sm text-slate-400">{ciudad.id_ciudad}</span>
-                    <span className="col-span-7 font-semibold text-primary">{ciudad.nombre_ciudad}</span>
-                    <div className="col-span-4 flex justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => abrirModalEditar(ciudad)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-primary/20 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/5"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCiudadAEliminar(ciudad)}
-                        disabled={eliminandoId === ciudad.id_ciudad}
-                        className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-60"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        {eliminandoId === ciudad.id_ciudad ? 'Eliminando...' : 'Eliminar'}
-                      </button>
-                    </div>
+              <tr><td colSpan="3" className={styles.empty}><strong>No hay ciudades para mostrar.</strong><span>Prueba con otra búsqueda o registra una ciudad.</span></td></tr>
+            ) : ciudadesFiltradas.map((ciudad) => (
+              <tr key={ciudad.id_ciudad}>
+                <td data-label="ID" className={`${styles.secondary} ${styles.mono}`}>{ciudad.id_ciudad}</td>
+                <td data-label="Ciudad"><span className={styles.identity}>{ciudad.nombre_ciudad}</span></td>
+                <td data-label="Acciones" className={styles.actionsCell}>
+                  <div className={styles.rowActions}>
+                    <button type="button" onClick={() => abrirModalEditar(ciudad)} className={styles.button}><Pencil size={14} aria-hidden="true" /> Editar</button>
+                    <button type="button" onClick={() => setCiudadAEliminar(ciudad)} disabled={eliminandoId === ciudad.id_ciudad} className={`${styles.button} ${styles.danger}`}><Trash2 size={14} aria-hidden="true" /> Eliminar</button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
 
       <CiudadFormModal
@@ -321,19 +261,16 @@ export default function Ciudades() {
         errorFormulario={errorFormulario}
         onClose={cerrarModal}
         onSubmit={manejarGuardar}
-        onChange={(event) => {
-          const { name, value } = event.target;
-          setFormulario((prev) => ({ ...prev, [name]: value }));
-        }}
+        onChange={(event) => setFormulario({ ...formulario, [event.target.name]: event.target.value })}
       />
 
       <CiudadDeleteModal
         isOpen={Boolean(ciudadAEliminar)}
         ciudad={ciudadAEliminar}
         eliminando={Boolean(eliminandoId)}
-        onClose={() => { if (!eliminandoId) setCiudadAEliminar(null); }}
+        onClose={() => !eliminandoId && setCiudadAEliminar(null)}
         onConfirm={confirmarEliminar}
       />
-    </div>
+    </section>
   );
 }

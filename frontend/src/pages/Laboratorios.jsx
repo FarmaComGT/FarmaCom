@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import LaboratorioActionBar from '../components/laboratorios/LaboratorioActionBar.jsx';
 import LaboratorioFormModal from '../components/laboratorios/LaboratorioFormModal.jsx';
 import LaboratorioStatsBanner from '../components/laboratorios/LaboratorioStatsBanner.jsx';
@@ -7,6 +8,7 @@ import SucursalAlert from '../components/sucursales/SucursalAlert.jsx';
 import SucursalesSubNav from '../components/sucursales/SucursalesSubNav.jsx';
 import useCiudades from '../hooks/useCiudades';
 import useLaboratorios from '../hooks/useLaboratorios';
+import styles from '../styles/ManagementUI.module.css';
 
 const formularioInicial = {
   nombre_laboratorio: '',
@@ -17,12 +19,26 @@ const formularioInicial = {
 export default function Laboratorios() {
   const { laboratorios, cargando, error, crear, actualizar } = useLaboratorios();
   const { ciudades, cargandoCiudades, errorCiudades } = useCiudades();
-  const [busqueda, setBusqueda] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const busqueda = searchParams.get('q') || '';
   const [formulario, setFormulario] = useState(formularioInicial);
   const [laboratorioEditando, setLaboratorioEditando] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [errorFormulario, setErrorFormulario] = useState(null);
+
+  useEffect(() => {
+    document.title = 'Laboratorios · FarmaCom';
+  }, []);
+
+  const actualizarBusqueda = (valor) => {
+    setSearchParams((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      if (valor) siguientes.set('q', valor);
+      else siguientes.delete('q');
+      return siguientes;
+    }, { replace: true });
+  };
 
   const mapaCiudades = useMemo(() => ciudades.reduce((mapa, ciudad) => ({
     ...mapa,
@@ -75,6 +91,14 @@ export default function Laboratorios() {
       setErrorFormulario('Completa todos los campos del formulario.');
       return;
     }
+    if (nombre.length > 100) {
+      setErrorFormulario('El nombre del laboratorio no puede superar los 100 caracteres.');
+      return;
+    }
+    if (direccion.length > 255) {
+      setErrorFormulario('La dirección no puede superar los 255 caracteres.');
+      return;
+    }
 
     const datos = {
       nombre_laboratorio: nombre,
@@ -100,13 +124,15 @@ export default function Laboratorios() {
   };
 
   return (
-    <div className="space-y-8">
+    <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="laboratorios-title">
       <SucursalesSubNav />
 
-      <div>
-        <h1 className="font-headline text-2xl font-extrabold text-primary">Laboratorios</h1>
-        <p className="mt-1 text-sm text-slate-500">Administra las ubicaciones donde se atienden pacientes.</p>
-      </div>
+      <header className={styles.heading}>
+        <div>
+          <h1 id="laboratorios-title">Laboratorios</h1>
+          <p>Administra las ubicaciones donde se atienden pacientes.</p>
+        </div>
+      </header>
 
       <LaboratorioStatsBanner
         totalFiltrados={laboratoriosFiltrados.length}
@@ -115,9 +141,13 @@ export default function Laboratorios() {
 
       <LaboratorioActionBar
         busqueda={busqueda}
-        onBusquedaChange={(evento) => setBusqueda(evento.target.value)}
+        onBusquedaChange={(evento) => actualizarBusqueda(evento.target.value)}
         onCrear={abrirCreacion}
       />
+
+      <p className={styles.resultCount} aria-live="polite">
+        <strong>{laboratoriosFiltrados.length}</strong> de {laboratorios.length} laboratorios
+      </p>
 
       <SucursalAlert mensaje={error || errorCiudades} />
 
@@ -140,6 +170,6 @@ export default function Laboratorios() {
         onSubmit={manejarGuardar}
         onChange={manejarCambio}
       />
-    </div>
+    </section>
   );
 }

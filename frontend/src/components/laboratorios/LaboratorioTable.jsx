@@ -1,49 +1,48 @@
 import React from 'react';
-import { MapPin, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
+import styles from '../../styles/ManagementUI.module.css';
 
 export default function LaboratorioTable({ cargando, laboratorios, mapaCiudades, onEditar }) {
   return (
-    <section className="bg-surface-container-low/60 border border-slate-200 rounded-2xl overflow-hidden">
-      <div className="overflow-x-auto">
-        <div className="min-w-[720px]">
-          <div className="grid grid-cols-12 gap-4 px-5 py-4 text-xs uppercase tracking-wider font-bold text-slate-500 border-b border-slate-200 bg-surface-container-low">
-            <span className="col-span-3">Laboratorio</span>
-            <span className="col-span-3">Ciudad</span>
-            <span className="col-span-4">Dirección</span>
-            <span className="col-span-2 text-center">Acciones</span>
-          </div>
-
+    <section className={styles.tablePanel} aria-label="Laboratorios registrados">
+      <table className={styles.table} aria-busy={cargando}>
+        <thead>
+          <tr>
+            <th scope="col" style={{ width: '28%' }}>Laboratorio</th>
+            <th scope="col" style={{ width: '22%' }}>Ciudad</th>
+            <th scope="col">Dirección</th>
+            <th scope="col" style={{ width: '18%', textAlign: 'right' }}>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
           {cargando ? (
-            <div className="px-5 py-10 text-center text-slate-500 font-medium">Cargando laboratorios...</div>
+            <tr><td colSpan="4" className={styles.loading}>Cargando laboratorios…</td></tr>
           ) : laboratorios.length === 0 ? (
-            <div className="px-5 py-10 text-center text-slate-500 font-medium">No hay laboratorios para mostrar.</div>
-          ) : (
-            <div className="divide-y divide-slate-200">
-              {laboratorios.map((laboratorio) => (
-                <div key={laboratorio.id_laboratorio} className="grid grid-cols-12 gap-4 px-5 py-4 items-center bg-white/60">
-                  <span className="col-span-3 font-semibold text-primary">{laboratorio.nombre_laboratorio}</span>
-                  <span className="col-span-3 inline-flex items-center gap-2 text-slate-700">
-                    <MapPin className="w-4 h-4 text-slate-400" />
-                    {mapaCiudades[laboratorio.id_ciudad] || 'Sin ciudad asignada'}
-                  </span>
-                  <span className="col-span-4 text-slate-700 text-sm">{laboratorio.direccion}</span>
-                  <div className="col-span-2 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => onEditar(laboratorio)}
-                      aria-label={`Editar ${laboratorio.nombre_laboratorio}`}
-                      className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold text-primary border border-primary/20 hover:bg-primary/5"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Editar
-                    </button>
-                  </div>
+            <tr><td colSpan="4" className={styles.empty}>
+              <strong>No hay laboratorios para mostrar.</strong>
+              <span>Prueba con otra búsqueda o registra un laboratorio.</span>
+            </td></tr>
+          ) : laboratorios.map((laboratorio) => (
+            <tr key={laboratorio.id_laboratorio}>
+              <td data-label="Laboratorio"><span className={styles.identity}>{laboratorio.nombre_laboratorio}</span></td>
+              <td data-label="Ciudad">{mapaCiudades[laboratorio.id_ciudad] || 'Sin ciudad asignada'}</td>
+              <td data-label="Dirección" className={styles.secondary}>{laboratorio.direccion}</td>
+              <td data-label="Acciones" className={styles.actionsCell}>
+                <div className={styles.rowActions}>
+                  <button
+                    type="button"
+                    onClick={() => onEditar(laboratorio)}
+                    aria-label={`Editar ${laboratorio.nombre_laboratorio}`}
+                    className={styles.button}
+                  >
+                    <Pencil size={14} aria-hidden="true" /> Editar
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }
