@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import NavigationIcon from '../components/navigation/NavigationIcon.jsx';
 import { logout } from '../api/auth';
 import { useAuth, AUTH_ACTIONS } from '../context/AuthContext';
+import { navegarConTransicionDeVista } from '../utils/viewTransition';
 
 const farmacia = ['dueno', 'administrador', 'dependiente'];
 const gestion = ['dueno', 'administrador'];
@@ -31,7 +32,20 @@ const administracion = [
 ];
 
 function NavigationLink({ icon, label, path, nested = false }) {
-  return <NavLink to={path} end={path === '/inventario'} className={`shell-nav-link ${nested ? 'shell-nav-nested' : ''}`}>
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  return <NavLink
+    to={path}
+    end={path === '/inventario'}
+    className={`shell-nav-link ${nested ? 'shell-nav-nested' : ''}`}
+    onClick={(event) => navegarConTransicionDeVista({
+      event,
+      navigate,
+      destino: path,
+      rutaActual: pathname,
+    })}
+  >
     {icon && <NavigationIcon name={icon} />}
     <span>{label}</span>
   </NavLink>;

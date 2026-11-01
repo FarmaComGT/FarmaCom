@@ -35,6 +35,7 @@ const renderizarLayout = (rutaInicial = '/inventario/productos') =>
           />
           <Route path="/dashboard" element={<div>Contenido del dashboard</div>} />
           <Route path="/caja" element={<div>Contenido de caja</div>} />
+          <Route path="/usuarios" element={<div>Contenido de usuarios</div>} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -48,6 +49,25 @@ describe('MainLayout y Sidebar', () => {
     establecerAncho(1280);
     document.body.style.overflow = '';
     window.localStorage.clear();
+    delete document.startViewTransition;
+  });
+
+  it('anima la navegación iniciada desde la barra lateral', async () => {
+    const user = userEvent.setup();
+    const iniciarTransicion = vi.fn((actualizar) => {
+      actualizar();
+      return { finished: Promise.resolve() };
+    });
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: iniciarTransicion,
+    });
+    renderizarLayout('/dashboard');
+
+    await user.click(screen.getByRole('link', { name: 'Usuarios' }));
+
+    expect(iniciarTransicion).toHaveBeenCalledOnce();
+    expect(screen.getByText('Contenido de usuarios')).toBeVisible();
   });
 
   it('abre y cierra la Sidebar en escritorio sin ocultar el contenido', async () => {
