@@ -2,6 +2,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import Clientes from './Clientes';
 
 const {
@@ -76,6 +77,8 @@ const historial = {
   ],
 };
 
+const renderizar = () => render(<MemoryRouter><Clientes /></MemoryRouter>);
+
 describe('Clientes', () => {
   beforeEach(() => {
     mockObtenerHistorialCompras.mockReset();
@@ -87,7 +90,7 @@ describe('Clientes', () => {
 
   it('muestra el NIT y lo incluye al crear un cliente', async () => {
     const user = userEvent.setup();
-    render(<Clientes />);
+    renderizar();
 
     expect(screen.getByText('1234567-K')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Nuevo cliente' }));
@@ -104,7 +107,7 @@ describe('Clientes', () => {
 
   it('evita guardar un NIT con formato inválido', async () => {
     const user = userEvent.setup();
-    render(<Clientes />);
+    renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nuevo cliente' }));
     await user.type(screen.getByLabelText('Nombre completo'), 'Carlos Pérez');
@@ -117,7 +120,7 @@ describe('Clientes', () => {
 
   it('consulta y muestra el historial del cliente seleccionado', async () => {
     const user = userEvent.setup();
-    render(<Clientes />);
+    renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Ver historial de María López' }));
 
@@ -146,7 +149,7 @@ describe('Clientes', () => {
       compras: [],
     });
     const user = userEvent.setup();
-    render(<Clientes />);
+    renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Ver historial de María López' }));
 
@@ -157,7 +160,7 @@ describe('Clientes', () => {
   });
 
   it('no consulta contactos hasta abrir el modal de un cliente', () => {
-    render(<Clientes />);
+    renderizar();
 
     expect(screen.queryByRole('dialog', { name: 'Contactos' })).not.toBeInTheDocument();
     expect(mockApi.get).not.toHaveBeenCalled();
@@ -173,7 +176,7 @@ describe('Clientes', () => {
     }));
     mockApi.post.mockResolvedValue({ data: { id_telefono: 3, id_cliente: 7, numero: '50255559999' } });
     const user = userEvent.setup();
-    render(<Clientes />);
+    renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Ver contactos de María López' }));
 

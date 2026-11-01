@@ -1,50 +1,28 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  AlertTriangle,
   Contact,
   History,
+  LoaderCircle,
   Pencil,
   PlusCircle,
   Search,
   Trash2,
-  Users,
   X,
 } from 'lucide-react';
-import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import ClienteContactosModal from '../components/clientes/ClienteContactosModal';
 import HistorialClienteModal from '../components/clientes/HistorialClienteModal';
+import AccessibleDialog from '../components/ui/AccessibleDialog.jsx';
 import useClientes from '../hooks/useClientes';
 import { esNitValido, MENSAJE_NIT_INVALIDO, normalizarNit } from '../utils/nit';
+import styles from '../styles/ManagementUI.module.css';
 
 const inicial = { nombre_cliente: '', nit: '', observaciones: '' };
 
-function Modal({ children, onClose, disabled = false }) {
-  if (typeof document === 'undefined') return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        <div className="flex justify-end px-4 pt-3">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={disabled}
-            aria-label="Cerrar"
-            className="text-slate-500"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
 export default function Clientes() {
   const { clientes, cargando, error, crear, actualizar, eliminar } = useClientes();
-  const [busqueda, setBusqueda] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const busqueda = searchParams.get('q') || '';
   const [formulario, setFormulario] = useState(inicial);
   const [editando, setEditando] = useState(null);
   const [eliminarCliente, setEliminarCliente] = useState(null);
@@ -54,6 +32,15 @@ export default function Clientes() {
   const [borrando, setBorrando] = useState(false);
   const [errorFormulario, setErrorFormulario] = useState(null);
   const [errorAccion, setErrorAccion] = useState(null);
+  const errorFormularioRef = React.useRef(null);
+
+  useEffect(() => {
+    document.title = 'Clientes · FarmaCom';
+  }, []);
+
+  useEffect(() => {
+    if (errorFormulario) errorFormularioRef.current?.focus();
+  }, [errorFormulario]);
 
   const filtrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -65,6 +52,15 @@ export default function Clientes() {
           .includes(texto)
       ));
   }, [busqueda, clientes]);
+
+  const actualizarBusqueda = (valor) => {
+    setSearchParams((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      if (valor) siguientes.set('q', valor);
+      else siguientes.delete('q');
+      return siguientes;
+    }, { replace: true });
+  };
 
   const abrirNuevo = () => {
     setEditando({ nuevo: true });
@@ -88,6 +84,14 @@ export default function Clientes() {
 
     if (!nombreCliente) {
       setErrorFormulario('El nombre del cliente es requerido.');
+      return;
+    }
+    if (nombreCliente.length > 150) {
+      setErrorFormulario('El nombre del cliente no puede superar los 150 caracteres.');
+      return;
+    }
+    if (formulario.observaciones.trim().length > 2000) {
+      setErrorFormulario('Las observaciones no pueden superar los 2000 caracteres.');
       return;
     }
 
@@ -116,6 +120,7 @@ export default function Clientes() {
   };
 
   const confirmarEliminar = async () => {
+    if (!eliminarCliente) return;
     try {
       setBorrando(true);
       setErrorAccion(null);
@@ -128,254 +133,166 @@ export default function Clientes() {
     }
   };
 
+  const tituloFormularioId = 'cliente-form-title';
+  const tituloEliminarId = 'cliente-delete-title';
+
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-surface-container-low/70 px-5 py-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Users className="h-5 w-5" />
-            </span>
-            <div>
-              <h1 className="font-headline text-xl font-extrabold text-primary">Clientes</h1>
-              <p className="text-sm font-medium text-slate-500">{clientes.length} registrados</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={abrirNuevo}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-headline text-sm font-bold text-white md:w-auto"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Nuevo cliente
-          </button>
+    <section className={styles.page} aria-labelledby="clientes-title">
+      <header className={styles.heading}>
+        <div>
+          <h1 id="clientes-title">Clientes</h1>
+          <p>Consulta datos fiscales, contactos e historial de compras.</p>
         </div>
+      </header>
+
+      <div className={styles.summary} aria-label="Resumen de clientes">
+        <div className={styles.stat}><strong>{clientes.length}</strong><span>Clientes registrados</span></div>
+        <div className={styles.stat}><strong>{filtrados.length}</strong><span>Resultados visibles</span></div>
       </div>
 
-      <div className="rounded-2xl bg-surface-container-low p-4">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+      <div className={styles.toolbar}>
+        <label className={styles.search}>
+          <Search size={17} aria-hidden="true" />
+          <span className={styles.visuallyHidden}>Buscar clientes</span>
           <input
+            type="search"
+            name="q"
+            autoComplete="off"
             value={busqueda}
-            onChange={(evento) => setBusqueda(evento.target.value)}
-            placeholder="Buscar por nombre, NIT u observaciones..."
-            className="w-full rounded-xl border-none bg-surface-container-lowest py-3 pl-12 pr-4 text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary/20"
+            onChange={(evento) => actualizarBusqueda(evento.target.value)}
+            placeholder="Buscar por nombre, NIT u observaciones…"
           />
-        </div>
+        </label>
+        <button type="button" onClick={abrirNuevo} className={`${styles.button} ${styles.primary}`}>
+          <PlusCircle size={16} aria-hidden="true" /> Nuevo cliente
+        </button>
       </div>
 
-      {(error || errorAccion) && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          {error || errorAccion}
-        </div>
-      )}
+      <p className={styles.resultCount} aria-live="polite"><strong>{filtrados.length}</strong> de {clientes.length} clientes</p>
 
-      <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-surface-container-low/60">
-        <div className="min-w-[950px]">
-          <div className="grid grid-cols-12 gap-4 border-b border-slate-200 bg-surface-container-low px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
-            <span className="col-span-1">#</span>
-            <span className="col-span-3">Nombre</span>
-            <span className="col-span-2">NIT</span>
-            <span className="col-span-2">Observaciones</span>
-            <span className="col-span-4 text-center">Acciones</span>
-          </div>
+      {(error || errorAccion) && <div className={styles.alert} role="alert">{error || errorAccion}</div>}
 
-          {cargando ? (
-            <div className="px-5 py-10 text-center text-slate-500">Cargando clientes...</div>
-          ) : filtrados.length === 0 ? (
-            <div className="px-5 py-10 text-center text-slate-500">
-              No hay clientes para mostrar.
-            </div>
-          ) : (
-            filtrados.map((cliente) => (
-              <div
-                key={cliente.id_cliente}
-                className="grid grid-cols-12 items-center gap-4 border-b border-slate-200 bg-white/60 px-5 py-4 last:border-0"
-              >
-                <span className="col-span-1 font-mono text-sm text-slate-400">
-                  {cliente.id_cliente}
-                </span>
-                <span className="col-span-3 font-semibold text-primary">
-                  {cliente.nombre_cliente}
-                </span>
-                <span className="col-span-2 font-mono text-sm font-semibold text-slate-600">
-                  {cliente.nit || '—'}
-                </span>
-                <span
-                  className="col-span-2 truncate text-sm text-slate-600"
-                  title={cliente.observaciones || ''}
-                >
-                  {cliente.observaciones || '—'}
-                </span>
-                <div className="col-span-4 mx-auto grid w-full max-w-64 grid-cols-2 gap-2 [&>button]:justify-center">
-                  <button
-                    type="button"
-                    onClick={() => setClienteContactos(cliente)}
-                    aria-label={`Ver contactos de ${cliente.nombre_cliente}`}
-                    className="inline-flex items-center gap-1 rounded-lg border border-primary/20 px-3 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary/5"
-                  >
-                    <Contact className="h-3.5 w-3.5" />
-                    Contactos
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setClienteHistorial(cliente)}
-                    aria-label={`Ver historial de ${cliente.nombre_cliente}`}
-                    className="inline-flex items-center gap-1 rounded-lg border border-secondary/20 px-3 py-2 text-xs font-bold text-secondary transition-colors hover:bg-secondary/10"
-                  >
-                    <History className="h-3.5 w-3.5" />
-                    Historial
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => abrirEditar(cliente)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-primary/20 px-3 py-2 text-xs font-bold text-primary"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEliminarCliente(cliente)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Eliminar
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+      <section className={styles.tablePanel} aria-label="Clientes registrados">
+        <table className={styles.table} aria-busy={cargando}>
+          <thead>
+            <tr>
+              <th scope="col" style={{ width: '8%' }}>ID</th>
+              <th scope="col" style={{ width: '22%' }}>Nombre</th>
+              <th scope="col" style={{ width: '14%' }}>NIT</th>
+              <th scope="col" style={{ width: '24%' }}>Observaciones</th>
+              <th scope="col" style={{ width: '32%', textAlign: 'right' }}>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cargando ? (
+              <tr><td colSpan="5" className={styles.loading}>Cargando clientes…</td></tr>
+            ) : filtrados.length === 0 ? (
+              <tr><td colSpan="5" className={styles.empty}><strong>No hay clientes para mostrar.</strong><span>Prueba con otra búsqueda o registra un cliente.</span></td></tr>
+            ) : filtrados.map((cliente) => (
+              <tr key={cliente.id_cliente}>
+                <td data-label="ID" className={`${styles.secondary} ${styles.mono}`}>{cliente.id_cliente}</td>
+                <td data-label="Nombre"><span className={styles.identity}>{cliente.nombre_cliente}</span></td>
+                <td data-label="NIT" className={styles.mono}>{cliente.nit || '—'}</td>
+                <td data-label="Observaciones" className={styles.secondary}>{cliente.observaciones || '—'}</td>
+                <td data-label="Acciones" className={styles.actionsCell}>
+                  <div className={styles.rowActions}>
+                    <button type="button" onClick={() => setClienteContactos(cliente)} aria-label={`Ver contactos de ${cliente.nombre_cliente}`} className={styles.button}><Contact size={14} aria-hidden="true" /> Contactos</button>
+                    <button type="button" onClick={() => setClienteHistorial(cliente)} aria-label={`Ver historial de ${cliente.nombre_cliente}`} className={styles.button}><History size={14} aria-hidden="true" /> Historial</button>
+                    <button type="button" onClick={() => abrirEditar(cliente)} aria-label={`Editar a ${cliente.nombre_cliente}`} className={styles.button}><Pencil size={14} aria-hidden="true" /> Editar</button>
+                    <button type="button" onClick={() => setEliminarCliente(cliente)} aria-label={`Eliminar a ${cliente.nombre_cliente}`} className={`${styles.button} ${styles.danger}`}><Trash2 size={14} aria-hidden="true" /> Eliminar</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
 
-      {editando && (
-        <Modal onClose={() => !guardando && setEditando(null)} disabled={guardando}>
-          <form onSubmit={guardar} className="space-y-4 px-6 pb-6">
-            <h2 className="font-headline text-lg font-extrabold text-primary">
-              {editando.nuevo ? 'Nuevo cliente' : 'Editar cliente'}
-            </h2>
+      <AccessibleDialog open={Boolean(editando)} labelledBy={tituloFormularioId} onClose={() => !guardando && setEditando(null)} busy={guardando} size="medium">
+        <div className={styles.dialogContent}>
+          <header className={styles.dialogHeader}>
             <div>
-              <label htmlFor="nombre-cliente" className="text-sm font-semibold text-slate-700">
-                Nombre completo
-              </label>
-              <input
-                id="nombre-cliente"
-                name="nombre_cliente"
-                value={formulario.nombre_cliente}
-                onChange={(evento) => setFormulario({
-                  ...formulario,
-                  [evento.target.name]: evento.target.value,
-                })}
-                required
-                maxLength={150}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
-              />
+              <h2 id={tituloFormularioId}>{editando?.nuevo ? 'Nuevo cliente' : 'Editar cliente'}</h2>
+              <p>Los datos de contacto se administran después de guardar.</p>
             </div>
-            <div>
-              <label htmlFor="nit-cliente" className="text-sm font-semibold text-slate-700">
-                NIT <span className="font-normal text-slate-400">(opcional)</span>
-              </label>
-              <input
-                id="nit-cliente"
-                name="nit"
-                value={formulario.nit}
-                onChange={(evento) => setFormulario({
-                  ...formulario,
-                  [evento.target.name]: evento.target.value,
-                })}
-                maxLength={20}
-                autoCapitalize="characters"
-                placeholder="Ej. 1234567-K"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 font-mono text-sm uppercase"
-              />
+            <button type="button" onClick={() => setEditando(null)} disabled={guardando} className={`${styles.button} ${styles.iconButton}`} aria-label="Cerrar"><X size={17} aria-hidden="true" /></button>
+          </header>
+
+          <form onSubmit={guardar} noValidate className={styles.form}>
+            <div className={styles.formGrid}>
+              <div className={styles.field}>
+                <label htmlFor="nombre-cliente">Nombre completo</label>
+                <input
+                  id="nombre-cliente"
+                  name="nombre_cliente"
+                  autoComplete="name"
+                  value={formulario.nombre_cliente}
+                  onChange={(evento) => setFormulario({ ...formulario, [evento.target.name]: evento.target.value })}
+                  className={styles.input}
+                  placeholder="Ej.: María López…"
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="nit-cliente">NIT <span className={styles.optional}>(opcional)</span></label>
+                <input
+                  id="nit-cliente"
+                  name="nit"
+                  value={formulario.nit}
+                  onChange={(evento) => setFormulario({ ...formulario, [evento.target.name]: evento.target.value })}
+                  autoCapitalize="characters"
+                  spellCheck="false"
+                  placeholder="Ej.: 1234567-K…"
+                  className={`${styles.input} ${styles.mono}`}
+                />
+              </div>
             </div>
-            <div>
-              <label
-                htmlFor="observaciones-cliente"
-                className="text-sm font-semibold text-slate-700"
-              >
-                Observaciones (opcional)
-              </label>
+            <div className={styles.field}>
+              <label htmlFor="observaciones-cliente">Observaciones <span className={styles.optional}>(opcional)</span></label>
               <textarea
                 id="observaciones-cliente"
                 name="observaciones"
                 value={formulario.observaciones}
-                onChange={(evento) => setFormulario({
-                  ...formulario,
-                  [evento.target.name]: evento.target.value,
-                })}
-                maxLength={2000}
+                onChange={(evento) => setFormulario({ ...formulario, [evento.target.name]: evento.target.value })}
+                onKeyDown={(event) => {
+                  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') event.currentTarget.form?.requestSubmit();
+                }}
                 rows={4}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+                className={styles.input}
+                placeholder="Ej.: Prefiere contacto por teléfono…"
               />
             </div>
-            {errorFormulario && (
-              <p className="text-sm font-semibold text-red-600">{errorFormulario}</p>
-            )}
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setEditando(null)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={guardando}
-                className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-white"
-              >
-                {guardando ? 'Guardando...' : 'Guardar'}
+            {errorFormulario && <p ref={errorFormularioRef} tabIndex={-1} className={styles.fieldError} role="alert">{errorFormulario}</p>}
+            <div className={styles.dialogActions}>
+              <button type="button" onClick={() => setEditando(null)} disabled={guardando} className={styles.button}>Cancelar</button>
+              <button type="submit" disabled={guardando} className={`${styles.button} ${styles.primary}`}>
+                {guardando && <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" />} Guardar
               </button>
             </div>
           </form>
-        </Modal>
-      )}
+        </div>
+      </AccessibleDialog>
 
-      {eliminarCliente && (
-        <Modal onClose={() => !borrando && setEliminarCliente(null)} disabled={borrando}>
-          <div className="space-y-4 px-6 pb-6">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-              <h2 className="font-headline text-lg font-extrabold text-primary">
-                Confirmar eliminación
-              </h2>
+      <AccessibleDialog open={Boolean(eliminarCliente)} labelledBy={tituloEliminarId} onClose={() => !borrando && setEliminarCliente(null)} busy={borrando} size="small">
+        <div className={styles.dialogContent}>
+          <header className={styles.dialogHeader}>
+            <div>
+              <h2 id={tituloEliminarId}>Confirmar eliminación</h2>
+              <p>Esta acción no se puede deshacer.</p>
             </div>
-            <p className="text-sm text-slate-700">
-              ¿Eliminar a <span className="font-bold">{eliminarCliente.nombre_cliente}</span>?
-              {' '}Esta acción no se puede deshacer.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setEliminarCliente(null)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={borrando}
-                onClick={confirmarEliminar}
-                className="rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white"
-              >
-                {borrando ? 'Eliminando...' : 'Sí, eliminar'}
-              </button>
-            </div>
+            <button type="button" onClick={() => setEliminarCliente(null)} disabled={borrando} className={`${styles.button} ${styles.iconButton}`} aria-label="Cerrar"><X size={17} aria-hidden="true" /></button>
+          </header>
+          <p>¿Deseas eliminar a <strong>{eliminarCliente?.nombre_cliente}</strong>?</p>
+          <div className={styles.dialogActions}>
+            <button type="button" onClick={() => setEliminarCliente(null)} disabled={borrando} className={styles.button}>Cancelar</button>
+            <button type="button" onClick={confirmarEliminar} disabled={borrando} className={`${styles.button} ${styles.dangerPrimary}`}>
+              {borrando ? <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" /> : <Trash2 size={15} aria-hidden="true" />} Sí, eliminar
+            </button>
           </div>
-        </Modal>
-      )}
+        </div>
+      </AccessibleDialog>
 
-      <HistorialClienteModal
-        cliente={clienteHistorial}
-        onClose={() => setClienteHistorial(null)}
-      />
-
-      <ClienteContactosModal
-        cliente={clienteContactos}
-        onClose={() => setClienteContactos(null)}
-      />
-    </div>
+      <HistorialClienteModal cliente={clienteHistorial} onClose={() => setClienteHistorial(null)} />
+      <ClienteContactosModal cliente={clienteContactos} onClose={() => setClienteContactos(null)} />
+    </section>
   );
 }
