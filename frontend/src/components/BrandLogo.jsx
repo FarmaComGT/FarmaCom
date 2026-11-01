@@ -9,9 +9,9 @@ export default function BrandLogo({ compact = false, subtitle = 'Gestion farmace
       </div>
 
       <div className={compact ? '' : centered ? 'text-center' : 'text-left'}>
-        <h1 className="font-headline text-2xl font-extrabold tracking-tight text-primary">
+        <p translate="no" className="font-headline text-2xl font-extrabold tracking-tight text-primary">
           FarmaCom
-        </h1>
+        </p>
         {!compact && (
           <p className="text-xs font-medium tracking-[0.16em] text-primary/55 uppercase">
             {subtitle}

@@ -45,14 +45,14 @@ export default function ProductoVentaCard({ producto, onSeleccionar, busqueda })
       onClick={() => onSeleccionar(producto)}
       disabled={deshabilitado}
       aria-label={`Seleccionar lote de ${producto.nombre_comercial}`}
-      className="group w-full rounded-xl bg-white p-4 text-left shadow-[0_2px_10px_rgba(0,81,71,0.03)] transition-all hover:-translate-y-0.5 hover:bg-primary/5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+      className="pos-product"
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="pos-product-row">
         <div className="min-w-0">
-          <p className="truncate font-headline font-extrabold text-on-surface transition-colors group-hover:text-primary">
+          <p className="pos-product-name">
             <TextoCoincidente texto={producto.nombre_comercial} busqueda={busqueda} />
           </p>
-          <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
+          <p className="pos-product-generic">
             <TextoCoincidente texto={producto.nombre_generico} busqueda={busqueda} />
             {producto.concentracion && (
               <>
@@ -63,20 +63,20 @@ export default function ProductoVentaCard({ producto, onSeleccionar, busqueda })
           </p>
         </div>
 
-        <div className="shrink-0 text-right">
+        <div className="pos-product-price">
           {promocion ? (
             <>
-              <p className="font-mono text-xs font-semibold text-slate-400 line-through">
+              <span className="was line-through">
                 {preciosDiferentes
                   ? `${formatearQuetzales(precioMinimo)} - ${formatearQuetzales(precioMaximo)}`
                   : formatearQuetzales(precioMinimo)}
-              </p>
-              <p className="font-mono text-sm font-extrabold text-primary">
+              </span>
+              <span className="now">
                 {formatearQuetzales(promocion.precio_promocion)}
-              </p>
+              </span>
             </>
           ) : (
-            <span className="font-mono text-sm font-extrabold text-primary">
+            <span className="now">
               {producto.tiene_precio
                 ? preciosDiferentes
                   ? `${formatearQuetzales(precioMinimo)} - ${formatearQuetzales(precioMaximo)}`
@@ -87,37 +87,37 @@ export default function ProductoVentaCard({ producto, onSeleccionar, busqueda })
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="pos-product-tags">
         {promocion && (
-          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">
+          <span className="pos-tag pos-tag--promo">
             Promo desde {promocion.cantidad_minima} unidades · hasta {formatearFecha(promocion.fecha_fin)}
           </span>
         )}
-        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-primary">
+        <span className="pos-tag pos-tag--accent">
           Existencias: {producto.stock_disponible}
         </span>
-        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">
+        <span className="pos-tag pos-tag--neutral">
           <TextoCoincidente texto={producto.presentacion} busqueda={busqueda} />
         </span>
         {esCoincidenciaAproximada && (
-          <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-700">
+          <span className="pos-tag pos-tag--warning">
             Coincidencia aproximada
           </span>
         )}
-        <span className="text-[11px] font-medium text-slate-400">
+        <span className="pos-product-code">
           Código: <TextoCoincidente texto={producto.codigo} busqueda={busqueda} />
         </span>
       </div>
 
-      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-        <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
-          <Layers3 className="h-3.5 w-3.5" />
+      <div className="pos-product-foot">
+        <span className="flex items-center gap-1.5">
+          <Layers3 className="h-3.5 w-3.5" aria-hidden="true" />
           Selecciona el lote que deseas vender
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-primary/70">
+        <span className="pos-product-lots">
           {cantidadLotes} {cantidadLotes === 1 ? 'lote disponible' : 'lotes disponibles'}
         </span>
-        <PackagePlus className="h-4 w-4 text-primary opacity-0 transition-opacity group-hover:opacity-100" />
+        <PackagePlus className="h-4 w-4" aria-hidden="true" />
       </div>
     </button>
   );

@@ -1,0 +1,27 @@
+.selector { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 360px); align-items: center; gap: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--cash-line); }
+.workspace { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; }
+.workspace > section { display: flex; flex-direction: column; }
+.workspace > section > form { flex: 1; }
+.workspace > section > form > div:last-child { margin-top: auto; padding-top: 4px; }
+.session { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-radius: 6px; background: var(--cash-soft); }
+.session p { color: var(--cash-muted); text-transform: capitalize; }
+.session > span { display: inline-flex; align-items: center; gap: 6px; color: var(--cash-accent); font-size: 13px; white-space: nowrap; }
+.typeOptions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.typeOption { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px; border: 1px solid var(--cash-control); border-radius: 6px; color: var(--cash-muted); cursor: pointer; }
+.typeOption:has(input:checked) { background: var(--cash-soft); color: var(--cash-accent); border-color: var(--cash-accent); }
+.typeOption:focus-within { outline: 2px solid var(--cash-accent); outline-offset: 3px; }
+.typeOption input { accent-color: var(--cash-accent); width: 14px; height: 14px; }
+.opening { max-width: 720px; }
+.closureSummary { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px; }
+.closureSummary span { display: block; font-size: 12px; color: var(--cash-muted); }
+.closureSummary strong { font-size: 20px; font-weight: 500; }
+.confirmAmount { background: var(--cash-soft); border-radius: 6px; padding: 16px; margin-block: 20px; }
+.confirmAmount span { color: var(--cash-muted); font-size: 13px; }
+.confirmAmount strong { display: block; font-size: 26px; margin-top: 4px; font-weight: 500; }
+@media (max-width: 1100px) { .workspace { grid-template-columns: 1fr 1fr; gap: 16px; } }
+@media (max-width: 767px) {
+  .selector, .workspace { grid-template-columns: 1fr; gap: 16px; }
+  .session { padding: 16px; align-items: flex-start; }
+  .session > span { font-size: 12px; }
+  .typeOption { min-height: 44px; }
+}

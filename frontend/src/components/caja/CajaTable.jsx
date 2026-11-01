@@ -1,74 +1,33 @@
 import React from 'react';
-import { Landmark, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
+import { LoaderCircle, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
+import ui from './CajaUI.module.css';
+import styles from './CajaTable.module.css';
 
-export default function CajaTable({
-  cargando,
-  cajas,
-  onEditar,
-  onCambiarEstado,
-  cambiandoEstadoId,
-}) {
-  return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-surface-container-low/60">
-      <div className="overflow-x-auto">
-        <div className="min-w-[720px]">
-          <div className="grid grid-cols-12 gap-4 border-b border-slate-200 bg-surface-container-low px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
-            <span className="col-span-4">Caja</span>
-            <span className="col-span-4">Sucursal</span>
-            <span className="col-span-2 text-center">Estado</span>
-            <span className="col-span-2 text-center">Acciones</span>
-          </div>
-
-          {cargando ? (
-            <div className="px-5 py-10 text-center font-medium text-slate-500">Cargando cajas...</div>
-          ) : cajas.length === 0 ? (
-            <div className="px-5 py-10 text-center font-medium text-slate-500">No hay cajas para mostrar.</div>
-          ) : (
-            <div className="divide-y divide-slate-200">
-              {cajas.map((caja) => (
-                <div key={caja.id_caja} className="grid grid-cols-12 items-center gap-4 bg-white/60 px-5 py-4">
-                  <span className="col-span-4 inline-flex items-center gap-2 font-semibold text-primary">
-                    <Landmark className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                    {caja.nombre}
-                  </span>
-                  <span className="col-span-4 text-sm text-slate-700">{caja.nombre_sucursal}</span>
-                  <span className="col-span-2 text-center">
-                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                      caja.activa
-                        ? 'bg-primary/10 text-primary'
-                        : 'bg-slate-200 text-slate-600'
-                    }`}>
-                      {caja.activa ? 'Activa' : 'Inactiva'}
-                    </span>
-                  </span>
-                  <div className="col-span-2 flex justify-center gap-2">
-                    <button type="button" onClick={() => onEditar(caja)} aria-label={`Editar ${caja.nombre}`} className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-primary/20 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/5">
-                      <Pencil className="h-3.5 w-3.5" />
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onCambiarEstado(caja)}
-                      disabled={cambiandoEstadoId === caja.id_caja}
-                      aria-label={`${caja.activa ? 'Desactivar' : 'Activar'} ${caja.nombre}`}
-                      title={caja.activa ? 'Desactivar' : 'Activar'}
-                      className={`cursor-pointer rounded-lg p-1.5 transition-colors disabled:opacity-50 ${
-                        caja.activa
-                          ? 'text-slate-500 hover:bg-red-50 hover:text-red-600'
-                          : 'text-slate-500 hover:bg-green-50 hover:text-green-700'
-                      }`}
-                    >
-                      {caja.activa
-                        ? <ToggleRight className="h-4 w-4" />
-                        : <ToggleLeft className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </section>
-  );
+export default function CajaTable({ cargando, cajas, onEditar, onCambiarEstado, cambiandoEstadoId, onLimpiar, pagina = 1, onPaginaChange }) {
+  const porPagina = 20;
+  const paginas = Math.max(1, Math.ceil(cajas.length / porPagina));
+  const actual = Math.min(pagina, paginas);
+  const visibles = cajas.slice((actual - 1) * porPagina, actual * porPagina);
+  return <section aria-label="Cajas registradas" aria-busy={cargando}>
+    <table className={styles.table}>
+      <thead><tr><th scope="col">Caja</th><th scope="col">Sucursal</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
+      <tbody>
+        {cargando ? Array.from({length: 4}, (_, i) => <tr key={i} aria-hidden="true">{Array.from({length: 4}, (_, j) => <td key={j}><span className={ui.skeleton} /></td>)}</tr>)
+        : cajas.length === 0 ? <tr><td colSpan={4}><div className={ui.empty}><p>No hay cajas para mostrar.</p>{onLimpiar && <button type="button" onClick={onLimpiar} className={ui.button}>Limpiar búsqueda</button>}</div></td></tr>
+        : visibles.map((caja) => <tr key={caja.id_caja}>
+          <td className={styles.name}>{caja.nombre}</td>
+          <td>{caja.nombre_sucursal}</td>
+          <td><span className={`${ui.badge} ${caja.activa ? ui.active : ''}`}>{caja.activa ? 'Activa' : 'Inactiva'}</span></td>
+          <td><div className={styles.rowActions}>
+            <button type="button" onClick={() => onEditar(caja)} aria-label={`Editar ${caja.nombre}`} className={ui.button}><Pencil size={14} aria-hidden="true" />Editar</button>
+            <button type="button" onClick={() => onCambiarEstado(caja)} disabled={cambiandoEstadoId === caja.id_caja} aria-label={`${caja.activa ? 'Desactivar' : 'Activar'} ${caja.nombre}`} title={caja.activa ? 'Desactivar' : 'Activar'} className={`${ui.button} ${ui.iconButton}`}>
+              {cambiandoEstadoId === caja.id_caja ? <LoaderCircle size={18} className={ui.spinner} aria-hidden="true" /> : caja.activa ? <ToggleRight size={18} aria-hidden="true" /> : <ToggleLeft size={18} aria-hidden="true" />}
+            </button>
+          </div></td>
+        </tr>)}
+      </tbody>
+    </table>
+    {cargando && <p role="status" className={ui.count}>Cargando cajas…</p>}
+    {paginas > 1 && <div className={styles.foot}><p className={ui.count}>Página {actual} de {paginas}</p><div><button type="button" className={ui.button} onClick={() => onPaginaChange(actual - 1)} disabled={actual === 1}>Anterior</button><button type="button" className={ui.button} onClick={() => onPaginaChange(actual + 1)} disabled={actual === paginas}>Siguiente</button></div></div>}
+  </section>;
 }

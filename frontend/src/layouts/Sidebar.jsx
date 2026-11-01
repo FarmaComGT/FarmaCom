@@ -1,290 +1,110 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Package,
-  ChevronDown,
-  Tag,
-  BadgePercent,
-  Truck,
-  Warehouse,
-  Building2,
-  Store,
-  MapPin,
-  Users,
-  UserCog,
-  ShoppingCart,
-  Banknote,
-  BarChart3,
-  History,
-  FlaskConical,
-  HelpCircle,
-  LogOut,
-  X,
-} from 'lucide-react';
+import NavigationIcon from '../components/navigation/NavigationIcon.jsx';
 import { logout } from '../api/auth';
-import BrandLogo from '../components/BrandLogo.jsx';
 import { useAuth, AUTH_ACTIONS } from '../context/AuthContext';
 
-const inventarioSubItems = [
-  { icon: Warehouse, label: 'Inventario', path: '/inventario' },
-  { icon: Tag, label: 'Categorías', path: '/inventario/categorias' },
-  { icon: Truck, label: 'Proveedores', path: '/inventario/proveedores' },
-  { icon: Building2, label: 'Casas', path: '/inventario/casas' },
-  { icon: BadgePercent, label: 'Promociones', path: '/inventario/promociones', roles: ['dueno', 'administrador'] },
+const farmacia = ['dueno', 'administrador', 'dependiente'];
+const gestion = ['dueno', 'administrador'];
+const inventario = [
+  { label: 'Existencias', path: '/inventario' },
+  { label: 'Categorías', path: '/inventario/categorias' },
+  { label: 'Proveedores', path: '/inventario/proveedores' },
+  { label: 'Casas farmacéuticas', path: '/inventario/casas' },
+  { label: 'Promociones', path: '/inventario/promociones', roles: gestion },
+];
+const ubicaciones = [
+  { label: 'Sucursales', path: '/sucursales' },
+  { label: 'Laboratorios', path: '/laboratorios' },
+  { label: 'Ciudades', path: '/ciudades' },
+];
+const operaciones = [
+  { icon: 'dispensing', label: 'Punto de venta', path: '/pos', roles: farmacia },
+  { icon: 'cash', label: 'Caja', path: '/caja', roles: farmacia },
+  { icon: 'customer', label: 'Clientes', path: '/patients', roles: farmacia },
+  { icon: 'laboratory', label: 'Laboratorio', path: '/laboratorio/pacientes', roles: ['dueno', 'administrador', 'laboratorista'] },
+];
+const administracion = [
+  { icon: 'reports', label: 'Reportes', path: '/reports', roles: gestion },
+  { icon: 'history', label: 'Historial de ventas', path: '/ventas/historial', roles: gestion },
+  { icon: 'team', label: 'Usuarios', path: '/usuarios', roles: gestion },
 ];
 
-const ROLES_FARMACIA = ['dueno', 'administrador', 'dependiente'];
+function NavigationLink({ icon, label, path, nested = false }) {
+  return <NavLink to={path} end={path === '/inventario'} className={`shell-nav-link ${nested ? 'shell-nav-nested' : ''}`}>
+    {icon && <NavigationIcon name={icon} />}
+    <span>{label}</span>
+  </NavLink>;
+}
 
-const sucursalSubItems = [
-  { icon: Store, label: 'Sucursales', path: '/sucursales' },
-  { icon: FlaskConical, label: 'Laboratorios', path: '/laboratorios' },
-  { icon: Building2, label: 'Ciudades', path: '/ciudades' },
-];
-
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: ShoppingCart, label: 'Punto de venta', path: '/pos', roles: ROLES_FARMACIA },
-  {
-    icon: Banknote,
-    label: 'Caja',
-    path: '/caja',
-    roles: ['dueno', 'administrador', 'dependiente'],
-  },
-  { icon: UserCog, label: 'Usuarios', path: '/usuarios', roles: ['dueno', 'administrador'] },
-  { icon: Users, label: 'Clientes', path: '/patients', roles: ROLES_FARMACIA },
-  {
-    icon: FlaskConical,
-    label: 'Laboratorio',
-    path: '/laboratorio/pacientes',
-    roles: ['dueno', 'administrador', 'laboratorista'],
-  },
-  {
-    icon: BarChart3,
-    label: 'Reportes',
-    path: '/reports',
-    roles: ['dueno', 'administrador'],
-  },
-  {
-    icon: History,
-    label: 'Historial de ventas',
-    path: '/ventas/historial',
-    roles: ['dueno', 'administrador'],
-  },
-];
-
-const bottomNavItems = [
-  { icon: HelpCircle, label: 'Ayuda', path: '/support' },
-];
-
-const topLevelItemClass = (isActive) =>
-  `group flex items-center gap-3 rounded-xl px-4 py-3 outline-none select-none transition-colors duration-150 ${
-    isActive
-      ? 'border border-primary/5 bg-white font-bold text-primary shadow-sm'
-      : 'font-medium text-slate-600 hover:bg-primary/5 hover:text-primary'
-  } focus-visible:ring-2 focus-visible:ring-primary/20`;
-
-const nestedItemClass = (isActive) =>
-  `flex items-center gap-2.5 rounded-lg px-3 py-2.5 outline-none select-none transition-colors duration-150 ${
-    isActive
-      ? 'bg-primary/8 font-bold text-primary'
-      : 'font-medium text-slate-500 hover:bg-primary/5 hover:text-primary'
-  } focus-visible:ring-2 focus-visible:ring-primary/20`;
+function NavigationGroup({ label, icon, open, onToggle, children, id, active }) {
+  return <div className="shell-nav-group">
+    <button className={`shell-nav-group-button ${active ? 'is-current-group' : ''}`} type="button" aria-expanded={open} aria-controls={id} onClick={onToggle}>
+      <NavigationIcon name={icon} /><span>{label}</span><NavigationIcon name="chevron" size={12} className={open ? 'is-expanded' : ''} />
+    </button>
+    {open && <div className="shell-nav-children" id={id}>{children}</div>}
+  </div>;
+}
 
 export default function Sidebar({ abierta, onCerrar, onNavegar }) {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { pathname } = useLocation();
   const { dispatch, usuario } = useAuth();
-
-  const inventarioActivo = location.pathname.startsWith('/inventario');
+  const inventarioActivo = pathname.startsWith('/inventario');
+  const ubicacionesActivas = ['/sucursales', '/laboratorios', '/ciudades'].some(ruta => pathname.startsWith(ruta));
   const [inventarioAbierto, setInventarioAbierto] = useState(inventarioActivo);
-  const sucursalesActivo = ['/sucursales', '/laboratorios', '/ciudades']
-    .some((ruta) => location.pathname.startsWith(ruta));
-  const [sucursalesAbierto, setSucursalesAbierto] = useState(sucursalesActivo);
-  const puedeVerSucursales = ['dueno', 'administrador'].includes(usuario?.rol);
-  const puedeVerInventario = ROLES_FARMACIA.includes(usuario?.rol);
-
-  useEffect(() => {
-    if (inventarioActivo) {
-      setInventarioAbierto(true);
-    }
-  }, [inventarioActivo]);
-
-  useEffect(() => {
-    if (sucursalesActivo) {
-      setSucursalesAbierto(true);
-    }
-  }, [sucursalesActivo]);
-
-  const visibleNavItems = navItems.filter((item) => {
-    if (item.path === '/dashboard') {
-      return false;
-    }
-    if (!item.roles) {
-      return true;
-    }
-    return item.roles.includes(usuario?.rol);
-  });
-
+  const [ubicacionesAbiertas, setUbicacionesAbiertas] = useState(ubicacionesActivas);
+  const [cerrando, setCerrando] = useState(false);
+  const [errorSesion, setErrorSesion] = useState('');
+  useEffect(() => { if (inventarioActivo) setInventarioAbierto(true); }, [inventarioActivo]);
+  useEffect(() => { if (ubicacionesActivas) setUbicacionesAbiertas(true); }, [ubicacionesActivas]);
+  const visible = (item) => !item.roles || item.roles.includes(usuario?.rol);
   const handleLogout = async () => {
+    setCerrando(true);
+    setErrorSesion('');
     try {
       await logout();
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
       navigate('/login', { replace: true });
     } catch (error) {
-      const status = error.response?.status;
-      if (status === 401 || status === 403) {
+      if ([401, 403].includes(error.response?.status)) {
         dispatch({ type: AUTH_ACTIONS.LOGOUT });
         navigate('/login', { replace: true });
-        return;
+      } else {
+        setErrorSesion(error.response?.data?.mensaje || 'No se pudo cerrar sesión. Intenta de nuevo.');
       }
-      window.alert(error.response?.data?.mensaje || 'No se pudo cerrar sesión. Intenta de nuevo.');
-    }
+    } finally { setCerrando(false); }
   };
 
-  return (
-    <aside
-      id="sidebar-principal"
-      aria-hidden={!abierta}
-      onClick={(event) => {
-        if (event.target.closest('a')) {
-          onNavegar();
-        }
-      }}
-      className={`fixed left-0 top-0 z-40 flex h-screen w-72 max-w-[85vw] flex-col border-r border-slate-100 bg-slate-50/95 p-4 shadow-2xl backdrop-blur-sm transition-transform duration-300 md:w-64 md:bg-slate-50/50 md:shadow-none ${
-        abierta ? 'translate-x-0' : 'invisible -translate-x-full pointer-events-none'
-      }`}
-    >
-      <div className="mb-8">
-        <div className="flex h-9 justify-end">
-          <button
-            type="button"
-            onClick={onCerrar}
-            aria-controls="sidebar-principal"
-            aria-expanded="true"
-            aria-label="Cerrar menú lateral"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/80 bg-white text-slate-500 outline-none transition-colors hover:border-primary/20 hover:bg-primary/5 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/20"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
-        </div>
-
-        <div className="flex -translate-x-3 justify-center py-3">
-          <BrandLogo subtitle="San Gabriel" centered />
-        </div>
+  return <aside id="sidebar-principal" className={`shell-sidebar ${abierta ? 'is-open' : ''}`} aria-label="Navegación principal" aria-hidden={!abierta}
+    onClick={(event) => { if (event.target.closest('a')) onNavegar(); }}>
+    <div className="shell-sidebar-heading">
+      <div className="shell-wordmark" translate="no"><div><strong>FarmaCom</strong><span>Farmacia San Gabriel</span></div></div>
+      <button type="button" className="shell-icon-button shell-close-sidebar" onClick={onCerrar} aria-label="Cerrar menú lateral" aria-controls="sidebar-principal" aria-expanded="true"><NavigationIcon name="collapse" /></button>
+    </div>
+    <nav className="shell-navigation" aria-label="Módulos de FarmaCom">
+      {usuario?.rol !== 'laboratorista' && <NavigationLink icon="overview" label="Dashboard" path="/dashboard" />}
+      <div className="shell-nav-section">
+        <p className="shell-nav-section-label">Operación</p>
+        {farmacia.includes(usuario?.rol) && <NavigationGroup label="Inventario" icon="inventory" open={inventarioAbierto} onToggle={() => setInventarioAbierto(v => !v)} id="navegacion-inventario" active={inventarioActivo}>
+          {inventario.filter(visible).map(item => <NavigationLink key={item.path} {...item} nested />)}
+        </NavigationGroup>}
+        {operaciones.filter(visible).map(item => <NavigationLink key={item.path} {...item} />)}
       </div>
-
-      <nav className="flex-1 space-y-1 overflow-y-auto">
-        {usuario?.rol !== 'laboratorista' && (
-          <NavLink
-            to="/dashboard"
-            className={({ isActive }) => topLevelItemClass(isActive)}
-          >
-            <LayoutDashboard className="h-5 w-5 transition-transform duration-150 group-hover:scale-110" />
-            <span className="text-sm font-headline">Dashboard</span>
-          </NavLink>
-        )}
-
-        {puedeVerInventario && <div>
-          <button
-            type="button"
-            onClick={() => setInventarioAbierto((prev) => !prev)}
-            className={`w-full ${topLevelItemClass(inventarioActivo)}`}
-          >
-            <Package className="h-5 w-5 flex-shrink-0 transition-transform duration-150 group-hover:scale-110" />
-            <span className="flex-1 text-left text-sm font-headline">Inventario</span>
-            <ChevronDown
-              className={`h-4 w-4 flex-shrink-0 transition-transform duration-150 ${
-                inventarioAbierto ? 'rotate-180' : ''
-              } ${inventarioActivo ? 'text-primary' : 'text-slate-400'}`}
-            />
-          </button>
-
-          {inventarioAbierto && (
-            <div className="mt-1 ml-4 space-y-0.5 border-l-2 border-primary/10 pl-3">
-              {inventarioSubItems
-                .filter((item) => !item.roles || item.roles.includes(usuario?.rol))
-                .map(({ icon: Icon, label, path }) => (
-                <NavLink
-                  key={path}
-                  to={path}
-                  end={path === '/inventario'}
-                  className={({ isActive }) => nestedItemClass(isActive)}
-                >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
-                  <span className="text-xs font-headline">{label}</span>
-                </NavLink>
-              ))}
-            </div>
-          )}
-        </div>}
-
-        {puedeVerSucursales && (
-          <div>
-            <button
-              type="button"
-              onClick={() => setSucursalesAbierto((prev) => !prev)}
-              className={`w-full ${topLevelItemClass(sucursalesActivo)}`}
-            >
-              <MapPin className="h-5 w-5 flex-shrink-0 transition-transform duration-150 group-hover:scale-110" />
-              <span className="flex-1 text-left text-sm font-headline">Ubicaciones</span>
-              <ChevronDown
-                className={`h-4 w-4 flex-shrink-0 transition-transform duration-150 ${
-                  sucursalesAbierto ? 'rotate-180' : ''
-                } ${sucursalesActivo ? 'text-primary' : 'text-slate-400'}`}
-              />
-            </button>
-
-            {sucursalesAbierto && (
-              <div className="mt-1 ml-4 space-y-0.5 border-l-2 border-primary/10 pl-3">
-                {sucursalSubItems.map(({ icon: Icon, label, path }) => (
-                  <NavLink
-                    key={path}
-                    to={path}
-                    className={({ isActive }) => nestedItemClass(isActive)}
-                  >
-                    <Icon className="h-4 w-4 flex-shrink-0" />
-                    <span className="text-xs font-headline">{label}</span>
-                  </NavLink>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {visibleNavItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) => topLevelItemClass(isActive)}
-          >
-            <item.icon className="h-5 w-5 transition-transform duration-150 group-hover:scale-110" />
-            <span className="text-sm font-headline">{item.label}</span>
-          </NavLink>
-        ))}
-      </nav>
-
-      <div className="mt-auto space-y-1 border-t border-slate-200/50 pt-6">
-        {bottomNavItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className="group flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-600 outline-none select-none transition-colors duration-150 hover:bg-primary/5 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/20"
-          >
-            <item.icon className="h-5 w-5 transition-transform duration-150 group-hover:translate-x-1" />
-            <span className="text-sm font-headline">{item.label}</span>
-          </NavLink>
-        ))}
-
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-medium text-slate-600 outline-none select-none transition-colors duration-150 hover:bg-primary/5 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/20"
-        >
-          <LogOut className="h-5 w-5 text-error transition-transform duration-150 group-hover:translate-x-1" />
-          <span className="text-sm font-headline">Cerrar sesión</span>
-        </button>
-      </div>
-    </aside>
-  );
+      {gestion.includes(usuario?.rol) && <div className="shell-nav-section">
+        <p className="shell-nav-section-label">Administración</p>
+        {administracion.filter(visible).map(item => <NavigationLink key={item.path} {...item} />)}
+        <NavigationGroup label="Ubicaciones" icon="locations" open={ubicacionesAbiertas} onToggle={() => setUbicacionesAbiertas(v => !v)} id="navegacion-ubicaciones" active={ubicacionesActivas}>
+          {ubicaciones.map(item => <NavigationLink key={item.path} {...item} nested />)}
+        </NavigationGroup>
+      </div>}
+    </nav>
+    <div className="shell-sidebar-footer">
+      <NavigationLink icon="help" label="Ayuda" path="/support" />
+      <button type="button" className="shell-nav-link shell-logout" onClick={handleLogout} disabled={cerrando}>
+        <NavigationIcon name={cerrando ? 'loading' : 'exit'} className={cerrando ? 'shell-loading' : ''} /><span>Cerrar sesión{cerrando ? '…' : ''}</span>
+      </button>
+      {errorSesion && <p role="status" className="shell-session-error">{errorSesion}</p>}
+    </div>
+  </aside>;
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -136,11 +136,11 @@ describe('Inventario unificado', () => {
     mocks.refrescarInventario.mockResolvedValue(undefined);
   });
 
-  const renderizar = () => render(
-    <MemoryRouter>
-      <Inventario />
-    </MemoryRouter>,
-  );
+  const renderizar = () => {
+    const vista = render(<MemoryRouter><Inventario /></MemoryRouter>);
+    fireEvent.click(screen.getByText('Filtros', { selector: 'summary' }));
+    return vista;
+  };
 
   it('muestra productos y estados independientes', () => {
     renderizar();
@@ -174,15 +174,15 @@ describe('Inventario unificado', () => {
 
     expect(agotados).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByLabelText('Stock')).toHaveValue('agotado');
-    expect(screen.queryByRole('button', { name: 'Ver lotes de Paracetamol' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Ver lotes de Paracetamol' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
 
     await usuario.click(agotados);
 
     expect(agotados).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByLabelText('Stock')).toHaveValue('');
-    expect(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
   });
 
   it('limpia stock y vencimiento desde Productos y conserva la categoría y el catálogo', async () => {
@@ -203,8 +203,8 @@ describe('Inventario unificado', () => {
     expect(screen.getByLabelText('Vencimiento')).toHaveValue('');
     expect(screen.getByLabelText('Categoría')).toHaveValue('1');
     expect(screen.getByLabelText('Catálogo')).toHaveValue('true');
-    expect(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Ver lotes de Loratadina' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Ver lotes de Loratadina' })).not.toBeInTheDocument();
   });
 
   it.each(['  pArAcEtAmOl  ', 'MED001-TAB'])('busca productos por texto: %s', async (busqueda) => {
@@ -213,12 +213,12 @@ describe('Inventario unificado', () => {
 
     await usuario.type(screen.getByRole('searchbox', { name: 'Buscar productos' }), busqueda);
 
-    expect(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Ver lotes de Loratadina' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Ver lotes de Loratadina' })).not.toBeInTheDocument();
 
     await usuario.clear(screen.getByRole('searchbox', { name: 'Buscar productos' }));
 
-    expect(screen.getByRole('button', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
   });
 
   it('combina la categoría con los productos activos e inactivos', async () => {
@@ -226,19 +226,19 @@ describe('Inventario unificado', () => {
     renderizar();
 
     await usuario.selectOptions(screen.getByLabelText('Categoría'), '2');
-    expect(screen.queryByRole('button', { name: 'Ver lotes de Paracetamol' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Ver lotes de Paracetamol' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
 
     await usuario.selectOptions(screen.getByLabelText('Catálogo'), 'true');
     expect(screen.getByText('No hay productos que coincidan con los filtros.')).toBeInTheDocument();
 
     await usuario.selectOptions(screen.getByLabelText('Catálogo'), 'false');
-    expect(screen.getByRole('button', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
 
     await usuario.selectOptions(screen.getByLabelText('Categoría'), '');
     await usuario.selectOptions(screen.getByLabelText('Catálogo'), 'true');
-    expect(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Ver lotes de Loratadina' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Ver lotes de Loratadina' })).not.toBeInTheDocument();
   });
 
   it('consulta otra sucursal y limpia la búsqueda y todos los filtros', async () => {
@@ -261,8 +261,8 @@ describe('Inventario unificado', () => {
     for (const filtro of ['Categoría', 'Catálogo', 'Stock', 'Vencimiento']) {
       expect(screen.getByLabelText(filtro)).toHaveValue('');
     }
-    expect(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver lotes de Loratadina' })).toBeInTheDocument();
   });
 
   it('oculta la gestión de lotes y el historial para un vendedor con una sola sucursal', () => {
@@ -272,7 +272,7 @@ describe('Inventario unificado', () => {
     expect(screen.queryByLabelText('Sucursal')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ingresar lote' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Ver historial de precios/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver lotes de Paracetamol' })).toBeInTheDocument();
   });
 
   it('abre las acciones globales de producto y lote', async () => {
@@ -310,7 +310,7 @@ describe('Inventario unificado', () => {
       </MemoryRouter>,
     );
 
-    await usuario.click(screen.getByRole('button', { name: 'Ver lotes de Paracetamol' }));
+    await usuario.click(screen.getByRole('link', { name: 'Ver lotes de Paracetamol' }));
     expect(screen.getByText('/inventario/productos/1/lotes')).toBeInTheDocument();
   });
 });

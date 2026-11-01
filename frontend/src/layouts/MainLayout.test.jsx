@@ -34,6 +34,7 @@ const renderizarLayout = (rutaInicial = '/inventario/productos') =>
             element={<div>Contenido del listado de productos</div>}
           />
           <Route path="/dashboard" element={<div>Contenido del dashboard</div>} />
+          <Route path="/caja" element={<div>Contenido de caja</div>} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -97,6 +98,7 @@ describe('MainLayout y Sidebar', () => {
 
     expect(sidebar).toHaveAttribute('aria-hidden', 'true');
     expect(document.body.style.overflow).toBe('');
+    expect(screen.getByRole('button', { name: 'Mostrar menú lateral' })).toHaveFocus();
   });
 
   it('cierra el panel móvil al tocar el fondo o navegar', async () => {
@@ -162,6 +164,20 @@ describe('MainLayout y Sidebar', () => {
     renderizarLayout();
 
     expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
+    expect(window.localStorage.getItem(CLAVE_PREFERENCIA_SIDEBAR)).toBe('true');
+  });
+
+  it('restaura el menú al pasar de caja a una pantalla con otro punto de quiebre', async () => {
+    establecerAncho(1024);
+    const user = userEvent.setup();
+    renderizarLayout('/caja');
+
+    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
+    await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }));
+    await user.click(screen.getByRole('link', { name: 'Dashboard' }));
+
+    expect(screen.getByText('Contenido del dashboard')).toBeVisible();
+    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'false');
     expect(window.localStorage.getItem(CLAVE_PREFERENCIA_SIDEBAR)).toBe('true');
   });
 });

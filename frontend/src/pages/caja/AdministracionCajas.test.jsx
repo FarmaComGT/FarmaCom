@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render as renderBase, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import useAdministracionCajas from '../../hooks/useAdministracionCajas';
@@ -8,6 +9,7 @@ import AdministracionCajas from './AdministracionCajas';
 
 const crear = vi.fn();
 const actualizar = vi.fn();
+const render = (elemento) => renderBase(<MemoryRouter>{elemento}</MemoryRouter>);
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({

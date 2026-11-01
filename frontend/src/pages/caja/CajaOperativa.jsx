@@ -1,18 +1,20 @@
-import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect } from 'react';
 import {
   AlertCircle,
   ArrowDownToLine,
   ArrowUpFromLine,
-  Banknote,
   CheckCircle2,
-  ChevronDown,
   Clock3,
-  Store,
+  LoaderCircle,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import useCaja from '../../hooks/useCaja';
 import CajaSubNav from '../../components/caja/CajaSubNav';
+
+import CajaDialog from '../../components/caja/CajaDialog';
+import ui from '../../components/caja/CajaUI.module.css';
+import styles from './CajaOperativa.module.css';
+import useAvisoCambiosCaja, { confirmarDescartarCambiosCaja } from '../../hooks/useAvisoCambiosCaja';
 
 const FORMULARIO_INICIAL = {
   turno: '',
@@ -91,7 +93,18 @@ export default function CajaOperativa() {
   const [errorFormulario, setErrorFormulario] = useState(null);
   const [mensajeExito, setMensajeExito] = useState(null);
 
+  const [campoError, setCampoError] = useState(null);
+  const hayCambios = Boolean(formulario.turno || formulario.fondo_inicial || movimiento.monto || movimiento.motivo || datosCierre.efectivo_contado || datosCierre.observaciones);
+  useAvisoCambiosCaja(hayCambios);
+  useEffect(() => { document.title = 'Operación de caja · FarmaCom'; }, []);
+  useEffect(() => { if (!errorFormulario) setCampoError(null); }, [errorFormulario]);
+  useEffect(() => {
+    if (ultimoCierre) document.getElementById('resultado-cierre')?.focus();
+  }, [ultimoCierre]);
+  const invalidar = (campo, mensaje) => { setCampoError(campo); setErrorFormulario(mensaje); document.getElementById(campo)?.focus(); };
+
   const cambiarCaja = (evento) => {
+    if (hayCambios && !confirmarDescartarCambiosCaja()) return;
     seleccionarCaja(evento.target.value || null);
     setFormulario(FORMULARIO_INICIAL);
     setMovimiento(MOVIMIENTO_INICIAL);
@@ -117,12 +130,12 @@ export default function CajaOperativa() {
     const fondoInicial = formulario.fondo_inicial.trim();
 
     if (!formulario.turno) {
-      setErrorFormulario('Selecciona el turno que deseas abrir.');
+      invalidar('turno-caja', 'Selecciona el turno que deseas abrir.');
       return;
     }
 
     if (!esMontoValido(fondoInicial)) {
-      setErrorFormulario('Ingresa un fondo inicial válido con máximo dos decimales.');
+      invalidar('fondo-inicial', 'Ingresa un fondo inicial válido con máximo dos decimales.');
       return;
     }
 
@@ -133,6 +146,7 @@ export default function CajaOperativa() {
         fondo_inicial: fondoInicial,
       });
       setUltimoCierre(null);
+      setFormulario(FORMULARIO_INICIAL);
       setMensajeExito('La sesión de caja se abrió correctamente.');
     } catch {
       // El hook expone el mensaje enviado por el backend.
@@ -154,12 +168,12 @@ export default function CajaOperativa() {
     const motivo = movimiento.motivo.trim();
 
     if (!esMontoValido(monto) || Number(monto) <= 0) {
-      setErrorFormulario('Ingresa un monto mayor que cero con máximo dos decimales.');
+      invalidar('monto-movimiento', 'Ingresa un monto mayor que cero con máximo dos decimales.');
       return;
     }
 
     if (!motivo) {
-      setErrorFormulario('Ingresa el motivo del movimiento.');
+      invalidar('motivo-movimiento', 'Ingresa el motivo del movimiento.');
       return;
     }
 
@@ -192,12 +206,12 @@ export default function CajaOperativa() {
     const observaciones = datosCierre.observaciones.trim();
 
     if (!esMontoValido(efectivoContado)) {
-      setErrorFormulario('Ingresa un efectivo contado válido con máximo dos decimales.');
+      invalidar('efectivo-contado', 'Ingresa un efectivo contado válido con máximo dos decimales.');
       return;
     }
 
     if (!observaciones) {
-      setErrorFormulario('Ingresa una nota de cierre antes de continuar.');
+      invalidar('observaciones-cierre', 'Ingresa una nota de cierre antes de continuar.');
       return;
     }
 
@@ -226,421 +240,93 @@ export default function CajaOperativa() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={ui.page}>
+      <header className={ui.heading}>
+        <div><h1>Operación de caja</h1><p>Apertura, movimientos y cierre del turno.</p></div>
+      </header>
       <CajaSubNav rol={usuario?.rol} />
 
-      <header className="rounded-2xl border border-slate-200 bg-surface-container-low/70 px-5 py-5">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Banknote className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div>
-            <h1 className="font-headline text-xl font-extrabold text-primary">
-              Operación de caja
-            </h1>
-            <p className="text-sm font-medium text-slate-500">
-              Selecciona una caja para iniciar o continuar tu turno.
-            </p>
-          </div>
-        </div>
-      </header>
+      {!sucursalActivaId && <div className={ui.notice}><AlertCircle size={16} aria-hidden="true" />Debes tener una sucursal activa para operar una caja.</div>}
+      {error && <div role="alert" className={`${ui.notice} ${ui.error}`}>{error}</div>}
+      {mensajeExito && <div role="status" className={ui.notice}><CheckCircle2 size={16} aria-hidden="true" />{mensajeExito}</div>}
 
-      {!sucursalActivaId && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-          <AlertCircle className="mt-0.5 h-5 w-5 flex-none" aria-hidden="true" />
-          Debes tener una sucursal activa para operar una caja.
+      <section className={styles.selector} aria-labelledby="seleccionar-caja-titulo">
+        <div><h2 id="seleccionar-caja-titulo" className={ui.sectionHeading}>Seleccionar caja</h2><p className={ui.description}>Trabaja con las cajas de tu sucursal activa.</p></div>
+        <div className={ui.field}>
+          <label htmlFor="selector-caja">Caja disponible</label>
+          <select id="selector-caja" name="id_caja" value={idCajaSeleccionada || ''} onChange={cambiarCaja} disabled={procesando || !sucursalActivaId || cargandoCajas || cajas.length === 0} className={ui.input}>
+            <option value="">{cargandoCajas ? 'Cargando cajas…' : 'Selecciona una caja'}</option>
+            {cajas.map((caja) => <option key={caja.id_caja} value={caja.id_caja}>{caja.nombre}{caja.id_sesion_abierta ? ' — turno abierto' : ''}</option>)}
+          </select>
         </div>
-      )}
-
-      {(error || errorFormulario) && (
-        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          {errorFormulario || error}
-        </div>
-      )}
-
-      {mensajeExito && (
-        <div role="status" className="flex items-center gap-2 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
-          <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-          {mensajeExito}
-        </div>
-      )}
+      </section>
+      {!cargandoCajas && sucursalActivaId && cajas.length === 0 && !error && <p className={ui.empty}>No hay cajas activas disponibles en esta sucursal.</p>}
+      {!idCajaSeleccionada && cajas.length > 0 && <div className={ui.empty}><p>Selecciona una caja para iniciar o continuar tu turno.</p></div>}
+      {idCajaSeleccionada && cargandoSesion && <div role="status" className={ui.loading}>Consultando la sesión actual…<span className={ui.skeleton} /><span className={ui.skeleton} /></div>}
 
       {ultimoCierre && (() => {
         const resultado = obtenerResultadoCierre(ultimoCierre);
-        return (
-          <section className="rounded-2xl border border-primary/15 bg-surface-container-low/70 p-5">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="mt-0.5 h-5 w-5 flex-none text-primary" aria-hidden="true" />
-              <div>
-                <h2 className="font-headline text-lg font-bold text-primary">
-                  {resultado.titulo}
-                </h2>
-                <p className="mt-1 text-sm text-slate-600">{resultado.detalle}</p>
-                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-500">
-                  <span>
-                    Esperado: <strong>{formatearQuetzales(ultimoCierre.efectivo_esperado)}</strong>
-                  </span>
-                  <span>
-                    Contado: <strong>{formatearQuetzales(ultimoCierre.efectivo_contado)}</strong>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </section>
-        );
+        return <section className={ui.panel}>
+          <h2 id="resultado-cierre" tabIndex={-1} className={ui.sectionHeading}>{resultado.titulo}</h2><p className={ui.description}>{resultado.detalle}</p>
+          <div className={styles.closureSummary}>
+            <div><span>Esperado:</span><strong>{formatearQuetzales(ultimoCierre.efectivo_esperado)}</strong></div>
+            <div><span>Contado:</span><strong>{formatearQuetzales(ultimoCierre.efectivo_contado)}</strong></div>
+          </div>
+        </section>;
       })()}
 
-      {confirmandoCierre && typeof document !== 'undefined' && createPortal((
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="titulo-confirmar-cierre"
-            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
-          >
-            <h2 id="titulo-confirmar-cierre" className="font-headline text-lg font-bold text-primary">
-              Confirmar cierre de turno
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Confirma que terminaste el conteo físico. Al cerrar, el sistema calculará
-              la diferencia y esta acción no podrá deshacerse.
-            </p>
-            <div className="mt-4 rounded-xl border border-slate-200 bg-surface-container-low/60 px-4 py-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Efectivo contado
-              </p>
-              <p className="mt-1 font-headline text-xl font-extrabold text-primary">
-                {formatearQuetzales(datosCierre.efectivo_contado)}
-              </p>
-            </div>
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setConfirmandoCierre(false)}
-                disabled={procesando}
-                className="cursor-pointer rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Volver a contar
-              </button>
-              <button
-                type="button"
-                onClick={confirmarCierre}
-                disabled={procesando}
-                className="cursor-pointer rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {procesando ? 'Cerrando turno...' : 'Confirmar cierre'}
-              </button>
-            </div>
-          </div>
+      <CajaDialog abierta={confirmandoCierre} labelledBy="titulo-confirmar-cierre" onClose={() => !procesando && setConfirmandoCierre(false)} ocupada={procesando}>
+        <h2 id="titulo-confirmar-cierre" className={ui.sectionHeading}>Confirmar cierre de turno</h2>
+        <p className={ui.description}>Confirma que terminaste el conteo físico. Al cerrar, el sistema calculará la diferencia y esta acción no podrá deshacerse.</p>
+        <div className={styles.confirmAmount}><span>Efectivo contado</span><strong>{formatearQuetzales(datosCierre.efectivo_contado)}</strong></div>
+        <div className={ui.actions}>
+          <button type="button" className={ui.button} onClick={() => setConfirmandoCierre(false)} disabled={procesando}>Volver a contar</button>
+          <button type="button" className={`${ui.button} ${ui.primary}`} onClick={confirmarCierre} disabled={procesando}>{procesando && <LoaderCircle size={16} className={ui.spinner} aria-hidden="true" />}Confirmar cierre</button>
         </div>
-      ), document.body)}
+      </CajaDialog>
 
-      <section className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
-        <div className="mb-4 flex items-center gap-2">
-          <Store className="h-5 w-5 text-primary" aria-hidden="true" />
-          <h2 className="font-headline text-lg font-bold text-primary">Seleccionar caja</h2>
-        </div>
-
-        <label htmlFor="selector-caja" className="text-sm font-semibold text-slate-700">
-          Caja disponible
-        </label>
-        <div className="relative mt-1">
-          <select
-            id="selector-caja"
-            value={idCajaSeleccionada || ''}
-            onChange={cambiarCaja}
-            disabled={!sucursalActivaId || cargandoCajas || cajas.length === 0}
-            className="w-full cursor-pointer appearance-none rounded-xl border border-slate-300 bg-white py-3 pl-4 pr-12 text-sm font-medium text-slate-700 outline-none transition-colors hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-          >
-            <option value="">
-              {cargandoCajas ? 'Cargando cajas...' : 'Selecciona una caja'}
-            </option>
-            {cajas.map((caja) => (
-              <option key={caja.id_caja} value={caja.id_caja}>
-                {caja.nombre}
-                {caja.id_sesion_abierta ? ' — turno abierto' : ''}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
-            aria-hidden="true"
-          />
-        </div>
-
-        {!cargandoCajas && sucursalActivaId && cajas.length === 0 && !error && (
-          <p className="mt-3 text-sm text-slate-500">
-            No hay cajas activas disponibles en esta sucursal.
-          </p>
-        )}
-      </section>
-
-      {idCajaSeleccionada && cargandoSesion && (
-        <div role="status" className="rounded-2xl border border-slate-200 bg-white/80 p-8 text-center text-sm font-medium text-slate-500">
-          Consultando la sesión actual...
-        </div>
-      )}
-
-      {cajaSeleccionada && !cargandoSesion && sesionActual && (
-        <div className="space-y-6">
-          <section className="rounded-2xl border border-primary/15 bg-surface-container-low/70 p-5">
-            <div className="flex items-start gap-3">
-              <Clock3 className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
-              <div>
-                <h2 className="font-headline text-lg font-bold text-primary">
-                  Turno abierto en {cajaSeleccionada.nombre}
-                </h2>
-                <p className="mt-1 text-sm font-medium capitalize text-slate-500">
-                  Turno {sesionActual.turno}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
-            <h2 className="font-headline text-lg font-bold text-primary">
-              Registrar movimiento
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Registra entradas adicionales o retiros de efectivo del turno.
-            </p>
-
-            <form onSubmit={guardarMovimiento} className="mt-5 space-y-4">
-              <fieldset>
-                <legend className="text-sm font-semibold text-slate-700">
-                  Tipo de movimiento
-                </legend>
-                <div className="mt-2 grid grid-cols-2 gap-3">
-                  <label className={`cursor-pointer rounded-xl border p-4 transition-colors ${
-                    movimiento.tipo === 'entrada'
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-slate-200 text-slate-600 hover:border-primary/30'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="tipo"
-                      value="entrada"
-                      checked={movimiento.tipo === 'entrada'}
-                      onChange={actualizarMovimiento}
-                      disabled={procesando}
-                      className="sr-only"
-                    />
-                    <span className="flex items-center justify-center gap-2 text-sm font-bold">
-                      <ArrowDownToLine className="h-4 w-4" aria-hidden="true" />
-                      Entrada
-                    </span>
-                  </label>
-                  <label className={`cursor-pointer rounded-xl border p-4 transition-colors ${
-                    movimiento.tipo === 'salida'
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-slate-200 text-slate-600 hover:border-primary/30'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="tipo"
-                      value="salida"
-                      checked={movimiento.tipo === 'salida'}
-                      onChange={actualizarMovimiento}
-                      disabled={procesando}
-                      className="sr-only"
-                    />
-                    <span className="flex items-center justify-center gap-2 text-sm font-bold">
-                      <ArrowUpFromLine className="h-4 w-4" aria-hidden="true" />
-                      Salida
-                    </span>
-                  </label>
-                </div>
-              </fieldset>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label htmlFor="monto-movimiento" className="text-sm font-semibold text-slate-700">
-                    Monto
-                  </label>
-                  <div className="relative mt-1">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
-                      Q
-                    </span>
-                    <input
-                      id="monto-movimiento"
-                      name="monto"
-                      type="text"
-                      inputMode="decimal"
-                      value={movimiento.monto}
-                      onChange={actualizarMovimiento}
-                      disabled={procesando}
-                      placeholder="0.00"
-                      className="w-full rounded-xl border border-slate-300 py-3 pl-9 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="motivo-movimiento" className="text-sm font-semibold text-slate-700">
-                    Motivo
-                  </label>
-                  <input
-                    id="motivo-movimiento"
-                    name="motivo"
-                    type="text"
-                    value={movimiento.motivo}
-                    onChange={actualizarMovimiento}
-                    disabled={procesando}
-                    maxLength={500}
-                    placeholder="Describe el motivo"
-                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={procesando}
-                  className="w-full cursor-pointer rounded-xl bg-primary px-6 py-3 font-headline text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md active:translate-y-0 active:shadow-sm disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:w-auto"
-                >
-                  {procesando ? 'Registrando...' : 'Registrar movimiento'}
-                </button>
-              </div>
-            </form>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
-            <div className="flex items-start gap-3">
-              <Banknote className="mt-0.5 h-5 w-5 text-primary" aria-hidden="true" />
-              <div>
-                <h2 className="font-headline text-lg font-bold text-primary">
-                  Cerrar turno
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Cuenta el efectivo físico y compáralo con el monto esperado.
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={solicitarCierre} className="mt-5 space-y-4">
-              <div>
-                <label htmlFor="efectivo-contado" className="text-sm font-semibold text-slate-700">
-                  Efectivo contado
-                </label>
-                <div className="relative mt-1">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
-                    Q
-                  </span>
-                  <input
-                    id="efectivo-contado"
-                    name="efectivo_contado"
-                    type="text"
-                    inputMode="decimal"
-                    value={datosCierre.efectivo_contado}
-                    onChange={actualizarCierre}
-                    disabled={procesando}
-                    placeholder="0.00"
-                    className="w-full rounded-xl border border-slate-300 py-3 pl-9 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="observaciones-cierre" className="text-sm font-semibold text-slate-700">
-                  Nota de cierre <span className="text-red-600">(requerida)</span>
-                </label>
-                <textarea
-                  id="observaciones-cierre"
-                  name="observaciones"
-                  value={datosCierre.observaciones}
-                  onChange={actualizarCierre}
-                  disabled={procesando}
-                  maxLength={500}
-                  rows={3}
-                  placeholder="Describe el conteo o cualquier incidencia del turno"
-                  className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={procesando}
-                  className="w-full cursor-pointer rounded-xl border border-primary bg-white px-6 py-3 font-headline text-sm font-bold text-primary shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/5 hover:shadow-md active:translate-y-0 active:shadow-sm disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:w-auto"
-                >
-                  {procesando ? 'Cerrando turno...' : 'Cerrar turno'}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
-      )}
-
-      {cajaSeleccionada && !cargandoSesion && !sesionActual && (
-        <section className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm">
-          <h2 className="font-headline text-lg font-bold text-primary">
-            Abrir turno en {cajaSeleccionada.nombre}
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Registra el turno y el efectivo disponible al iniciar.
-          </p>
-
-          <form onSubmit={abrirTurno} className="mt-5 grid gap-4 md:grid-cols-2">
-            <div>
-              <label htmlFor="turno-caja" className="text-sm font-semibold text-slate-700">
-                Turno
-              </label>
-              <div className="relative mt-1">
-                <select
-                  id="turno-caja"
-                  name="turno"
-                  value={formulario.turno}
-                  onChange={actualizarCampo}
-                  disabled={procesando}
-                  className="w-full cursor-pointer appearance-none rounded-xl border border-slate-300 bg-white py-3 pl-4 pr-12 text-sm outline-none transition-colors hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-slate-100"
-                >
-                  <option value="">Selecciona un turno</option>
-                  <option value="mañana">Mañana</option>
-                  <option value="tarde">Tarde</option>
-                  <option value="noche">Noche</option>
-                </select>
-                <ChevronDown
-                  className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
-                  aria-hidden="true"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="fondo-inicial" className="text-sm font-semibold text-slate-700">
-                Fondo inicial
-              </label>
-              <div className="relative mt-1">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
-                  Q
-                </span>
-                <input
-                  id="fondo-inicial"
-                  name="fondo_inicial"
-                  type="text"
-                  inputMode="decimal"
-                  value={formulario.fondo_inicial}
-                  onChange={actualizarCampo}
-                  disabled={procesando}
-                  placeholder="0.00"
-                  className="w-full rounded-xl border border-slate-300 py-3 pl-9 pr-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-2 md:flex md:justify-end">
-              <button
-                type="submit"
-                disabled={procesando}
-                className="w-full cursor-pointer rounded-xl bg-primary px-6 py-3 font-headline text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md active:translate-y-0 active:shadow-sm disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 md:w-auto"
-              >
-                {procesando ? 'Abriendo turno...' : 'Abrir turno'}
-              </button>
-            </div>
-          </form>
+      {cajaSeleccionada && !cargandoSesion && sesionActual && <>
+        <section className={styles.session}>
+          <div><h2 className={ui.sectionHeading}>Turno abierto en {cajaSeleccionada.nombre}</h2><p>Turno {sesionActual.turno}</p></div>
+          <span><Clock3 size={16} aria-hidden="true" />En curso</span>
         </section>
-      )}
+        <div className={styles.workspace}>
+          <section className={ui.panel}>
+            <h2 className={ui.sectionHeading}>Registrar movimiento</h2><p className={ui.description}>Entradas adicionales y retiros de efectivo del turno.</p>
+            <form onSubmit={guardarMovimiento} className={ui.form} noValidate>
+              <fieldset><legend className={ui.legend}>Tipo de movimiento</legend><div className={styles.typeOptions}>
+                <label className={styles.typeOption}><input type="radio" name="tipo" value="entrada" checked={movimiento.tipo === 'entrada'} onChange={actualizarMovimiento} disabled={procesando} /><ArrowDownToLine size={16} aria-hidden="true" />Entrada</label>
+                <label className={styles.typeOption}><input type="radio" name="tipo" value="salida" checked={movimiento.tipo === 'salida'} onChange={actualizarMovimiento} disabled={procesando} /><ArrowUpFromLine size={16} aria-hidden="true" />Salida</label>
+              </div></fieldset>
+              <div className={ui.field}><label htmlFor="monto-movimiento">Monto</label><div className={ui.moneyInput}><span aria-hidden="true">Q</span><input id="monto-movimiento" name="monto" type="text" inputMode="decimal" autoComplete="off" value={movimiento.monto} onChange={actualizarMovimiento} disabled={procesando} placeholder="0.00…" className={ui.input} aria-invalid={campoError === 'monto-movimiento'} aria-describedby={campoError === 'monto-movimiento' ? 'error-movimiento' : undefined} /></div></div>
+              <div className={ui.field}><label htmlFor="motivo-movimiento">Motivo</label><input id="motivo-movimiento" name="motivo" type="text" autoComplete="off" value={movimiento.motivo} onChange={actualizarMovimiento} disabled={procesando} maxLength={500} placeholder="Ej.: retiro para depósito…" className={ui.input} aria-invalid={campoError === 'motivo-movimiento'} aria-describedby={campoError === 'motivo-movimiento' ? 'error-movimiento' : undefined} /></div>
+              {errorFormulario && ['monto-movimiento', 'motivo-movimiento'].includes(campoError) && <p id="error-movimiento" role="alert" className={ui.fieldError}>{errorFormulario}</p>}
+              <div className={ui.actions}><button type="submit" disabled={procesando} className={`${ui.button} ${ui.primary}`}>{procesando && <LoaderCircle size={16} className={ui.spinner} aria-hidden="true" />}Registrar movimiento</button></div>
+            </form>
+          </section>
+          <section className={ui.panel}>
+            <h2 className={ui.sectionHeading}>Cerrar turno</h2><p className={ui.description}>Registra el conteo físico y una nota de cierre.</p>
+            <form onSubmit={solicitarCierre} className={ui.form} noValidate onKeyDown={(evento) => { if (evento.target.tagName === 'TEXTAREA' && evento.key === 'Enter' && (evento.ctrlKey || evento.metaKey)) { evento.preventDefault(); evento.currentTarget.requestSubmit(); } }}>
+              <div className={ui.field}><label htmlFor="efectivo-contado">Efectivo contado</label><div className={ui.moneyInput}><span aria-hidden="true">Q</span><input id="efectivo-contado" name="efectivo_contado" type="text" inputMode="decimal" autoComplete="off" value={datosCierre.efectivo_contado} onChange={actualizarCierre} disabled={procesando} placeholder="0.00…" className={ui.input} aria-invalid={campoError === 'efectivo-contado'} aria-describedby={campoError === 'efectivo-contado' ? 'error-cierre' : undefined} /></div></div>
+              <div className={ui.field}><label htmlFor="observaciones-cierre">Nota de cierre <span className={ui.muted}>(requerida)</span></label><textarea id="observaciones-cierre" name="observaciones" value={datosCierre.observaciones} onChange={actualizarCierre} disabled={procesando} maxLength={500} rows={3} placeholder="Describe el conteo o cualquier incidencia…" className={ui.input} aria-invalid={campoError === 'observaciones-cierre'} aria-describedby={campoError === 'observaciones-cierre' ? 'error-cierre' : undefined} /></div>
+              {errorFormulario && ['efectivo-contado', 'observaciones-cierre'].includes(campoError) && <p id="error-cierre" role="alert" className={ui.fieldError}>{errorFormulario}</p>}
+              <div className={ui.actions}><button type="submit" disabled={procesando} className={ui.button}>{procesando && <LoaderCircle size={16} className={ui.spinner} aria-hidden="true" />}Cerrar turno</button></div>
+            </form>
+          </section>
+        </div>
+      </>}
+
+      {cajaSeleccionada && !cargandoSesion && !sesionActual && <section className={`${ui.panel} ${styles.opening}`}>
+        <h2 className={ui.sectionHeading}>Abrir turno en {cajaSeleccionada.nombre}</h2><p className={ui.description}>Registra el turno y el efectivo disponible al iniciar.</p>
+        <form onSubmit={abrirTurno} className={ui.form} noValidate>
+          <div className={ui.fields}>
+            <div className={ui.field}><label htmlFor="turno-caja">Turno</label><select id="turno-caja" name="turno" value={formulario.turno} onChange={actualizarCampo} disabled={procesando} className={ui.input} aria-invalid={campoError === 'turno-caja'} aria-describedby={campoError === 'turno-caja' ? 'error-apertura' : undefined}><option value="">Selecciona un turno</option><option value="mañana">Mañana</option><option value="tarde">Tarde</option><option value="noche">Noche</option></select></div>
+            <div className={ui.field}><label htmlFor="fondo-inicial">Fondo inicial</label><div className={ui.moneyInput}><span aria-hidden="true">Q</span><input id="fondo-inicial" name="fondo_inicial" type="text" inputMode="decimal" autoComplete="off" value={formulario.fondo_inicial} onChange={actualizarCampo} disabled={procesando} placeholder="0.00…" className={ui.input} aria-invalid={campoError === 'fondo-inicial'} aria-describedby={campoError === 'fondo-inicial' ? 'error-apertura' : undefined} /></div></div>
+          </div>
+          {errorFormulario && ['turno-caja', 'fondo-inicial'].includes(campoError) && <p id="error-apertura" role="alert" className={ui.fieldError}>{errorFormulario}</p>}
+          <div className={ui.actions}><button type="submit" disabled={procesando} className={`${ui.button} ${ui.primary}`}>{procesando && <LoaderCircle size={16} className={ui.spinner} aria-hidden="true" />}Abrir turno</button></div>
+        </form>
+      </section>}
     </div>
   );
 }

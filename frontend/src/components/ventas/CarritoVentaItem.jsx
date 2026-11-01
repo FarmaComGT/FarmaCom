@@ -41,17 +41,17 @@ export default function CarritoVentaItem({
   const precioAplicado = item.precioAplicado ?? item.precioUnitario;
 
   return (
-    <div className="grid grid-cols-12 items-center gap-3 border-b border-slate-100 py-4 last:border-0">
-      <div className="col-span-12 min-w-0 sm:col-span-5 sm:pr-4">
-        <p className="truncate font-headline text-sm font-extrabold text-on-surface">
+    <div className="pos-item">
+      <div className="pos-item-info">
+        <span className="pos-item-name">
           {item.nombre_comercial}
-        </p>
-        <p className="mt-0.5 truncate text-xs font-medium text-slate-400">
+        </span>
+        <span className="pos-item-meta">
           {item.presentacion} · Lote {item.numero_lote} ·{' '}
           {formatearVencimiento(item.fecha_vencimiento)}
-        </p>
+        </span>
         {item.promocionDisponible && (
-          <p className={`mt-1 text-[11px] font-bold ${item.promocionAplicada ? 'text-emerald-700' : 'text-amber-700'}`}>
+          <p className={`pos-item-promo ${item.promocionAplicada ? 'pos-item-promo--aplicada' : 'pos-item-promo--pendiente'}`}>
             {item.promocionAplicada
               ? `Promoción aplicada: ${formatearQuetzales(item.promocion.precio_promocion)} por unidad`
               : `Agrega ${faltantesPromocion} ${faltantesPromocion === 1 ? 'unidad' : 'unidades'} más para aplicar la promoción`}
@@ -59,15 +59,14 @@ export default function CarritoVentaItem({
         )}
       </div>
 
-      <div className="col-span-5 flex flex-col items-center sm:col-span-3">
-        <div className="flex items-center rounded-lg bg-surface-container-highest/60 p-1">
+      <div className="pos-stepper-wrap">
+        <div className={`pos-stepper ${excedeStock ? 'pos-stepper--invalid' : ''}`}>
           <button
             type="button"
             onClick={() => onDisminuir(item)}
             aria-label={`Disminuir ${item.nombre_comercial}`}
-            className="flex h-7 w-7 items-center justify-center rounded text-primary transition-colors hover:bg-white"
           >
-            <Minus className="h-3.5 w-3.5" />
+            <Minus className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
           <input
             type="text"
@@ -86,50 +85,44 @@ export default function CarritoVentaItem({
             onFocus={(evento) => evento.currentTarget.select()}
             aria-label={`Cantidad de ${item.nombre_comercial}`}
             aria-invalid={excedeStock}
-            className={`h-7 w-10 bg-transparent p-0 text-center text-sm font-extrabold leading-7 outline-none focus:rounded focus:bg-white focus:ring-2 ${
-              excedeStock ? 'text-error focus:ring-error/30' : 'focus:ring-primary/20'
-            }`}
           />
           <button
             type="button"
             onClick={() => onIncrementar(item)}
             aria-label={`Aumentar ${item.nombre_comercial}`}
-            className="flex h-7 w-7 items-center justify-center rounded text-primary transition-colors hover:bg-white"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </div>
         {excedeStock && (
-          <p role="alert" className="mt-1 text-center text-[10px] font-bold leading-tight text-error">
+          <p role="alert" className="pos-qty-alert">
             Máx. {item.stock_disponible}
           </p>
         )}
       </div>
 
-      <div className="col-span-5 text-right sm:col-span-3">
+      <div className="pos-item-amount">
         {item.promocionAplicada && (
-          <p className="font-mono text-xs text-slate-400 line-through">
+          <p className="was">
             {formatearQuetzales(item.precioUnitario)}
           </p>
         )}
-        <p className={`font-mono text-xs ${item.promocionAplicada ? 'font-bold text-emerald-700' : 'text-slate-500'}`}>
+        <p className={item.promocionAplicada ? 'unit unit--promo' : 'unit'}>
           {formatearQuetzales(precioAplicado)}
         </p>
-        <p className="font-mono text-sm font-extrabold text-primary">
+        <p className="subtotal">
           {formatearQuetzales(precioAplicado * item.cantidad)}
         </p>
       </div>
 
-      <div className="col-span-2 flex justify-end sm:col-span-1 sm:translate-x-2">
-        <button
-          type="button"
-          onClick={() => onEliminar(item)}
-          aria-label={`Eliminar ${item.nombre_comercial}`}
-          className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-error-container/40 hover:text-error"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => onEliminar(item)}
+        aria-label={`Eliminar ${item.nombre_comercial}`}
+        className="pos-item-remove"
+      >
+        <Trash2 className="h-4 w-4" aria-hidden="true" />
+      </button>
     </div>
   );
 }

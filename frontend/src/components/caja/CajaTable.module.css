@@ -1,0 +1,26 @@
+.table { width: 100%; border-collapse: collapse; table-layout: fixed; text-align: left; }
+.table th { font-size: 12px; font-weight: 400; color: var(--cash-muted); padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--cash-line); }
+.table th:first-child { width: 30%; }
+.table th:nth-child(2) { width: 30%; }
+.table th:nth-child(3) { width: 15%; }
+.table th:last-child { width: 25%; text-align: right; }
+.table td { padding: 14px 12px; border-bottom: 1px solid var(--cash-line); overflow-wrap: anywhere; vertical-align: middle; }
+.table :is(td, th):first-child { padding-left: 0; }
+.table :is(td, th):last-child { padding-right: 0; }
+.name { font-weight: 600; }
+.rowActions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 16px; }
+.foot > div { display: flex; gap: 8px; }
+@media (max-width: 767px) {
+  .table, .table tbody { display: block; }
+  .table thead { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+  .table tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 8px; border-bottom: 1px solid var(--cash-line); padding: 16px 0; }
+  .table td { padding: 0; border: 0; min-width: 0; }
+  .table td:first-child { grid-row: 1; grid-column: 1; }
+  .table td:nth-child(2) { grid-row: 2; grid-column: 1; color: var(--cash-muted); font-size: 13px; }
+  .table td:nth-child(3) { grid-row: 1; grid-column: 2; text-align: right; }
+  .table td:last-child { grid-row: 2; grid-column: 2; }
+  .table tr:has(td[colspan]) { display: block; }
+  .rowActions { margin-top: 0; }
+  .foot { flex-wrap: wrap; }
+}
