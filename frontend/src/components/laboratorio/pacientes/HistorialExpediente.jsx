@@ -1,6 +1,8 @@
 import React from 'react';
 import { History, RefreshCw } from 'lucide-react';
 import useHistorialExpediente from '../../../hooks/useHistorialExpediente';
+import management from '../../../styles/ManagementUI.module.css';
+import laboratory from '../../../styles/LaboratoryUI.module.css';
 
 const ETIQUETAS_ENTIDAD = {
   paciente: 'Paciente',
@@ -29,10 +31,16 @@ const formatearCampo = (campo) => ETIQUETAS_CAMPO[campo] || campo
   .replaceAll('_', ' ')
   .replace(/^./, (letra) => letra.toUpperCase());
 
-const formatearValor = (valor) => {
+const formatearValor = (campo, valor) => {
   if (valor === null || valor === undefined || valor === '') return 'Sin valor';
   if (typeof valor === 'boolean') return valor ? 'Sí' : 'No';
   if (typeof valor === 'object') return JSON.stringify(valor);
+  if (campo.startsWith('fecha_')) {
+    const fecha = new Date(valor);
+    if (!Number.isNaN(fecha.getTime())) {
+      return new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeZone: 'UTC' }).format(fecha);
+    }
+  }
   return String(valor);
 };
 
@@ -53,15 +61,15 @@ export default function HistorialExpediente({ idExpediente }) {
   return (
     <section
       aria-labelledby="titulo-historial-expediente"
-      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      className={laboratory.history}
     >
-      <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <span className="rounded-xl bg-primary/10 p-2 text-primary">
+      <div className={laboratory.historyHeader}>
+        <div className={laboratory.historyTitle}>
+          <span className={laboratory.storageIcon}>
             <History className="h-5 w-5" aria-hidden="true" />
           </span>
           <div>
-            <h2 id="titulo-historial-expediente" className="font-headline text-lg font-extrabold text-primary">
+            <h2 id="titulo-historial-expediente">
               Historial del expediente
             </h2>
             <p className="text-xs text-slate-500">Quién, cuándo y qué cambió</p>
@@ -71,7 +79,7 @@ export default function HistorialExpediente({ idExpediente }) {
           type="button"
           onClick={recargar}
           disabled={cargando}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-primary/20 hover:text-primary disabled:opacity-50"
+          className={management.button}
         >
           <RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} aria-hidden="true" />
           Actualizar
@@ -79,58 +87,66 @@ export default function HistorialExpediente({ idExpediente }) {
       </div>
 
       {cargando && (
-        <div aria-label="Cargando historial del expediente" className="m-5 h-28 animate-pulse rounded-xl bg-slate-100" />
+        <div aria-label="Cargando historial del expediente" className={laboratory.loadingState}>Cargando historial…</div>
       )}
 
       {!cargando && error && (
-        <div role="alert" className="m-5 rounded-xl bg-error-container/30 px-4 py-3 text-sm font-semibold text-on-error-container">
+        <div role="alert" className={management.alert}>
           {error}
         </div>
       )}
 
       {!cargando && !error && historial.length === 0 && (
-        <p className="px-5 py-10 text-center text-sm font-medium text-slate-500">
+        <p className={laboratory.emptyState}>
           Todavía no hay cambios registrados en este expediente.
         </p>
       )}
 
       {!cargando && !error && historial.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="min-w-[820px] w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+        <div className={laboratory.historyTableWrap}>
+          <table className={laboratory.historyTable}>
+            <colgroup>
+              <col className={laboratory.historyDateColumn} />
+              <col className={laboratory.historyUserColumn} />
+              <col className={laboratory.historyActionColumn} />
+              <col className={laboratory.historyChangesColumn} />
+            </colgroup>
+            <thead>
               <tr>
-                <th className="px-5 py-3">Fecha</th>
-                <th className="px-5 py-3">Usuario</th>
-                <th className="w-32 px-5 py-3 text-center">Acción</th>
-                <th className="px-5 py-3">Cambios</th>
+                <th scope="col">Fecha</th>
+                <th scope="col">Usuario</th>
+                <th scope="col">Acción</th>
+                <th scope="col">Cambios</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {historial.map((entrada) => (
-                <tr key={entrada.id_bitacora} className="align-top">
-                  <td className="whitespace-nowrap px-5 py-4 text-slate-600">
-                    {formatearFechaHora(entrada.fecha_hora)}
+                <tr key={entrada.id_bitacora}>
+                  <td data-label="Fecha" className={laboratory.historyDate}>
+                    <time dateTime={entrada.fecha_hora}>{formatearFechaHora(entrada.fecha_hora)}</time>
                   </td>
-                  <td className="px-5 py-4">
-                    <p className="font-semibold text-slate-800">{entrada.nombre_usuario}</p>
-                    <p className="text-xs text-slate-400">Usuario #{entrada.id_usuario}</p>
+                  <td data-label="Usuario" className={laboratory.historyUser}>
+                    <strong>{entrada.nombre_usuario}</strong>
+                    <span>Usuario #{entrada.id_usuario}</span>
                   </td>
-                  <td className="w-32 px-5 py-4 text-center">
-                    <span className="inline-flex min-w-20 justify-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold capitalize text-primary">
-                      {entrada.accion}
-                    </span>
-                    <p className="mt-1 text-center text-xs text-slate-500">
-                      {ETIQUETAS_ENTIDAD[entrada.entidad] || entrada.entidad}
-                    </p>
+                  <td data-label="Acción" className={laboratory.historyAction}>
+                    <div className={laboratory.historyActionContent}>
+                      <span className={laboratory.historyActionBadge}>
+                        {entrada.accion}
+                      </span>
+                      <span className={laboratory.historyEntity}>
+                        {ETIQUETAS_ENTIDAD[entrada.entidad] || entrada.entidad}
+                      </span>
+                    </div>
                   </td>
-                  <td className="px-5 py-4">
-                    <ul className="space-y-1.5">
+                  <td data-label="Cambios" className={laboratory.historyChanges}>
+                    <ul>
                       {obtenerCambios(entrada).map((cambio) => (
-                        <li key={cambio.campo} className="text-xs text-slate-600">
-                          <span className="font-bold text-slate-700">{formatearCampo(cambio.campo)}:</span>{' '}
-                          <span className="text-slate-400">{formatearValor(cambio.anterior)}</span>
-                          <span aria-hidden="true"> → </span>
-                          <span className="font-semibold text-slate-700">{formatearValor(cambio.nuevo)}</span>
+                        <li key={cambio.campo}>
+                          <strong>{formatearCampo(cambio.campo)}:</strong>
+                          <span className={laboratory.historyPrevious}>{formatearValor(cambio.campo, cambio.anterior)}</span>
+                          <span className={laboratory.historyArrow} aria-hidden="true">→</span>
+                          <span className={laboratory.historyNext}>{formatearValor(cambio.campo, cambio.nuevo)}</span>
                         </li>
                       ))}
                     </ul>

@@ -51,7 +51,7 @@ describe('ReporteFiltros', () => {
     expect(propiedades.onRestablecer).toHaveBeenCalledOnce();
   });
 
-  it('permite escribir la fecha y abre el calendario únicamente desde el ícono', () => {
+  it('permite escribir la fecha y abre el calendario desde el campo o el icono', () => {
     const propiedades = renderizarFiltros();
     const campoDesde = screen.getByLabelText('Desde');
     const showPicker = vi.fn();
@@ -60,9 +60,11 @@ describe('ReporteFiltros', () => {
     fireEvent.change(campoDesde, { target: { value: '2026-08-10' } });
     expect(propiedades.onFiltroChange).toHaveBeenCalledWith('fecha_desde', '2026-08-10');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir calendario de fecha inicial' }));
-
+    fireEvent.click(campoDesde);
     expect(showPicker).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir calendario de fecha inicial' }));
+    expect(showPicker).toHaveBeenCalledTimes(2);
   });
 
   it('muestra los errores sin ocultar el formulario', () => {
@@ -70,5 +72,39 @@ describe('ReporteFiltros', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('La fecha inicial no es válida.');
     expect(screen.getByRole('button', { name: 'Aplicar' })).toBeInTheDocument();
+  });
+
+  it('presenta la variante compacta mientras carga sucursales y comunica el error', () => {
+    renderizarFiltros({
+      mostrarAgrupacion: false,
+      sucursales: [],
+      cargandoSucursales: true,
+      errorSucursales: 'No se pudieron cargar las sucursales.',
+    });
+
+    expect(screen.queryByRole('combobox', { name: 'Agrupar por' })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Sucursal' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: 'Cargando sucursales…' })).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudieron cargar las sucursales.');
+  });
+
+  it('mantiene operable el control si el navegador no ofrece selector nativo', () => {
+    renderizarFiltros();
+    const campoHasta = screen.getByLabelText('Hasta');
+    campoHasta.showPicker = undefined;
+
+    expect(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Abrir calendario de fecha final' }));
+    }).not.toThrow();
+  });
+
+  it('tolera que el navegador rechace la apertura del selector de fecha', () => {
+    renderizarFiltros();
+    const campoDesde = screen.getByLabelText('Desde');
+    campoDesde.showPicker = vi.fn(() => { throw new DOMException('Bloqueado', 'NotAllowedError'); });
+
+    expect(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Abrir calendario de fecha inicial' }));
+    }).not.toThrow();
   });
 });

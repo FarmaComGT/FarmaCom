@@ -15,6 +15,7 @@ import {
   formatearNumero,
   formatearPeriodoReporte,
 } from '../../utils/reportes';
+import styles from '../../styles/ReportsUI.module.css';
 
 const ETIQUETAS_AGRUPACION = {
   dia: 'Por día',
@@ -60,16 +61,16 @@ export default function VentasPeriodoChart({
   return (
     <section
       aria-labelledby="titulo-ventas-periodo"
-      className="rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
+      className={styles.panel}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <BarChart3 className="h-5 w-5 text-primary" aria-hidden="true" />
-          <h2 id="titulo-ventas-periodo" className="font-headline text-lg font-extrabold text-on-surface">
+      <div className={styles.panelHeader}>
+        <div className={styles.panelTitle}>
+          <BarChart3 className="h-5 w-5" aria-hidden="true" />
+          <h2 id="titulo-ventas-periodo">
             Ingresos por período
           </h2>
         </div>
-        <span className="rounded-full bg-primary/8 px-3 py-1 text-xs font-bold text-primary">
+        <span className={styles.panelMeta}>
           {ETIQUETAS_AGRUPACION[agrupacion] || ETIQUETAS_AGRUPACION.dia}
         </span>
       </div>
@@ -79,12 +80,12 @@ export default function VentasPeriodoChart({
       )}
 
       {!cargando && error && (
-        <div role="alert" className="mt-5 flex h-80 flex-col items-center justify-center gap-3 rounded-xl bg-error-container/20 p-5 text-center">
-          <p className="text-sm font-semibold text-on-error-container">{error}</p>
+        <div role="alert" className={`${styles.state} ${styles.stateError}`}>
+          <p>{error}</p>
           <button
             type="button"
             onClick={onReintentar}
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-error shadow-sm transition hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error/20"
+            className={styles.button}
           >
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Reintentar
@@ -93,16 +94,17 @@ export default function VentasPeriodoChart({
       )}
 
       {!cargando && !error && !hayVentas && (
-        <div className="mt-5 flex h-80 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-5 text-center">
+        <div className={styles.state}>
           <p className="text-sm font-medium text-slate-500">No hay ventas en el período seleccionado.</p>
         </div>
       )}
 
       {!cargando && !error && hayVentas && (
-        <figure aria-label="Gráfica de ingresos por período" className="mt-5 overflow-x-auto pb-2">
+        <figure aria-label="Gráfica de ingresos por período" className={styles.chartViewport}>
           <div
-            className="h-80"
-            style={{ minWidth: `${Math.max(620, datos.length * 42)}px` }}
+            data-testid="grafica-ingresos-contenedor"
+            className={styles.chart}
+            style={{ height: '320px', minWidth: `${Math.max(620, datos.length * 42)}px` }}
           >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={datos} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>

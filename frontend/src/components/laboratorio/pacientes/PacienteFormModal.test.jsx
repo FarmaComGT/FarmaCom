@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PacienteFormModal from './PacienteFormModal';
 
@@ -88,5 +88,16 @@ describe('PacienteFormModal', () => {
 
     expect(screen.getByPlaceholderText('Ej. 45')).toHaveValue(60);
     expect(screen.getByRole('button', { name: 'Masculino' })).toHaveClass('border-primary');
+  });
+
+  it('abre el calendario al pulsar cualquier parte del campo de fecha', () => {
+    render(<PacienteFormModal {...propsBase} />);
+    const campoFecha = screen.getByLabelText('Fecha de nacimiento');
+    const showPicker = vi.fn();
+    campoFecha.showPicker = showPicker;
+
+    fireEvent.click(campoFecha);
+
+    expect(showPicker).toHaveBeenCalledOnce();
   });
 });

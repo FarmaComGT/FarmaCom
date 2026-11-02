@@ -4,8 +4,13 @@ import RentabilidadSucursal from '../../components/reportes/RentabilidadSucursal
 import useFiltrosReportes from '../../hooks/useFiltrosReportes';
 import { useRentabilidad } from '../../hooks/useReportes';
 import useSucursales from '../../hooks/useSucursales';
+import styles from '../../styles/ReportsUI.module.css';
 
 export default function Rentabilidad() {
+  React.useEffect(() => {
+    document.title = 'Rentabilidad por sucursal · FarmaCom';
+  }, []);
+
   const {
     filtrosEdicion, filtrosAplicados, errorFiltros,
     actualizarFiltro, aplicarFiltros, restablecerFiltros,
@@ -14,7 +19,7 @@ export default function Rentabilidad() {
   const { sucursales, cargando: cargandoSucursales, error: errorSucursales } = useSucursales();
 
   return (
-    <div className="space-y-6">
+    <div className={styles.content}>
       <ReporteFiltros
         filtros={filtrosEdicion}
         mostrarAgrupacion={false}

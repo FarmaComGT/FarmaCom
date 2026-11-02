@@ -1,9 +1,7 @@
 import React from 'react';
+import styles from '../../../styles/ManagementUI.module.css';
 
-const ESTILOS_ESTADO = {
-  activo: 'bg-green-100 text-green-700 border border-green-200',
-  anulado: 'bg-red-100 text-red-700 border border-red-200',
-};
+const ESTILOS_ESTADO = { activo: styles.badgeActive, anulado: styles.badgeInactive };
 
 const ETIQUETAS_ESTADO = {
   activo: 'Activo',
@@ -13,9 +11,7 @@ const ETIQUETAS_ESTADO = {
 export default function PacienteEstadoBadge({ estado }) {
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-        ESTILOS_ESTADO[estado] || 'bg-slate-100 text-slate-600'
-      }`}
+      className={`${styles.badge} ${ESTILOS_ESTADO[estado] || ''}`}
     >
       {ETIQUETAS_ESTADO[estado] || estado}
     </span>

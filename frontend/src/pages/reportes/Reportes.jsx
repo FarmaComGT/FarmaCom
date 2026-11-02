@@ -7,8 +7,13 @@ import TopProductosTable from '../../components/reportes/TopProductosTable.jsx';
 import useFiltrosReportes from '../../hooks/useFiltrosReportes.js';
 import useReportes from '../../hooks/useReportes.js';
 import useSucursales from '../../hooks/useSucursales.js';
+import styles from '../../styles/ReportsUI.module.css';
 
 export default function Reportes() {
+  React.useEffect(() => {
+    document.title = 'Reportes de ventas · FarmaCom';
+  }, []);
+
   const {
     filtrosEdicion,
     filtrosAplicados,
@@ -32,7 +37,7 @@ export default function Reportes() {
   } = useSucursales();
 
   return (
-    <div className="space-y-6">
+    <div className={styles.content}>
       <ReporteFiltros
         filtros={filtrosEdicion}
         sucursales={sucursales}
@@ -51,7 +56,7 @@ export default function Reportes() {
         onReintentar={recargar}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
+      <div className={styles.dashboardGrid}>
         <VentasPeriodoChart
           datos={serie.datos}
           agrupacion={filtrosAplicados.agrupacion}

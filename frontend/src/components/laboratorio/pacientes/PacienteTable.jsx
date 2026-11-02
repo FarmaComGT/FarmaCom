@@ -1,35 +1,23 @@
 import React from 'react';
 import PacienteTableHeader from './PacienteTableHeader.jsx';
 import PacienteTableRow from './PacienteTableRow.jsx';
+import styles from '../../../styles/ManagementUI.module.css';
 
 export default function PacienteTable({ cargando, pacientes, onEditar, onAnular, onEliminar }) {
   return (
-    <section className="bg-surface-container-low/60 border border-slate-200 rounded-2xl overflow-hidden">
-      <div className="overflow-x-auto">
-        <div className="min-w-[960px]">
-          <PacienteTableHeader />
-
+    <section className={styles.tablePanel} aria-label="Pacientes registrados">
+      <table className={styles.table} aria-busy={cargando}>
+        <PacienteTableHeader />
+        <tbody>
           {cargando ? (
-            <div className="px-5 py-10 text-center text-slate-500 font-medium">Cargando pacientes...</div>
+            <tr><td colSpan="8" className={styles.loading}>Cargando pacientes…</td></tr>
           ) : pacientes.length === 0 ? (
-            <div className="px-5 py-10 text-center text-slate-500 font-medium">
-              No hay pacientes para mostrar.
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-200">
-              {pacientes.map((paciente) => (
-                <PacienteTableRow
-                  key={paciente.id_paciente}
-                  paciente={paciente}
-                  onEditar={onEditar}
-                  onAnular={onAnular}
-                  onEliminar={onEliminar}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+            <tr><td colSpan="8" className={styles.empty}><strong>No hay pacientes para mostrar.</strong><span>Prueba con otra búsqueda o registra un paciente.</span></td></tr>
+          ) : pacientes.map((paciente) => (
+            <PacienteTableRow key={paciente.id_paciente} paciente={paciente} onEditar={onEditar} onAnular={onAnular} onEliminar={onEliminar} />
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }

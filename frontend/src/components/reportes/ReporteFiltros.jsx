@@ -1,17 +1,7 @@
 import React, { useRef } from 'react';
 import { CalendarDays, ChevronDown, Filter, RotateCcw } from 'lucide-react';
-
-const claseCampo = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-on-surface outline-none transition-all hover:border-primary/30 hover:shadow-sm focus:border-primary/30 focus:ring-2 focus:ring-primary/15 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none';
-
-const abrirSelectorFecha = (referencia) => {
-  if (typeof referencia.current?.showPicker !== 'function') return;
-
-  try {
-    referencia.current.showPicker();
-  } catch {
-    // El navegador puede bloquear showPicker fuera de una interacción directa.
-  }
-};
+import { abrirSelectorFecha } from '../../utils/datePicker';
+import styles from '../../styles/ReportsUI.module.css';
 
 export default function ReporteFiltros({
   filtros,
@@ -36,19 +26,17 @@ export default function ReporteFiltros({
     <form
       aria-label="Filtros de reportes"
       onSubmit={manejarEnvio}
-      className="rounded-2xl bg-surface-container-low p-4"
+      className={styles.filters}
     >
-      <div className={`grid gap-4 sm:grid-cols-2 xl:items-end ${mostrarAgrupacion
-        ? 'xl:grid-cols-[minmax(180px,1.3fr)_minmax(150px,1fr)_minmax(150px,1fr)_minmax(150px,0.8fr)_auto]'
-        : 'xl:grid-cols-[minmax(180px,1.3fr)_minmax(150px,1fr)_minmax(150px,1fr)_auto]'}`}>
-        <label className="space-y-1.5">
-          <span className="text-xs font-bold text-on-surface-variant">Sucursal</span>
-          <div className="relative">
+      <div className={`${styles.filterGrid} ${mostrarAgrupacion ? '' : styles.filterGridCompact}`}>
+        <label className={styles.field}>
+          <span>Sucursal</span>
+          <div className={styles.controlWrap}>
             <select
               value={filtros.id_sucursal}
               onChange={(evento) => onFiltroChange('id_sucursal', evento.target.value)}
               disabled={cargandoSucursales}
-              className={`${claseCampo} cursor-pointer appearance-none pr-10`}
+              className={`${styles.control} ${styles.selectControl}`}
             >
               <option value="">
                 {cargandoSucursales ? 'Cargando sucursales…' : 'Todas las sucursales'}
@@ -61,47 +49,55 @@ export default function ReporteFiltros({
             </select>
             <ChevronDown
               aria-hidden="true"
-              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black"
+              className={styles.controlIcon}
             />
           </div>
         </label>
 
-        <label className="space-y-1.5">
-          <span className="text-xs font-bold text-on-surface-variant">Desde</span>
-          <div className="relative">
+        <label className={styles.field}>
+          <span>Desde</span>
+          <div className={styles.controlWrap}>
             <input
               ref={campoDesdeRef}
               type="date"
               value={filtros.fecha_desde}
               onChange={(evento) => onFiltroChange('fecha_desde', evento.target.value)}
-              className={`${claseCampo} cursor-text pr-10 [&::-webkit-calendar-picker-indicator]:hidden`}
+              onClick={(evento) => {
+                evento.preventDefault();
+                abrirSelectorFecha(campoDesdeRef);
+              }}
+              className={`${styles.control} ${styles.dateControl}`}
             />
             <button
               type="button"
               onClick={() => abrirSelectorFecha(campoDesdeRef)}
               aria-label="Abrir calendario de fecha inicial"
-              className="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-black transition hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+              className={styles.dateButton}
             >
               <CalendarDays aria-hidden="true" className="h-4 w-4" />
             </button>
           </div>
         </label>
 
-        <label className="space-y-1.5">
-          <span className="text-xs font-bold text-on-surface-variant">Hasta</span>
-          <div className="relative">
+        <label className={styles.field}>
+          <span>Hasta</span>
+          <div className={styles.controlWrap}>
             <input
               ref={campoHastaRef}
               type="date"
               value={filtros.fecha_hasta}
               onChange={(evento) => onFiltroChange('fecha_hasta', evento.target.value)}
-              className={`${claseCampo} cursor-text pr-10 [&::-webkit-calendar-picker-indicator]:hidden`}
+              onClick={(evento) => {
+                evento.preventDefault();
+                abrirSelectorFecha(campoHastaRef);
+              }}
+              className={`${styles.control} ${styles.dateControl}`}
             />
             <button
               type="button"
               onClick={() => abrirSelectorFecha(campoHastaRef)}
               aria-label="Abrir calendario de fecha final"
-              className="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-black transition hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+              className={styles.dateButton}
             >
               <CalendarDays aria-hidden="true" className="h-4 w-4" />
             </button>
@@ -109,13 +105,13 @@ export default function ReporteFiltros({
         </label>
 
         {mostrarAgrupacion && (
-        <label className="space-y-1.5">
-          <span className="text-xs font-bold text-on-surface-variant">Agrupar por</span>
-          <div className="relative">
+        <label className={styles.field}>
+          <span>Agrupar por</span>
+          <div className={styles.controlWrap}>
             <select
               value={filtros.agrupacion}
               onChange={(evento) => onFiltroChange('agrupacion', evento.target.value)}
-              className={`${claseCampo} cursor-pointer appearance-none pr-10`}
+              className={`${styles.control} ${styles.selectControl}`}
             >
               <option value="dia">Día</option>
               <option value="semana">Semana</option>
@@ -123,16 +119,16 @@ export default function ReporteFiltros({
             </select>
             <ChevronDown
               aria-hidden="true"
-              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black"
+              className={styles.controlIcon}
             />
           </div>
         </label>
         )}
 
-        <div className="flex gap-2 sm:col-span-2 xl:col-span-1">
+        <div className={styles.filterActions}>
           <button
             type="submit"
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-headline text-sm font-bold text-white shadow-sm transition hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 xl:flex-none"
+            className={`${styles.button} ${styles.primary}`}
           >
             <Filter className="h-4 w-4" aria-hidden="true" />
             Aplicar
@@ -141,7 +137,7 @@ export default function ReporteFiltros({
             type="button"
             onClick={onRestablecer}
             aria-label="Restablecer filtros"
-            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white p-2.5 text-slate-500 transition hover:border-primary/20 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+            className={`${styles.button} ${styles.iconButton}`}
           >
             <RotateCcw className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -149,7 +145,7 @@ export default function ReporteFiltros({
       </div>
 
       {(errorFiltros || errorSucursales) && (
-        <p role="alert" className="mt-3 text-sm font-medium text-error">
+        <p role="alert" className={styles.alert}>
           {errorFiltros || errorSucursales}
         </p>
       )}

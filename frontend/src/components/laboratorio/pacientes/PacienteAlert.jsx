@@ -1,9 +1,8 @@
 import React from 'react';
+import management from '../../../styles/ManagementUI.module.css';
+import laboratory from '../../../styles/LaboratoryUI.module.css';
 
-const ESTILOS = {
-  error: 'bg-error-container/40 border-error/20 text-on-error-container',
-  success: 'bg-green-50 border-green-200 text-green-800',
-};
+const ESTILOS = { error: management.alert, success: laboratory.successAlert };
 
 export default function PacienteAlert({ mensaje, variante = 'error' }) {
   if (!mensaje) {
@@ -11,7 +10,7 @@ export default function PacienteAlert({ mensaje, variante = 'error' }) {
   }
 
   return (
-    <div className={`border rounded-xl px-4 py-3 text-sm font-medium ${ESTILOS[variante] || ESTILOS.error}`}>
+    <div role="status" aria-live="polite" className={ESTILOS[variante] || ESTILOS.error}>
       {mensaje}
     </div>
   );

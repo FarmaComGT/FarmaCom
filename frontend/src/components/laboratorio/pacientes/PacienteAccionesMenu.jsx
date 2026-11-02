@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Ban, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import management from '../../../styles/ManagementUI.module.css';
+import laboratory from '../../../styles/LaboratoryUI.module.css';
 
 export default function PacienteAccionesMenu({ paciente, onEditar, onAnular, onEliminar }) {
   const [abierto, setAbierto] = useState(false);
@@ -8,20 +10,21 @@ export default function PacienteAccionesMenu({ paciente, onEditar, onAnular, onE
   const cerrar = () => setAbierto(false);
 
   return (
-    <div className="relative inline-block text-left">
+    <div className={laboratory.menuWrap}>
       <button
         type="button"
         onClick={() => setAbierto((prev) => !prev)}
         aria-label={`Más acciones para ${paciente.nombre_paciente}`}
         aria-haspopup="true"
         aria-expanded={abierto}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 border border-slate-200 hover:bg-slate-50"
+        aria-controls={`acciones-paciente-${paciente.id_paciente}`}
+        className={`${management.button} ${management.iconButton}`}
       >
         <MoreVertical className="w-3.5 h-3.5" />
       </button>
 
       {abierto && (
-        <div className="absolute right-0 z-20 mt-1 w-40 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+        <div id={`acciones-paciente-${paciente.id_paciente}`} className={laboratory.menu}>
           <button
             type="button"
             disabled={anulado}
@@ -29,7 +32,7 @@ export default function PacienteAccionesMenu({ paciente, onEditar, onAnular, onE
               cerrar();
               onEditar(paciente);
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className={laboratory.menuItem}
           >
             <Pencil className="h-3.5 w-3.5" /> Editar
           </button>
@@ -40,19 +43,19 @@ export default function PacienteAccionesMenu({ paciente, onEditar, onAnular, onE
                 cerrar();
                 onAnular(paciente);
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+              className={`${laboratory.menuItem} ${laboratory.menuDanger}`}
             >
               <Ban className="h-3.5 w-3.5" /> Anular
             </button>
           )}
-          <div className="my-1 border-t border-slate-100" />
+          <div className={laboratory.menuSeparator} />
           <button
             type="button"
             onClick={() => {
               cerrar();
               onEliminar(paciente);
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
+            className={`${laboratory.menuItem} ${laboratory.menuDanger}`}
           >
             <Trash2 className="h-3.5 w-3.5" /> Eliminar
           </button>
