@@ -99,12 +99,14 @@
 ::view-transition-old(app-route) { animation: location-content-out 110ms ease both; }
 ::view-transition-new(app-route) { animation: location-content-in 190ms cubic-bezier(.2, .8, .2, 1) both; }
 ::view-transition-group(location-tab),
-::view-transition-group(user-filter-tab) { animation-duration: 180ms; }
+::view-transition-group(user-filter-tab),
+::view-transition-group(report-tab) { animation-duration: 180ms; }
 @keyframes location-content-out { to { opacity: 0; transform: translateY(-4px); } }
 @keyframes location-content-in { from { opacity: 0; transform: translateY(7px); } }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(app-route),
   ::view-transition-new(app-route),
   ::view-transition-group(location-tab),
-  ::view-transition-group(user-filter-tab) { animation: none; }
+  ::view-transition-group(user-filter-tab),
+  ::view-transition-group(report-tab) { animation: none; }
 }

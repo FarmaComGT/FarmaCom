@@ -48,6 +48,7 @@ describe('VentasPeriodoChart', () => {
     expect(screen.getByText('Por día')).toBeInTheDocument();
     expect(screen.getByTestId('grafica-barras')).toHaveAttribute('data-periodos', '2');
     expect(screen.getByTestId('serie-ingresos')).toBeInTheDocument();
+    expect(screen.getByTestId('grafica-ingresos-contenedor')).toHaveStyle({ height: '320px' });
 
     const tabla = screen.getByRole('table', { name: 'Detalle de ingresos por período' });
     expect(within(tabla).getByText('01/08/2026')).toBeInTheDocument();
@@ -101,5 +102,19 @@ describe('VentasPeriodoChart', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
     expect(onReintentar).toHaveBeenCalledOnce();
+  });
+
+  it('usa la agrupacion diaria como respaldo ante un criterio desconocido', () => {
+    render(
+      <VentasPeriodoChart
+        datos={[]}
+        agrupacion="desconocida"
+        cargando={false}
+        error={null}
+        onReintentar={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Por d.a/)).toBeInTheDocument();
   });
 });

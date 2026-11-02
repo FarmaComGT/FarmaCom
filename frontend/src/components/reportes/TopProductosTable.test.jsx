@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import TopProductosTable from './TopProductosTable';
 
 const productos = [
@@ -23,6 +23,10 @@ const productos = [
 ];
 
 describe('TopProductosTable', () => {
+  afterEach(() => {
+    delete document.startViewTransition;
+  });
+
   it('presenta el ranking con cantidad e ingresos', () => {
     render(
       <TopProductosTable
@@ -47,8 +51,16 @@ describe('TopProductosTable', () => {
     expect(screen.getByRole('button', { name: 'Cantidad' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('permite cambiar el criterio del ranking', () => {
+  it('cambia solo el criterio del ranking sin iniciar una transición global', () => {
     const onCriterioChange = vi.fn();
+    const iniciarTransicion = vi.fn((actualizar) => {
+      actualizar();
+      return { finished: Promise.resolve() };
+    });
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: iniciarTransicion,
+    });
     render(
       <TopProductosTable
         datos={productos}
@@ -61,6 +73,7 @@ describe('TopProductosTable', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Ingresos' }));
+    expect(iniciarTransicion).not.toHaveBeenCalled();
     expect(onCriterioChange).toHaveBeenCalledWith('ingresos');
   });
 
@@ -91,6 +104,26 @@ describe('TopProductosTable', () => {
     );
 
     expect(screen.getByText('No hay productos vendidos en el período seleccionado.')).toBeInTheDocument();
+  });
+
+  it('conserva el ranking visible mientras actualiza el criterio', () => {
+    render(
+      <TopProductosTable
+        datos={productos}
+        criterio="ingresos"
+        cargando
+        error={null}
+        onCriterioChange={vi.fn()}
+        onReintentar={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('table', {
+      name: 'Ranking de productos ordenado por ingresos',
+    })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Actualizando ranking…');
+    expect(screen.getByRole('button', { name: 'Cantidad' })).toBeEnabled();
+    expect(screen.queryByLabelText('Cargando productos más vendidos')).not.toBeInTheDocument();
   });
 
   it('muestra el error y permite reintentar', () => {

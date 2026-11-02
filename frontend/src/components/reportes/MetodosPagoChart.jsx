@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { formatearMoneda, formatearNumero } from '../../utils/reportes';
+import styles from '../../styles/ReportsUI.module.css';
 
 const COLORES_METODO = {
   efectivo: '#006b5f',
@@ -39,11 +40,11 @@ export default function MetodosPagoChart({ datos, cargando, error, onReintentar 
   return (
     <section
       aria-labelledby="titulo-metodos-pago"
-      className="h-full rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_8px_24px_rgba(0,0,0,0.03)]"
+      className={styles.panel}
     >
-      <div className="flex items-center gap-2.5">
-        <CreditCard className="h-5 w-5 text-primary" aria-hidden="true" />
-        <h2 id="titulo-metodos-pago" className="font-headline text-lg font-extrabold text-on-surface">
+      <div className={styles.panelTitle}>
+        <CreditCard className="h-5 w-5" aria-hidden="true" />
+        <h2 id="titulo-metodos-pago">
           Métodos de pago
         </h2>
       </div>
@@ -53,12 +54,12 @@ export default function MetodosPagoChart({ datos, cargando, error, onReintentar 
       )}
 
       {!cargando && error && (
-        <div role="alert" className="mt-5 flex h-80 flex-col items-center justify-center gap-3 rounded-xl bg-error-container/20 p-5 text-center">
-          <p className="text-sm font-semibold text-on-error-container">{error}</p>
+        <div role="alert" className={`${styles.state} ${styles.stateError}`}>
+          <p>{error}</p>
           <button
             type="button"
             onClick={onReintentar}
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-error shadow-sm transition hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error/20"
+            className={styles.button}
           >
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Reintentar
@@ -67,7 +68,7 @@ export default function MetodosPagoChart({ datos, cargando, error, onReintentar 
       )}
 
       {!cargando && !error && datosDisponibles.length === 0 && (
-        <div className="mt-5 flex h-80 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-5 text-center">
+        <div className={styles.state}>
           <p className="text-sm font-medium text-slate-500">No hay pagos en el período seleccionado.</p>
         </div>
       )}
