@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import UsuarioTable from '../components/usuarios/UsuarioTable.jsx';
 import UsuarioFormModal from '../components/usuarios/UsuarioFormModal.jsx';
 import UsuarioEstadoModal from '../components/usuarios/UsuarioEstadoModal.jsx';
@@ -8,6 +9,8 @@ import UsuarioAlert from '../components/usuarios/UsuarioAlert.jsx';
 import useUsuarios from '../hooks/useUsuarios';
 import useSucursales from '../hooks/useSucursales';
 import useLaboratorios from '../hooks/useLaboratorios';
+import { ejecutarTransicionDeVista } from '../utils/viewTransition';
+import styles from '../styles/ManagementUI.module.css';
 
 const estadoInicialFormulario = {
   nombre_usuario: '',
@@ -23,7 +26,12 @@ export default function Usuarios() {
   const { sucursales, cargando: cargandoSucursales } = useSucursales();
   const { laboratorios, cargando: cargandoLaboratorios } = useLaboratorios();
 
-  const [busqueda, setBusqueda] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const busqueda = searchParams.get('q') || '';
+  const estadoParam = searchParams.get('estado');
+  const estadoSeleccionado = ['activo', 'inactivo'].includes(estadoParam)
+    ? estadoParam
+    : 'todos';
   const [mostrarModal, setMostrarModal] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [cambiandoEstadoId, setCambiandoEstadoId] = useState(null);
@@ -35,6 +43,30 @@ export default function Usuarios() {
 
   const [usuarioACambiarEstado, setUsuarioACambiarEstado] = useState(null);
 
+  useEffect(() => {
+    document.title = 'Usuarios · FarmaCom';
+  }, []);
+
+  const actualizarBusqueda = (valor) => {
+    setSearchParams((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      if (valor) siguientes.set('q', valor);
+      else siguientes.delete('q');
+      return siguientes;
+    }, { replace: true });
+  };
+
+  const actualizarEstado = (estado) => {
+    ejecutarTransicionDeVista(() => {
+      setSearchParams((actuales) => {
+        const siguientes = new URLSearchParams(actuales);
+        if (estado === 'todos') siguientes.delete('estado');
+        else siguientes.set('estado', estado);
+        return siguientes;
+      }, { replace: true });
+    });
+  };
+
   const mapaSucursales = useMemo(() => {
     return sucursales.reduce((acc, s) => {
       acc[s.id_sucursal] = s.nombre_sucursal;
@@ -44,13 +76,16 @@ export default function Usuarios() {
 
   const usuariosFiltrados = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
-    if (!termino) return usuarios;
     return usuarios.filter((u) => {
+      if (estadoSeleccionado !== 'todos' && u.estado_usuario !== estadoSeleccionado) {
+        return false;
+      }
+      if (!termino) return true;
       const nombre = u.nombre_usuario?.toLowerCase() || '';
       const correo = u.correo_usuario?.toLowerCase() || '';
       return nombre.includes(termino) || correo.includes(termino);
     });
-  }, [busqueda, usuarios]);
+  }, [busqueda, estadoSeleccionado, usuarios]);
 
   const totalActivos = useMemo(
     () => usuarios.filter((u) => u.estado_usuario === 'activo').length,
@@ -193,18 +228,31 @@ export default function Usuarios() {
   };
 
   return (
-    <div className="space-y-8">
+    <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="usuarios-title">
+      <header className={styles.heading}>
+        <div>
+          <h1 id="usuarios-title">Usuarios</h1>
+          <p>Administra accesos, roles y asignaciones del equipo.</p>
+        </div>
+      </header>
+
       <UsuarioStatsGrid
         totalUsuarios={usuarios.length}
         totalActivos={totalActivos}
         totalInactivos={totalInactivos}
+        estadoSeleccionado={estadoSeleccionado}
+        onSeleccionarEstado={actualizarEstado}
       />
 
       <UsuarioActionBar
         busqueda={busqueda}
-        onBusquedaChange={(evento) => setBusqueda(evento.target.value)}
+        onBusquedaChange={(evento) => actualizarBusqueda(evento.target.value)}
         onCrear={abrirModalCrear}
       />
+
+      <p className={styles.resultCount} aria-live="polite">
+        <strong>{usuariosFiltrados.length}</strong> de {usuarios.length} usuarios
+      </p>
 
       <UsuarioAlert mensaje={error} />
       <UsuarioAlert mensaje={errorAccion} />
@@ -240,6 +288,6 @@ export default function Usuarios() {
         onClose={cerrarModalEstado}
         onConfirm={confirmarCambioEstado}
       />
-    </div>
+    </section>
   );
 }

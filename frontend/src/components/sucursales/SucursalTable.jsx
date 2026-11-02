@@ -1,6 +1,7 @@
 import React from 'react';
 import SucursalTableHeader from './SucursalTableHeader.jsx';
 import SucursalTableRow from './SucursalTableRow.jsx';
+import styles from '../../styles/ManagementUI.module.css';
 
 export default function SucursalTable({
   cargando,
@@ -12,34 +13,30 @@ export default function SucursalTable({
   eliminandoId,
 }) {
   return (
-    <section className="bg-surface-container-low/60 border border-slate-200 rounded-2xl overflow-hidden">
-      <div className="overflow-x-auto">
-        <div className="min-w-[880px]">
-          <SucursalTableHeader />
-
+    <section className={styles.tablePanel} aria-label="Sucursales registradas">
+      <table className={styles.table} aria-busy={cargando}>
+        <thead><SucursalTableHeader /></thead>
+        <tbody>
           {cargando ? (
-            <div className="px-5 py-10 text-center text-slate-500 font-medium">Cargando sucursales...</div>
+            <tr><td colSpan="4" className={styles.loading}>Cargando sucursales…</td></tr>
           ) : sucursales.length === 0 ? (
-            <div className="px-5 py-10 text-center text-slate-500 font-medium">
-              No hay sucursales para mostrar.
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-200">
-              {sucursales.map((sucursal) => (
-                <SucursalTableRow
-                  key={sucursal.id_sucursal}
-                  sucursal={sucursal}
-                  nombreCiudad={mapaCiudades[sucursal.id_ciudad] || `Ciudad #${sucursal.id_ciudad}`}
-                  onEditar={onEditar}
-                  onEliminar={onEliminar}
-                  onContactos={onContactos}
-                  eliminando={eliminandoId === sucursal.id_sucursal}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+            <tr><td colSpan="4" className={styles.empty}>
+              <strong>No hay sucursales para mostrar.</strong>
+              <span>Prueba con otra búsqueda o registra una sucursal.</span>
+            </td></tr>
+          ) : sucursales.map((sucursal) => (
+            <SucursalTableRow
+              key={sucursal.id_sucursal}
+              sucursal={sucursal}
+              nombreCiudad={mapaCiudades[sucursal.id_ciudad] || `Ciudad #${sucursal.id_ciudad}`}
+              onEditar={onEditar}
+              onEliminar={onEliminar}
+              onContactos={onContactos}
+              eliminando={eliminandoId === sucursal.id_sucursal}
+            />
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import styles from '../../styles/ManagementUI.module.css';
 
 export default function UsuarioAlert({ mensaje }) {
   if (!mensaje) {
@@ -6,7 +7,7 @@ export default function UsuarioAlert({ mensaje }) {
   }
 
   return (
-    <div className="bg-error-container/40 border border-error/20 rounded-xl px-4 py-3 text-sm text-on-error-container font-medium">
+    <div className={styles.alert} role="alert">
       {mensaje}
     </div>
   );

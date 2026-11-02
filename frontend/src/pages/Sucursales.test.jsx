@@ -50,7 +50,7 @@ describe('pantalla de sucursales', () => {
 
     expect(screen.getByText('Central')).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText('Buscar por nombre o dirección...'), 'no existe');
+    await user.type(screen.getByPlaceholderText('Buscar por nombre o dirección…'), 'no existe');
     expect(screen.getByText('No hay sucursales para mostrar.')).toBeInTheDocument();
   });
 
@@ -60,9 +60,9 @@ describe('pantalla de sucursales', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva sucursal' }));
-    await user.type(screen.getByPlaceholderText('Ej: Farmacia Central Norte'), 'Norte');
+    await user.type(screen.getByPlaceholderText('Ej.: Farmacia Central Norte…'), 'Norte');
     await user.selectOptions(screen.getByRole('combobox'), '2');
-    await user.type(screen.getByPlaceholderText('Ej: Calle 10 #45-20'), 'Zona 17');
+    await user.type(screen.getByPlaceholderText('Ej.: Calle 10 #45-20…'), 'Zona 17');
     await user.click(screen.getByRole('button', { name: 'Crear sucursal' }));
 
     await waitFor(() => expect(acciones.crear).toHaveBeenCalledWith({
@@ -77,10 +77,10 @@ describe('pantalla de sucursales', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva sucursal' }));
-    await user.click(screen.getByPlaceholderText('Ej: Farmacia Central Norte'));
+    await user.click(screen.getByPlaceholderText('Ej.: Farmacia Central Norte…'));
     await user.paste('a'.repeat(101));
     await user.selectOptions(screen.getByRole('combobox'), '2');
-    await user.type(screen.getByPlaceholderText('Ej: Calle 10 #45-20'), 'Zona 17');
+    await user.type(screen.getByPlaceholderText('Ej.: Calle 10 #45-20…'), 'Zona 17');
     await user.click(screen.getByRole('button', { name: 'Crear sucursal' }));
 
     expect(screen.getByText('El nombre de la sucursal no puede superar los 100 caracteres.')).toBeInTheDocument();
@@ -92,9 +92,9 @@ describe('pantalla de sucursales', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva sucursal' }));
-    await user.type(screen.getByPlaceholderText('Ej: Farmacia Central Norte'), 'Norte');
+    await user.type(screen.getByPlaceholderText('Ej.: Farmacia Central Norte…'), 'Norte');
     await user.selectOptions(screen.getByRole('combobox'), '2');
-    await user.click(screen.getByPlaceholderText('Ej: Calle 10 #45-20'));
+    await user.click(screen.getByPlaceholderText('Ej.: Calle 10 #45-20…'));
     await user.paste('a'.repeat(256));
     await user.click(screen.getByRole('button', { name: 'Crear sucursal' }));
 
@@ -108,7 +108,7 @@ describe('pantalla de sucursales', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Editar' }));
-    const direccion = screen.getByPlaceholderText('Ej: Calle 10 #45-20');
+    const direccion = screen.getByPlaceholderText('Ej.: Calle 10 #45-20…');
     await user.clear(direccion);
     await user.type(direccion, 'Zona 10');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));

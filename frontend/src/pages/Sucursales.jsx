@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import SucursalActionBar from '../components/sucursales/SucursalActionBar.jsx';
 import SucursalAlert from '../components/sucursales/SucursalAlert.jsx';
 import SucursalDeleteModal from '../components/sucursales/SucursalDeleteModal.jsx';
@@ -9,6 +10,7 @@ import SucursalesSubNav from '../components/sucursales/SucursalesSubNav.jsx';
 import SucursalTable from '../components/sucursales/SucursalTable.jsx';
 import useCiudades from '../hooks/useCiudades';
 import useSucursales from '../hooks/useSucursales';
+import styles from '../styles/ManagementUI.module.css';
 
 const estadoInicialFormulario = {
   nombre_sucursal: '',
@@ -20,7 +22,8 @@ export default function Sucursales() {
   const { sucursales, cargando, error, crear, actualizar, eliminar } = useSucursales();
   const { ciudades, cargandoCiudades, errorCiudades } = useCiudades();
 
-  const [busqueda, setBusqueda] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const busqueda = searchParams.get('q') || '';
   const [mostrarModal, setMostrarModal] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [eliminandoId, setEliminandoId] = useState(null);
@@ -31,6 +34,19 @@ export default function Sucursales() {
   const [formulario, setFormulario] = useState(estadoInicialFormulario);
   const [sucursalAEliminar, setSucursalAEliminar] = useState(null);
   const [sucursalContactos, setSucursalContactos] = useState(null);
+
+  useEffect(() => {
+    document.title = 'Sucursales · FarmaCom';
+  }, []);
+
+  const actualizarBusqueda = (valor) => {
+    setSearchParams((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      if (valor) siguientes.set('q', valor);
+      else siguientes.delete('q');
+      return siguientes;
+    }, { replace: true });
+  };
 
   const mapaCiudades = useMemo(() => {
     return ciudades.reduce((acc, ciudad) => {
@@ -164,8 +180,15 @@ export default function Sucursales() {
   };
 
   return (
-    <div className="space-y-8">
+    <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="sucursales-title">
       <SucursalesSubNav />
+
+      <header className={styles.heading}>
+        <div>
+          <h1 id="sucursales-title">Sucursales</h1>
+          <p>Gestiona ubicaciones, direcciones y datos de contacto.</p>
+        </div>
+      </header>
 
       <SucursalStatsBanner
         totalFiltradas={sucursalesFiltradas.length}
@@ -174,9 +197,13 @@ export default function Sucursales() {
 
       <SucursalActionBar
         busqueda={busqueda}
-        onBusquedaChange={(evento) => setBusqueda(evento.target.value)}
+        onBusquedaChange={(evento) => actualizarBusqueda(evento.target.value)}
         onCrear={abrirModalCrear}
       />
+
+      <p className={styles.resultCount} aria-live="polite">
+        <strong>{sucursalesFiltradas.length}</strong> de {sucursales.length} sucursales
+      </p>
 
       <SucursalAlert mensaje={error || errorCiudades} />
       <SucursalAlert mensaje={errorAccion} />
@@ -217,6 +244,6 @@ export default function Sucursales() {
         onClose={cerrarModalEliminar}
         onConfirm={confirmarEliminar}
       />
-    </div>
+    </section>
   );
 }

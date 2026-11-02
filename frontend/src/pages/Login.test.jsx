@@ -46,7 +46,7 @@ describe('pantalla de login', () => {
 
     renderizar();
 
-    await user.type(screen.getByLabelText('Usuario'), 'admin@farmacom.test');
+    await user.type(screen.getByLabelText('Correo electrónico'), 'admin@farmacom.test');
     await user.type(screen.getByLabelText('Contraseña'), 'secreta123');
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
 
@@ -64,7 +64,7 @@ describe('pantalla de login', () => {
 
     renderizar();
 
-    await user.type(screen.getByLabelText('Usuario'), 'labo@farmacom.test');
+    await user.type(screen.getByLabelText('Correo electrónico'), 'labo@farmacom.test');
     await user.type(screen.getByLabelText('Contraseña'), 'secreta123');
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
 
@@ -77,7 +77,7 @@ describe('pantalla de login', () => {
 
     renderizar();
 
-    await user.type(screen.getByLabelText('Usuario'), 'admin@farmacom.test');
+    await user.type(screen.getByLabelText('Correo electrónico'), 'admin@farmacom.test');
     await user.type(screen.getByLabelText('Contraseña'), 'incorrecta');
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
 
@@ -92,11 +92,25 @@ describe('pantalla de login', () => {
 
     renderizar();
 
-    await user.type(screen.getByLabelText('Usuario'), 'admin@farmacom.test');
+    await user.type(screen.getByLabelText('Correo electrónico'), 'admin@farmacom.test');
     await user.type(screen.getByLabelText('Contraseña'), 'incorrecta');
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
 
     expect(await screen.findByText('Credenciales incorrectas')).toBeInTheDocument();
+  });
+
+  it('permite mostrar y volver a ocultar la contraseña', async () => {
+    const user = userEvent.setup();
+    renderizar();
+
+    const contrasena = screen.getByLabelText('Contraseña');
+    expect(contrasena).toHaveAttribute('type', 'password');
+
+    await user.click(screen.getByRole('button', { name: 'Mostrar contraseña' }));
+    expect(contrasena).toHaveAttribute('type', 'text');
+
+    await user.click(screen.getByRole('button', { name: 'Ocultar contraseña' }));
+    expect(contrasena).toHaveAttribute('type', 'password');
   });
 
   it('deshabilita el botón mientras se está iniciando sesión', async () => {
@@ -106,11 +120,11 @@ describe('pantalla de login', () => {
 
     renderizar();
 
-    await user.type(screen.getByLabelText('Usuario'), 'admin@farmacom.test');
+    await user.type(screen.getByLabelText('Correo electrónico'), 'admin@farmacom.test');
     await user.type(screen.getByLabelText('Contraseña'), 'secreta123');
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
 
-    expect(screen.getByRole('button', { name: 'Iniciando sesión...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Iniciar sesión/ })).toBeDisabled();
 
     resolverLogin({ usuario: { id_usuario: 1, rol: 'vendedor' } });
     await waitFor(() => expect(navigateMock).toHaveBeenCalled());

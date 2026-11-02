@@ -37,7 +37,7 @@ describe('pantalla de ciudades', () => {
 
     expect(screen.getByText('Guatemala')).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText('Buscar por nombre...'), 'no existe');
+    await user.type(screen.getByPlaceholderText('Buscar por nombre…'), 'no existe');
     expect(screen.getByText('No hay ciudades para mostrar.')).toBeInTheDocument();
   });
 
@@ -47,7 +47,7 @@ describe('pantalla de ciudades', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva ciudad' }));
-    await user.type(screen.getByPlaceholderText('Ej: Guatemala'), 'Antigua');
+    await user.type(screen.getByPlaceholderText('Ej.: Guatemala…'), 'Antigua');
     await user.click(screen.getByRole('button', { name: 'Crear ciudad' }));
 
     await waitFor(() => expect(acciones.crear).toHaveBeenCalledWith({ nombre_ciudad: 'Antigua' }));
@@ -58,7 +58,7 @@ describe('pantalla de ciudades', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva ciudad' }));
-    await user.type(screen.getByPlaceholderText('Ej: Guatemala'), '   ');
+    await user.type(screen.getByPlaceholderText('Ej.: Guatemala…'), '   ');
     await user.click(screen.getByRole('button', { name: 'Crear ciudad' }));
 
     expect(screen.getByText('El nombre de la ciudad es requerido.')).toBeInTheDocument();
@@ -71,7 +71,7 @@ describe('pantalla de ciudades', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Editar' }));
-    const nombre = screen.getByPlaceholderText('Ej: Guatemala');
+    const nombre = screen.getByPlaceholderText('Ej.: Guatemala…');
     await user.clear(nombre);
     await user.type(nombre, 'Quetzaltenango');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
@@ -96,9 +96,9 @@ describe('pantalla de ciudades', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Eliminar' }));
-    expect(screen.getByText('Confirmar eliminacion')).toBeInTheDocument();
+    expect(screen.getByText('Confirmar eliminación')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Si, eliminar' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
 
     await waitFor(() => expect(acciones.eliminar).toHaveBeenCalledWith(1));
   });
@@ -111,7 +111,7 @@ describe('pantalla de ciudades', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Eliminar' }));
-    await user.click(screen.getByRole('button', { name: 'Si, eliminar' }));
+    await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
 
     expect(await screen.findByText('No se puede eliminar una ciudad asociada a sucursales')).toBeInTheDocument();
   });
@@ -123,7 +123,7 @@ describe('pantalla de ciudades', () => {
     await user.click(screen.getByRole('button', { name: 'Eliminar' }));
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
 
-    expect(screen.queryByText('Confirmar eliminacion')).not.toBeInTheDocument();
+    expect(screen.queryByText('Confirmar eliminación')).not.toBeInTheDocument();
     expect(acciones.eliminar).not.toHaveBeenCalled();
   });
 
@@ -134,13 +134,13 @@ describe('pantalla de ciudades', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva ciudad' }));
-    await user.type(screen.getByPlaceholderText('Ej: Guatemala'), 'Antigua');
+    await user.type(screen.getByPlaceholderText('Ej.: Guatemala…'), 'Antigua');
     await user.click(screen.getByRole('button', { name: 'Crear ciudad' }));
 
     await user.click(screen.getByRole('button', { name: 'Cerrar' }));
-    expect(screen.getByPlaceholderText('Ej: Guatemala')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Ej.: Guatemala…')).toBeInTheDocument();
 
     resolverCrear({ id_ciudad: 3 });
-    await waitFor(() => expect(screen.queryByPlaceholderText('Ej: Guatemala')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByPlaceholderText('Ej.: Guatemala…')).not.toBeInTheDocument());
   });
 });

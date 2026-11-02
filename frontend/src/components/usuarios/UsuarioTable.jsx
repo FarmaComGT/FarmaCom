@@ -1,6 +1,7 @@
 import React from 'react';
 import UsuarioTableHeader from './UsuarioTableHeader.jsx';
 import UsuarioTableRow from './UsuarioTableRow.jsx';
+import styles from '../../styles/ManagementUI.module.css';
 
 export default function UsuarioTable({
   cargando,
@@ -11,19 +12,19 @@ export default function UsuarioTable({
   cambiandoEstadoId,
 }) {
   return (
-    <section className="bg-surface-container-low/60 border border-slate-200 rounded-2xl overflow-hidden">
-      <div className="overflow-x-auto">
-        <div className="min-w-[880px]">
-          <UsuarioTableHeader />
-
+    <section className={styles.tablePanel} aria-label="Usuarios registrados">
+      <table className={styles.table} aria-busy={cargando}>
+        <thead><UsuarioTableHeader /></thead>
+        <tbody>
           {cargando ? (
-            <div className="px-5 py-10 text-center text-slate-500 font-medium">Cargando usuarios...</div>
+            <tr><td colSpan="6" className={styles.loading}>Cargando usuarios…</td></tr>
           ) : usuarios.length === 0 ? (
-            <div className="px-5 py-10 text-center text-slate-500 font-medium">
-              No hay usuarios para mostrar.
-            </div>
+            <tr><td colSpan="6" className={styles.empty}>
+              <strong>No hay usuarios para mostrar.</strong>
+              <span>Prueba con otra búsqueda o registra un usuario.</span>
+            </td></tr>
           ) : (
-            <div className="divide-y divide-slate-200">
+            <>
               {usuarios.map((usuario) => (
                 <UsuarioTableRow
                   key={usuario.id_usuario}
@@ -34,10 +35,10 @@ export default function UsuarioTable({
                   cambiandoEstado={cambiandoEstadoId === usuario.id_usuario}
                 />
               ))}
-            </div>
+            </>
           )}
-        </div>
-      </div>
+        </tbody>
+      </table>
     </section>
   );
 }

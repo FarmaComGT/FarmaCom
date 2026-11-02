@@ -28,7 +28,8 @@ export default function MainLayout() {
   const location = useLocation();
   const esInventario = location.pathname === '/inventario';
   const esCaja = location.pathname === '/caja' || location.pathname.startsWith('/caja/');
-  const anchoEscritorio = esInventario || esCaja ? 1100 : ANCHO_ESCRITORIO;
+  const esGestion = ['/usuarios', '/sucursales', '/laboratorios', '/ciudades', '/patients'].includes(location.pathname);
+  const anchoEscritorio = esInventario || esCaja || esGestion ? 1100 : ANCHO_ESCRITORIO;
   const [esEscritorio, setEsEscritorio] = useState(() => detectarEscritorio() && window.innerWidth >= anchoEscritorio);
   const [sidebarAbierta, setSidebarAbierta] = useState(() => window.innerWidth >= anchoEscritorio && obtenerPreferenciaSidebar());
 
@@ -150,7 +151,7 @@ export default function MainLayout() {
       >
         <TopNav sidebarAbierta={sidebarAbierta} onAbrirSidebar={abrirSidebar} />
         <div
-          className={`shell-content mx-auto w-full min-w-0 p-4 sm:p-6 lg:p-8 ${esCaja ? cajaStyles.sheet : ''} ${
+          className={`shell-content shell-route-view mx-auto w-full min-w-0 p-4 sm:p-6 lg:p-8 ${esCaja ? cajaStyles.sheet : ''} ${esGestion ? 'management-content' : ''} ${
             sidebarAbierta && esEscritorio ? 'max-w-7xl' : 'max-w-none'
           }`}
         >
