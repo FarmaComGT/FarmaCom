@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import useLaboratorios from '../../hooks/useLaboratorios';
 import usePacientes from '../../hooks/usePacientes';
@@ -11,6 +12,9 @@ import PacienteFormModal from '../../components/laboratorio/pacientes/PacienteFo
 import PacienteAnularModal from '../../components/laboratorio/pacientes/PacienteAnularModal.jsx';
 import PacienteEliminarModal from '../../components/laboratorio/pacientes/PacienteEliminarModal.jsx';
 import ConfiguracionAlmacenamientoModal from '../../components/laboratorio/ConfiguracionAlmacenamientoModal.jsx';
+import { ejecutarTransicionDeVista } from '../../utils/viewTransition';
+import management from '../../styles/ManagementUI.module.css';
+import laboratory from '../../styles/LaboratoryUI.module.css';
 
 export default function Pacientes() {
   const { usuario } = useAuth();
@@ -27,8 +31,15 @@ export default function Pacientes() {
     setIdLaboratorioSeleccionado((actual) => actual ?? laboratorios[0]?.id_laboratorio ?? null);
   }, [esLaboratorista, usuario, laboratorios]);
 
-  const [busqueda, setBusqueda] = useState('');
-  const [pagina, setPagina] = useState(1);
+  useEffect(() => {
+    document.title = 'Pacientes de laboratorio · FarmaCom';
+  }, []);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const busqueda = searchParams.get('q') || '';
+  const pagina = Math.max(1, Number(searchParams.get('page')) || 1);
+  const estadoParam = searchParams.get('estado');
+  const estadoSeleccionado = ['activo', 'anulado'].includes(estadoParam) ? estadoParam : 'todos';
 
   const {
     pacientes,
@@ -40,7 +51,12 @@ export default function Pacientes() {
     actualizar,
     anular,
     eliminar,
-  } = usePacientes({ idLaboratorio: idLaboratorioSeleccionado, busqueda, pagina });
+  } = usePacientes({
+    idLaboratorio: idLaboratorioSeleccionado,
+    busqueda,
+    estado: estadoSeleccionado === 'todos' ? undefined : estadoSeleccionado,
+    pagina,
+  });
 
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
@@ -83,6 +99,24 @@ export default function Pacientes() {
     () => resumenEstados.activos + resumenEstados.anulados,
     [resumenEstados],
   );
+
+  const actualizarParametros = (cambios) => {
+    setSearchParams((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      Object.entries(cambios).forEach(([clave, valor]) => {
+        if (valor === '' || valor === null || valor === undefined || valor === 'todos') {
+          siguientes.delete(clave);
+        } else {
+          siguientes.set(clave, String(valor));
+        }
+      });
+      return siguientes;
+    }, { replace: true });
+  };
+
+  const seleccionarEstado = (estado) => {
+    ejecutarTransicionDeVista(() => actualizarParametros({ estado, page: 1 }));
+  };
 
   const abrirCrear = () => {
     setModoEdicion(false);
@@ -175,14 +209,18 @@ export default function Pacientes() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-headline text-3xl font-extrabold text-on-surface">Pacientes</h2>
+    <section className={`${management.page} ${management.locationPage}`} aria-labelledby="pacientes-title">
+      <header className={management.heading}>
+        <div>
+          <h1 id="pacientes-title">Pacientes</h1>
+          <p>Consulta expedientes, resultados y estado de los pacientes del laboratorio.</p>
+        </div>
         {!esLaboratorista && laboratorios.length > 1 && (
           <select
             value={idLaboratorioSeleccionado || ''}
             onChange={(e) => setIdLaboratorioSeleccionado(Number(e.target.value))}
-            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+            className={laboratory.laboratorySelect}
+            aria-label="Laboratorio"
           >
             {laboratorios.map((laboratorio) => (
               <option key={laboratorio.id_laboratorio} value={laboratorio.id_laboratorio}>
@@ -191,22 +229,25 @@ export default function Pacientes() {
             ))}
           </select>
         )}
-      </div>
+      </header>
 
       <PacienteStatsGrid
         totalPacientes={totalPacientes}
         totalActivos={resumenEstados.activos}
         totalAnulados={resumenEstados.anulados}
+        estadoSeleccionado={estadoSeleccionado}
+        onSeleccionarEstado={seleccionarEstado}
       />
 
       <PacienteActionBar
         busqueda={busqueda}
-        onBusquedaChange={(e) => {
-          setBusqueda(e.target.value);
-          setPagina(1);
-        }}
+        onBusquedaChange={(e) => actualizarParametros({ q: e.target.value, page: 1 })}
         onCrear={abrirCrear}
       />
+
+      <p className={management.resultCount} aria-live="polite">
+        <strong>{paginacion.total}</strong> pacientes encontrados
+      </p>
 
       <PacienteAlert mensaje={mensajeExito} variante="success" />
       <PacienteAlert mensaje={error} />
@@ -221,27 +262,27 @@ export default function Pacientes() {
       />
 
       {paginacion.total_paginas > 1 && (
-        <div className="flex items-center justify-center gap-3">
+        <nav className={laboratory.pagination} aria-label="Paginación de pacientes">
           <button
             type="button"
             disabled={pagina <= 1}
-            onClick={() => setPagina((p) => Math.max(1, p - 1))}
-            className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold disabled:opacity-40"
+            onClick={() => actualizarParametros({ page: Math.max(1, pagina - 1) })}
+            className={management.button}
           >
             Anterior
           </button>
-          <span className="text-sm text-slate-600">
+          <span className={laboratory.paginationInfo}>
             Página {paginacion.pagina} de {paginacion.total_paginas}
           </span>
           <button
             type="button"
             disabled={pagina >= paginacion.total_paginas}
-            onClick={() => setPagina((p) => p + 1)}
-            className="px-4 py-2 rounded-lg border border-slate-300 text-sm font-semibold disabled:opacity-40"
+            onClick={() => actualizarParametros({ page: pagina + 1 })}
+            className={management.button}
           >
             Siguiente
           </button>
-        </div>
+        </nav>
       )}
 
       <PacienteFormModal
@@ -278,6 +319,6 @@ export default function Pacientes() {
         onReconectar={reconectar}
         onClose={() => setMostrarModalAlmacenamiento(false)}
       />
-    </div>
+    </section>
   );
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Pacientes from './Pacientes';
@@ -61,12 +61,34 @@ describe('Pacientes', () => {
     mockEliminar.mockReset();
   });
 
+  afterEach(() => {
+    delete document.startViewTransition;
+  });
+
   it('muestra el listado de pacientes con sus datos', () => {
     renderizar();
 
     expect(screen.getByText('Ana López')).toBeInTheDocument();
     expect(screen.getByText('1234567890101')).toBeInTheDocument();
     expect(screen.getByText('34')).toBeInTheDocument();
+  });
+
+  it('anima y conserva en la URL el filtro de estado seleccionado', async () => {
+    const user = userEvent.setup();
+    const iniciarTransicion = vi.fn((actualizar) => {
+      actualizar();
+      return { finished: Promise.resolve() };
+    });
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: iniciarTransicion,
+    });
+    renderizar();
+
+    await user.click(screen.getByRole('button', { name: /Activos/ }));
+
+    expect(iniciarTransicion).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: /Activos/ })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('crea un paciente desde el formulario', async () => {
