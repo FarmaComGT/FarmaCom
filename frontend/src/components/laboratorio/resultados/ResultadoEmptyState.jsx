@@ -1,13 +1,13 @@
 import React from 'react';
 import { FilePlus2 } from 'lucide-react';
-import styles from '../../../styles/LaboratoryUI.module.css';
+import ContentState from '../../ui/ContentState.jsx';
 
 export default function ResultadoEmptyState() {
   return (
-    <div className={styles.emptyState}>
-      <FilePlus2 size={26} aria-hidden="true" />
-      <strong>Todavía no hay resultados</strong>
-      <p>Utiliza “Nuevo resultado” para adjuntar el primer PDF al expediente.</p>
-    </div>
+    <ContentState
+      icon={FilePlus2}
+      title="Todavía no hay resultados"
+      message="Utiliza “Nuevo resultado” para adjuntar el primer PDF al expediente."
+    />
   );
 }

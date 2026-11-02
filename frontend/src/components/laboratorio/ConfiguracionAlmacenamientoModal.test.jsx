@@ -117,7 +117,7 @@ describe('ConfiguracionAlmacenamientoModal', () => {
     render(<ConfiguracionAlmacenamientoModal {...props} />);
 
     await usuario.click(screen.getByRole('button', { name: 'Elegir carpeta' }));
-    const procesando = screen.getByRole('button', { name: 'Procesando...' });
+    const procesando = screen.getByRole('button', { name: 'Procesando…' });
     expect(procesando).toBeDisabled();
     await usuario.click(procesando);
     expect(props.onElegir).toHaveBeenCalledOnce();

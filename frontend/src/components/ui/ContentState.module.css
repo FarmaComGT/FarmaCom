@@ -1,0 +1,83 @@
+.state {
+  display: flex;
+  min-height: 220px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  border: 1px dashed var(--ui-control);
+  border-radius: 8px;
+  color: var(--ui-muted);
+  text-align: center;
+}
+
+.compact { min-height: 120px; }
+.loading { background: #fff; }
+.empty { background: #fff; }
+
+.state strong {
+  color: var(--ui-ink);
+  font-weight: 600;
+}
+
+.state p {
+  max-width: 48ch;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.icon { color: var(--ui-accent); }
+
+.error {
+  border-style: solid;
+  border-color: #efc8cb;
+  background: var(--ui-danger-bg);
+  color: var(--ui-danger);
+}
+
+.error strong,
+.error .icon { color: var(--ui-danger); }
+
+.spinner {
+  color: var(--ui-accent);
+  animation: content-state-spin 900ms linear infinite;
+}
+
+.retryButton {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--ui-control);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ui-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.retryButton:hover {
+  border-color: var(--ui-muted);
+  background: var(--ui-soft);
+}
+
+.retryButton:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 3px;
+}
+
+@keyframes content-state-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 767px) {
+  .retryButton { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
+}

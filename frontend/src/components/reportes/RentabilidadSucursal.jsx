@@ -1,5 +1,6 @@
 import React from 'react';
-import { Banknote, ReceiptText, TrendingUp, Percent, RefreshCw } from 'lucide-react';
+import { Banknote, ReceiptText, TrendingUp, Percent } from 'lucide-react';
+import ContentState from '../ui/ContentState.jsx';
 import { formatearMoneda, formatearMargen, resumirRentabilidad } from '../../utils/reportes';
 import styles from '../../styles/ReportsUI.module.css';
 
@@ -30,20 +31,11 @@ export default function RentabilidadSucursal({ datos = [], cargando, error, onRe
       </p>
 
       {cargando ? (
-        <div role="status" className="animate-pulse rounded-2xl bg-slate-100 p-8 text-sm text-slate-500">
-          Cargando rentabilidad por sucursal…
-        </div>
+        <ContentState variant="loading" message="Cargando rentabilidad por sucursal…" compact />
       ) : error ? (
-        <div role="alert" className={`${styles.state} ${styles.stateError}`}>
-          <p>{error}</p>
-          <button type="button" onClick={onReintentar} className={styles.button}>
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />Reintentar
-          </button>
-        </div>
+        <ContentState variant="error" message={error} onRetry={onReintentar} />
       ) : datosVisibles.length === 0 ? (
-        <p className={styles.state}>
-          No hay datos de rentabilidad para los filtros seleccionados.
-        </p>
+        <ContentState message="No hay datos de rentabilidad para los filtros seleccionados." />
       ) : (
         <>
           <div className={styles.metricGrid}>

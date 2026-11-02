@@ -1,5 +1,6 @@
 import React from 'react';
-import { CreditCard, RefreshCw } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
+import ContentState from '../ui/ContentState.jsx';
 import {
   Cell,
   Pie,
@@ -50,27 +51,15 @@ export default function MetodosPagoChart({ datos, cargando, error, onReintentar 
       </div>
 
       {cargando && (
-        <div aria-label="Cargando métodos de pago" className="mt-5 h-80 animate-pulse rounded-xl bg-slate-100" />
+        <div role="status" aria-label="Cargando métodos de pago" className="mt-5 h-80 animate-pulse rounded-xl bg-slate-100" />
       )}
 
       {!cargando && error && (
-        <div role="alert" className={`${styles.state} ${styles.stateError}`}>
-          <p>{error}</p>
-          <button
-            type="button"
-            onClick={onReintentar}
-            className={styles.button}
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Reintentar
-          </button>
-        </div>
+        <ContentState variant="error" message={error} onRetry={onReintentar} />
       )}
 
       {!cargando && !error && datosDisponibles.length === 0 && (
-        <div className={styles.state}>
-          <p className="text-sm font-medium text-slate-500">No hay pagos en el período seleccionado.</p>
-        </div>
+        <ContentState message="No hay pagos en el período seleccionado." />
       )}
 
       {!cargando && !error && datosDisponibles.length > 0 && (

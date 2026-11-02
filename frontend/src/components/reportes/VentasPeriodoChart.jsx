@@ -1,5 +1,6 @@
 import React from 'react';
-import { BarChart3, RefreshCw } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
+import ContentState from '../ui/ContentState.jsx';
 import {
   Bar,
   BarChart,
@@ -76,27 +77,15 @@ export default function VentasPeriodoChart({
       </div>
 
       {cargando && (
-        <div aria-label="Cargando gráfica de ingresos" className="mt-5 h-80 animate-pulse rounded-xl bg-slate-100" />
+        <div role="status" aria-label="Cargando gráfica de ingresos" className="mt-5 h-80 animate-pulse rounded-xl bg-slate-100" />
       )}
 
       {!cargando && error && (
-        <div role="alert" className={`${styles.state} ${styles.stateError}`}>
-          <p>{error}</p>
-          <button
-            type="button"
-            onClick={onReintentar}
-            className={styles.button}
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Reintentar
-          </button>
-        </div>
+        <ContentState variant="error" message={error} onRetry={onReintentar} />
       )}
 
       {!cargando && !error && !hayVentas && (
-        <div className={styles.state}>
-          <p className="text-sm font-medium text-slate-500">No hay ventas en el período seleccionado.</p>
-        </div>
+        <ContentState message="No hay ventas en el período seleccionado." />
       )}
 
       {!cargando && !error && hayVentas && (
