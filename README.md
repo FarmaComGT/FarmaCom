@@ -2,6 +2,10 @@
 
 ### Grupo 1
 
+## Documentación de interfaz
+
+- [Patrones de interfaz del frontend](docs/frontend/patrones-interfaz.md)
+
 ---
 
 ## Descripción del proyecto
