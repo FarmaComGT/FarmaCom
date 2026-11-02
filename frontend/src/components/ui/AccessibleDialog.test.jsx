@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { createRef } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AccessibleDialog from './AccessibleDialog.jsx';
@@ -161,5 +161,55 @@ describe('AccessibleDialog', () => {
     );
 
     expect(() => fireEvent.keyDown(document, { key: 'Escape' })).not.toThrow();
+  });
+
+  it('acepta una clase adicional y un foco inicial explícito', () => {
+    const focoInicial = createRef();
+    render(
+      <AccessibleDialog
+        open
+        labelledBy="titulo"
+        onClose={vi.fn()}
+        className="dialogo-especial"
+        initialFocusRef={focoInicial}
+      >
+        <h2 id="titulo">Elegir opción</h2>
+        <button type="button">Primera</button>
+        <button ref={focoInicial} type="button">Preferida</button>
+      </AccessibleDialog>,
+    );
+
+    expect(screen.getByRole('dialog')).toHaveClass('dialogo-especial');
+    expect(screen.getByRole('button', { name: 'Preferida' })).toHaveFocus();
+  });
+
+  it('entrega Escape solamente al diálogo superior', () => {
+    const cerrarBase = vi.fn();
+    const cerrarSuperior = vi.fn();
+    const { rerender } = render(
+      <>
+        <AccessibleDialog open labelledBy="titulo-base" onClose={cerrarBase}>
+          <h2 id="titulo-base">Diálogo base</h2>
+          <button type="button">Acción base</button>
+        </AccessibleDialog>
+        <AccessibleDialog open labelledBy="titulo-superior" onClose={cerrarSuperior}>
+          <h2 id="titulo-superior">Diálogo superior</h2>
+          <button type="button">Acción superior</button>
+        </AccessibleDialog>
+      </>,
+    );
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(cerrarSuperior).toHaveBeenCalledOnce();
+    expect(cerrarBase).not.toHaveBeenCalled();
+
+    rerender(
+      <AccessibleDialog open labelledBy="titulo-base" onClose={cerrarBase}>
+        <h2 id="titulo-base">Diálogo base</h2>
+        <button type="button">Acción base</button>
+      </AccessibleDialog>,
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(cerrarBase).toHaveBeenCalledOnce();
   });
 });

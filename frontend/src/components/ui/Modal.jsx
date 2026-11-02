@@ -1,12 +1,12 @@
 import React from 'react';
-import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import { motion } from 'motion/react';
+import AccessibleDialog from './AccessibleDialog.jsx';
+import styles from './Modal.module.css';
 
 const ANCHOS_MODAL = {
-  sm: 'max-w-md',
-  md: 'max-w-xl',
-  lg: 'max-w-2xl',
+  sm: 'small',
+  md: 'medium',
+  lg: 'large',
 };
 
 export function Modal({
@@ -14,29 +14,26 @@ export function Modal({
   children,
   size = 'sm',
   labelledBy,
+  describedBy,
+  onClose,
+  busy = false,
   limitarAltura = false,
   panelClassName = '',
 }) {
-  if (!isOpen || typeof document === 'undefined') return null;
-
   const ancho = ANCHOS_MODAL[size] || ANCHOS_MODAL.sm;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/55 p-4 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={labelledBy}
-        className={`my-auto w-full ${ancho} rounded-2xl border border-slate-200 bg-white shadow-2xl ${
-          limitarAltura ? 'flex max-h-[92vh] flex-col overflow-hidden' : ''
-        } ${panelClassName}`}
-      >
-        {children}
-      </motion.div>
-    </div>,
-    document.body,
+  return (
+    <AccessibleDialog
+      open={isOpen}
+      labelledBy={labelledBy}
+      describedBy={describedBy}
+      onClose={onClose}
+      busy={busy}
+      size={ancho}
+      className={`${styles.panel} ${limitarAltura ? styles.limited : ''} ${panelClassName}`}
+    >
+      {children}
+    </AccessibleDialog>
   );
 }
 
@@ -67,10 +64,10 @@ export function ModalHeader({
         type="button"
         onClick={onClose}
         disabled={disabled}
-        className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
+        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
         aria-label="Cerrar"
       >
-        <X className="h-5 w-5" />
+        <X className="h-5 w-5" aria-hidden="true" />
       </button>
     </header>
   );
@@ -78,8 +75,8 @@ export function ModalHeader({
 
 export function ModalActions({ children, divided = false }) {
   return (
-    <div className={`flex justify-end gap-3 pt-2 ${divided ? 'border-t border-slate-100' : ''}`}>
+    <footer className={`flex justify-end gap-3 pt-2 ${divided ? 'border-t border-slate-100' : ''}`}>
       {children}
-    </div>
+    </footer>
   );
 }
