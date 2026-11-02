@@ -14,6 +14,9 @@ import ResultadoAnularModal from '../../components/laboratorio/resultados/Result
 import HistorialExpediente from '../../components/laboratorio/pacientes/HistorialExpediente.jsx';
 import ConfiguracionAlmacenamientoModal from '../../components/laboratorio/ConfiguracionAlmacenamientoModal.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { ejecutarTransicionDeVista } from '../../utils/viewTransition';
+import management from '../../styles/ManagementUI.module.css';
+import laboratory from '../../styles/LaboratoryUI.module.css';
 
 const ETIQUETAS_SEXO = { M: 'Masculino', F: 'Femenino', Otro: 'Otro' };
 
@@ -26,6 +29,7 @@ export default function PacientePerfil() {
   const [paciente, setPaciente] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  const volverAPacientes = () => ejecutarTransicionDeVista(() => navigate(-1));
 
   const cargarPaciente = useCallback(async () => {
     setCargando(true);
@@ -43,6 +47,10 @@ export default function PacientePerfil() {
   useEffect(() => {
     cargarPaciente();
   }, [cargarPaciente]);
+
+  useEffect(() => {
+    document.title = paciente ? `${paciente.nombre_paciente} · FarmaCom` : 'Perfil del paciente · FarmaCom';
+  }, [paciente]);
 
   const {
     resultados,
@@ -187,23 +195,23 @@ export default function PacientePerfil() {
   }, [resultados, respaldosLocales]);
 
   if (cargando) {
-    return <div className="p-8 text-center text-slate-500 font-medium">Cargando paciente...</div>;
+    return <section className={management.page}><div className={laboratory.loadingState} role="status">Cargando paciente…</div></section>;
   }
 
   if (error || !paciente) {
     return (
-      <div className="space-y-4">
+      <section className={management.page}>
         <button
           type="button"
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+          onClick={volverAPacientes}
+          className={laboratory.backLink}
         >
-          <ArrowLeft className="w-4 h-4" /> Volver
+          <ArrowLeft size={16} aria-hidden="true" /> Volver
         </button>
-        <div className="bg-error-container/40 border border-error/20 rounded-xl px-4 py-3 text-sm text-on-error-container font-medium">
+        <div className={laboratory.errorState} role="alert">
           {error || 'Paciente no encontrado.'}
         </div>
-      </div>
+      </section>
     );
   }
 
@@ -216,44 +224,31 @@ export default function PacientePerfil() {
   ].filter(Boolean);
 
   return (
-    <div className="space-y-8">
+    <section className={`${management.page} ${management.locationPage}`} aria-labelledby="paciente-profile-title">
       <button
         type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+        onClick={volverAPacientes}
+        className={laboratory.backLink}
       >
-        <ArrowLeft className="w-4 h-4" /> Volver a pacientes
+        <ArrowLeft size={16} aria-hidden="true" /> Volver a pacientes
       </button>
 
-      <div className="bg-surface-container-low p-6 rounded-2xl flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div className="flex flex-col md:flex-row md:items-center gap-6">
-          <span className="inline-flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <User className="w-8 h-8" />
-          </span>
-          <div className="space-y-2">
-            <h2 className="font-headline text-2xl font-extrabold text-on-surface">{paciente.nombre_paciente}</h2>
-            <div className="flex flex-wrap gap-2">
-              {chips.map((chip) => (
-                <span
-                  key={chip.etiqueta}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 border border-slate-200"
-                >
-                  <span className="text-slate-400">{chip.etiqueta}:</span> {chip.valor}
-                </span>
-              ))}
-            </div>
-          </div>
+      <header className={laboratory.profileHeader}>
+        <span className={laboratory.avatar}><User size={25} aria-hidden="true" /></span>
+        <div className={laboratory.profileIdentity}>
+          <h1 id="paciente-profile-title">{paciente.nombre_paciente}</h1>
+          <dl className={laboratory.profileMeta}>
+            {chips.map((chip) => <div key={chip.etiqueta}><dt>{chip.etiqueta}</dt><dd>{chip.valor}</dd></div>)}
+          </dl>
         </div>
-
         <button
           type="button"
           onClick={abrirModalSubida}
-          className="px-6 py-3 bg-linear-to-br from-primary to-primary-container text-white font-headline font-bold text-sm rounded-xl shadow-[0_4px_12px_rgba(0,81,71,0.25)] hover:shadow-[0_6px_20px_rgba(0,81,71,0.3)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 justify-center flex-shrink-0"
+          className={`${management.button} ${management.primary}`}
         >
-          <PlusCircle className="w-4 h-4" />
-          Nuevo resultado
+          <PlusCircle size={16} aria-hidden="true" /> Nuevo resultado
         </button>
-      </div>
+      </header>
 
       <PacienteAlert mensaje={mensajeExito} variante="success" />
       <PacienteAlert mensaje={errorResultados} />
@@ -263,23 +258,28 @@ export default function PacientePerfil() {
         <HistorialExpediente idExpediente={paciente.id_expediente} />
       )}
 
-      {cargandoResultados ? (
-        <div className="p-8 text-center text-slate-500 font-medium">Cargando resultados...</div>
-      ) : resultadosFusionados.length === 0 ? (
-        <ResultadoEmptyState />
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {resultadosFusionados.map(({ resultado, origen, respaldo }) => (
-            <ResultadoCard
-              key={resultado.id_resultado}
-              resultado={resultado}
-              origen={origen}
-              onAnular={origen === 'solo-local' ? undefined : solicitarAnularResultado}
-              onVerLocal={origen === 'solo-local' ? () => abrirArchivoLocal(respaldo) : undefined}
-            />
-          ))}
-        </div>
-      )}
+      <section className={laboratory.section} aria-labelledby="resultados-title">
+        <header className={laboratory.sectionHeader}>
+          <div><h2 id="resultados-title">Resultados</h2><p>Documentos cargados y respaldos disponibles para este paciente.</p></div>
+        </header>
+        {cargandoResultados ? (
+          <div className={laboratory.loadingState} role="status">Cargando resultados…</div>
+        ) : resultadosFusionados.length === 0 ? (
+          <ResultadoEmptyState />
+        ) : (
+          <div className={laboratory.resultGrid}>
+            {resultadosFusionados.map(({ resultado, origen, respaldo }) => (
+              <ResultadoCard
+                key={resultado.id_resultado}
+                resultado={resultado}
+                origen={origen}
+                onAnular={origen === 'solo-local' ? undefined : solicitarAnularResultado}
+                onVerLocal={origen === 'solo-local' ? () => abrirArchivoLocal(respaldo) : undefined}
+              />
+            ))}
+          </div>
+        )}
+      </section>
 
       <ResultadoUploadModal
         isOpen={mostrarModalSubida}
@@ -313,6 +313,6 @@ export default function PacientePerfil() {
         onClose={cerrarModalAnularResultado}
         onConfirm={confirmarAnularResultado}
       />
-    </div>
+    </section>
   );
 }

@@ -1,22 +1,16 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { motion } from 'motion/react';
-import { FolderOpen, X } from 'lucide-react';
+import { FolderOpen, LoaderCircle, X } from 'lucide-react';
+import AccessibleDialog from '../ui/AccessibleDialog.jsx';
+import management from '../../styles/ManagementUI.module.css';
+import laboratory from '../../styles/LaboratoryUI.module.css';
 
 export default function ConfiguracionAlmacenamientoModal({
-  isOpen,
-  soportado,
-  carpetaConfigurada,
-  onElegir,
-  onReconectar,
-  onClose,
+  isOpen, soportado, carpetaConfigurada, onElegir, onReconectar, onClose,
 }) {
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState(null);
-
-  if (!isOpen || typeof document === 'undefined') return null;
-
   const necesitaReconectar = carpetaConfigurada;
+  const tituloId = 'almacenamiento-title';
 
   const manejarAccion = async () => {
     setError(null);
@@ -29,82 +23,50 @@ export default function ConfiguracionAlmacenamientoModal({
         await onElegir();
       }
     } catch (err) {
-      if (err?.name !== 'AbortError') {
-        setError('No se pudo acceder a la carpeta seleccionada. Intenta de nuevo.');
-      }
+      if (err?.name !== 'AbortError') setError('No se pudo acceder a la carpeta seleccionada. Intenta de nuevo.');
     } finally {
       setProcesando(false);
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/55 backdrop-blur-sm overflow-y-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 my-auto"
-      >
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-lg font-headline font-extrabold text-primary">
-            {necesitaReconectar ? 'Reconecta la carpeta local' : 'Configura el respaldo local'}
-          </h3>
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-slate-500 hover:text-slate-700"
-              aria-label="Cerrar"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
+  const etiquetaAccion = necesitaReconectar ? 'Reconectar carpeta' : 'Elegir carpeta';
 
-        <div className="px-6 py-5 space-y-4">
-          {!soportado ? (
-            <p className="text-sm text-slate-700">
-              Esta función solo está disponible en Google Chrome. Abre el módulo de laboratorio
-              desde Chrome en esta computadora para poder subir resultados.
-            </p>
-          ) : (
-            <>
-              <div className="flex items-start gap-3">
-                <span className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <FolderOpen className="w-5 h-5" />
-                </span>
-                <p className="text-sm text-slate-700">
-                  {necesitaReconectar
-                    ? 'Por seguridad, el navegador olvida el permiso de acceso a tu carpeta cada vez que se reinicia. Vuelve a otorgar el permiso para continuar subiendo o viendo resultados en esta computadora.'
-                    : 'Los resultados en PDF solo permanecen 6 meses en el servidor. Elige una carpeta en esta computadora donde se guardará automáticamente una copia de cada PDF subido, organizada por paciente, para que sigan disponibles después de ese tiempo.'}
-                </p>
-              </div>
-              {!necesitaReconectar && (
-                <p className="text-xs text-slate-500">
-                  Mientras no se elija una carpeta, no se podrán subir nuevos resultados.
-                </p>
-              )}
-            </>
-          )}
+  return (
+    <AccessibleDialog open={isOpen} labelledBy={tituloId} onClose={onClose} busy={procesando} size="small">
+      <div className={management.dialogContent}>
+        <header className={management.dialogHeader}>
+          <div>
+            <h2 id={tituloId}>{necesitaReconectar ? 'Reconecta la carpeta local' : 'Configura el respaldo local'}</h2>
+            <p>Conserva una copia de los resultados en esta computadora.</p>
+          </div>
+          {onClose && <button type="button" onClick={onClose} disabled={procesando} className={`${management.button} ${management.iconButton}`} aria-label="Cerrar"><X size={17} aria-hidden="true" /></button>}
+        </header>
 
-          {error && <p className="text-sm text-error font-semibold">{error}</p>}
-
-          {soportado && (
-            <div className="pt-2 flex justify-end gap-3">
+        {!soportado ? (
+          <div className={laboratory.errorState} role="alert"><strong>Navegador no compatible</strong><span>Esta función solo está disponible en Google Chrome. Abre allí el módulo de laboratorio para configurar el respaldo local.</span></div>
+        ) : (
+          <div className={management.form}>
+            <div className={laboratory.storageIntro}>
+              <span className={laboratory.storageIcon}><FolderOpen size={20} aria-hidden="true" /></span>
+              <p>{necesitaReconectar
+                ? 'Por seguridad, el navegador olvida el permiso de acceso después de reiniciarse y debe solicitarlo nuevamente.'
+                : 'Los resultados en PDF solo permanecen 6 meses en el servidor. Mientras no se elija una carpeta, no se creará una copia local organizada por paciente.'}</p>
+            </div>
+            {error && <p role="alert" className={management.fieldError}>{error}</p>}
+            <div className={management.dialogActions}>
               <button
                 type="button"
                 onClick={manejarAccion}
                 disabled={procesando}
-                className="px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-60"
+                aria-label={procesando ? 'Procesando...' : etiquetaAccion}
+                className={`${management.button} ${management.primary}`}
               >
-                {procesando
-                  ? 'Procesando...'
-                  : necesitaReconectar ? 'Reconectar carpeta' : 'Elegir carpeta'}
+                {procesando && <LoaderCircle size={15} className={management.spinner} aria-hidden="true" />} {etiquetaAccion}
               </button>
             </div>
-          )}
-        </div>
-      </motion.div>
-    </div>,
-    document.body,
+          </div>
+        )}
+      </div>
+    </AccessibleDialog>
   );
 }

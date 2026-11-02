@@ -28,8 +28,8 @@ describe('HistorialExpediente', () => {
         entidad: 'paciente',
         accion: 'actualizar',
         fecha_hora: '2026-10-05T16:30:00Z',
-        valores_anteriores: { telefono: '1111' },
-        valores_nuevos: { telefono: '2222' },
+        valores_anteriores: { telefono: '1111', fecha_nacimiento: '1985-01-02T00:00:00.000Z', fecha_anulacion: 'fecha-anterior-invalida' },
+        valores_nuevos: { telefono: '2222', fecha_nacimiento: '1986-04-02T00:00:00.000Z', fecha_anulacion: 'fecha-nueva-invalida' },
       }],
       cargando: false,
       error: null,
@@ -42,6 +42,9 @@ describe('HistorialExpediente', () => {
     expect(screen.getByText('Teléfono:')).toBeInTheDocument();
     expect(screen.getByText('1111')).toBeInTheDocument();
     expect(screen.getByText('2222')).toBeInTheDocument();
+    expect(screen.getByText(/1985/)).toBeInTheDocument();
+    expect(screen.queryByText('1985-01-02T00:00:00.000Z')).not.toBeInTheDocument();
+    expect(screen.getByText('fecha-nueva-invalida')).toBeInTheDocument();
   });
 
   it('muestra un estado vacío cuando no existen cambios', () => {
