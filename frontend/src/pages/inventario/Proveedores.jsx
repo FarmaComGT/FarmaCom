@@ -1,84 +1,111 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import InventarioSubNav from '../../components/inventario/InventarioSubNav.jsx';
 import ProveedorActionBar from '../../components/inventario/proveedores/ProveedorActionBar.jsx';
 import ProveedorTable from '../../components/inventario/proveedores/ProveedorTable.jsx';
 import ProveedorFormModal from '../../components/inventario/proveedores/ProveedorFormModal.jsx';
 import ProveedorContactosModal from '../../components/inventario/proveedores/ProveedorContactosModal.jsx';
 import ProveedorDeleteModal from '../../components/inventario/proveedores/ProveedorDeleteModal.jsx';
+import ProveedorEstadoModal from '../../components/inventario/proveedores/ProveedorEstadoModal.jsx';
 import useProveedores from '../../hooks/useProveedores';
+import { ejecutarTransicionDeVista } from '../../utils/viewTransition';
+import styles from '../../styles/ManagementUI.module.css';
 
 const formularioInicial = { nombre: '' };
 
 export default function Proveedores() {
-  const {
-    proveedores,
-    cargando,
-    error,
-    crear,
-    actualizar,
-    cambiarEstado,
-    eliminar,
-  } = useProveedores();
-
-  const [busqueda, setBusqueda] = useState('');
+  const { proveedores, cargando, error, refrescar, crear, actualizar, cambiarEstado, eliminar } = useProveedores();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const busqueda = searchParams.get('q') || '';
+  const estadoParam = searchParams.get('estado');
+  const estadoSeleccionado = ['activo', 'inactivo'].includes(estadoParam) ? estadoParam : 'todos';
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
   const [formulario, setFormulario] = useState(formularioInicial);
+  const [formularioBase, setFormularioBase] = useState(formularioInicial);
   const [guardando, setGuardando] = useState(false);
   const [errorFormulario, setErrorFormulario] = useState(null);
   const [proveedorContactos, setProveedorContactos] = useState(null);
+  const [proveedorACambiarEstado, setProveedorACambiarEstado] = useState(null);
+  const [proveedorAEliminar, setProveedorAEliminar] = useState(null);
   const [procesandoId, setProcesandoId] = useState(null);
   const [errorAccion, setErrorAccion] = useState(null);
   const [mensajeAccion, setMensajeAccion] = useState(null);
-  const [proveedorAEliminar, setProveedorAEliminar] = useState(null);
+  const hayCambios = formulario.nombre !== formularioBase.nombre;
+
+  useEffect(() => {
+    document.title = 'Proveedores · FarmaCom';
+  }, []);
+
+  const actualizarParametro = (nombre, valor, valorInicial = '') => {
+    setSearchParams((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      if (!valor || valor === valorInicial) siguientes.delete(nombre);
+      else siguientes.set(nombre, valor);
+      return siguientes;
+    }, { replace: true });
+  };
+
+  const actualizarEstado = (estado) => {
+    ejecutarTransicionDeVista(() => actualizarParametro('estado', estado, 'todos'));
+  };
 
   const proveedoresFiltrados = useMemo(() => {
-    const termino = busqueda.trim().toLowerCase();
-    if (!termino) return proveedores;
-    return proveedores.filter((p) => p.nombre.toLowerCase().includes(termino));
-  }, [busqueda, proveedores]);
+    const termino = busqueda.trim().toLocaleLowerCase('es');
+    return proveedores.filter((proveedor) => {
+      if (estadoSeleccionado === 'activo' && !proveedor.activo) return false;
+      if (estadoSeleccionado === 'inactivo' && proveedor.activo) return false;
+      return !termino || proveedor.nombre.toLocaleLowerCase('es').includes(termino);
+    });
+  }, [busqueda, estadoSeleccionado, proveedores]);
+  const totalActivos = useMemo(() => proveedores.filter((proveedor) => proveedor.activo).length, [proveedores]);
+  const totalInactivos = proveedores.length - totalActivos;
 
   const abrirModalCrear = () => {
     setModoEdicion(false);
     setIdEditando(null);
     setFormulario(formularioInicial);
+    setFormularioBase(formularioInicial);
     setErrorFormulario(null);
     setMostrarModal(true);
   };
 
   const abrirModalEditar = (proveedor) => {
+    const valores = { nombre: proveedor.nombre };
     setModoEdicion(true);
     setIdEditando(proveedor.id_proveedor);
-    setFormulario({ nombre: proveedor.nombre });
+    setFormulario(valores);
+    setFormularioBase(valores);
     setErrorFormulario(null);
     setMostrarModal(true);
   };
 
   const cerrarModal = () => {
-    if (guardando) return;
-    setMostrarModal(false);
+    if (!guardando) setMostrarModal(false);
   };
 
-  const manejarCambio = (e) => {
-    const { name, value } = e.target;
-    setFormulario((prev) => ({ ...prev, [name]: value }));
+  const manejarCambio = (evento) => {
+    const { name, value } = evento.target;
+    setFormulario((actual) => ({ ...actual, [name]: value }));
+    if (errorFormulario) setErrorFormulario(null);
   };
 
-  const manejarGuardar = async (e) => {
-    e.preventDefault();
+  const manejarGuardar = async (evento) => {
+    evento.preventDefault();
     setErrorFormulario(null);
     const nombre = formulario.nombre.trim();
-    if (!nombre) { setErrorFormulario('El nombre es requerido.'); return; }
+    if (!nombre) {
+      setErrorFormulario('El nombre es requerido.');
+      return;
+    }
     try {
       setGuardando(true);
-      if (modoEdicion && idEditando) {
-        await actualizar(idEditando, { nombre });
-      } else {
-        await crear({ nombre });
-      }
+      if (modoEdicion && idEditando) await actualizar(idEditando, { nombre });
+      else await crear({ nombre });
       setMostrarModal(false);
       setFormulario(formularioInicial);
+      setFormularioBase(formularioInicial);
     } catch (err) {
       setErrorFormulario(err.response?.data?.mensaje || 'No se pudo guardar el proveedor.');
     } finally {
@@ -86,12 +113,19 @@ export default function Proveedores() {
     }
   };
 
-  const manejarCambiarEstado = async (proveedor) => {
+  const solicitarCambiarEstado = (proveedor) => {
+    setErrorAccion(null);
+    setMensajeAccion(null);
+    setProveedorACambiarEstado(proveedor);
+  };
+
+  const confirmarCambiarEstado = async () => {
+    if (!proveedorACambiarEstado) return;
     try {
       setErrorAccion(null);
-      setMensajeAccion(null);
-      setProcesandoId(proveedor.id_proveedor);
-      await cambiarEstado(proveedor.id_proveedor, !proveedor.activo);
+      setProcesandoId(proveedorACambiarEstado.id_proveedor);
+      await cambiarEstado(proveedorACambiarEstado.id_proveedor, !proveedorACambiarEstado.activo);
+      setProveedorACambiarEstado(null);
     } catch (err) {
       setErrorAccion(err.response?.data?.mensaje || 'No se pudo cambiar el estado.');
     } finally {
@@ -99,11 +133,16 @@ export default function Proveedores() {
     }
   };
 
+  const solicitarEliminar = (proveedor) => {
+    setErrorAccion(null);
+    setMensajeAccion(null);
+    setProveedorAEliminar(proveedor);
+  };
+
   const confirmarEliminar = async () => {
     if (!proveedorAEliminar) return;
     try {
       setErrorAccion(null);
-      setMensajeAccion(null);
       setProcesandoId(proveedorAEliminar.id_proveedor);
       const resultado = await eliminar(proveedorAEliminar.id_proveedor);
       setMensajeAccion(resultado?.mensaje || 'Proveedor procesado correctamente.');
@@ -116,61 +155,40 @@ export default function Proveedores() {
   };
 
   return (
-    <div className="space-y-6">
+    <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="proveedores-title">
       <InventarioSubNav />
-
-      <ProveedorActionBar
-        busqueda={busqueda}
-        onBusquedaChange={(e) => setBusqueda(e.target.value)}
-        onCrear={abrirModalCrear}
-      />
-
-      {(error || errorAccion) && (
-        <div className="bg-error-container/40 border border-error/20 rounded-xl px-4 py-3 text-sm text-on-error-container font-medium">
-          {error || errorAccion}
+      <header className={styles.heading}>
+        <div>
+          <h1 id="proveedores-title">Proveedores</h1>
+          <p>Administra distribuidores, disponibilidad y datos de contacto.</p>
         </div>
-      )}
+      </header>
 
-      {mensajeAccion && (
-        <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
-          {mensajeAccion}
-        </div>
-      )}
+      <div className={styles.quickFilters} aria-label="Filtrar proveedores por estado">
+        {[
+          ['todos', 'Todos', proveedores.length],
+          ['activo', 'Activos', totalActivos],
+          ['inactivo', 'Inactivos', totalInactivos],
+        ].map(([valor, etiqueta, total]) => (
+          <button key={valor} type="button" className={styles.quickFilter} aria-pressed={estadoSeleccionado === valor} onClick={() => actualizarEstado(valor)}>
+            <strong>{total}</strong><span>{etiqueta}</span>
+          </button>
+        ))}
+      </div>
 
-      <ProveedorTable
-        cargando={cargando}
-        proveedores={proveedoresFiltrados}
-        onEditar={abrirModalEditar}
-        onCambiarEstado={manejarCambiarEstado}
-        onContactos={setProveedorContactos}
-        onEliminar={setProveedorAEliminar}
-        procesandoId={procesandoId}
-      />
+      <ProveedorActionBar busqueda={busqueda} onBusquedaChange={(evento) => actualizarParametro('q', evento.target.value)} onCrear={abrirModalCrear} />
+      <p className={styles.resultCount} aria-live="polite"><strong>{proveedoresFiltrados.length}</strong> de {proveedores.length} proveedores</p>
 
-      <ProveedorFormModal
-        isOpen={mostrarModal}
-        modoEdicion={modoEdicion}
-        formulario={formulario}
-        guardando={guardando}
-        errorFormulario={errorFormulario}
-        onClose={cerrarModal}
-        onSubmit={manejarGuardar}
-        onChange={manejarCambio}
-      />
+      {errorAccion && !proveedorACambiarEstado && !proveedorAEliminar && <p role="alert" className={styles.alert}>{errorAccion}</p>}
+      {error && proveedores.length > 0 && <p role="alert" className={styles.alert}>{error}</p>}
+      {mensajeAccion && <p role="status" className={styles.statusMessage}>{mensajeAccion}</p>}
 
-      <ProveedorContactosModal
-        isOpen={Boolean(proveedorContactos)}
-        proveedor={proveedorContactos}
-        onClose={() => setProveedorContactos(null)}
-      />
+      <ProveedorTable cargando={cargando} error={error} proveedores={proveedoresFiltrados} hayFiltros={Boolean(busqueda.trim()) || estadoSeleccionado !== 'todos'} onRetry={refrescar} onEditar={abrirModalEditar} onCambiarEstado={solicitarCambiarEstado} onContactos={setProveedorContactos} onEliminar={solicitarEliminar} procesandoId={procesandoId} />
 
-      <ProveedorDeleteModal
-        isOpen={Boolean(proveedorAEliminar)}
-        proveedor={proveedorAEliminar}
-        eliminando={procesandoId === proveedorAEliminar?.id_proveedor}
-        onClose={() => { if (!procesandoId) setProveedorAEliminar(null); }}
-        onConfirm={confirmarEliminar}
-      />
-    </div>
+      <ProveedorFormModal isOpen={mostrarModal} modoEdicion={modoEdicion} formulario={formulario} hayCambios={hayCambios} guardando={guardando} errorFormulario={errorFormulario} onClose={cerrarModal} onSubmit={manejarGuardar} onChange={manejarCambio} />
+      <ProveedorContactosModal isOpen={Boolean(proveedorContactos)} proveedor={proveedorContactos} onClose={() => setProveedorContactos(null)} />
+      <ProveedorEstadoModal isOpen={Boolean(proveedorACambiarEstado)} proveedor={proveedorACambiarEstado} procesando={Boolean(procesandoId)} error={errorAccion} onClose={() => { if (!procesandoId) setProveedorACambiarEstado(null); }} onConfirm={confirmarCambiarEstado} />
+      <ProveedorDeleteModal isOpen={Boolean(proveedorAEliminar)} proveedor={proveedorAEliminar} eliminando={Boolean(procesandoId)} error={errorAccion} onClose={() => { if (!procesandoId) setProveedorAEliminar(null); }} onConfirm={confirmarEliminar} />
+    </section>
   );
 }

@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { motion } from 'motion/react';
-import { Check, Pencil, X, Phone, Mail, Plus, Trash2 } from 'lucide-react';
+import React, { useId, useState } from 'react';
+import { Check, LoaderCircle, Mail, Pencil, Phone, Plus, Trash2, X } from 'lucide-react';
 import useContactosProveedor from '../../../hooks/useContactosProveedor';
+import AccessibleDialog from '../../ui/AccessibleDialog.jsx';
+import ContentState from '../../ui/ContentState.jsx';
+import styles from '../../../styles/ManagementUI.module.css';
 
-function ContactoItem({ label, type = 'text', onActualizar, onEliminar, eliminando }) {
+function ContactoItem({ label, type = 'text', onActualizar, onSolicitarEliminar, eliminando }) {
+  const campoId = useId();
   const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState(label);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
+  const tipoContacto = type === 'email' ? 'correo' : 'teléfono';
 
   const cancelarEdicion = () => {
     setValor(label);
@@ -16,17 +19,17 @@ function ContactoItem({ label, type = 'text', onActualizar, onEliminar, eliminan
     setError('');
   };
 
-  const guardarEdicion = async (event) => {
-    event.preventDefault();
-    if (!valor.trim() || valor.trim() === label) {
+  const guardarEdicion = async (evento) => {
+    evento.preventDefault();
+    const valorLimpio = valor.trim();
+    if (!valorLimpio || valorLimpio === label) {
       cancelarEdicion();
       return;
     }
-
     setGuardando(true);
     setError('');
     try {
-      await onActualizar(valor.trim());
+      await onActualizar(valorLimpio);
       setEditando(false);
     } catch (err) {
       setError(err.response?.data?.mensaje || 'No se pudo actualizar');
@@ -37,78 +40,44 @@ function ContactoItem({ label, type = 'text', onActualizar, onEliminar, eliminan
 
   if (editando) {
     return (
-      <li className="py-1.5">
-        <form onSubmit={guardarEdicion} className="flex items-center gap-2">
-          <input
-            type={type}
-            value={valor}
-            onChange={(event) => setValor(event.target.value)}
-            className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-          />
-          <button
-            type="submit"
-            disabled={guardando || !valor.trim()}
-            className="text-green-600 hover:text-green-700 disabled:opacity-40"
-            aria-label="Guardar contacto"
-          >
-            <Check className="h-4 w-4" />
+      <li className={styles.contactItem}>
+        <form onSubmit={guardarEdicion} className={styles.contactForm}>
+          <label className={styles.visuallyHidden} htmlFor={campoId}>Editar {tipoContacto}</label>
+          <input id={campoId} name={type === 'email' ? 'editar_correo' : 'editar_telefono'} type={type} inputMode={type === 'email' ? 'email' : 'tel'} autoComplete={type === 'email' ? 'email' : 'tel'} spellCheck={type === 'email' ? 'false' : undefined} value={valor} onChange={(evento) => setValor(evento.target.value)} aria-invalid={Boolean(error)} className={styles.input} />
+          <button type="submit" disabled={guardando || !valor.trim()} className={`${styles.button} ${styles.iconButton} ${styles.primary}`} aria-label="Guardar">
+            {guardando ? <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}
           </button>
-          <button
-            type="button"
-            onClick={cancelarEdicion}
-            disabled={guardando}
-            className="text-slate-400 hover:text-slate-600 disabled:opacity-40"
-            aria-label="Cancelar edicion"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <button type="button" onClick={cancelarEdicion} disabled={guardando} className={`${styles.button} ${styles.iconButton}`} aria-label="Cancelar"><X size={15} aria-hidden="true" /></button>
         </form>
-        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+        {error && <p role="alert" className={styles.fieldError}>{error}</p>}
       </li>
     );
   }
 
   return (
-    <li className="flex items-center justify-between gap-2 py-1.5">
-      <span className="min-w-0 flex-1 break-words text-sm text-slate-700">{label}</span>
-      <div className="flex shrink-0 items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setEditando(true)}
-          disabled={eliminando}
-          className="text-primary hover:text-primary/80 disabled:opacity-40"
-          aria-label="Editar contacto"
-        >
-          <Pencil className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={onEliminar}
-          disabled={eliminando}
-          className="text-red-500 hover:text-red-700 disabled:opacity-40"
-          aria-label="Eliminar"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+    <li className={styles.contactItem}>
+      <span className={styles.contactValue}>{label}</span>
+      <div className={styles.contactActions}>
+        <button type="button" onClick={() => setEditando(true)} disabled={eliminando} className={`${styles.button} ${styles.iconButton}`} aria-label="Editar"><Pencil size={15} aria-hidden="true" /></button>
+        <button type="button" onClick={onSolicitarEliminar} disabled={eliminando} className={`${styles.button} ${styles.iconButton} ${styles.danger}`} aria-label="Eliminar"><Trash2 size={15} aria-hidden="true" /></button>
       </div>
     </li>
   );
 }
 
-function AgregarInput({ placeholder, type = 'text', onAgregar }) {
+function AgregarInput({ id, label, placeholder, type = 'text', onAgregar }) {
   const [valor, setValor] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!valor.trim()) return;
-
+  const manejarEnvio = async (evento) => {
+    evento.preventDefault();
+    const valorLimpio = valor.trim();
+    if (!valorLimpio) return;
     setError('');
     setGuardando(true);
-
     try {
-      await onAgregar(valor.trim());
+      await onAgregar(valorLimpio);
       setValor('');
     } catch (err) {
       setError(err.response?.data?.mensaje || 'No se pudo agregar');
@@ -118,150 +87,90 @@ function AgregarInput({ placeholder, type = 'text', onAgregar }) {
   };
 
   return (
-    <div className="mt-2 space-y-1">
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          type={type}
-          value={valor}
-          onChange={(event) => setValor(event.target.value)}
-          placeholder={placeholder}
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
-        />
-        <button
-          type="submit"
-          disabled={guardando || !valor.trim()}
-          className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Agregar
-        </button>
-      </form>
-      {error && <p className="text-xs text-red-600">{error}</p>}
-    </div>
+    <form onSubmit={manejarEnvio} className={styles.contactAddForm}>
+      <label className={styles.visuallyHidden} htmlFor={id}>{label}</label>
+      <input id={id} name={id} type={type} inputMode={type === 'email' ? 'email' : 'tel'} autoComplete={type === 'email' ? 'email' : 'tel'} spellCheck={type === 'email' ? 'false' : undefined} value={valor} onChange={(evento) => setValor(evento.target.value)} placeholder={placeholder} aria-invalid={Boolean(error)} className={styles.input} />
+      <button type="submit" disabled={guardando || !valor.trim()} className={`${styles.button} ${styles.primary}`}>
+        {guardando ? <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" /> : <Plus size={15} aria-hidden="true" />}
+        Agregar
+      </button>
+      {error && <p role="alert" className={styles.fieldError}>{error}</p>}
+    </form>
   );
 }
 
 export default function ProveedorContactosModal({ isOpen, proveedor, onClose }) {
+  const [contactoAEliminar, setContactoAEliminar] = useState(null);
   const [eliminandoId, setEliminandoId] = useState(null);
-  const {
-    telefonos,
-    correos,
-    cargando,
-    error,
-    agregarTelefono,
-    actualizarTelefono,
-    eliminarTelefono,
-    agregarCorreo,
-    actualizarCorreo,
-    eliminarCorreo,
-  } = useContactosProveedor(isOpen ? proveedor?.id_proveedor : null);
+  const [errorEliminacion, setErrorEliminacion] = useState('');
+  const { telefonos, correos, cargando, error, refrescar, agregarTelefono, actualizarTelefono, eliminarTelefono, agregarCorreo, actualizarCorreo, eliminarCorreo } = useContactosProveedor(isOpen ? proveedor?.id_proveedor : null);
 
-  if (!isOpen || !proveedor || typeof document === 'undefined') return null;
+  if (!proveedor) return null;
+  const tituloId = 'titulo-contactos-proveedor';
 
-  const handleEliminarTelefono = async (idTelefono) => {
-    setEliminandoId(`tel-${idTelefono}`);
+  const solicitarEliminarContacto = (contacto) => {
+    setErrorEliminacion('');
+    setContactoAEliminar(contacto);
+  };
+
+  const confirmarEliminarContacto = async () => {
+    if (!contactoAEliminar) return;
+    setEliminandoId(`${contactoAEliminar.tipo}-${contactoAEliminar.id}`);
+    setErrorEliminacion('');
     try {
-      await eliminarTelefono(idTelefono);
+      if (contactoAEliminar.tipo === 'tel') await eliminarTelefono(contactoAEliminar.id);
+      else await eliminarCorreo(contactoAEliminar.id);
+      setContactoAEliminar(null);
+    } catch (err) {
+      setErrorEliminacion(err.response?.data?.mensaje || 'No se pudo eliminar el contacto.');
     } finally {
       setEliminandoId(null);
     }
   };
 
-  const handleEliminarCorreo = async (idCorreo) => {
-    setEliminandoId(`cor-${idCorreo}`);
-    try {
-      await eliminarCorreo(idCorreo);
-    } finally {
-      setEliminandoId(null);
-    }
-  };
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl"
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h3 className="font-headline text-lg font-extrabold text-primary">
-            Contactos - {proveedor.nombre}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="text-slate-500 hover:text-slate-700"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="space-y-6 px-6 py-5">
-          {cargando && <p className="text-sm text-slate-500">Cargando contactos...</p>}
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <section>
-            <div className="mb-2 flex items-center gap-2">
-              <Phone className="h-4 w-4 text-primary" />
-              <h4 className="text-sm font-bold text-slate-700">Telefonos</h4>
+  return (
+    <>
+      <AccessibleDialog open={isOpen} labelledBy={tituloId} onClose={onClose} size="medium">
+        <div className={styles.dialogContent}>
+          <header className={styles.dialogHeader}>
+            <div>
+              <h2 id={tituloId}>{proveedor.nombre}</h2>
+              <p>Administra los teléfonos y correos del proveedor.</p>
             </div>
-            {!cargando && telefonos.length === 0 && (
-              <p className="text-xs text-slate-400">Sin telefonos registrados.</p>
-            )}
-            <ul className="divide-y divide-slate-100">
-              {telefonos.map((telefono) => (
-                <ContactoItem
-                  key={telefono.id_telefono}
-                  label={telefono.numero}
-                  onActualizar={(numero) => actualizarTelefono(telefono.id_telefono, numero)}
-                  onEliminar={() => handleEliminarTelefono(telefono.id_telefono)}
-                  eliminando={eliminandoId === `tel-${telefono.id_telefono}`}
-                />
-              ))}
-            </ul>
-            <AgregarInput placeholder="Ej: +502 1234-5678" onAgregar={agregarTelefono} />
-          </section>
+            <button type="button" onClick={onClose} className={`${styles.button} ${styles.iconButton}`} aria-label="Cerrar"><X size={17} aria-hidden="true" /></button>
+          </header>
 
-          <section>
-            <div className="mb-2 flex items-center gap-2">
-              <Mail className="h-4 w-4 text-primary" />
-              <h4 className="text-sm font-bold text-slate-700">Correos electronicos</h4>
+          {cargando ? <ContentState compact variant="loading" message="Cargando información…" /> : error ? <ContentState compact variant="error" title="No se pudieron cargar los contactos" message={error} onRetry={refrescar} /> : (
+            <div className={styles.contactSections}>
+              <section className={styles.contactSection} aria-labelledby="proveedor-telefonos-title">
+                <h3 id="proveedor-telefonos-title" className={styles.contactHeading}><Phone size={16} aria-hidden="true" />Teléfonos</h3>
+                {telefonos.length === 0 ? <p className={styles.contactEmpty}>Sin teléfonos registrados.</p> : <ul className={styles.contactList}>{telefonos.map((telefono) => <ContactoItem key={telefono.id_telefono} label={telefono.numero} onActualizar={(numero) => actualizarTelefono(telefono.id_telefono, numero)} onSolicitarEliminar={() => solicitarEliminarContacto({ tipo: 'tel', id: telefono.id_telefono, label: telefono.numero })} eliminando={eliminandoId === `tel-${telefono.id_telefono}`} />)}</ul>}
+                <AgregarInput id="nuevo_telefono_proveedor" label="Nuevo teléfono" placeholder="Ej.: +502 2222-3333…" onAgregar={agregarTelefono} />
+              </section>
+              <section className={styles.contactSection} aria-labelledby="proveedor-correos-title">
+                <h3 id="proveedor-correos-title" className={styles.contactHeading}><Mail size={16} aria-hidden="true" />Correos electrónicos</h3>
+                {correos.length === 0 ? <p className={styles.contactEmpty}>Sin correos registrados.</p> : <ul className={styles.contactList}>{correos.map((correo) => <ContactoItem key={correo.id_email} label={correo.correo} type="email" onActualizar={(valor) => actualizarCorreo(correo.id_email, valor)} onSolicitarEliminar={() => solicitarEliminarContacto({ tipo: 'cor', id: correo.id_email, label: correo.correo })} eliminando={eliminandoId === `cor-${correo.id_email}`} />)}</ul>}
+                <AgregarInput id="nuevo_correo_proveedor" label="Nuevo correo electrónico" placeholder="Ej.: pedidos@distribuidor.com…" type="email" onAgregar={agregarCorreo} />
+              </section>
             </div>
-            {!cargando && correos.length === 0 && (
-              <p className="text-xs text-slate-400">Sin correos registrados.</p>
-            )}
-            <ul className="divide-y divide-slate-100">
-              {correos.map((correo) => (
-                <ContactoItem
-                  key={correo.id_email}
-                  label={correo.correo}
-                  type="email"
-                  onActualizar={(email) => actualizarCorreo(correo.id_email, email)}
-                  onEliminar={() => handleEliminarCorreo(correo.id_email)}
-                  eliminando={eliminandoId === `cor-${correo.id_email}`}
-                />
-              ))}
-            </ul>
-            <AgregarInput
-              placeholder="Ej: proveedor@farma.com"
-              type="email"
-              onAgregar={agregarCorreo}
-            />
-          </section>
+          )}
+          <div className={styles.dialogActions}><button type="button" onClick={onClose} className={styles.button}>Cerrar</button></div>
         </div>
+      </AccessibleDialog>
 
-        <div className="flex justify-end px-6 pb-5">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            Cerrar
-          </button>
+      <AccessibleDialog open={Boolean(contactoAEliminar)} labelledBy="titulo-eliminar-contacto-proveedor" onClose={() => { if (!eliminandoId) setContactoAEliminar(null); }} busy={Boolean(eliminandoId)} size="small">
+        <div className={styles.dialogContent}>
+          <header className={styles.dialogHeader}><div><h2 id="titulo-eliminar-contacto-proveedor">Eliminar contacto</h2><p>Esta acción no se puede deshacer.</p></div></header>
+          <div className={styles.form}>
+            <p>¿Deseas eliminar <strong>{contactoAEliminar?.label}</strong>?</p>
+            {errorEliminacion && <p role="alert" className={styles.fieldError}>{errorEliminacion}</p>}
+            <div className={styles.dialogActions}>
+              <button type="button" onClick={() => setContactoAEliminar(null)} disabled={Boolean(eliminandoId)} className={styles.button}>Cancelar</button>
+              <button type="button" onClick={confirmarEliminarContacto} disabled={Boolean(eliminandoId)} className={`${styles.button} ${styles.dangerPrimary}`}>{eliminandoId && <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" />}Eliminar contacto</button>
+            </div>
+          </div>
         </div>
-      </motion.div>
-    </div>,
-    document.body,
+      </AccessibleDialog>
+    </>
   );
 }

@@ -73,6 +73,7 @@ export default function useContactosProveedor(idProveedor) {
     correos,
     cargando,
     error,
+    refrescar: cargar,
     agregarTelefono,
     actualizarTelefono,
     eliminarTelefono,

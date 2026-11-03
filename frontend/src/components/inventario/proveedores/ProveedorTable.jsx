@@ -1,42 +1,23 @@
 import React from 'react';
+import ContentState from '../../ui/ContentState.jsx';
 import ProveedorTableHeader from './ProveedorTableHeader.jsx';
 import ProveedorTableRow from './ProveedorTableRow.jsx';
+import styles from '../../../styles/ManagementUI.module.css';
 
-export default function ProveedorTable({
-  cargando,
-  proveedores,
-  onEditar,
-  onCambiarEstado,
-  onContactos,
-  onEliminar,
-  procesandoId,
-}) {
+export default function ProveedorTable({ cargando, error, proveedores, hayFiltros, onRetry, onEditar, onCambiarEstado, onContactos, onEliminar, procesandoId }) {
+  if (cargando && proveedores.length === 0) return <ContentState variant="loading" message="Cargando proveedores…" />;
+  if (error && proveedores.length === 0) return <ContentState variant="error" title="No se pudieron cargar los proveedores" message={error} onRetry={onRetry} />;
+  if (proveedores.length === 0) return <ContentState title={hayFiltros ? 'Sin coincidencias' : 'Aún no hay proveedores'} message={hayFiltros ? 'Prueba con otra búsqueda o cambia el filtro de estado.' : 'Registra el primer proveedor para comenzar.'} />;
+
   return (
-    <section className="bg-surface-container-low/60 border border-slate-200 rounded-2xl overflow-hidden">
-      <div className="overflow-x-auto">
-        <div className="min-w-[800px]">
-          <ProveedorTableHeader />
-          {cargando ? (
-            <div className="px-5 py-10 text-center text-slate-500 font-medium">Cargando proveedores...</div>
-          ) : proveedores.length === 0 ? (
-            <div className="px-5 py-10 text-center text-slate-500 font-medium">No hay proveedores para mostrar.</div>
-          ) : (
-            <div className="divide-y divide-slate-200">
-              {proveedores.map((p) => (
-                <ProveedorTableRow
-                  key={p.id_proveedor}
-                  proveedor={p}
-                  onEditar={onEditar}
-                  onCambiarEstado={onCambiarEstado}
-                  onContactos={onContactos}
-                  onEliminar={onEliminar}
-                  procesando={procesandoId === p.id_proveedor}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+    <section className={styles.tablePanel} aria-label="Proveedores registrados">
+      <table className={styles.table} aria-busy={cargando}>
+        <caption className={styles.visuallyHidden}>Listado de proveedores</caption>
+        <thead><ProveedorTableHeader /></thead>
+        <tbody>
+          {proveedores.map((proveedor) => <ProveedorTableRow key={proveedor.id_proveedor} proveedor={proveedor} onEditar={onEditar} onCambiarEstado={onCambiarEstado} onContactos={onContactos} onEliminar={onEliminar} procesando={procesandoId === proveedor.id_proveedor} />)}
+        </tbody>
+      </table>
     </section>
   );
 }
