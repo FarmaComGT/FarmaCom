@@ -9,27 +9,38 @@ const acciones = vi.hoisted(() => ({
   crear: vi.fn(),
   actualizar: vi.fn(),
   eliminar: vi.fn(),
+  refrescar: vi.fn(),
+}));
+
+const estadoCategorias = vi.hoisted(() => ({
+  categorias: [{ id_categoria: 1, nombre: 'Analgésicos' }],
+  cargando: false,
+  error: null,
 }));
 
 vi.mock('../../hooks/useCategorias', () => ({
   default: () => ({
-    categorias: [{ id_categoria: 1, nombre: 'Analgésicos' }],
-    cargando: false,
-    error: null,
+    ...estadoCategorias,
+    refrescar: acciones.refrescar,
     crear: acciones.crear,
     actualizar: acciones.actualizar,
     eliminar: acciones.eliminar,
   }),
 }));
 
-const renderizar = () => render(
-  <MemoryRouter>
+const renderizar = (ruta = '/') => render(
+  <MemoryRouter initialEntries={[ruta]}>
     <Categorias />
   </MemoryRouter>,
 );
 
 describe('pantalla de categorías', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    estadoCategorias.categorias = [{ id_categoria: 1, nombre: 'Analgésicos' }];
+    estadoCategorias.cargando = false;
+    estadoCategorias.error = null;
+  });
 
   it('muestra las categorías registradas y permite buscarlas', async () => {
     const user = userEvent.setup();
@@ -37,8 +48,42 @@ describe('pantalla de categorías', () => {
 
     expect(screen.getByText('Analgésicos')).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText('Buscar por nombre...'), 'no existe');
-    expect(screen.getByText('No hay categorías para mostrar.')).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText('Buscar por nombre…'), 'no existe');
+    expect(screen.getByText('Sin coincidencias')).toBeInTheDocument();
+  });
+
+  it('restaura y limpia la búsqueda guardada en la URL', async () => {
+    const user = userEvent.setup();
+    renderizar('/?q=Analgésicos');
+
+    const buscador = screen.getByPlaceholderText('Buscar por nombre…');
+    expect(buscador).toHaveValue('Analgésicos');
+    expect(screen.getByText('Analgésicos')).toBeInTheDocument();
+
+    await user.clear(buscador);
+    expect(buscador).toHaveValue('');
+    expect(screen.getByText('Analgésicos')).toBeInTheDocument();
+  });
+
+  it('muestra los estados de carga, error y catálogo vacío', async () => {
+    const user = userEvent.setup();
+    estadoCategorias.categorias = [];
+    estadoCategorias.cargando = true;
+    const carga = renderizar();
+    expect(screen.getByText('Cargando categorías…')).toBeInTheDocument();
+    carga.unmount();
+
+    estadoCategorias.cargando = false;
+    estadoCategorias.error = 'Servicio no disponible';
+    const error = renderizar();
+    expect(screen.getByText('No se pudieron cargar las categorías')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(acciones.refrescar).toHaveBeenCalledOnce();
+    error.unmount();
+
+    estadoCategorias.error = null;
+    renderizar();
+    expect(screen.getByText('Aún no hay categorías')).toBeInTheDocument();
   });
 
   it('crea una categoría nueva', async () => {
@@ -47,7 +92,7 @@ describe('pantalla de categorías', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva categoría' }));
-    await user.type(screen.getByPlaceholderText('Ej: Analgésico'), 'Antibióticos');
+    await user.type(screen.getByPlaceholderText('Ej.: Analgésicos…'), 'Antibióticos');
     await user.click(screen.getByRole('button', { name: 'Crear categoría' }));
 
     await waitFor(() => expect(acciones.crear).toHaveBeenCalledWith({ nombre: 'Antibióticos' }));
@@ -58,7 +103,7 @@ describe('pantalla de categorías', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva categoría' }));
-    await user.type(screen.getByPlaceholderText('Ej: Analgésico'), '   ');
+    await user.type(screen.getByPlaceholderText('Ej.: Analgésicos…'), '   ');
     await user.click(screen.getByRole('button', { name: 'Crear categoría' }));
 
     expect(screen.getByText('El nombre es requerido.')).toBeInTheDocument();
@@ -70,8 +115,8 @@ describe('pantalla de categorías', () => {
     acciones.actualizar.mockResolvedValue({ id_categoria: 1 });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
-    const nombre = screen.getByPlaceholderText('Ej: Analgésico');
+    await user.click(screen.getByRole('button', { name: 'Editar categoría Analgésicos' }));
+    const nombre = screen.getByPlaceholderText('Ej.: Analgésicos…');
     await user.clear(nombre);
     await user.type(nombre, 'Antiinflamatorios');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
@@ -84,10 +129,26 @@ describe('pantalla de categorías', () => {
     acciones.actualizar.mockRejectedValue({ response: { data: { mensaje: 'Nombre duplicado' } } });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Editar categoría Analgésicos' }));
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(await screen.findByText('Nombre duplicado')).toBeInTheDocument();
+  });
+
+  it('protege los cambios sin guardar al cerrar el formulario', async () => {
+    const user = userEvent.setup();
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    renderizar();
+
+    await user.click(screen.getByRole('button', { name: 'Nueva categoría' }));
+    await user.type(screen.getByPlaceholderText('Ej.: Analgésicos…'), 'Nueva');
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.getByRole('heading', { name: 'Nueva categoría' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('heading', { name: 'Nueva categoría' })).not.toBeInTheDocument();
+    expect(confirmar).toHaveBeenCalledTimes(2);
+    confirmar.mockRestore();
   });
 
   it('elimina una categoría tras confirmar', async () => {
@@ -95,10 +156,10 @@ describe('pantalla de categorías', () => {
     acciones.eliminar.mockResolvedValue({});
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
-    expect(screen.getByText('Confirmar eliminación')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Eliminar categoría Analgésicos' }));
+    expect(screen.getByRole('heading', { name: 'Eliminar categoría' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar categoría' }));
 
     await waitFor(() => expect(acciones.eliminar).toHaveBeenCalledWith(1));
   });
@@ -107,10 +168,22 @@ describe('pantalla de categorías', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar categoría Analgésicos' }));
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
 
-    expect(screen.queryByText('Confirmar eliminación')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Eliminar categoría' })).not.toBeInTheDocument();
     expect(acciones.eliminar).not.toHaveBeenCalled();
+  });
+
+  it('mantiene abierto el diálogo si falla la eliminación', async () => {
+    const user = userEvent.setup();
+    acciones.eliminar.mockRejectedValue(new Error('Network Error'));
+    renderizar();
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar categoría Analgésicos' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar categoría' }));
+
+    expect(await screen.findByText('No se pudo eliminar la categoría.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Eliminar categoría' })).toBeInTheDocument();
   });
 });

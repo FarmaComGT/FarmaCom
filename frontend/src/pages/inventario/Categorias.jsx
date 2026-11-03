@@ -1,73 +1,94 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import InventarioSubNav from '../../components/inventario/InventarioSubNav.jsx';
 import CategoriaActionBar from '../../components/inventario/categorias/CategoriaActionBar.jsx';
 import CategoriaTable from '../../components/inventario/categorias/CategoriaTable.jsx';
 import CategoriaFormModal from '../../components/inventario/categorias/CategoriaFormModal.jsx';
 import CategoriaDeleteModal from '../../components/inventario/categorias/CategoriaDeleteModal.jsx';
 import useCategorias from '../../hooks/useCategorias';
+import styles from '../../styles/ManagementUI.module.css';
 
 const formularioInicial = { nombre: '' };
 
 export default function Categorias() {
-  const { categorias, cargando, error, crear, actualizar, eliminar } = useCategorias();
-
-  const [busqueda, setBusqueda] = useState('');
+  const { categorias, cargando, error, refrescar, crear, actualizar, eliminar } = useCategorias();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const busqueda = searchParams.get('q') || '';
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
   const [formulario, setFormulario] = useState(formularioInicial);
+  const [formularioBase, setFormularioBase] = useState(formularioInicial);
   const [guardando, setGuardando] = useState(false);
   const [errorFormulario, setErrorFormulario] = useState(null);
   const [categoriaAEliminar, setCategoriaAEliminar] = useState(null);
   const [eliminandoId, setEliminandoId] = useState(null);
   const [errorAccion, setErrorAccion] = useState(null);
+  const hayCambios = formulario.nombre !== formularioBase.nombre;
+
+  useEffect(() => {
+    document.title = 'Categorías · FarmaCom';
+  }, []);
+
+  const actualizarBusqueda = (valor) => {
+    setSearchParams((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      if (valor) siguientes.set('q', valor);
+      else siguientes.delete('q');
+      return siguientes;
+    }, { replace: true });
+  };
 
   const categoriasFiltradas = useMemo(() => {
-    const termino = busqueda.trim().toLowerCase();
+    const termino = busqueda.trim().toLocaleLowerCase('es');
     if (!termino) return categorias;
-    return categorias.filter((c) => c.nombre.toLowerCase().includes(termino));
+    return categorias.filter((categoria) => categoria.nombre.toLocaleLowerCase('es').includes(termino));
   }, [busqueda, categorias]);
 
   const abrirModalCrear = () => {
     setModoEdicion(false);
     setIdEditando(null);
     setFormulario(formularioInicial);
+    setFormularioBase(formularioInicial);
     setErrorFormulario(null);
     setMostrarModal(true);
   };
 
   const abrirModalEditar = (categoria) => {
+    const valores = { nombre: categoria.nombre };
     setModoEdicion(true);
     setIdEditando(categoria.id_categoria);
-    setFormulario({ nombre: categoria.nombre });
+    setFormulario(valores);
+    setFormularioBase(valores);
     setErrorFormulario(null);
     setMostrarModal(true);
   };
 
   const cerrarModal = () => {
-    if (guardando) return;
-    setMostrarModal(false);
+    if (!guardando) setMostrarModal(false);
   };
 
-  const manejarCambio = (e) => {
-    const { name, value } = e.target;
-    setFormulario((prev) => ({ ...prev, [name]: value }));
+  const manejarCambio = (evento) => {
+    const { name, value } = evento.target;
+    setFormulario((actual) => ({ ...actual, [name]: value }));
+    if (errorFormulario) setErrorFormulario(null);
   };
 
-  const manejarGuardar = async (e) => {
-    e.preventDefault();
+  const manejarGuardar = async (evento) => {
+    evento.preventDefault();
     setErrorFormulario(null);
     const nombre = formulario.nombre.trim();
-    if (!nombre) { setErrorFormulario('El nombre es requerido.'); return; }
+    if (!nombre) {
+      setErrorFormulario('El nombre es requerido.');
+      return;
+    }
     try {
       setGuardando(true);
-      if (modoEdicion && idEditando) {
-        await actualizar(idEditando, { nombre });
-      } else {
-        await crear({ nombre });
-      }
+      if (modoEdicion && idEditando) await actualizar(idEditando, { nombre });
+      else await crear({ nombre });
       setMostrarModal(false);
       setFormulario(formularioInicial);
+      setFormularioBase(formularioInicial);
     } catch (err) {
       setErrorFormulario(err.response?.data?.mensaje || 'No se pudo guardar la categoría.');
     } finally {
@@ -89,27 +110,38 @@ export default function Categorias() {
     }
   };
 
+  const solicitarEliminar = (categoria) => {
+    setErrorAccion(null);
+    setCategoriaAEliminar(categoria);
+  };
+
   return (
-    <div className="space-y-6">
+    <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="categorias-title">
       <InventarioSubNav />
-
-      <CategoriaActionBar
-        busqueda={busqueda}
-        onBusquedaChange={(e) => setBusqueda(e.target.value)}
-        onCrear={abrirModalCrear}
-      />
-
-      {(error || errorAccion) && (
-        <div className="bg-error-container/40 border border-error/20 rounded-xl px-4 py-3 text-sm text-on-error-container font-medium">
-          {error || errorAccion}
+      <header className={styles.heading}>
+        <div>
+          <h1 id="categorias-title">Categorías</h1>
+          <p>Organiza los productos en grupos fáciles de encontrar.</p>
         </div>
-      )}
+      </header>
+
+      <CategoriaActionBar busqueda={busqueda} onBusquedaChange={(evento) => actualizarBusqueda(evento.target.value)} onCrear={abrirModalCrear} />
+
+      <p className={styles.resultCount} aria-live="polite">
+        <strong>{categoriasFiltradas.length}</strong> de {categorias.length} categorías
+      </p>
+
+      {errorAccion && !categoriaAEliminar && <p role="alert" className={styles.alert}>{errorAccion}</p>}
+      {error && categorias.length > 0 && <p role="alert" className={styles.alert}>{error}</p>}
 
       <CategoriaTable
         cargando={cargando}
+        error={error}
         categorias={categoriasFiltradas}
+        hayBusqueda={Boolean(busqueda.trim())}
+        onRetry={refrescar}
         onEditar={abrirModalEditar}
-        onEliminar={setCategoriaAEliminar}
+        onEliminar={solicitarEliminar}
         eliminandoId={eliminandoId}
       />
 
@@ -117,6 +149,7 @@ export default function Categorias() {
         isOpen={mostrarModal}
         modoEdicion={modoEdicion}
         formulario={formulario}
+        hayCambios={hayCambios}
         guardando={guardando}
         errorFormulario={errorFormulario}
         onClose={cerrarModal}
@@ -128,9 +161,10 @@ export default function Categorias() {
         isOpen={Boolean(categoriaAEliminar)}
         categoria={categoriaAEliminar}
         eliminando={Boolean(eliminandoId)}
+        error={errorAccion}
         onClose={() => { if (!eliminandoId) setCategoriaAEliminar(null); }}
         onConfirm={confirmarEliminar}
       />
-    </div>
+    </section>
   );
 }

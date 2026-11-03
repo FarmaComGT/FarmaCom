@@ -34,8 +34,10 @@ const modales = [
     correo: { id_email: 2, correo: 'ventas@bayer.test' },
     etiquetas: { editar: 'Editar', guardar: 'Guardar', cancelar: 'Cancelar' },
     sinTelefonos: 'Sin teléfonos registrados.',
-    cargando: 'Cargando información...',
+    cargando: 'Cargando información…',
     extra: { proveedores: [] },
+    ocultaVacioConError: true,
+    confirmaEliminacion: true,
   },
   {
     nombre: 'proveedor',
@@ -69,6 +71,7 @@ const modales = [
 
 describe.each(modales)('modal de contactos de $nombre', ({
   Modal, hook, props, idPadre, titulo, telefono, correo, etiquetas, sinTelefonos, cargando, extra,
+  ocultaVacioConError = false, confirmaEliminacion = false,
 }) => {
   const usarContactos = (estado = {}) => {
     hook.mockReturnValue({
@@ -114,11 +117,17 @@ describe.each(modales)('modal de contactos de $nombre', ({
     expect(screen.getByText('Sin correos registrados.')).toBeInTheDocument();
     unmount();
 
-    usarContactos({ telefonos: [], correos: [], cargando: true, error: 'No se pudieron cargar' });
-    renderizar();
+    usarContactos({ telefonos: [], correos: [], cargando: true });
+    const carga = renderizar();
     expect(screen.getByText(cargando)).toBeInTheDocument();
-    expect(screen.getByText('No se pudieron cargar')).toBeInTheDocument();
     expect(screen.queryByText(sinTelefonos)).not.toBeInTheDocument();
+    carga.unmount();
+
+    usarContactos({ telefonos: [], correos: [], cargando: false, error: 'No se pudieron cargar' });
+    renderizar();
+    expect(screen.getByText('No se pudieron cargar')).toBeInTheDocument();
+    if (ocultaVacioConError) expect(screen.queryByText(sinTelefonos)).not.toBeInTheDocument();
+    else expect(screen.getByText(sinTelefonos)).toBeInTheDocument();
   });
 
   it('agrega un teléfono y limpia el campo', async () => {
@@ -214,7 +223,9 @@ describe.each(modales)('modal de contactos de $nombre', ({
 
     const [eliminarTelefono, eliminarCorreo] = screen.getAllByRole('button', { name: 'Eliminar' });
     await user.click(eliminarTelefono);
+    if (confirmaEliminacion) await user.click(screen.getByRole('button', { name: 'Eliminar contacto' }));
     await user.click(eliminarCorreo);
+    if (confirmaEliminacion) await user.click(screen.getByRole('button', { name: 'Eliminar contacto' }));
 
     expect(acciones.eliminarTelefono).toHaveBeenCalledWith(telefono.id_telefono ?? telefono.id_telefono_sucursal);
     expect(acciones.eliminarCorreo).toHaveBeenCalledWith(correo.id_email ?? correo.id_correo_sucursal);
