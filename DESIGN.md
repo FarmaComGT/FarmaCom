@@ -8,7 +8,7 @@ Este documento registra la propuesta implementada para evaluar el rediseño de F
 
 Reducir la carga visual y facilitar las tareas diarias: encontrar productos, consultar existencias por sucursal y reconocer problemas de stock o vencimiento.
 
-La prueba actual incluye la navegación compartida (sidebar y navbar), inventario, punto de venta, caja y las pantallas de acceso y gestión de Login, Usuarios, Sucursales, Laboratorios, Ciudades y Clientes. Los formularios de producto y lote, el detalle de lotes y los módulos no mencionados conservan su diseño anterior. La convivencia de estilos es temporal.
+La prueba actual incluye la navegación compartida (sidebar y navbar), inventario, productos y lotes, punto de venta, caja y las pantallas de acceso y gestión de Login, Usuarios, Sucursales, Laboratorios, Ciudades y Clientes. Los módulos no mencionados conservan su diseño anterior. La convivencia de estilos es temporal.
 
 ## Principios de trabajo
 
@@ -78,6 +78,8 @@ Los estados normales son neutros. Las alertas reciben texto más marcado y un fo
 - Nombre del producto como enlace al detalle de lotes; acciones secundarias en un menú por fila.
 - Paginación de hasta 25 productos; filtros y página reflejados en la URL.
 - En móvil, filas adaptadas a lista y desplazamiento horizontal limitado a los filtros rápidos.
+- Formularios de producto y lote en diálogos con foco administrado, secciones breves y controles compartidos con las pantallas de gestión.
+- Detalle de lotes como tabla semántica adaptable a móvil; sucursal, stock y vencimiento se conservan en la URL.
 
 ### Acceso y gestión
 
@@ -153,7 +155,6 @@ La IA debe recibir el contexto de este documento y de los componentes existentes
 - Intensidad de las alertas con muchos productos en riesgo.
 - Uso prolongado, comportamiento con zoom y dispositivos del equipo.
 - Aplicación de la dirección a ventas, caja, laboratorio y reportes.
-- Diseño de los formularios y del detalle de lotes.
 
 ## Verificación y límites
 
