@@ -7,7 +7,15 @@ const UsuarioDAO = require('../daos/UsuarioDAO');
 const LaboratorioDAO = require('../daos/LaboratorioDAO');
 const UsuarioService = require('./UsuarioService');
 
+const actorDueno = { id_usuario: 90, id_sucursal: 1, rol: 'dueno' };
+const mockClient = {};
+
 describe('UsuarioService', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+    UsuarioDAO.ejecutarEnTransaccion.mockImplementation((operacion) => operacion(mockClient));
+    UsuarioDAO.obtenerParaActualizar.mockImplementation((id) => UsuarioDAO.obtenerPorId(id));
+  });
   describe('crearUsuario', () => {
     it('crea el usuario hasheando la contraseña y sin devolver el hash', async () => {
       UsuarioDAO.obtenerPorCorreo.mockResolvedValue(null);
@@ -24,7 +32,7 @@ describe('UsuarioService', () => {
         correo_usuario: 'ana@x.com',
         contrasena: 'clave123',
         rol: 'dependiente',
-      });
+      }, actorDueno);
 
       expect(bcrypt.hash).toHaveBeenCalledWith('clave123', 10);
       expect(UsuarioDAO.crear).toHaveBeenCalledWith(expect.objectContaining({
@@ -37,7 +45,7 @@ describe('UsuarioService', () => {
       UsuarioDAO.obtenerPorCorreo.mockResolvedValue({ id_usuario: 2 });
 
       await expect(
-        UsuarioService.crearUsuario({ correo_usuario: 'ana@x.com', contrasena: 'x' }),
+        UsuarioService.crearUsuario({ correo_usuario: 'ana@x.com', contrasena: 'x' }, actorDueno),
       ).rejects.toMatchObject({ status: 409 });
       expect(UsuarioDAO.crear).not.toHaveBeenCalled();
     });
@@ -57,7 +65,7 @@ describe('UsuarioService', () => {
         correo_usuario: 'laura@x.com',
         contrasena: 'clave123',
         rol: 'laboratorista',
-      });
+      }, actorDueno);
 
       expect(UsuarioDAO.crear).toHaveBeenCalledWith(expect.objectContaining({
         rol: 'laboratorista',
@@ -74,7 +82,7 @@ describe('UsuarioService', () => {
         correo_usuario: 'laura@x.com',
         contrasena: 'clave123',
         rol: 'laboratorista',
-      })).rejects.toMatchObject({ status: 400 });
+      }, actorDueno)).rejects.toMatchObject({ status: 400 });
     });
   });
 
@@ -85,7 +93,7 @@ describe('UsuarioService', () => {
         { id_usuario: 2, contrasena_hash: 'y' },
       ]);
 
-      const resultado = await UsuarioService.obtenerTodos();
+      const resultado = await UsuarioService.obtenerTodos(actorDueno);
 
       expect(resultado.every((u) => !('contrasena_hash' in u))).toBe(true);
     });
@@ -101,7 +109,7 @@ describe('UsuarioService', () => {
     it('no expone el hash de la contraseña', async () => {
       UsuarioDAO.obtenerPorId.mockResolvedValue({ id_usuario: 1, contrasena_hash: 'x' });
 
-      const resultado = await UsuarioService.obtenerPorId(1);
+      const resultado = await UsuarioService.obtenerPorId(1, actorDueno);
 
       expect(resultado).not.toHaveProperty('contrasena_hash');
     });
@@ -112,7 +120,7 @@ describe('UsuarioService', () => {
       UsuarioDAO.obtenerPorId.mockResolvedValue(null);
 
       await expect(
-        UsuarioService.actualizarUsuario(99, { nombre_usuario: 'X' }),
+        UsuarioService.actualizarUsuario(99, { nombre_usuario: 'X' }, actorDueno),
       ).rejects.toMatchObject({ status: 404 });
     });
 
@@ -121,8 +129,45 @@ describe('UsuarioService', () => {
       UsuarioDAO.obtenerPorCorreo.mockResolvedValue({ id_usuario: 2 });
 
       await expect(
-        UsuarioService.actualizarUsuario(1, { correo_usuario: 'b@x.com' }),
+        UsuarioService.actualizarUsuario(1, { correo_usuario: 'b@x.com' }, actorDueno),
       ).rejects.toMatchObject({ status: 409 });
+      expect(UsuarioDAO.actualizar).not.toHaveBeenCalled();
+    });
+
+    it('impide que un administrador se asigne el rol de dueño', async () => {
+      const actorAdmin = { id_usuario: 7, id_sucursal: 1, rol: 'administrador' };
+      UsuarioDAO.obtenerPorId.mockResolvedValue({
+        id_usuario: 7, id_sucursal: 1, rol: 'administrador', estado_usuario: 'activo',
+      });
+
+      await expect(
+        UsuarioService.actualizarUsuario(7, { rol: 'dueno' }, actorAdmin),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(UsuarioDAO.actualizar).not.toHaveBeenCalled();
+    });
+
+    it('impide que un administrador modifique cuentas de otra sucursal', async () => {
+      const actorAdmin = { id_usuario: 7, id_sucursal: 1, rol: 'administrador' };
+      UsuarioDAO.obtenerPorId.mockResolvedValue({
+        id_usuario: 8, id_sucursal: 2, rol: 'dependiente', estado_usuario: 'activo',
+      });
+
+      await expect(
+        UsuarioService.actualizarUsuario(8, { nombre_usuario: 'Otro' }, actorAdmin),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(UsuarioDAO.actualizar).not.toHaveBeenCalled();
+    });
+
+    it('impide cambiar el rol del último dueño activo', async () => {
+      UsuarioDAO.obtenerPorId.mockResolvedValue({
+        id_usuario: 1, id_sucursal: 1, rol: 'dueno', estado_usuario: 'activo',
+      });
+      UsuarioDAO.contarDuenosActivos.mockResolvedValue(1);
+
+      await expect(
+        UsuarioService.actualizarUsuario(1, { rol: 'administrador' }, actorDueno),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(UsuarioDAO.bloquearProteccionDuenos).toHaveBeenCalledWith(mockClient);
       expect(UsuarioDAO.actualizar).not.toHaveBeenCalled();
     });
   });
@@ -137,12 +182,12 @@ describe('UsuarioService', () => {
       });
       UsuarioDAO.actualizar.mockResolvedValue({ id_usuario: 1, contrasena_hash: 'hash' });
 
-      await UsuarioService.actualizarUsuario(1, { rol: 'dependiente' });
+      await UsuarioService.actualizarUsuario(1, { rol: 'dependiente' }, actorDueno);
 
       expect(UsuarioDAO.actualizar).toHaveBeenCalledWith(1, expect.objectContaining({
         rol: 'dependiente',
         id_laboratorio: null,
-      }));
+      }), mockClient);
     });
   });
 
@@ -182,7 +227,19 @@ describe('UsuarioService', () => {
     it('rechaza con 404 si el usuario no existe', async () => {
       UsuarioDAO.obtenerPorId.mockResolvedValue(null);
 
-      await expect(UsuarioService.cambiarEstado(99, 'inactivo')).rejects.toMatchObject({ status: 404 });
+      await expect(UsuarioService.cambiarEstado(99, 'inactivo', actorDueno)).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('impide desactivar al último dueño activo', async () => {
+      UsuarioDAO.obtenerPorId.mockResolvedValue({
+        id_usuario: 1, rol: 'dueno', estado_usuario: 'activo',
+      });
+      UsuarioDAO.contarDuenosActivos.mockResolvedValue(1);
+
+      await expect(
+        UsuarioService.cambiarEstado(1, 'inactivo', actorDueno),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(UsuarioDAO.cambiarEstado).not.toHaveBeenCalled();
     });
   });
 
@@ -190,7 +247,19 @@ describe('UsuarioService', () => {
     it('rechaza con 404 si no había nada que eliminar', async () => {
       UsuarioDAO.eliminar.mockResolvedValue(null);
 
-      await expect(UsuarioService.eliminarUsuario(99)).rejects.toMatchObject({ status: 404 });
+      await expect(UsuarioService.eliminarUsuario(99, actorDueno)).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('impide eliminar al último dueño activo', async () => {
+      UsuarioDAO.obtenerPorId.mockResolvedValue({
+        id_usuario: 1, rol: 'dueno', estado_usuario: 'activo',
+      });
+      UsuarioDAO.contarDuenosActivos.mockResolvedValue(1);
+
+      await expect(
+        UsuarioService.eliminarUsuario(1, actorDueno),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(UsuarioDAO.eliminar).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,6 +1,7 @@
 const InventarioDAO = require('../daos/InventarioDAO');
 const pool = require('../database/db');
 const AppError = require('../errors/AppError');
+const { validarAccesoSucursal } = require('../utils/accesoSucursal');
 
 const lanzarError = (mensaje, status) => {
   throw new AppError(mensaje, status);
@@ -14,12 +15,22 @@ const verificarSucursal = async (id_sucursal) => {
   if (rows.length === 0) lanzarError('Sucursal no encontrada', 404);
 };
 
-const obtenerInventarioPorSucursal = async (id_sucursal) => {
+const obtenerInventarioPorSucursal = async (id_sucursal, usuario) => {
+  validarAccesoSucursal(
+    usuario,
+    id_sucursal,
+    'No tienes permiso para consultar el inventario de otra sucursal',
+  );
   await verificarSucursal(id_sucursal);
   return await InventarioDAO.obtenerPorSucursal(id_sucursal);
 };
 
-const obtenerResumenPorSucursal = async (id_sucursal) => {
+const obtenerResumenPorSucursal = async (id_sucursal, usuario) => {
+  validarAccesoSucursal(
+    usuario,
+    id_sucursal,
+    'No tienes permiso para consultar el inventario de otra sucursal',
+  );
   await verificarSucursal(id_sucursal);
   return await InventarioDAO.obtenerResumenPorSucursal(id_sucursal);
 };

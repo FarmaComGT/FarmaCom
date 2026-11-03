@@ -11,6 +11,14 @@ import useSucursales from '../hooks/useSucursales';
 import useLaboratorios from '../hooks/useLaboratorios';
 import { ejecutarTransicionDeVista } from '../utils/viewTransition';
 import styles from '../styles/ManagementUI.module.css';
+import { useAuth } from '../context/AuthContext.jsx';
+
+const ROLES = [
+  { value: 'dueno', label: 'Dueño' },
+  { value: 'administrador', label: 'Administrador' },
+  { value: 'dependiente', label: 'Dependiente' },
+  { value: 'laboratorista', label: 'Laboratorista' },
+];
 
 const estadoInicialFormulario = {
   nombre_usuario: '',
@@ -22,6 +30,7 @@ const estadoInicialFormulario = {
 };
 
 export default function Usuarios() {
+  const { usuario: usuarioSesion } = useAuth();
   const { usuarios, cargando, error, crear, actualizar, cambiarEstado } = useUsuarios();
   const { sucursales, cargando: cargandoSucursales } = useSucursales();
   const { laboratorios, cargando: cargandoLaboratorios } = useLaboratorios();
@@ -42,6 +51,22 @@ export default function Usuarios() {
   const [formulario, setFormulario] = useState(estadoInicialFormulario);
 
   const [usuarioACambiarEstado, setUsuarioACambiarEstado] = useState(null);
+  const esDueno = usuarioSesion?.rol === 'dueno';
+  const puedeEditar = (objetivo) => esDueno || (
+    usuarioSesion?.rol === 'administrador'
+    && Number(objetivo.id_sucursal) === Number(usuarioSesion.id_sucursal)
+    && objetivo.rol !== 'dueno'
+    && (objetivo.rol !== 'administrador' || objetivo.id_usuario === usuarioSesion.id_usuario)
+  );
+  const sucursalesPermitidas = esDueno
+    ? sucursales
+    : sucursales.filter((sucursal) => Number(sucursal.id_sucursal) === Number(usuarioSesion?.id_sucursal));
+  const editandoCuentaPropia = Number(idEditando) === Number(usuarioSesion?.id_usuario);
+  const rolesPermitidos = esDueno
+    ? ROLES
+    : ROLES.filter(({ value }) => (
+      editandoCuentaPropia ? value === 'administrador' : ['dependiente', 'laboratorista'].includes(value)
+    ));
 
   useEffect(() => {
     document.title = 'Usuarios · FarmaCom';
@@ -247,7 +272,7 @@ export default function Usuarios() {
       <UsuarioActionBar
         busqueda={busqueda}
         onBusquedaChange={(evento) => actualizarBusqueda(evento.target.value)}
-        onCrear={abrirModalCrear}
+        onCrear={esDueno ? abrirModalCrear : undefined}
       />
 
       <p className={styles.resultCount} aria-live="polite">
@@ -264,13 +289,15 @@ export default function Usuarios() {
         onEditar={abrirModalEditar}
         onCambiarEstado={solicitarCambioEstado}
         cambiandoEstadoId={cambiandoEstadoId}
+        puedeEditar={puedeEditar}
+        puedeCambiarEstado={esDueno}
       />
 
       <UsuarioFormModal
         isOpen={mostrarModal}
         modoEdicion={modoEdicion}
         formulario={formulario}
-        sucursales={sucursales}
+        sucursales={sucursalesPermitidas}
         cargandoSucursales={cargandoSucursales}
         laboratorios={laboratorios}
         cargandoLaboratorios={cargandoLaboratorios}
@@ -279,6 +306,7 @@ export default function Usuarios() {
         onClose={cerrarModal}
         onSubmit={manejarGuardar}
         onChange={manejarCambio}
+        rolesPermitidos={rolesPermitidos}
       />
 
       <UsuarioEstadoModal

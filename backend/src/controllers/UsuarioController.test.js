@@ -34,7 +34,7 @@ describe('UsuarioController', () => {
       jest.fn(),
     );
 
-    expect(usuarioService.obtenerPorId).toHaveBeenCalledWith(1);
+    expect(usuarioService.obtenerPorId).toHaveBeenCalledWith(1, { id_usuario: 1, rol: 'dependiente' });
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
@@ -57,9 +57,10 @@ describe('UsuarioController', () => {
     usuarioService.obtenerPorSucursal.mockResolvedValue([]);
     const res = mockResponse();
 
-    await UsuarioController.obtenerPorSucursal({ params: { id_sucursal: '3' } }, res, jest.fn());
+    const usuario = { id_usuario: 1, rol: 'dueno' };
+    await UsuarioController.obtenerPorSucursal({ params: { id_sucursal: '3' }, usuario }, res, jest.fn());
 
-    expect(usuarioService.obtenerPorSucursal).toHaveBeenCalledWith(3);
+    expect(usuarioService.obtenerPorSucursal).toHaveBeenCalledWith(3, usuario);
   });
 
   it('actualiza un usuario', async () => {
@@ -72,7 +73,7 @@ describe('UsuarioController', () => {
       jest.fn(),
     );
 
-    expect(usuarioService.actualizarUsuario).toHaveBeenCalledWith(1, { nombre_usuario: 'Ana María' });
+    expect(usuarioService.actualizarUsuario).toHaveBeenCalledWith(1, { nombre_usuario: 'Ana María' }, undefined);
   });
 
   it('cambia la contraseña propia', async () => {
@@ -115,8 +116,8 @@ describe('UsuarioController', () => {
     );
     await UsuarioController.eliminar({ params: { id: '1' } }, res, jest.fn());
 
-    expect(usuarioService.cambiarEstado).toHaveBeenCalledWith(1, 'inactivo');
-    expect(usuarioService.eliminarUsuario).toHaveBeenCalledWith(1);
+    expect(usuarioService.cambiarEstado).toHaveBeenCalledWith(1, 'inactivo', undefined);
+    expect(usuarioService.eliminarUsuario).toHaveBeenCalledWith(1, undefined);
   });
 
   it('delega los errores del servicio al middleware', async () => {

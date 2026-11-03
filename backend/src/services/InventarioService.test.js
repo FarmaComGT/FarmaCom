@@ -11,7 +11,7 @@ describe('InventarioService', () => {
       pool.query.mockResolvedValue({ rows: [{ id_sucursal: 1 }] });
       InventarioDAO.obtenerPorSucursal.mockResolvedValue([{ id_producto: 1 }]);
 
-      await expect(InventarioService.obtenerInventarioPorSucursal(1)).resolves.toEqual([
+      await expect(InventarioService.obtenerInventarioPorSucursal(1, { rol: 'dueno' })).resolves.toEqual([
         { id_producto: 1 },
       ]);
     });
@@ -19,9 +19,18 @@ describe('InventarioService', () => {
     it('rechaza con 404 si la sucursal no existe', async () => {
       pool.query.mockResolvedValue({ rows: [] });
 
-      await expect(InventarioService.obtenerInventarioPorSucursal(99)).rejects.toMatchObject({
+      await expect(InventarioService.obtenerInventarioPorSucursal(99, { rol: 'dueno' })).rejects.toMatchObject({
         status: 404,
       });
+      expect(InventarioDAO.obtenerPorSucursal).not.toHaveBeenCalled();
+    });
+
+    it('impide que un dependiente consulte inventario de otra sucursal', async () => {
+      await expect(InventarioService.obtenerInventarioPorSucursal(2, {
+        rol: 'dependiente',
+        id_sucursal: 1,
+      })).rejects.toMatchObject({ status: 403 });
+      expect(pool.query).not.toHaveBeenCalled();
       expect(InventarioDAO.obtenerPorSucursal).not.toHaveBeenCalled();
     });
   });
@@ -31,13 +40,13 @@ describe('InventarioService', () => {
       pool.query.mockResolvedValue({ rows: [{ id_sucursal: 1 }] });
       InventarioDAO.obtenerResumenPorSucursal.mockResolvedValue({ total: 10 });
 
-      await expect(InventarioService.obtenerResumenPorSucursal(1)).resolves.toEqual({ total: 10 });
+      await expect(InventarioService.obtenerResumenPorSucursal(1, { rol: 'dueno' })).resolves.toEqual({ total: 10 });
     });
 
     it('rechaza con 404 si la sucursal no existe', async () => {
       pool.query.mockResolvedValue({ rows: [] });
 
-      await expect(InventarioService.obtenerResumenPorSucursal(99)).rejects.toMatchObject({
+      await expect(InventarioService.obtenerResumenPorSucursal(99, { rol: 'dueno' })).rejects.toMatchObject({
         status: 404,
       });
     });
