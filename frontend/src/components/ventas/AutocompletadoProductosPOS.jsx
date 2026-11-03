@@ -41,29 +41,34 @@ export default function AutocompletadoProductosPOS({
 
     evento.preventDefault();
     setProcesandoEnter(true);
-    const resultados = await onBuscarAhora(busqueda);
-    const primerProducto = resultados.find((producto) => producto.tiene_precio);
+    try {
+      const resultados = await onBuscarAhora(busqueda);
+      const primerProducto = resultados.find((producto) => producto.tiene_precio);
 
-    if (primerProducto) {
-      onSeleccionar(primerProducto);
+      if (primerProducto) {
+        onSeleccionar(primerProducto);
+      }
+    } finally {
+      setProcesandoEnter(false);
     }
-    setProcesandoEnter(false);
   };
 
   const buscando = cargando || procesandoEnter;
 
   return (
-    <section className="pos-panel">
+    <section className="pos-panel" aria-label="Búsqueda y resultados del catálogo">
       <div className="pos-search-head">
         <div>
-          <h2>Buscar productos</h2>
-          <p>Escribe un nombre, presentación o escanea el código.</p>
+          <span className="pos-section-kicker">Catálogo de la sucursal</span>
+          <h2 id="titulo-busqueda-productos">Buscar productos</h2>
+          <p>Busca por nombre, presentación o código para consultar todos sus lotes.</p>
         </div>
         <button
           type="button"
           onClick={onRefrescar}
           disabled={buscando || !hayBusqueda}
           aria-label="Actualizar resultados"
+          title="Actualizar resultados"
           className="pos-search-refresh"
         >
           <RefreshCw className={`h-4 w-4 ${buscando ? 'animate-spin' : ''}`} aria-hidden="true" />
@@ -75,6 +80,9 @@ export default function AutocompletadoProductosPOS({
         <input
           autoFocus
           type="search"
+          name="q"
+          autoComplete="off"
+          spellCheck="false"
           value={busqueda}
           onChange={(evento) => onBusquedaChange(evento.target.value)}
           onKeyDown={manejarTecla}
@@ -95,7 +103,7 @@ export default function AutocompletadoProductosPOS({
         </div>
       </div>
 
-      <div className="pos-search-results" aria-live="polite">
+      <div className="pos-search-results" aria-live="polite" aria-busy={buscando}>
         {!hayBusqueda && (
           <div className="pos-search-empty">
             <span className="pos-search-empty-icon">
@@ -111,12 +119,13 @@ export default function AutocompletadoProductosPOS({
         {hayBusqueda && buscando && (
           <div className="pos-search-loading">
             <LoaderCircle className="animate-spin" aria-hidden="true" />
-            <p>Buscando productos disponibles...</p>
+            <p>Buscando productos disponibles…</p>
           </div>
         )}
 
         {hayBusqueda && !buscando && error && (
-          <div className="pos-search-error">
+          <div className="pos-search-error" role="alert">
+            <strong>No pudimos cargar los resultados</strong>
             <p>{error}</p>
             <button type="button" onClick={onRefrescar}>
               Intentar de nuevo
@@ -133,7 +142,7 @@ export default function AutocompletadoProductosPOS({
             <p>
               No encontramos productos vendibles con esa búsqueda.
             </p>
-            <div className="pos-suggestion" style={{ marginTop: 16 }}>
+            <div className="pos-suggestion pos-suggestion--empty">
               <strong>¿Quiso decir…?</strong>
               <p className="pos-suggestion-note">
                 Prueba con el nombre genérico, una presentación o menos caracteres.
@@ -175,7 +184,7 @@ export default function AutocompletadoProductosPOS({
               ? 'Mostrando las opciones más cercanas'
               : hayCoincidenciasAproximadas
               ? 'Las coincidencias aproximadas aparecen después de las directas'
-              : 'Enter muestra los lotes de la primera opción'}
+              : 'Presiona Enter para ver los lotes de la primera opción'}
           </span>
           <span>{productos.length} {productos.length === 1 ? 'resultado' : 'resultados'}</span>
         </div>

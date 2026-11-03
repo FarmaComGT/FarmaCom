@@ -85,6 +85,15 @@ Los estados normales son neutros. Las alertas reciben texto más marcado y un fo
 - Proveedores conserva ese patrón para búsqueda, estado y contactos; promociones persiste producto, búsqueda y sucursal en la URL y presenta su vigencia en una tabla semántica.
 - Los formularios de promociones mantienen visibles las referencias de precio, validan fechas y valores en línea y solicitan confirmación antes de activar o desactivar una promoción.
 
+### Punto de venta
+
+- La búsqueda de productos comparte la tipografía y los tokens de color de las pantallas de gestión; no carga fuentes aisladas ni crea otra identidad visual.
+- El término buscado se conserva en `?q=` y el producto abierto en `?producto=` para recuperar la consulta al volver, recargar o compartir la dirección.
+- Cada resultado agrupa la identidad, existencias, rango de precios, promoción y cantidad de lotes antes de abrir el detalle.
+- Seleccionar un producto abre un diálogo accesible con todos sus lotes vendibles, existencias, vencimiento y precio unitario; el lote elegido es el único que pasa al carrito.
+- Los lotes próximos a vencer muestran texto e icono de advertencia. Los lotes sin precio permanecen visibles, explican por qué no pueden seleccionarse y no dependen solo del color.
+- Carga, consulta vacía, error recuperable y coincidencias aproximadas conservan el mismo espacio para evitar saltos de distribución.
+
 ### Acceso y gestión
 
 - Login divide la identidad de FarmaCom y el formulario en dos superficies claras; en móvil prioriza únicamente el acceso.

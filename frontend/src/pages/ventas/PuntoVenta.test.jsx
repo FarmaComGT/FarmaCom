@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as renderBase, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import PuntoVenta from './PuntoVenta';
 import {
@@ -10,6 +11,18 @@ import {
   obtenerVentaPorId,
 } from '../../api/ventas';
 import useCaja from '../../hooks/useCaja';
+
+function RutaActual() {
+  const ubicacion = useLocation();
+  return <output data-testid="ruta-actual">{ubicacion.search}</output>;
+}
+
+const render = (elemento, { ruta = '/ventas' } = {}) => renderBase(
+  <MemoryRouter initialEntries={[ruta]}>
+    {elemento}
+    <RutaActual />
+  </MemoryRouter>,
+);
 
 const productoNormal = {
   id_producto: 1,
@@ -227,6 +240,19 @@ describe('PuntoVenta', () => {
     });
   });
 
+  it('restaura la búsqueda desde la URL y conserva los cambios en ella', async () => {
+    const user = userEvent.setup();
+    render(<PuntoVenta />, { ruta: '/ventas?q=ibuprofeno' });
+
+    const buscador = screen.getByLabelText('Buscar productos');
+    expect(buscador).toHaveValue('ibuprofeno');
+
+    await user.clear(buscador);
+    await user.type(buscador, 'paracetamol');
+
+    expect(screen.getByTestId('ruta-actual')).toHaveTextContent('?q=paracetamol');
+  });
+
   it('renderiza el catalogo, el carrito y el selector de cliente con "Consumidor final" por defecto', () => {
     render(<PuntoVenta />);
 
@@ -315,6 +341,7 @@ describe('PuntoVenta', () => {
 
     await user.type(screen.getByLabelText('Buscar productos'), 'paracetamol');
     await user.click(screen.getByText('Paracetamol'));
+    expect(screen.getByTestId('ruta-actual')).toHaveTextContent('producto=1');
     await user.click(screen.getByRole('button', { name: 'Seleccionar lote L-001' }));
 
     expect(agregarAlCarrito).toHaveBeenCalledWith(
@@ -327,8 +354,9 @@ describe('PuntoVenta', () => {
       { precioUnitario: 8.5 },
     );
     expect(screen.getByLabelText('Buscar productos')).toHaveValue('paracetamol');
-    expect(screen.getByRole('button', { name: 'Seleccionar lote de Paracetamol' }))
+    expect(screen.getByRole('button', { name: 'Ver lotes disponibles de Paracetamol' }))
       .toBeInTheDocument();
+    expect(screen.getByTestId('ruta-actual')).not.toHaveTextContent('producto=1');
     expect(screen.queryByText(/Producto pr.ximo a vencer/)).not.toBeInTheDocument();
   });
 

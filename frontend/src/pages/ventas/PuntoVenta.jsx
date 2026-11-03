@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import './PuntoVenta.css';
 import AvisoPuntoVenta from '../../components/ventas/AvisoPuntoVenta';
 import CajaVentaContexto from '../../components/ventas/CajaVentaContexto';
@@ -22,6 +23,7 @@ import { crearItemLotePOS } from '../../utils/pos';
 
 export default function PuntoVenta() {
   const { sucursalActivaId } = useAuth();
+  const [parametros, setParametros] = useSearchParams();
   const {
     cajas,
     cajaSeleccionada,
@@ -32,7 +34,8 @@ export default function PuntoVenta() {
     error: errorCaja,
     seleccionarCaja,
   } = useCaja(sucursalActivaId);
-  const [busquedaProducto, setBusquedaProducto] = useState('');
+  const busquedaProducto = parametros.get('q') || '';
+  const productoIdEnUrl = parametros.get('producto');
   const {
     carritos,
     carritoActivoId,
@@ -74,6 +77,41 @@ export default function PuntoVenta() {
     document.title = 'Punto de venta · FarmaCom';
   }, []);
 
+  const actualizarBusquedaProducto = useCallback((valor) => {
+    setParametros((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      if (valor) siguientes.set('q', valor);
+      else siguientes.delete('q');
+      return siguientes;
+    }, { replace: true });
+  }, [setParametros]);
+
+  const abrirSeleccionLote = useCallback((producto) => {
+    setProductoSeleccionandoLote(producto);
+    setParametros((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      siguientes.set('producto', String(producto.id_producto));
+      return siguientes;
+    });
+  }, [setParametros]);
+
+  const cerrarSeleccionLote = useCallback(() => {
+    setProductoSeleccionandoLote(null);
+    setParametros((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      siguientes.delete('producto');
+      return siguientes;
+    }, { replace: true });
+  }, [setParametros]);
+
+  useEffect(() => {
+    if (!productoIdEnUrl || productoSeleccionandoLote) return;
+    const producto = productos.find(
+      (opcion) => String(opcion.id_producto) === String(productoIdEnUrl),
+    );
+    if (producto) setProductoSeleccionandoLote(producto);
+  }, [productoIdEnUrl, productoSeleccionandoLote, productos]);
+
   const { estadoTurno } = useSeleccionCajaVenta({
     cajas, idCajaSeleccionada, cajaSeleccionada, sesionActual, cargandoCajas,
     cargandoSesion, seleccionarCaja,
@@ -102,7 +140,7 @@ export default function PuntoVenta() {
   const seleccionarLote = useCallback((lote) => {
     if (!productoSeleccionandoLote) return;
     const itemLote = crearItemLotePOS(productoSeleccionandoLote, lote);
-    setProductoSeleccionandoLote(null);
+    cerrarSeleccionLote();
 
     if (itemLote.estado_vencimiento === 'proximo_a_vencer') {
       setProductoPendiente(itemLote);
@@ -110,7 +148,7 @@ export default function PuntoVenta() {
     }
 
     agregarAlCarritoValidandoStock(itemLote);
-  }, [agregarAlCarritoValidandoStock, productoSeleccionandoLote]);
+  }, [agregarAlCarritoValidandoStock, cerrarSeleccionLote, productoSeleccionandoLote]);
 
   const confirmarAgregarPendiente = useCallback(() => {
     if (!productoPendiente) return;
@@ -190,11 +228,11 @@ export default function PuntoVenta() {
       <div className="pos-grid">
         <AutocompletadoProductosPOS
           busqueda={busquedaProducto}
-          onBusquedaChange={setBusquedaProducto}
+          onBusquedaChange={actualizarBusquedaProducto}
           productos={productos}
           cargando={cargando}
           error={error}
-          onSeleccionar={setProductoSeleccionandoLote}
+          onSeleccionar={abrirSeleccionLote}
           onBuscarAhora={buscarAhora}
           onRefrescar={refrescar}
         />
@@ -227,7 +265,7 @@ export default function PuntoVenta() {
 
       <SeleccionLoteModal
         producto={productoSeleccionandoLote}
-        onClose={() => setProductoSeleccionandoLote(null)}
+        onClose={cerrarSeleccionLote}
         onSeleccionar={seleccionarLote}
       />
 
