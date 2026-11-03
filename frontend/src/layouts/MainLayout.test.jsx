@@ -36,6 +36,10 @@ const renderizarLayout = (rutaInicial = '/inventario/productos') =>
           <Route path="/dashboard" element={<div>Contenido del dashboard</div>} />
           <Route path="/caja" element={<div>Contenido de caja</div>} />
           <Route path="/usuarios" element={<div>Contenido de usuarios</div>} />
+          <Route path="/inventario/categorias" element={<div>Contenido de categorías</div>} />
+          <Route path="/inventario/proveedores" element={<div>Contenido de proveedores</div>} />
+          <Route path="/inventario/casas" element={<div>Contenido de casas farmacéuticas</div>} />
+          <Route path="/inventario/promociones" element={<div>Contenido de promociones</div>} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -99,6 +103,18 @@ describe('MainLayout y Sidebar', () => {
 
     expect(sidebar).toHaveAttribute('aria-hidden', 'false');
     expect(main).toHaveClass('md:ml-64');
+  });
+
+  it.each([
+    ['/inventario/categorias', 'Contenido de categorías'],
+    ['/inventario/proveedores', 'Contenido de proveedores'],
+    ['/inventario/casas', 'Contenido de casas farmacéuticas'],
+    ['/inventario/promociones', 'Contenido de promociones'],
+  ])('mantiene el mismo contenedor en %s', (ruta, contenidoEsperado) => {
+    renderizarLayout(ruta);
+
+    expect(screen.getByText(contenidoEsperado).parentElement)
+      .toHaveClass('management-content');
   });
 
   it('cierra el panel móvil con Escape y restaura el scroll', async () => {
