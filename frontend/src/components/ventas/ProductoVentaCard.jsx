@@ -20,7 +20,7 @@ const TextoCoincidente = ({ texto, busqueda }) => {
   return (
     <>
       {partes.antes}
-      <mark className="rounded-sm bg-amber-200/80 px-0.5 text-inherit">
+      <mark className="pos-match">
         {partes.coincidencia}
       </mark>
       {partes.despues}
@@ -44,11 +44,11 @@ export default function ProductoVentaCard({ producto, onSeleccionar, busqueda })
       type="button"
       onClick={() => onSeleccionar(producto)}
       disabled={deshabilitado}
-      aria-label={`Seleccionar lote de ${producto.nombre_comercial}`}
+      aria-label={`Ver lotes disponibles de ${producto.nombre_comercial}`}
       className="pos-product"
     >
       <div className="pos-product-row">
-        <div className="min-w-0">
+        <div className="pos-product-identity">
           <p className="pos-product-name">
             <TextoCoincidente texto={producto.nombre_comercial} busqueda={busqueda} />
           </p>
@@ -110,9 +110,9 @@ export default function ProductoVentaCard({ producto, onSeleccionar, busqueda })
       </div>
 
       <div className="pos-product-foot">
-        <span className="flex items-center gap-1.5">
+        <span className="pos-product-instruction">
           <Layers3 className="h-3.5 w-3.5" aria-hidden="true" />
-          Selecciona el lote que deseas vender
+          Ver y seleccionar lote
         </span>
         <span className="pos-product-lots">
           {cantidadLotes} {cantidadLotes === 1 ? 'lote disponible' : 'lotes disponibles'}

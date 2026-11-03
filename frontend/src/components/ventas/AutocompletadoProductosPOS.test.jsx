@@ -33,6 +33,7 @@ function Escenario({
   error = null,
   onSeleccionar = vi.fn(),
   onBuscarAhora = vi.fn(async () => productos),
+  onRefrescar = vi.fn(),
 }) {
   const [busqueda, setBusqueda] = useState('');
 
@@ -45,7 +46,7 @@ function Escenario({
       error={error}
       onSeleccionar={onSeleccionar}
       onBuscarAhora={onBuscarAhora}
-      onRefrescar={() => {}}
+      onRefrescar={onRefrescar}
     />
   );
 }
@@ -65,7 +66,7 @@ describe('AutocompletadoProductosPOS', () => {
     const buscador = screen.getByLabelText('Buscar productos');
     await user.type(buscador, 'para');
 
-    expect(screen.getByRole('button', { name: 'Seleccionar lote de Paracetamol' }))
+    expect(screen.getByRole('button', { name: 'Ver lotes disponibles de Paracetamol' }))
       .toBeInTheDocument();
     expect(screen.getByText('1 resultado')).toBeInTheDocument();
 
@@ -104,6 +105,28 @@ describe('AutocompletadoProductosPOS', () => {
     expect(screen.getByText(
       'Prueba con el nombre genérico, una presentación o menos caracteres.',
     )).toBeInTheDocument();
+  });
+
+  it('muestra la carga y conserva el buscador disponible', async () => {
+    const user = userEvent.setup();
+    render(<Escenario cargando />);
+
+    await user.type(screen.getByLabelText('Buscar productos'), 'para');
+
+    expect(screen.getByText('Buscando productos disponibles…')).toBeInTheDocument();
+    expect(screen.getByLabelText('Buscar productos')).toHaveValue('para');
+  });
+
+  it('explica el error y permite actualizar la búsqueda', async () => {
+    const user = userEvent.setup();
+    const onRefrescar = vi.fn();
+    render(<Escenario error="No se pudo consultar el catálogo." onRefrescar={onRefrescar} />);
+
+    await user.type(screen.getByLabelText('Buscar productos'), 'para');
+    expect(screen.getByRole('alert')).toHaveTextContent('No pudimos cargar los resultados');
+
+    await user.click(screen.getByRole('button', { name: 'Intentar de nuevo' }));
+    expect(onRefrescar).toHaveBeenCalledTimes(1);
   });
 
   it('sugiere el mejor nombre cuando solo existen coincidencias aproximadas', async () => {
@@ -172,7 +195,7 @@ describe('AutocompletadoProductosPOS', () => {
     render(<Escenario productos={[productoAgrupado]} onSeleccionar={onSeleccionar} />);
 
     await user.type(screen.getByLabelText('Buscar productos'), 'para');
-    await user.click(screen.getByRole('button', { name: 'Seleccionar lote de Paracetamol' }));
+    await user.click(screen.getByRole('button', { name: 'Ver lotes disponibles de Paracetamol' }));
 
     expect(screen.getByText('2 lotes disponibles')).toBeInTheDocument();
     expect(onSeleccionar).toHaveBeenCalledWith(productoAgrupado);

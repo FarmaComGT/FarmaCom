@@ -36,7 +36,10 @@ describe('SeleccionLoteModal', () => {
     expect(screen.getByRole('button', { name: 'Seleccionar lote L-002' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Seleccionar lote L-003' })).toBeInTheDocument();
     expect(screen.getByText('Sin fecha de vencimiento')).toBeInTheDocument();
+    expect(screen.getByText(/Próximo a vencer · Vence 01\/12\/2026/)).toBeInTheDocument();
     expect(screen.getByText('8 unidades')).toBeInTheDocument();
+    expect(screen.getByText('2 lotes · 10 unidades disponibles')).toBeInTheDocument();
+    expect(screen.getAllByText(/Promoción desde 3 unidades/)).toHaveLength(2);
   });
 
   it('devuelve exclusivamente el lote elegido', async () => {
@@ -53,5 +56,32 @@ describe('SeleccionLoteModal', () => {
     await user.click(screen.getByRole('button', { name: 'Seleccionar lote L-003' }));
 
     expect(onSeleccionar).toHaveBeenCalledWith(producto.lotes[1]);
+  });
+
+  it('explica y deshabilita un lote que todavía no tiene precio', () => {
+    render(<SeleccionLoteModal
+      producto={{
+        ...producto,
+        lotes: [{
+          ...producto.lotes[0], precio_venta: null, tiene_precio: false,
+        }],
+      }}
+      onClose={vi.fn()}
+      onSeleccionar={vi.fn()}
+    />);
+
+    expect(screen.getByRole('button', { name: 'Seleccionar lote L-002' })).toBeDisabled();
+    expect(screen.getByText('Este lote no puede venderse hasta registrar un precio.')).toBeInTheDocument();
+  });
+
+  it('ofrece una salida cuando el producto no contiene lotes', () => {
+    render(<SeleccionLoteModal
+      producto={{ ...producto, lotes: [] }}
+      onClose={vi.fn()}
+      onSeleccionar={vi.fn()}
+    />);
+
+    expect(screen.getByText('No hay lotes disponibles')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument();
   });
 });

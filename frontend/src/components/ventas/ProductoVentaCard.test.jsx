@@ -30,7 +30,7 @@ describe('ProductoVentaCard', () => {
     expect(screen.getByText(/7\.50/)).toBeInTheDocument();
     expect(screen.getByText(/Promo desde 3 unidades · hasta 31\/12\/2026/)).toBeInTheDocument();
     expect(screen.getByText('2 lotes disponibles')).toBeInTheDocument();
-    expect(screen.getByText('Selecciona el lote que deseas vender')).toBeInTheDocument();
+    expect(screen.getByText('Ver y seleccionar lote')).toBeInTheDocument();
   });
 
   it('oculta una promoción que no reduzca el precio normal', () => {
