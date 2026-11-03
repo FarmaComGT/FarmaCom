@@ -22,6 +22,8 @@ Los archivos deben usar tres dígitos, letras minúsculas y guiones bajos:
 003_contactos_cliente.sql
 004_historial_precio_por_ingreso_lote.sql
 005_vista_lote_fecha_ingreso.sql
+006_eliminacion_paciente_laboratorio.sql
+007_usuario_anulacion_venta.sql
 ```
 
 Antes de crear un archivo, se debe revisar el último número disponible. Una
