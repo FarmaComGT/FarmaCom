@@ -39,8 +39,8 @@ describe('pantalla de casas farmacéuticas', () => {
 
     expect(screen.getByText('Bayer')).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText('Buscar casa farmacéutica...'), 'no existe');
-    expect(screen.getByText('No hay casas farmacéuticas para mostrar.')).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText('Buscar casa farmacéutica…'), 'no existe');
+    expect(screen.getByText('Sin coincidencias')).toBeInTheDocument();
   });
 
   it('crea una casa farmacéutica nueva', async () => {
@@ -49,7 +49,7 @@ describe('pantalla de casas farmacéuticas', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva casa farmacéutica' }));
-    await user.type(screen.getByPlaceholderText('Ej: Laboratorios Bayer S.A.'), 'Roche');
+    await user.type(screen.getByPlaceholderText('Ej.: Laboratorios Bayer S. A.…'), 'Roche');
     await user.click(screen.getByRole('button', { name: 'Crear casa' }));
 
     await waitFor(() => expect(acciones.crear).toHaveBeenCalledWith({ nombre: 'Roche' }));
@@ -60,7 +60,7 @@ describe('pantalla de casas farmacéuticas', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva casa farmacéutica' }));
-    await user.type(screen.getByPlaceholderText('Ej: Laboratorios Bayer S.A.'), '   ');
+    await user.type(screen.getByPlaceholderText('Ej.: Laboratorios Bayer S. A.…'), '   ');
     await user.click(screen.getByRole('button', { name: 'Crear casa' }));
 
     expect(screen.getByText('El nombre es requerido.')).toBeInTheDocument();
@@ -72,8 +72,8 @@ describe('pantalla de casas farmacéuticas', () => {
     acciones.actualizar.mockResolvedValue({ id_casa: 1 });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
-    const nombre = screen.getByPlaceholderText('Ej: Laboratorios Bayer S.A.');
+    await user.click(screen.getByRole('button', { name: 'Editar casa farmacéutica Bayer' }));
+    const nombre = screen.getByPlaceholderText('Ej.: Laboratorios Bayer S. A.…');
     await user.clear(nombre);
     await user.type(nombre, 'Bayer S.A.');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
@@ -86,7 +86,8 @@ describe('pantalla de casas farmacéuticas', () => {
     acciones.cambiarEstado.mockResolvedValue({});
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: /Desactivar/ }));
+    await user.click(screen.getByRole('button', { name: 'Desactivar casa farmacéutica Bayer' }));
+    await user.click(screen.getByRole('button', { name: 'Desactivar' }));
 
     await waitFor(() => expect(acciones.cambiarEstado).toHaveBeenCalledWith(1, false));
   });
@@ -96,7 +97,8 @@ describe('pantalla de casas farmacéuticas', () => {
     acciones.cambiarEstado.mockRejectedValue({ response: { data: { mensaje: 'No se pudo' } } });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: /Desactivar/ }));
+    await user.click(screen.getByRole('button', { name: 'Desactivar casa farmacéutica Bayer' }));
+    await user.click(screen.getByRole('button', { name: 'Desactivar' }));
 
     expect(await screen.findByText('No se pudo')).toBeInTheDocument();
   });
