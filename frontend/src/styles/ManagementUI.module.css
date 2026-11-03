@@ -339,10 +339,13 @@
   text-align: left;
 }
 
-.table td {
+.table td,
+.table tbody th {
   min-width: 0;
   padding: 14px 12px;
   border-bottom: 1px solid var(--management-line);
+  font-weight: inherit;
+  text-align: left;
   vertical-align: middle;
   overflow-wrap: anywhere;
 }
@@ -707,6 +710,90 @@ textarea.input {
   line-height: 19px;
 }
 
+.contactSections {
+  display: flex;
+  max-height: 58dvh;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.contactSection {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.contactSection + .contactSection {
+  padding-top: 18px;
+  border-top: 1px solid var(--management-line);
+}
+
+.contactHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--management-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.contactList {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+
+.contactItem {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--management-line);
+}
+
+.contactValue {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.contactActions,
+.contactForm,
+.contactAddForm {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.contactForm {
+  width: 100%;
+}
+
+.contactForm .input,
+.contactAddForm .input {
+  flex: 1;
+}
+
+.contactAddForm {
+  flex-wrap: wrap;
+}
+
+.contactAddForm .fieldError {
+  flex-basis: 100%;
+}
+
+.contactEmpty {
+  color: var(--management-muted);
+  font-size: 13px;
+}
+
 .dialogActions {
   justify-content: flex-end;
   margin-top: 4px;
@@ -795,7 +882,8 @@ textarea.input {
   .table,
   .table tbody,
   .table tr,
-  .table td {
+  .table td,
+  .table tbody th {
     display: block;
     width: 100%;
   }
@@ -813,7 +901,8 @@ textarea.input {
     border-bottom: 1px solid var(--management-line);
   }
 
-  .table td {
+  .table td,
+  .table tbody th {
     display: grid;
     grid-template-columns: minmax(92px, 34%) minmax(0, 1fr);
     gap: 12px;
@@ -822,7 +911,8 @@ textarea.input {
     text-align: left;
   }
 
-  .table td::before {
+  .table td::before,
+  .table tbody th::before {
     color: var(--management-muted);
     content: attr(data-label);
     font-size: 12px;
@@ -866,6 +956,18 @@ textarea.input {
 
   .dialogActions .button {
     flex: 1;
+  }
+
+  .contactSections {
+    max-height: 62dvh;
+  }
+
+  .contactAddForm .input {
+    flex-basis: 100%;
+  }
+
+  .contactAddForm .button {
+    width: 100%;
   }
 }
 

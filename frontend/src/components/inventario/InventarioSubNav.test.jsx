@@ -22,8 +22,8 @@ describe('InventarioSubNav', () => {
     renderizar('/inventario/promociones');
 
     expect(screen.getByRole('link', { name: 'Promociones' }))
-      .toHaveClass('bg-white', 'text-primary');
+      .toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Inventario' }))
-      .not.toHaveClass('bg-white');
+      .not.toHaveAttribute('aria-current', 'page');
   });
 });
