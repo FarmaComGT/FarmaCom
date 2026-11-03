@@ -28,7 +28,12 @@ export default function MainLayout() {
   const location = useLocation();
   const esInventario = location.pathname === '/inventario';
   const esDetalleLotes = /^\/inventario\/productos\/[^/]+\/lotes$/.test(location.pathname);
-  const esCatalogoInventario = ['/inventario/categorias', '/inventario/casas'].includes(location.pathname);
+  const esCatalogoInventario = [
+    '/inventario/categorias',
+    '/inventario/proveedores',
+    '/inventario/casas',
+    '/inventario/promociones',
+  ].includes(location.pathname);
   const esCaja = location.pathname === '/caja' || location.pathname.startsWith('/caja/');
   const esGestion = esDetalleLotes || esCatalogoInventario
     || ['/usuarios', '/sucursales', '/laboratorios', '/ciudades', '/patients'].includes(location.pathname)
