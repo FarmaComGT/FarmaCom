@@ -26,6 +26,8 @@ import ResumenProductosVentas from '../pages/ventas/ResumenProductosVentas.jsx';
 import AdministracionCajas from '../pages/caja/AdministracionCajas.jsx';
 import Pacientes from '../pages/laboratorio/Pacientes.jsx';
 import PacientePerfil from '../pages/laboratorio/PacientePerfil.jsx';
+import Dashboard from '../pages/Dashboard.jsx';
+import Support from '../pages/Support.jsx';
 
 const Reportes = lazy(() => import('../pages/reportes/Reportes.jsx'));
 const Rentabilidad = lazy(() => import('../pages/reportes/Rentabilidad.jsx'));
@@ -43,7 +45,7 @@ export default function AppRoutes() {
         <Route element={<MainLayout />}>
           <Route
             path="/dashboard"
-            element={<div className="p-8 font-headline text-2xl font-bold">Dashboard (Próximamente)</div>}
+            element={<Dashboard />}
           />
 
           <Route element={<RoleRoute allowedRoles={ROLES_FARMACIA} />}>
@@ -88,7 +90,7 @@ export default function AppRoutes() {
           </Route>
           <Route
             path="/support"
-            element={<div className="p-8 font-headline text-2xl font-bold">Ayuda (Próximamente)</div>}
+            element={<Support />}
           />
         </Route>
       </Route>

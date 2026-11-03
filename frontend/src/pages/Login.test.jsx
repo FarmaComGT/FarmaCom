@@ -55,7 +55,7 @@ describe('pantalla de login', () => {
       type: 'LOGIN',
       payload: { usuario: { id_usuario: 1, rol: 'administrador', id_sucursal: 3 }, sucursalActivaId: 3 },
     });
-    expect(navigateMock).toHaveBeenCalledWith('/usuarios', { replace: true });
+    expect(navigateMock).toHaveBeenCalledWith('/dashboard', { replace: true });
   });
 
   it('redirige siempre a la ruta por defecto cuando el rol es laboratorista', async () => {
@@ -68,7 +68,7 @@ describe('pantalla de login', () => {
     await user.type(screen.getByLabelText('Contraseña'), 'secreta123');
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
 
-    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/laboratorio/pacientes', { replace: true }));
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/dashboard', { replace: true }));
   });
 
   it('muestra el mensaje de error del backend si falla el login', async () => {
