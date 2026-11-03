@@ -1,28 +1,35 @@
 import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
+import styles from '../../../styles/ManagementUI.module.css';
 
 export default function CategoriaTableRow({ categoria, onEditar, onEliminar, eliminando }) {
   return (
-    <div className="grid grid-cols-12 gap-4 px-5 py-4 items-center bg-white/60">
-      <span className="col-span-1 text-sm text-slate-400 font-mono">{categoria.id_categoria}</span>
-      <span className="col-span-7 font-semibold text-primary">{categoria.nombre}</span>
-      <div className="col-span-4 flex justify-center gap-2">
+    <tr>
+      <td data-label="Código" className={`${styles.secondary} ${styles.mono}`}>#{categoria.id_categoria}</td>
+      <th scope="row" data-label="Nombre"><span className={styles.identity}>{categoria.nombre}</span></th>
+      <td data-label="Acciones" className={styles.actionsCell}>
+        <div className={styles.rowActions}>
         <button
+          type="button"
           onClick={() => onEditar(categoria)}
-          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold text-primary border border-primary/20 hover:bg-primary/5"
+          className={styles.button}
+          aria-label={`Editar categoría ${categoria.nombre}`}
         >
-          <Pencil className="w-3.5 h-3.5" />
+          <Pencil size={15} aria-hidden="true" />
           Editar
         </button>
         <button
+          type="button"
           onClick={() => onEliminar(categoria)}
           disabled={eliminando}
-          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold text-red-600 border border-red-200 hover:bg-red-50 disabled:opacity-60"
+          className={`${styles.button} ${styles.danger}`}
+          aria-label={`Eliminar categoría ${categoria.nombre}`}
         >
-          <Trash2 className="w-3.5 h-3.5" />
-          {eliminando ? 'Eliminando...' : 'Eliminar'}
+          <Trash2 size={15} aria-hidden="true" />
+          Eliminar
         </button>
-      </div>
-    </div>
+        </div>
+      </td>
+    </tr>
   );
 }

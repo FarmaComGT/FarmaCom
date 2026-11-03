@@ -37,8 +37,8 @@ describe('pantalla de categorías', () => {
 
     expect(screen.getByText('Analgésicos')).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText('Buscar por nombre...'), 'no existe');
-    expect(screen.getByText('No hay categorías para mostrar.')).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText('Buscar por nombre…'), 'no existe');
+    expect(screen.getByText('Sin coincidencias')).toBeInTheDocument();
   });
 
   it('crea una categoría nueva', async () => {
@@ -47,7 +47,7 @@ describe('pantalla de categorías', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva categoría' }));
-    await user.type(screen.getByPlaceholderText('Ej: Analgésico'), 'Antibióticos');
+    await user.type(screen.getByPlaceholderText('Ej.: Analgésicos…'), 'Antibióticos');
     await user.click(screen.getByRole('button', { name: 'Crear categoría' }));
 
     await waitFor(() => expect(acciones.crear).toHaveBeenCalledWith({ nombre: 'Antibióticos' }));
@@ -58,7 +58,7 @@ describe('pantalla de categorías', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nueva categoría' }));
-    await user.type(screen.getByPlaceholderText('Ej: Analgésico'), '   ');
+    await user.type(screen.getByPlaceholderText('Ej.: Analgésicos…'), '   ');
     await user.click(screen.getByRole('button', { name: 'Crear categoría' }));
 
     expect(screen.getByText('El nombre es requerido.')).toBeInTheDocument();
@@ -70,8 +70,8 @@ describe('pantalla de categorías', () => {
     acciones.actualizar.mockResolvedValue({ id_categoria: 1 });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
-    const nombre = screen.getByPlaceholderText('Ej: Analgésico');
+    await user.click(screen.getByRole('button', { name: 'Editar categoría Analgésicos' }));
+    const nombre = screen.getByPlaceholderText('Ej.: Analgésicos…');
     await user.clear(nombre);
     await user.type(nombre, 'Antiinflamatorios');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
@@ -84,7 +84,7 @@ describe('pantalla de categorías', () => {
     acciones.actualizar.mockRejectedValue({ response: { data: { mensaje: 'Nombre duplicado' } } });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Editar categoría Analgésicos' }));
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(await screen.findByText('Nombre duplicado')).toBeInTheDocument();
@@ -95,10 +95,10 @@ describe('pantalla de categorías', () => {
     acciones.eliminar.mockResolvedValue({});
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
-    expect(screen.getByText('Confirmar eliminación')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Eliminar categoría Analgésicos' }));
+    expect(screen.getByRole('heading', { name: 'Eliminar categoría' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar categoría' }));
 
     await waitFor(() => expect(acciones.eliminar).toHaveBeenCalledWith(1));
   });
@@ -107,10 +107,10 @@ describe('pantalla de categorías', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar categoría Analgésicos' }));
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
 
-    expect(screen.queryByText('Confirmar eliminación')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Eliminar categoría' })).not.toBeInTheDocument();
     expect(acciones.eliminar).not.toHaveBeenCalled();
   });
 });
