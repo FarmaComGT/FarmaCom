@@ -401,6 +401,16 @@
   color: var(--management-danger);
 }
 
+.badgeDanger {
+  background: var(--management-danger-bg);
+  color: var(--management-danger);
+}
+
+.badgeWarning {
+  background: #fff3d6;
+  color: #754500;
+}
+
 .actionsCell {
   text-align: right;
 }
@@ -542,6 +552,159 @@ textarea.input {
 .fieldError {
   color: var(--management-danger);
   font-size: 13px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.section + .section {
+  padding-top: 18px;
+  border-top: 1px solid var(--management-line);
+}
+
+.sectionHeading {
+  color: var(--management-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.helpText {
+  color: var(--management-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.inlineActions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.compactButton {
+  min-height: 32px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.checkboxCard,
+.switchRow {
+  display: flex;
+  min-height: 48px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--management-line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.checkboxCard:hover,
+.switchRow:hover {
+  border-color: var(--management-control);
+  background: var(--management-soft);
+}
+
+.checkboxCard input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 1px;
+  accent-color: var(--management-accent);
+}
+
+.checkboxCard strong,
+.switchRow strong {
+  display: block;
+  color: var(--management-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.checkboxCard span,
+.switchRow span {
+  display: block;
+  color: var(--management-muted);
+  font-size: 12px;
+}
+
+.switchButton {
+  position: relative;
+  width: 38px;
+  min-width: 38px;
+  height: 22px;
+  margin-top: 1px;
+  border: 1px solid var(--management-control);
+  border-radius: 999px;
+  background: #dfe5e2;
+}
+
+.switchButton[aria-checked="true"] {
+  border-color: var(--management-accent);
+  background: var(--management-accent);
+}
+
+.switchThumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px #17372b26;
+  transition: transform 140ms ease;
+}
+
+.switchButton[aria-checked="true"] .switchThumb {
+  transform: translateX(16px);
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 16px;
+  border-block: 1px solid var(--management-line);
+}
+
+.backLink {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  color: var(--management-accent);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.statusMessage {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: var(--management-soft);
+  color: var(--management-accent);
+}
+
+.warning {
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: #fff3d6;
+  color: #754500;
+  font-size: 13px;
+  line-height: 19px;
 }
 
 .dialogActions {
@@ -690,6 +853,11 @@ textarea.input {
 
   .formGrid {
     grid-template-columns: 1fr;
+  }
+
+  .filterGrid {
+    grid-template-columns: 1fr;
+    padding-inline: 0;
   }
 
   .dialogActions {

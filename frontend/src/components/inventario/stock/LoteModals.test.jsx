@@ -80,7 +80,7 @@ describe('modales de lote', () => {
       />,
     );
 
-    const precioCompra = screen.getByLabelText('Precio compra *');
+    const precioCompra = screen.getByLabelText('Precio de compra (Q)');
     await user.clear(precioCompra);
     await user.type(precioCompra, '11.50');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
@@ -111,7 +111,7 @@ describe('modales de lote', () => {
 
     expect(screen.getByRole('combobox', { name: /Producto/ })).toBeDisabled();
     expect(screen.getByRole('combobox', { name: /Producto/ })).toHaveValue('2');
-    expect(screen.getByLabelText('Precio compra *')).toHaveValue(10);
+    expect(screen.getByLabelText('Precio de compra (Q)')).toHaveValue(10);
 
     await user.type(screen.getByRole('textbox', { name: /Número de lote/ }), 'LT-NUEVO');
   });
@@ -131,7 +131,7 @@ describe('modales de lote', () => {
     );
 
     expect(screen.getByText('LT-001')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar lote' }));
     expect(onConfirm).toHaveBeenCalledOnce();
   });
 });
@@ -159,15 +159,15 @@ describe('regresión del formulario de lote dividido en secciones', () => {
     render(<LoteFormModal {...propsBase} onClose={vi.fn()} onSubmit={onSubmit} />);
 
     expect(screen.getByRole('dialog', { name: 'Ingresar lote' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Precio compra *')).toHaveValue(10);
+    expect(screen.getByLabelText('Precio de compra (Q)')).toHaveValue(10);
     await usuario.selectOptions(campo('id_proveedor'), '3');
     await usuario.type(screen.getByRole('textbox', { name: /Número de lote/ }), ' LT-NUEVO ');
     await usuario.type(campo('fecha_vencimiento'), '2099-12-31');
     await usuario.type(campo('cantidad_ingresada'), '20');
-    await usuario.type(campoPrecio(/Margen %/), '25');
-    expect(campoPrecio(/Precio venta/)).toHaveValue(12.5);
-    await usuario.type(campoPrecio('Precio mayoreo'), '11');
-    await usuario.type(campoPrecio('Cantidad mayoreo'), '5');
+    await usuario.type(campoPrecio(/Margen/), '25');
+    expect(campoPrecio(/Precio de venta/)).toHaveValue(12.5);
+    await usuario.type(campoPrecio(/Precio de mayoreo/), '11');
+    await usuario.type(campoPrecio(/Cantidad mínima de mayoreo/), '5');
 
     await usuario.click(screen.getByRole('button', { name: 'Guardar lote' }));
 
@@ -184,14 +184,14 @@ describe('regresión del formulario de lote dividido en secciones', () => {
     const onSubmit = vi.fn();
     render(<LoteFormModal {...propsBase} lote={lote} onClose={vi.fn()} onSubmit={onSubmit} />);
 
-    await usuario.clear(campoPrecio('Cantidad mayoreo'));
+    await usuario.clear(campoPrecio(/Cantidad mínima de mayoreo/));
     await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(screen.getByText('Completa precio y cantidad de mayoreo, o deja ambos vacíos.')).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
     expect(campo('stock_actual')).toHaveValue(12);
 
-    await usuario.clear(campoPrecio('Precio mayoreo'));
+    await usuario.clear(campoPrecio(/Precio de mayoreo/));
     expect(screen.queryByText('Completa precio y cantidad de mayoreo, o deja ambos vacíos.')).not.toBeInTheDocument();
     await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
@@ -226,14 +226,14 @@ describe('regresión del formulario de lote dividido en secciones', () => {
     const usuario = userEvent.setup();
     render(<LoteFormModal {...propsBase} onClose={vi.fn()} onSubmit={vi.fn()} />);
     await usuario.type(screen.getByRole('textbox', { name: /Número de lote/ }), 'LT-CONSERVADO');
-    await usuario.type(campoPrecio(/Precio venta/), '20');
-    expect(campoPrecio(/Margen %/)).toHaveValue(100);
+    await usuario.type(campoPrecio(/Precio de venta/), '20');
+    expect(campoPrecio(/Margen/)).toHaveValue(100);
 
     await usuario.selectOptions(screen.getByRole('combobox', { name: /Producto/ }), '5');
 
-    expect(screen.getByLabelText('Precio compra *')).toHaveValue(5);
-    expect(campoPrecio(/Precio venta/)).toHaveValue(20);
-    expect(campoPrecio(/Margen %/)).toHaveValue(300);
+    expect(screen.getByLabelText('Precio de compra (Q)')).toHaveValue(5);
+    expect(campoPrecio(/Precio de venta/)).toHaveValue(20);
+    expect(campoPrecio(/Margen/)).toHaveValue(300);
     expect(screen.getByDisplayValue('Tableta')).toBeDisabled();
     expect(screen.getByRole('textbox', { name: /Número de lote/ })).toHaveValue('LT-CONSERVADO');
     expect(campo('id_sucursal')).toHaveValue('4');
@@ -250,7 +250,7 @@ describe('regresión del formulario de lote dividido en secciones', () => {
 
     expect(screen.getByText('Ya existe ese lote')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /Número de lote/ })).toHaveValue('LT-DUPLICADO');
-    expect(screen.getByLabelText('Precio compra *')).toHaveValue(10);
+    expect(screen.getByLabelText('Precio de compra (Q)')).toHaveValue(10);
     expect(campo('stock_actual')).toHaveValue(12);
   });
 
@@ -258,7 +258,7 @@ describe('regresión del formulario de lote dividido en secciones', () => {
     const usuario = userEvent.setup();
     const props = { ...propsBase, onClose: vi.fn(), onSubmit: vi.fn() };
     const { rerender } = render(<LoteFormModal {...props} lote={lote} />);
-    await usuario.clear(campoPrecio('Cantidad mayoreo'));
+    await usuario.clear(campoPrecio(/Cantidad mínima de mayoreo/));
     await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
     expect(screen.getByText('Completa precio y cantidad de mayoreo, o deja ambos vacíos.')).toBeInTheDocument();
 
@@ -271,16 +271,16 @@ describe('regresión del formulario de lote dividido en secciones', () => {
     expect(screen.getByRole('combobox', { name: /Producto/ })).toHaveValue('2');
     expect(campo('id_sucursal')).toHaveValue('4');
     expect(campo('cantidad_ingresada')).toHaveValue(null);
-    expect(screen.getByLabelText('Precio compra *')).toHaveValue(10);
-    expect(campoPrecio('Precio mayoreo')).toHaveValue(null);
-    expect(campoPrecio('Cantidad mayoreo')).toHaveValue(null);
+    expect(screen.getByLabelText('Precio de compra (Q)')).toHaveValue(10);
+    expect(campoPrecio(/Precio de mayoreo/)).toHaveValue(null);
+    expect(campoPrecio(/Cantidad mínima de mayoreo/)).toHaveValue(null);
     expect(campo('stock_actual')).not.toBeInTheDocument();
     expect(screen.queryByText('Completa precio y cantidad de mayoreo, o deja ambos vacíos.')).not.toBeInTheDocument();
   });
 
   it.each([
     { estado: 'cargando catálogos', cargandoDatos: true, guardando: false, nombre: 'Guardar lote' },
-    { estado: 'guardando', cargandoDatos: false, guardando: true, nombre: 'Guardando...' },
+    { estado: 'guardando', cargandoDatos: false, guardando: true, nombre: 'Guardar lote' },
   ])('bloquea el envío mientras está $estado', async ({ cargandoDatos, guardando, nombre }) => {
     const usuario = userEvent.setup();
     const onSubmit = vi.fn();

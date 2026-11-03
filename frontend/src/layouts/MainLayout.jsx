@@ -27,8 +27,10 @@ const obtenerPreferenciaSidebar = () => {
 export default function MainLayout() {
   const location = useLocation();
   const esInventario = location.pathname === '/inventario';
+  const esDetalleLotes = /^\/inventario\/productos\/[^/]+\/lotes$/.test(location.pathname);
   const esCaja = location.pathname === '/caja' || location.pathname.startsWith('/caja/');
-  const esGestion = ['/usuarios', '/sucursales', '/laboratorios', '/ciudades', '/patients'].includes(location.pathname)
+  const esGestion = esDetalleLotes
+    || ['/usuarios', '/sucursales', '/laboratorios', '/ciudades', '/patients'].includes(location.pathname)
     || location.pathname.startsWith('/laboratorio/pacientes')
     || location.pathname.startsWith('/reports');
   const anchoEscritorio = esInventario || esCaja || esGestion ? 1100 : ANCHO_ESCRITORIO;
