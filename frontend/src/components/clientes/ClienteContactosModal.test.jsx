@@ -71,7 +71,7 @@ describe('ClienteContactosModal', () => {
     usarContactos({ telefonos: [], correos: [], cargando: true, error: 'Cliente no encontrado' });
     renderizar();
 
-    expect(screen.getByText('Cargando contactos...')).toBeInTheDocument();
+    expect(screen.getByText('Cargando contactos…')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('Cliente no encontrado');
     expect(screen.queryByText('Sin teléfonos registrados.')).not.toBeInTheDocument();
   });
@@ -197,10 +197,23 @@ describe('ClienteContactosModal', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Eliminar teléfono 5555-1234' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar eliminar teléfono 5555-1234' }));
     await user.click(screen.getByRole('button', { name: 'Eliminar correo ana@farmacom.test' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar eliminar correo ana@farmacom.test' }));
 
     expect(acciones.eliminarTelefono).toHaveBeenCalledWith(1);
     expect(acciones.eliminarCorreo).toHaveBeenCalledWith(7);
+  });
+
+  it('permite cancelar la confirmación antes de eliminar', async () => {
+    const user = userEvent.setup();
+    renderizar();
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar teléfono 5555-1234' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(acciones.eliminarTelefono).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Eliminar teléfono 5555-1234' })).toBeInTheDocument();
   });
 
   it('muestra el error si no se puede eliminar y vuelve a habilitar el botón', async () => {
@@ -210,9 +223,11 @@ describe('ClienteContactosModal', () => {
 
     const botonEliminar = screen.getByRole('button', { name: 'Eliminar teléfono 5555-1234' });
     await user.click(botonEliminar);
+    const botonConfirmar = screen.getByRole('button', { name: 'Confirmar eliminar teléfono 5555-1234' });
+    await user.click(botonConfirmar);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Teléfono no encontrado');
-    expect(botonEliminar).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Eliminar teléfono 5555-1234' })).toBeEnabled();
   });
 
   it('cierra el modal desde la X y desde el pie', async () => {

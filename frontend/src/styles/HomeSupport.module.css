@@ -3,6 +3,7 @@
 .eyebrow { margin: 0 0 8px; color: var(--ui-accent); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .hero h1 { max-width: 720px; margin: 0; font-size: clamp(30px,5vw,48px); font-weight: 800; letter-spacing: -.035em; line-height: 1.05; text-wrap: balance; }
 .heroText { max-width: 680px; margin: 14px 0 0; color: var(--ui-muted); font-size: 16px; line-height: 1.65; }
+.dashboardHeroText { max-width: none; }
 .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 .pill { display: inline-flex; min-height: 32px; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid rgba(0,81,71,.13); border-radius: 999px; background: rgba(255,255,255,.78); color: #31544d; font-size: 13px; font-weight: 700; }
 .section { margin-top: 32px; }

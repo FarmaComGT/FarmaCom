@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { motion } from 'motion/react';
-import { Check, Contact, Mail, Pencil, Phone, Plus, Trash2, X } from 'lucide-react';
+import { Check, Contact, LoaderCircle, Mail, Pencil, Phone, Plus, Trash2, X } from 'lucide-react';
 import useContactosCliente from '../../hooks/useContactosCliente';
+import AccessibleDialog from '../ui/AccessibleDialog.jsx';
+import styles from './ClienteDetailsModal.module.css';
 
 // El backend guarda el número normalizado (solo dígitos y + opcional).
 export const formatearTelefono = (numero) => {
@@ -14,13 +14,13 @@ export const formatearTelefono = (numero) => {
   return texto;
 };
 
-// Los errores de validación traen el detalle en `errores`; los demás en `mensaje`.
 const mensajeDeError = (err, alternativo) => (
   err.response?.data?.errores?.[0]?.msg || err.response?.data?.mensaje || alternativo
 );
 
 function ContactoItem({ etiqueta, descripcion, type, onActualizar, onEliminar }) {
   const [editando, setEditando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
   const [valor, setValor] = useState(etiqueta);
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState('');
@@ -59,70 +59,61 @@ function ContactoItem({ etiqueta, descripcion, type, onActualizar, onEliminar })
     } catch (err) {
       setError(mensajeDeError(err, 'No se pudo eliminar'));
       setProcesando(false);
+      setConfirmando(false);
     }
   };
 
   if (editando) {
     return (
-      <li className="py-1.5">
-        <form onSubmit={guardarEdicion} className="flex items-center gap-2">
+      <li className={styles.contactItem}>
+        <form onSubmit={guardarEdicion} className={styles.editForm}>
           <input
             type={type}
+            name={`editar_${descripcion}`}
             value={valor}
             onChange={(evento) => setValor(evento.target.value)}
             aria-label={`Editar ${descripcion} ${etiqueta}`}
+            autoComplete={type === 'tel' ? 'tel' : 'email'}
+            spellCheck={type === 'email' ? 'false' : undefined}
             autoFocus
-            className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+            className={styles.input}
           />
-          <button
-            type="submit"
-            disabled={procesando || !valor.trim()}
-            className="rounded p-1 text-green-600 hover:text-green-700 disabled:opacity-40"
-            aria-label={`Guardar ${descripcion}`}
-          >
-            <Check className="h-4 w-4" />
+          <button type="submit" disabled={procesando || !valor.trim()} className={styles.iconButton} aria-label={`Guardar ${descripcion}`}>
+            {procesando ? <LoaderCircle size={16} className={styles.spinner} aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
           </button>
-          <button
-            type="button"
-            onClick={cancelarEdicion}
-            disabled={procesando}
-            className="rounded p-1 text-slate-400 hover:text-slate-600 disabled:opacity-40"
-            aria-label="Cancelar edición"
-          >
-            <X className="h-4 w-4" />
+          <button type="button" onClick={cancelarEdicion} disabled={procesando} className={styles.iconButton} aria-label="Cancelar edición">
+            <X size={16} aria-hidden="true" />
           </button>
         </form>
-        {error && <p role="alert" className="mt-1 text-xs text-red-600">{error}</p>}
+        {error && <p role="alert" className={styles.error}>{error}</p>}
       </li>
     );
   }
 
   return (
-    <li className="py-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="min-w-0 flex-1 break-words text-sm text-slate-700">{etiqueta}</span>
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setEditando(true)}
-            disabled={procesando}
-            className="rounded p-1 text-primary hover:text-primary/80 disabled:opacity-40"
-            aria-label={`Editar ${descripcion} ${etiqueta}`}
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={eliminar}
-            disabled={procesando}
-            className="rounded p-1 text-red-500 hover:text-red-700 disabled:opacity-40"
-            aria-label={`Eliminar ${descripcion} ${etiqueta}`}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
+    <li className={styles.contactItem}>
+      <div className={styles.contactRow}>
+        <span className={styles.contactValue}>{etiqueta}</span>
+        {confirmando ? (
+          <div className={styles.itemActions} aria-label={`Confirmar eliminación de ${descripcion}`}>
+            <button type="button" onClick={() => setConfirmando(false)} disabled={procesando} className={styles.button}>Cancelar</button>
+            <button type="button" onClick={eliminar} disabled={procesando} className={styles.dangerButton} aria-label={`Confirmar eliminar ${descripcion} ${etiqueta}`}>
+              {procesando && <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" />}
+              Eliminar
+            </button>
+          </div>
+        ) : (
+          <div className={styles.itemActions}>
+            <button type="button" onClick={() => setEditando(true)} disabled={procesando} className={styles.iconButton} aria-label={`Editar ${descripcion} ${etiqueta}`}>
+              <Pencil size={15} aria-hidden="true" />
+            </button>
+            <button type="button" onClick={() => setConfirmando(true)} disabled={procesando} className={styles.iconButton} aria-label={`Eliminar ${descripcion} ${etiqueta}`}>
+              <Trash2 size={15} aria-hidden="true" />
+            </button>
+          </div>
+        )}
       </div>
-      {error && <p role="alert" className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p role="alert" className={styles.error}>{error}</p>}
     </li>
   );
 }
@@ -150,36 +141,37 @@ function AgregarContacto({ etiqueta, placeholder, type, onAgregar }) {
   };
 
   return (
-    <div className="mt-2 space-y-1">
-      <form onSubmit={agregar} className="flex gap-2">
+    <div className={styles.addBox}>
+      <label className={styles.addLabel} htmlFor={`nuevo-${type}`}>{etiqueta}</label>
+      <form onSubmit={agregar} className={styles.addForm}>
         <input
+          id={`nuevo-${type}`}
+          name={`nuevo_${type}`}
           type={type}
           value={valor}
           onChange={(evento) => setValor(evento.target.value)}
           placeholder={placeholder}
-          aria-label={etiqueta}
-          className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+          autoComplete={type === 'tel' ? 'tel' : 'email'}
+          spellCheck={type === 'email' ? 'false' : undefined}
+          className={styles.input}
         />
-        <button
-          type="submit"
-          disabled={guardando || !valor.trim()}
-          className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          {guardando ? 'Agregando...' : 'Agregar'}
+        <button type="submit" disabled={guardando || !valor.trim()} className={styles.primaryButton}>
+          {guardando ? <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" /> : <Plus size={15} aria-hidden="true" />}
+          Agregar
         </button>
       </form>
-      {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
+      {error && <p role="alert" className={styles.error}>{error}</p>}
     </div>
   );
 }
 
-function SeccionContactos({ titulo, icono: Icono, vacio, cargando, children }) {
+function SeccionContactos({ titulo, descripcion, icono: Icono, vacio, cargando, children }) {
+  const tituloId = `contactos-${titulo.toLowerCase().replace(/\s+/g, '-')}`;
   return (
-    <section aria-label={titulo}>
-      <div className="mb-2 flex items-center gap-2">
-        <Icono className="h-4 w-4 text-primary" />
-        <h4 className="text-sm font-bold text-slate-700">{titulo}</h4>
+    <section className={styles.contactSection} aria-labelledby={tituloId}>
+      <div className={styles.sectionHeading}>
+        <span className={styles.sectionIcon}><Icono size={17} aria-hidden="true" /></span>
+        <div><h3 id={tituloId}>{titulo}</h3><p>{descripcion}</p></div>
       </div>
       {!cargando && vacio}
       {children}
@@ -201,115 +193,57 @@ export default function ClienteContactosModal({ cliente, onClose }) {
     eliminarCorreo,
   } = useContactosCliente(cliente?.id_cliente ?? null);
 
-  if (!cliente || typeof document === 'undefined') return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 p-4 backdrop-blur-sm">
-      <motion.div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="titulo-contactos-cliente"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-      >
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Contact className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <h3
-                id="titulo-contactos-cliente"
-                className="truncate font-headline text-lg font-extrabold text-primary"
-              >
-                Contactos
-              </h3>
-              <p className="truncate text-sm font-medium text-slate-500">{cliente.nombre_cliente}</p>
+  return (
+    <AccessibleDialog
+      open={Boolean(cliente)}
+      labelledBy="titulo-contactos-cliente"
+      describedBy="descripcion-contactos-cliente"
+      onClose={onClose}
+      size="large"
+      className={styles.contactDialog}
+    >
+      <div className={styles.shell}>
+        <header className={styles.header}>
+          <div className={styles.heading}>
+            <span className={styles.headingIcon}><Contact size={20} aria-hidden="true" /></span>
+            <div>
+              <p className={styles.eyebrow}>Directorio del cliente</p>
+              <h2 id="titulo-contactos-cliente">Contactos</h2>
+              <p id="descripcion-contactos-cliente" className={styles.subtitle}>{cliente?.nombre_cliente}</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <button type="button" onClick={onClose} className={styles.iconButton} aria-label="Cerrar"><X size={17} aria-hidden="true" /></button>
+        </header>
+
+        <div className={styles.content}>
+          {cargando && <div role="status" className={styles.state}><LoaderCircle size={24} className={styles.spinner} aria-hidden="true" /><span>Cargando contactos…</span></div>}
+          {error && <div role="alert" className={`${styles.state} ${styles.stateError}`}>{error}</div>}
+
+          {!cargando && !error && (
+            <div className={styles.contactGrid}>
+              <SeccionContactos titulo="Teléfonos" descripcion="Llamadas y mensajería" icono={Phone} cargando={cargando} vacio={telefonos.length === 0 && <p className={styles.emptyContact}>Sin teléfonos registrados.</p>}>
+                <ul className={styles.contactList}>
+                  {telefonos.map((telefono) => (
+                    <ContactoItem key={telefono.id_telefono} etiqueta={formatearTelefono(telefono.numero)} descripcion="teléfono" type="tel" onActualizar={(numero) => actualizarTelefono(telefono.id_telefono, numero)} onEliminar={() => eliminarTelefono(telefono.id_telefono)} />
+                  ))}
+                </ul>
+                <AgregarContacto etiqueta="Nuevo teléfono" placeholder="Ej.: 5555-1234…" type="tel" onAgregar={agregarTelefono} />
+              </SeccionContactos>
+
+              <SeccionContactos titulo="Correos electrónicos" descripcion="Notificaciones y comprobantes" icono={Mail} cargando={cargando} vacio={correos.length === 0 && <p className={styles.emptyContact}>Sin correos registrados.</p>}>
+                <ul className={styles.contactList}>
+                  {correos.map((correo) => (
+                    <ContactoItem key={correo.id_email} etiqueta={correo.correo} descripcion="correo" type="email" onActualizar={(valor) => actualizarCorreo(correo.id_email, valor)} onEliminar={() => eliminarCorreo(correo.id_email)} />
+                  ))}
+                </ul>
+                <AgregarContacto etiqueta="Nuevo correo" placeholder="Ej.: cliente@correo.com…" type="email" onAgregar={agregarCorreo} />
+              </SeccionContactos>
+            </div>
+          )}
         </div>
 
-        <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
-          {cargando && <p className="text-sm text-slate-500">Cargando contactos...</p>}
-          {error && <p role="alert" className="text-sm font-medium text-red-600">{error}</p>}
-
-          <SeccionContactos
-            titulo="Teléfonos"
-            icono={Phone}
-            cargando={cargando}
-            vacio={telefonos.length === 0 && (
-              <p className="text-xs text-slate-400">Sin teléfonos registrados.</p>
-            )}
-          >
-            <ul className="divide-y divide-slate-100">
-              {telefonos.map((telefono) => (
-                <ContactoItem
-                  key={telefono.id_telefono}
-                  etiqueta={formatearTelefono(telefono.numero)}
-                  descripcion="teléfono"
-                  type="tel"
-                  onActualizar={(numero) => actualizarTelefono(telefono.id_telefono, numero)}
-                  onEliminar={() => eliminarTelefono(telefono.id_telefono)}
-                />
-              ))}
-            </ul>
-            <AgregarContacto
-              etiqueta="Nuevo teléfono"
-              placeholder="Ej: 5555-1234"
-              type="tel"
-              onAgregar={agregarTelefono}
-            />
-          </SeccionContactos>
-
-          <SeccionContactos
-            titulo="Correos electrónicos"
-            icono={Mail}
-            cargando={cargando}
-            vacio={correos.length === 0 && (
-              <p className="text-xs text-slate-400">Sin correos registrados.</p>
-            )}
-          >
-            <ul className="divide-y divide-slate-100">
-              {correos.map((correo) => (
-                <ContactoItem
-                  key={correo.id_email}
-                  etiqueta={correo.correo}
-                  descripcion="correo"
-                  type="email"
-                  onActualizar={(valor) => actualizarCorreo(correo.id_email, valor)}
-                  onEliminar={() => eliminarCorreo(correo.id_email)}
-                />
-              ))}
-            </ul>
-            <AgregarContacto
-              etiqueta="Nuevo correo"
-              placeholder="Ej: cliente@correo.com"
-              type="email"
-              onAgregar={agregarCorreo}
-            />
-          </SeccionContactos>
-        </div>
-
-        <div className="flex shrink-0 justify-end border-t border-slate-100 px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            Cerrar
-          </button>
-        </div>
-      </motion.div>
-    </div>,
-    document.body,
+        <footer className={styles.footer}><button type="button" onClick={onClose} className={styles.button}>Cerrar</button></footer>
+      </div>
+    </AccessibleDialog>
   );
 }

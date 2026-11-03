@@ -22,7 +22,7 @@ export default function Dashboard() {
   return <section className={styles.page} aria-labelledby="inicio-title">
     <header className={styles.hero}>
       <p className={styles.eyebrow}>Centro de trabajo</p><h1 id="inicio-title">Hola, {usuario?.nombre_usuario || 'equipo'}.</h1>
-      <p className={styles.heroText}>Accede a las tareas disponibles para tu rol y continúa la operación de la farmacia desde un solo lugar.</p>
+      <p className={`${styles.heroText} ${styles.dashboardHeroText}`}>Accede a las tareas disponibles para tu rol y continúa la operación de la farmacia desde un solo lugar.</p>
       <div className={styles.meta}><span className={styles.pill}><Users size={15} aria-hidden="true" />{etiquetasRol[usuario?.rol] || usuario?.rol}</span><span className={styles.pill}><CalendarDays size={15} aria-hidden="true" />{hoy}</span></div>
     </header>
     <section className={styles.section} aria-labelledby="accesos-title">
