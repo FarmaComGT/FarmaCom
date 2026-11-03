@@ -17,10 +17,12 @@ export default function UsuarioActionBar({ busqueda, onBusquedaChange, onCrear }
           onChange={onBusquedaChange}
         />
       </label>
-      <button type="button" onClick={onCrear} className={`${styles.button} ${styles.primary}`}>
-        <PlusCircle size={16} aria-hidden="true" />
-        Nuevo usuario
-      </button>
+      {onCrear && (
+        <button type="button" onClick={onCrear} className={`${styles.button} ${styles.primary}`}>
+          <PlusCircle size={16} aria-hidden="true" />
+          Nuevo usuario
+        </button>
+      )}
     </div>
   );
 }

@@ -159,6 +159,49 @@ describe('Clientes', () => {
     expect(screen.getByText('Este cliente todavía no tiene compras asociadas.')).toBeInTheDocument();
   });
 
+  it('muestra ventas anuladas y el estado sin artículos al expandirlas', async () => {
+    mockObtenerHistorialCompras.mockResolvedValue({
+      ...historial,
+      compras: [{
+        ...historial.compras[0],
+        estado: 'anulada',
+        fecha_venta: 'fecha-invalida',
+        cantidad_articulos: 1,
+        motivo_anulacion: 'Error de cobro',
+        detalles: [],
+      }],
+    });
+    const user = userEvent.setup();
+    renderizar();
+
+    await user.click(screen.getByRole('button', { name: 'Ver historial de María López' }));
+    const modal = await screen.findByRole('dialog', { name: 'Historial de ventas' });
+
+    expect(within(modal).getByText('Anulada')).toBeInTheDocument();
+    expect(within(modal).getByText('Fecha no disponible')).toBeInTheDocument();
+    expect(within(modal).getByText('1 artículo')).toBeInTheDocument();
+    expect(within(modal).getByText('Motivo de anulación: Error de cobro')).toBeInTheDocument();
+    await user.click(within(modal).getByRole('button', { name: 'Ver detalle' }));
+    expect(within(modal).getByText('Esta venta no tiene artículos disponibles para mostrar.')).toBeInTheDocument();
+    await user.click(within(modal).getByRole('button', { name: 'Ocultar detalle' }));
+    expect(within(modal).queryByText('Esta venta no tiene artículos disponibles para mostrar.')).not.toBeInTheDocument();
+  });
+
+  it('ofrece reintentar cuando falla la carga del historial', async () => {
+    mockObtenerHistorialCompras
+      .mockRejectedValueOnce({ response: { data: { mensaje: 'Servicio no disponible' } } })
+      .mockResolvedValueOnce(historial);
+    const user = userEvent.setup();
+    renderizar();
+
+    await user.click(screen.getByRole('button', { name: 'Ver historial de María López' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Servicio no disponible');
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText('Venta #31')).toBeInTheDocument();
+    expect(mockObtenerHistorialCompras).toHaveBeenCalledTimes(2);
+  });
+
   it('no consulta contactos hasta abrir el modal de un cliente', () => {
     renderizar();
 

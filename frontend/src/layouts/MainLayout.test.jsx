@@ -141,7 +141,7 @@ describe('MainLayout y Sidebar', () => {
     expect(sidebar).toHaveAttribute('aria-hidden', 'true');
 
     await abrirSidebar();
-    await user.click(screen.getByRole('link', { name: 'Dashboard' }));
+    await user.click(screen.getByRole('link', { name: 'Inicio' }));
 
     expect(screen.getByText('Contenido del dashboard')).toBeVisible();
     expect(sidebar).toHaveAttribute('aria-hidden', 'true');
@@ -194,7 +194,7 @@ describe('MainLayout y Sidebar', () => {
 
     expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
     await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }));
-    await user.click(screen.getByRole('link', { name: 'Dashboard' }));
+    await user.click(screen.getByRole('link', { name: 'Inicio' }));
 
     expect(screen.getByText('Contenido del dashboard')).toBeVisible();
     expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'false');

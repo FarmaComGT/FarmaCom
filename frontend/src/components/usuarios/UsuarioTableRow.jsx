@@ -19,6 +19,8 @@ export default function UsuarioTableRow({
   onEditar,
   onCambiarEstado,
   cambiandoEstado,
+  puedeEditar = true,
+  puedeCambiarEstado = true,
 }) {
   const esActivo = usuario.estado_usuario === 'activo';
 
@@ -35,15 +37,15 @@ export default function UsuarioTableRow({
       </td>
       <td data-label="Acciones" className={styles.actionsCell}>
         <div className={styles.rowActions}>
-          <button
+          {puedeEditar && <button
             type="button"
             onClick={() => onEditar(usuario)}
             className={styles.button}
           >
             <Pencil size={14} aria-hidden="true" />
             Editar
-          </button>
-          <button
+          </button>}
+          {puedeCambiarEstado && <button
             type="button"
             onClick={() => onCambiarEstado(usuario)}
             disabled={cambiandoEstado}
@@ -55,7 +57,7 @@ export default function UsuarioTableRow({
               <UserCheck size={14} aria-hidden="true" />
             )}
             {cambiandoEstado ? 'Guardando…' : esActivo ? 'Desactivar' : 'Activar'}
-          </button>
+          </button>}
         </div>
       </td>
     </tr>

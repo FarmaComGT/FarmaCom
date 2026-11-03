@@ -43,6 +43,12 @@ vi.mock('../hooks/useLaboratorios', () => ({
   }),
 }));
 
+vi.mock('../context/AuthContext.jsx', () => ({
+  useAuth: () => ({
+    usuario: { id_usuario: 99, id_sucursal: 1, rol: 'dueno' },
+  }),
+}));
+
 const renderizar = () => render(
   <MemoryRouter>
     <Usuarios />

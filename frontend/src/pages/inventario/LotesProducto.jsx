@@ -4,6 +4,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import ContentState from '../../components/ui/ContentState.jsx';
 import LoteDeleteModal from '../../components/inventario/stock/LoteDeleteModal.jsx';
 import LoteFormModal from '../../components/inventario/stock/LoteFormModal.jsx';
+import LoteStockAjusteModal from '../../components/inventario/stock/LoteStockAjusteModal.jsx';
 import LotesDeProductoTable from '../../components/inventario/stock/LotesDeProductoTable.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useGestionLotesProducto from '../../hooks/useGestionLotesProducto.js';
@@ -17,20 +18,27 @@ export default function LotesProducto() {
   const { productoId } = useParams();
   const { sucursalActivaId, usuario } = useAuth();
   const [params, setParams] = useSearchParams();
-  const sucursalId = params.get('sucursal') || String(sucursalActivaId || '');
+  const sucursalId = usuario?.rol === 'dependiente'
+    ? String(usuario.id_sucursal || '')
+    : params.get('sucursal') || String(sucursalActivaId || '');
   const filtroStock = params.get('stock') || '';
   const filtroVencimiento = params.get('vencimiento') || '';
   const [mensajeAccion, setMensajeAccion] = useState(null);
   const { productos, cargando: cargandoProductos, error: errorProductos } = useProductos();
   const { proveedores, cargando: cargandoProveedores } = useProveedores();
   const { sucursales, cargando: cargandoSucursales } = useSucursales();
-  const { guardando, error: errorLote, crear, actualizar, eliminar, limpiarError } = useLotes();
+  const { guardando, error: errorLote, crear, actualizar, eliminar, ajustarStock, limpiarError } = useLotes();
   const producto = useMemo(
     () => productos.find((item) => String(item.id_producto) === String(productoId)),
     [productoId, productos],
   );
+  const sucursalesDisponibles = useMemo(() => (
+    usuario?.rol === 'dependiente'
+      ? sucursales.filter((item) => Number(item.id_sucursal) === Number(usuario.id_sucursal))
+      : sucursales
+  ), [sucursales, usuario?.id_sucursal, usuario?.rol]);
   const gestion = useGestionLotesProducto({
-    crearLote: crear, actualizarLote: actualizar, eliminarLote: eliminar,
+    crearLote: crear, actualizarLote: actualizar, eliminarLote: eliminar, ajustarStock,
     limpiarError, onExito: setMensajeAccion,
   });
   const puedeGestionar = ['dueno', 'administrador'].includes(usuario?.rol);
@@ -102,8 +110,8 @@ export default function LotesProducto() {
       <div className={styles.filterGrid} aria-label="Filtros de lotes">
         <div className={styles.field}>
           <label htmlFor="filtro-sucursal-lotes">Sucursal</label>
-          <select id="filtro-sucursal-lotes" aria-label="Sucursal" value={sucursalId} onChange={(evento) => actualizarFiltro('sucursal', evento.target.value)} className={styles.input}>
-            {sucursales.map((sucursal) => <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>{sucursal.nombre_sucursal}</option>)}
+          <select id="filtro-sucursal-lotes" aria-label="Sucursal" value={sucursalId} onChange={(evento) => actualizarFiltro('sucursal', evento.target.value)} disabled={usuario?.rol === 'dependiente'} className={styles.input}>
+            {sucursalesDisponibles.map((sucursal) => <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>{sucursal.nombre_sucursal}</option>)}
           </select>
         </div>
         <div className={styles.field}>
@@ -137,6 +145,7 @@ export default function LotesProducto() {
         filtroVencimiento={filtroVencimiento}
         onEditar={puedeGestionar ? gestion.abrirEdicion : undefined}
         onEliminar={puedeGestionar ? gestion.solicitarEliminacion : undefined}
+        onAjustar={puedeGestionar ? gestion.solicitarAjuste : undefined}
       />
 
       <LoteFormModal
@@ -156,6 +165,14 @@ export default function LotesProducto() {
       />
 
       <LoteDeleteModal isOpen={Boolean(gestion.loteAEliminar)} lote={gestion.loteAEliminar} eliminando={guardando} error={errorLote} onClose={gestion.cancelarEliminacion} onConfirm={gestion.confirmarEliminacion} />
+
+      <LoteStockAjusteModal
+        lote={gestion.loteAAjustar}
+        guardando={guardando}
+        error={errorLote}
+        onClose={gestion.cancelarAjuste}
+        onSubmit={gestion.confirmarAjuste}
+      />
     </section>
   );
 }

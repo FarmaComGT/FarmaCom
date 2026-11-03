@@ -97,7 +97,7 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
       <button type="button" className="shell-icon-button shell-close-sidebar" onClick={onCerrar} aria-label="Cerrar menú lateral" aria-controls="sidebar-principal" aria-expanded="true"><NavigationIcon name="collapse" /></button>
     </div>
     <nav className="shell-navigation" aria-label="Módulos de FarmaCom">
-      {usuario?.rol !== 'laboratorista' && <NavigationLink icon="overview" label="Dashboard" path="/dashboard" />}
+      <NavigationLink icon="overview" label="Inicio" path="/dashboard" />
       <div className="shell-nav-section">
         <p className="shell-nav-section-label">Operación</p>
         {farmacia.includes(usuario?.rol) && <NavigationGroup label="Inventario" icon="inventory" open={inventarioAbierto} onToggle={() => setInventarioAbierto(v => !v)} id="navegacion-inventario" active={inventarioActivo}>

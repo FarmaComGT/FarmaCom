@@ -10,6 +10,8 @@ export default function UsuarioTable({
   onEditar,
   onCambiarEstado,
   cambiandoEstadoId,
+  puedeEditar,
+  puedeCambiarEstado,
 }) {
   return (
     <section className={styles.tablePanel} aria-label="Usuarios registrados">
@@ -33,6 +35,8 @@ export default function UsuarioTable({
                   onEditar={onEditar}
                   onCambiarEstado={onCambiarEstado}
                   cambiandoEstado={cambiandoEstadoId === usuario.id_usuario}
+                  puedeEditar={puedeEditar(usuario)}
+                  puedeCambiarEstado={puedeCambiarEstado}
                 />
               ))}
             </>

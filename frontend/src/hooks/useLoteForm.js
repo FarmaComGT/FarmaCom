@@ -47,8 +47,6 @@ export const validarLoteForm = (formulario, modoEdicion, hoy = new Date()) => {
   if (!formulario.numero_lote.trim()) return 'Ingresa el número de lote.';
   if (!formulario.fecha_vencimiento) return 'Selecciona la fecha de vencimiento.';
   if (!esEntero(formulario.cantidad_ingresada, 1)) return 'La cantidad ingresada debe ser un entero mayor a 0.';
-  if (modoEdicion && !esEntero(formulario.stock_actual, 0)) return 'El stock actual debe ser un entero mayor o igual a 0.';
-  if (modoEdicion && Number(formulario.stock_actual) > Number(formulario.cantidad_ingresada)) return 'El stock actual no puede superar la cantidad ingresada.';
   if (!esNumeroNoNegativo(formulario.precio_compra)) return 'Ingresa un precio de compra válido.';
   if (!esNumeroNoNegativo(formulario.precio_venta)) return 'Ingresa un precio de venta válido.';
   if (!esNumeroNoNegativo(formulario.margen_ganancia)) return 'Ingresa un margen válido.';
@@ -63,18 +61,37 @@ export const validarLoteForm = (formulario, modoEdicion, hoy = new Date()) => {
 };
 
 export const construirPayloadLote = (formulario, lote) => {
-  const payload = {
+  const valores = {
     id_producto: Number(formulario.id_producto), id_proveedor: Number(formulario.id_proveedor),
     id_sucursal: Number(formulario.id_sucursal), numero_lote: formulario.numero_lote.trim(),
-    fecha_vencimiento: formulario.fecha_vencimiento, cantidad_ingresada: Number(formulario.cantidad_ingresada),
+    fecha_vencimiento: formulario.fecha_vencimiento,
     precio_compra: Number(formulario.precio_compra), precio_venta: Number(formulario.precio_venta),
     margen_ganancia: Number(formulario.margen_ganancia),
     precio_mayoreo: formulario.precio_mayoreo === '' ? null : Number(formulario.precio_mayoreo),
     cantidad_mayoreo: formulario.cantidad_mayoreo === '' ? null : Number(formulario.cantidad_mayoreo),
   };
-  if (lote) {
-    payload.stock_actual = Number(formulario.stock_actual);
-    payload.limpiar_mayoreo = lote.precio_mayoreo != null && formulario.precio_mayoreo === '';
+  if (!lote) return { ...valores, cantidad_ingresada: Number(formulario.cantidad_ingresada) };
+
+  const payload = { version: Number(lote.version || 1) };
+  const numericos = new Set([
+    'id_producto', 'id_proveedor', 'id_sucursal', 'precio_compra',
+    'precio_venta', 'margen_ganancia', 'precio_mayoreo', 'cantidad_mayoreo',
+  ]);
+  Object.entries(valores).forEach(([campo, valor]) => {
+    let anterior = lote[campo];
+    if (campo === 'fecha_vencimiento') anterior = String(anterior ?? '').slice(0, 10);
+    if (['precio_mayoreo', 'cantidad_mayoreo'].includes(campo) && anterior == null && valor == null) return;
+    if (numericos.has(campo) && anterior != null) anterior = Number(anterior);
+    if (valor !== anterior) payload[campo] = valor;
+  });
+  if (
+    lote.precio_mayoreo != null
+    && valores.precio_mayoreo === null
+    && valores.cantidad_mayoreo === null
+  ) {
+    delete payload.precio_mayoreo;
+    delete payload.cantidad_mayoreo;
+    payload.limpiar_mayoreo = true;
   }
   return payload;
 };
@@ -110,7 +127,12 @@ export default function useLoteForm({ isOpen, productos = [], productoInicialId,
     evento.preventDefault();
     const error = validarLoteForm(formulario, modoEdicion);
     if (error) { setErrorLocal(error); return; }
-    onSubmit(construirPayloadLote(formulario, lote));
+    const payload = construirPayloadLote(formulario, lote);
+    if (modoEdicion && Object.keys(payload).every((campo) => campo === 'version')) {
+      setErrorLocal('No hay cambios para guardar.');
+      return;
+    }
+    onSubmit(payload);
   };
   return { formulario, errorLocal, modoEdicion, productosActivos, productoSeleccionado, manejarCambio, manejarPrecioChange, manejarEnvio };
 }

@@ -76,6 +76,10 @@ const crearVenta = async (datos, usuario) => {
     await registrarDetallesYDescontarStock(
       venta.id_venta,
       ventaPreparada.detallesCalculados,
+      {
+        id_usuario: usuario.id_usuario,
+        id_sucursal: ventaPreparada.id_sucursal,
+      },
       client,
     );
 
@@ -194,7 +198,12 @@ const anularVenta = async (id_venta, motivo_anulacion, usuario) => {
       lanzarError('La venta ya fue anulada por otra solicitud', 409);
     }
     const detalles = await VentaDAO.obtenerDetallesParaAnulacion(id_venta, client);
-    await restaurarExistenciasDeDetalles(detalles, client);
+    await restaurarExistenciasDeDetalles(detalles, {
+      id_venta,
+      id_usuario: idUsuarioAnulacion,
+      id_sucursal: venta.id_sucursal,
+      motivo,
+    }, client);
   });
 
   return VentaDAO.obtenerPorId(id_venta);

@@ -598,6 +598,7 @@ CREATE TABLE IF NOT EXISTS lote (
     margen_ganancia       NUMERIC(8,4)  NOT NULL CHECK (margen_ganancia >= 0),
     precio_mayoreo        NUMERIC(10,2)          CHECK (precio_mayoreo >= 0),
     cantidad_mayoreo      INTEGER                CHECK (cantidad_mayoreo > 0),
+    version                INTEGER       NOT NULL DEFAULT 1 CHECK (version > 0),
 
     CONSTRAINT fk_lote_producto
         FOREIGN KEY (id_producto)
@@ -976,6 +977,9 @@ CREATE TABLE IF NOT EXISTS detalle_venta (
     cantidad          INTEGER        NOT NULL CHECK (cantidad > 0),
     precio_unitario   NUMERIC(12,2)  NOT NULL CHECK (precio_unitario >= 0),
     costo_unitario    NUMERIC(12,2)  NOT NULL CHECK (costo_unitario >= 0),
+    id_producto_historico INTEGER     NOT NULL,
+    numero_lote_historico VARCHAR(100) NOT NULL,
+    nombre_producto_historico VARCHAR(200) NOT NULL,
     subtotal          NUMERIC(12,2)  GENERATED ALWAYS AS (cantidad * precio_unitario) STORED,
 
     CONSTRAINT fk_detalle_venta
@@ -986,6 +990,11 @@ CREATE TABLE IF NOT EXISTS detalle_venta (
     CONSTRAINT fk_detalle_venta_lote
         FOREIGN KEY (id_lote)
         REFERENCES lote(id_lote)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_detalle_venta_producto_historico
+        FOREIGN KEY (id_producto_historico)
+        REFERENCES producto(id_producto)
         ON DELETE RESTRICT,
 
     CONSTRAINT uq_detalle_venta_lote
@@ -1008,6 +1017,40 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_venta_referencia_pago
 
 CREATE INDEX IF NOT EXISTS idx_detalle_venta_lote
     ON detalle_venta (id_lote);
+
+-- =========================
+-- TABLA: movimiento_inventario
+-- Trazabilidad inmutable de cada cambio de existencias por lote.
+-- =========================
+CREATE TABLE IF NOT EXISTS movimiento_inventario (
+    id_movimiento       BIGSERIAL     PRIMARY KEY,
+    id_lote             INTEGER       NOT NULL,
+    tipo                VARCHAR(20)   NOT NULL,
+    cantidad_anterior   INTEGER       NOT NULL CHECK (cantidad_anterior >= 0),
+    cantidad_nueva      INTEGER       NOT NULL CHECK (cantidad_nueva >= 0),
+    id_usuario          INTEGER       NOT NULL,
+    fecha_movimiento    TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id_sucursal         INTEGER       NOT NULL,
+    motivo              VARCHAR(500)  NOT NULL,
+    referencia          VARCHAR(150),
+
+    CONSTRAINT chk_movimiento_inventario_tipo
+        CHECK (tipo IN ('entrada', 'venta', 'anulacion', 'ajuste')),
+    CONSTRAINT chk_movimiento_inventario_cambio
+        CHECK (cantidad_anterior <> cantidad_nueva),
+    CONSTRAINT fk_movimiento_inventario_lote
+        FOREIGN KEY (id_lote) REFERENCES lote(id_lote) ON DELETE RESTRICT,
+    CONSTRAINT fk_movimiento_inventario_usuario
+        FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE RESTRICT,
+    CONSTRAINT fk_movimiento_inventario_sucursal
+        FOREIGN KEY (id_sucursal) REFERENCES sucursal(id_sucursal) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS idx_movimiento_inventario_lote_fecha
+    ON movimiento_inventario (id_lote, fecha_movimiento DESC);
+
+CREATE INDEX IF NOT EXISTS idx_movimiento_inventario_sucursal_fecha
+    ON movimiento_inventario (id_sucursal, fecha_movimiento DESC);
 
 -- =========================
 -- VISTA: v_lote_estado

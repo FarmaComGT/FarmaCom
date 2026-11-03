@@ -12,7 +12,7 @@ const campoParaError = (error) => {
     ['producto', 'producto_lote'], ['proveedor', 'id_proveedor_lote'],
     ['sucursal', 'id_sucursal_lote'], ['número de lote', 'numero_lote'],
     ['fecha de vencimiento', 'fecha_vencimiento_lote'],
-    ['cantidad ingresada', 'cantidad_ingresada_lote'], ['stock actual', 'stock_actual_lote'],
+    ['cantidad ingresada', 'cantidad_ingresada_lote'],
     ['precio de compra', 'precio_compra_lote'], ['precio de venta', 'precio_venta_lote'],
     ['margen', 'margen_ganancia_lote'], ['precio de mayoreo', 'precio_mayoreo_lote'],
     ['cantidad de mayoreo', 'cantidad_mayoreo_lote'],
@@ -57,7 +57,7 @@ export default function LoteFormModal({
         <header className={styles.dialogHeader}>
           <div>
             <h2 id={tituloId}>{modoEdicion ? 'Editar lote' : 'Ingresar lote'}</h2>
-            <p>{modoEdicion ? `Actualiza existencias y precios de ${lote?.numero_lote || 'este lote'}.` : 'Registra existencias, vencimiento y precios para una sucursal.'}</p>
+            <p>{modoEdicion ? `Actualiza los datos y precios de ${lote?.numero_lote || 'este lote'}.` : 'Registra existencias, vencimiento y precios para una sucursal.'}</p>
           </div>
           <button type="button" onClick={solicitarCierre} disabled={guardando} className={`${styles.button} ${styles.iconButton}`} aria-label="Cerrar">
             <X size={17} aria-hidden="true" />

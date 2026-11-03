@@ -10,6 +10,7 @@ const {
   validarParamIdProducto,
   validarCreacion,
   validarActualizacion,
+  validarAjusteStock,
 } = require('../validators/loteValidators');
 
 const router = Router();
@@ -37,6 +38,14 @@ router.get('/:id/historial-precios',
   HistorialPrecioLoteController.obtenerPorLote,
 );
 
+router.get('/:id/movimientos',
+  verificarToken,
+  verificarRol('dueno', 'administrador', 'dependiente'),
+  validarParamId,
+  validateRequest,
+  LoteController.obtenerMovimientos,
+);
+
 router.patch('/:id',
   verificarToken,
   verificarRol('dueno', 'administrador'),
@@ -44,6 +53,15 @@ router.patch('/:id',
   validarActualizacion,
   validateRequest,
   LoteController.actualizar,
+);
+
+router.patch('/:id/stock',
+  verificarToken,
+  verificarRol('dueno', 'administrador'),
+  validarParamId,
+  validarAjusteStock,
+  validateRequest,
+  LoteController.ajustarStock,
 );
 
 router.delete('/:id',

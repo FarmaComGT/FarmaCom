@@ -47,13 +47,14 @@ export default function LoteDatosSection({
       <div className={styles.formGrid}>
         <div className={styles.field}>
           <label htmlFor="cantidad_ingresada_lote">Cantidad ingresada</label>
-          <input id="cantidad_ingresada_lote" type="number" inputMode="numeric" name="cantidad_ingresada" value={formulario.cantidad_ingresada} onChange={onChange} placeholder="0" min="1" step="1" required className={styles.input} />
+          <input id="cantidad_ingresada_lote" type="number" inputMode="numeric" name="cantidad_ingresada" value={formulario.cantidad_ingresada} onChange={onChange} placeholder="Ej.: 20…" min="1" step="1" required disabled={modoEdicion} className={styles.input} />
+          {modoEdicion && <p className={styles.helpText}>La cantidad de ingreso es un dato histórico y no se sobrescribe.</p>}
         </div>
         {modoEdicion ? (
           <div className={styles.field}>
-            <label htmlFor="stock_actual_lote">Stock actual</label>
-            <input id="stock_actual_lote" type="number" inputMode="numeric" name="stock_actual" value={formulario.stock_actual} onChange={onChange} min="0" step="1" required className={styles.input} />
-            <p className={styles.helpText}>No puede superar la cantidad ingresada.</p>
+            <span className={styles.fieldLabel}>Existencias</span>
+            <p className={styles.identity}>Existencias actuales: {formulario.stock_actual}</p>
+            <p className={styles.helpText}>Usa “Ajustar stock…” para corregirlas con un motivo y conservar la trazabilidad.</p>
           </div>
         ) : (
           <div className={styles.field}>
@@ -65,7 +66,7 @@ export default function LoteDatosSection({
 
       <div className={styles.field}>
         <label htmlFor="precio_compra_lote">Precio de compra (Q)</label>
-        <input id="precio_compra_lote" type="number" inputMode="decimal" name="precio_compra" value={formulario.precio_compra} onChange={(evento) => onPrecioChange('precio_compra', evento.target.value)} min="0" step="0.01" required placeholder="0.00" className={styles.input} />
+        <input id="precio_compra_lote" type="number" inputMode="decimal" name="precio_compra" value={formulario.precio_compra} onChange={(evento) => onPrecioChange('precio_compra', evento.target.value)} min="0" step="0.01" required placeholder="Ej.: 10.50…" className={styles.input} />
         <p className={styles.helpText}>Se propone el valor del producto y se conserva específicamente para este lote.</p>
       </div>
     </section>

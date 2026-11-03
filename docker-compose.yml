@@ -30,6 +30,7 @@ services:
     env_file: .env
     environment:
       DB_HOST: db
+      DB_PORT: 5432
     command: ["npm", "run", "db:migrate"]
 
   seed:
@@ -43,6 +44,7 @@ services:
     env_file: .env
     environment:
       DB_HOST: db
+      DB_PORT: 5432
     command:
       - sh
       - -c
@@ -69,6 +71,7 @@ services:
     env_file: .env
     environment:
       DB_HOST: db
+      DB_PORT: 5432
       RUTA_UPLOADS_RESULTADOS: /app/uploads/resultados
     ports:
       - "3000:3000"

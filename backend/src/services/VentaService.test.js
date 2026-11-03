@@ -1,4 +1,5 @@
 jest.mock('../daos/VentaDAO');
+jest.mock('../daos/MovimientoInventarioDAO');
 jest.mock('../daos/CajaDAO');
 jest.mock('../daos/PromocionDAO');
 jest.mock('./RecurrenteService');

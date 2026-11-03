@@ -112,6 +112,10 @@ const completarVentaPagada = async (evento, pago, client) => {
   await registrarDetallesYDescontarStock(
     venta.id_venta,
     ventaPreparada.detallesCalculados,
+    {
+      id_usuario: pago.id_usuario,
+      id_sucursal: ventaPreparada.id_sucursal,
+    },
     client,
   );
 

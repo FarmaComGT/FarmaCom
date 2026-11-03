@@ -103,7 +103,7 @@ class LoteDAO {
   }
 
   // Lista todos los lotes de un producto en todas las sucursales
-  async obtenerPorProducto(id_producto) {
+  async obtenerPorProducto(id_producto, id_sucursal = null) {
     const query = `
       SELECT
         v.*,
@@ -117,9 +117,10 @@ class LoteDAO {
       JOIN sucursal  s  ON s.id_sucursal   = v.id_sucursal
       JOIN proveedor pr ON pr.id_proveedor = v.id_proveedor
       WHERE v.id_producto = $1
+        AND ($2::INTEGER IS NULL OR v.id_sucursal = $2)
       ORDER BY v.fecha_vencimiento ASC NULLS LAST, v.id_lote
     `;
-    const { rows } = await pool.query(query, [id_producto]);
+    const { rows } = await pool.query(query, [id_producto, id_sucursal]);
     return rows;
   }
 
@@ -156,6 +157,16 @@ class LoteDAO {
     return rows[0] || null;
   }
 
+  async fueUtilizado(id_lote, client = pool) {
+    const { rows } = await client.query(
+      `SELECT EXISTS (
+         SELECT 1 FROM detalle_venta WHERE id_lote = $1
+       ) AS utilizado`,
+      [id_lote],
+    );
+    return Boolean(rows[0]?.utilizado);
+  }
+
   // Busca si ya existe el mismo número de lote para ese producto y sucursal
   async obtenerPorNumeroLote(
     numero_lote,
@@ -180,62 +191,67 @@ class LoteDAO {
 
   // UPDATE
 
-  // Permite editar los datos propios del lote.
+  // Actualiza exclusivamente los campos recibidos y usa versionado optimista.
   async actualizar(id_lote, campos, client = pool) {
-    const {
-      id_producto,
-      id_proveedor,
-      id_sucursal,
-      numero_lote,
-      fecha_vencimiento,
-      cantidad_ingresada,
-      stock_actual,
-      precio_compra,
-      precio_venta,
-      margen_ganancia,
-      precio_mayoreo,
-      cantidad_mayoreo,
-      limpiar_mayoreo,
-    } = campos;
-    const actualizaFechaVencimiento = Object.prototype.hasOwnProperty.call(
-      campos,
-      'fecha_vencimiento',
-    );
+    const camposEditables = [
+      'id_producto', 'id_proveedor', 'id_sucursal', 'numero_lote',
+      'fecha_vencimiento', 'precio_compra', 'precio_venta',
+      'margen_ganancia', 'precio_mayoreo', 'cantidad_mayoreo',
+    ];
+    const asignaciones = [];
+    const valores = [];
+    const agregar = (columna, valor) => {
+      valores.push(valor);
+      asignaciones.push(`${columna} = $${valores.length}`);
+    };
 
-    const query = `
-      UPDATE lote SET
-        id_producto        = COALESCE($1, id_producto),
-        id_proveedor       = COALESCE($2, id_proveedor),
-        id_sucursal        = COALESCE($3, id_sucursal),
-        numero_lote        = COALESCE($4, numero_lote),
-        fecha_vencimiento  = CASE WHEN $14 THEN $5 ELSE fecha_vencimiento END,
-        cantidad_ingresada = COALESCE($6, cantidad_ingresada),
-        stock_actual       = COALESCE($7, stock_actual),
-        precio_compra      = COALESCE($8, precio_compra),
-        precio_venta       = COALESCE($9, precio_venta),
-        margen_ganancia    = COALESCE($10, margen_ganancia),
-        precio_mayoreo     = CASE WHEN $13 THEN NULL ELSE COALESCE($11, precio_mayoreo) END,
-        cantidad_mayoreo   = CASE WHEN $13 THEN NULL ELSE COALESCE($12, cantidad_mayoreo) END
-      WHERE id_lote = $15
-      RETURNING *
-    `;
-    const { rows } = await client.query(query, [
-      id_producto        ?? null,
-      id_proveedor       ?? null,
-      id_sucursal        ?? null,
-      numero_lote        ?? null,
-      fecha_vencimiento  ?? null,
-      cantidad_ingresada ?? null,
-      stock_actual       ?? null,
-      precio_compra      ?? null,
-      precio_venta       ?? null,
-      margen_ganancia    ?? null,
-      precio_mayoreo     ?? null,
-      cantidad_mayoreo   ?? null,
-      limpiar_mayoreo    === true,
-      actualizaFechaVencimiento,
-      id_lote,
-    ]);
+    camposEditables.forEach((campo) => {
+      if (Object.prototype.hasOwnProperty.call(campos, campo)) {
+        agregar(campo, campos[campo]);
+      }
+    });
+    if (campos.limpiar_mayoreo === true) {
+      if (!asignaciones.some((item) => item.startsWith('precio_mayoreo ='))) {
+        agregar('precio_mayoreo', null);
+      }
+      if (!asignaciones.some((item) => item.startsWith('cantidad_mayoreo ='))) {
+        agregar('cantidad_mayoreo', null);
+      }
+    }
+
+    asignaciones.push('version = version + 1');
+    valores.push(id_lote);
+    const indiceId = valores.length;
+    const usaVersion = Number.isInteger(Number(campos.version));
+    if (usaVersion) valores.push(Number(campos.version));
+
+    const { rows } = await client.query(
+      `UPDATE lote
+       SET ${asignaciones.join(', ')}
+       WHERE id_lote = $${indiceId}
+         ${usaVersion ? `AND version = $${valores.length}` : ''}
+       RETURNING *`,
+      valores,
+    );
+    return rows[0] || null;
+  }
+
+  async ajustarStock(
+    id_lote,
+    { version, stock_esperado, cantidad_ajuste },
+    client = pool,
+  ) {
+    const { rows } = await client.query(
+      `UPDATE lote
+       SET stock_actual = stock_actual + $1,
+           version = version + 1
+       WHERE id_lote = $2
+         AND version = $3
+         AND stock_actual = $4
+         AND stock_actual + $1 >= 0
+       RETURNING *`,
+      [cantidad_ajuste, id_lote, version, stock_esperado],
+    );
     return rows[0] || null;
   }
 
@@ -253,7 +269,8 @@ class LoteDAO {
   async decrementarStock(id_lote, cantidad, client = pool) {
     const query = `
       UPDATE lote
-      SET stock_actual = stock_actual - $1
+      SET stock_actual = stock_actual - $1,
+          version = version + 1
       WHERE id_lote = $2
         AND stock_actual >= $1
       RETURNING *

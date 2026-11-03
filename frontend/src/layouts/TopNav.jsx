@@ -26,7 +26,7 @@ const CONTEXTOS = [
   ['/ciudades', 'Ubicaciones', 'Ciudades', null],
   ['/usuarios', 'Administración', 'Usuarios', null],
   ['/support', 'Ayuda', null, null],
-  ['/dashboard', 'Dashboard', null, null],
+  ['/dashboard', 'Inicio', null, null],
 ];
 const roles = { dueno: 'Propietario', administrador: 'Administrador', dependiente: 'Dependiente', laboratorista: 'Laboratorista' };
 

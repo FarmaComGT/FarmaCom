@@ -5,12 +5,12 @@ const asyncHandler = require('../middlewares/asyncHandler');
 const esRolElevado = (rol) => ['dueno', 'administrador'].includes(rol);
 
 const crear = asyncHandler(async(req, res) => {
-    const usuario = await usuarioService.crearUsuario(req.body);
+    const usuario = await usuarioService.crearUsuario(req.body, req.usuario);
     return res.status(201).json(usuario);
 });
 
 const obtenerTodos = asyncHandler(async(req, res) => {
-    const usuarios = await usuarioService.obtenerTodos();
+    const usuarios = await usuarioService.obtenerTodos(req.usuario);
     return res.status(200).json(usuarios);
 });
 
@@ -21,17 +21,24 @@ const obtenerPorId = asyncHandler(async(req, res) => {
         throw new AppError('No puedes consultar la información de otro usuario.', 403);
     }
 
-    const usuario = await usuarioService.obtenerPorId(idObjetivo);
+    const usuario = await usuarioService.obtenerPorId(idObjetivo, req.usuario);
     return res.status(200).json(usuario);
 });
 
 const obtenerPorSucursal = asyncHandler(async(req, res) => {
-    const usuarios = await usuarioService.obtenerPorSucursal(Number(req.params.id_sucursal));
+    const usuarios = await usuarioService.obtenerPorSucursal(
+        Number(req.params.id_sucursal),
+        req.usuario,
+    );
     return res.status(200).json(usuarios);
 });
 
 const actualizar = asyncHandler(async(req, res) => {
-    const usuario = await usuarioService.actualizarUsuario(Number(req.params.id), req.body);
+    const usuario = await usuarioService.actualizarUsuario(
+        Number(req.params.id),
+        req.body,
+        req.usuario,
+    );
     return res.status(200).json(usuario);
 });
 
@@ -48,12 +55,19 @@ const cambiarContrasena = asyncHandler(async(req, res) => {
 
 const cambiarEstado = asyncHandler(async(req, res) => {
     const { estado } = req.body;
-    const usuario = await usuarioService.cambiarEstado(Number(req.params.id), estado);
+    const usuario = await usuarioService.cambiarEstado(
+        Number(req.params.id),
+        estado,
+        req.usuario,
+    );
     return res.status(200).json(usuario);
 });
 
 const eliminar = asyncHandler(async(req, res) => {
-    const resultado = await usuarioService.eliminarUsuario(Number(req.params.id));
+    const resultado = await usuarioService.eliminarUsuario(
+        Number(req.params.id),
+        req.usuario,
+    );
     return res.status(200).json(resultado);
 });
 

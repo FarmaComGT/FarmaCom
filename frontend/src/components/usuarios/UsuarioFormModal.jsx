@@ -23,6 +23,7 @@ export default function UsuarioFormModal({
   onClose,
   onSubmit,
   onChange,
+  rolesPermitidos = ROLES,
 }) {
   const tituloId = 'usuario-form-title';
   const errorRef = useRef(null);
@@ -106,7 +107,7 @@ export default function UsuarioFormModal({
               <label htmlFor="rol">Rol</label>
               <select id="rol" name="rol" value={formulario.rol} onChange={onChange} className={styles.input}>
                 <option value="">Selecciona un rol</option>
-                {ROLES.map((rol) => <option key={rol.value} value={rol.value}>{rol.label}</option>)}
+                {rolesPermitidos.map((rol) => <option key={rol.value} value={rol.value}>{rol.label}</option>)}
               </select>
             </div>
 

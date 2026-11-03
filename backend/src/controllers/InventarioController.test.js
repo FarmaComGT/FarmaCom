@@ -15,9 +15,10 @@ describe('InventarioController', () => {
     InventarioService.obtenerInventarioPorSucursal.mockResolvedValue([{ id_producto: 1 }]);
     const res = mockResponse();
 
-    await InventarioController.obtenerInventario({ params: { id_sucursal: '2' } }, res, jest.fn());
+    const usuario = { rol: 'dependiente', id_sucursal: 2 };
+    await InventarioController.obtenerInventario({ params: { id_sucursal: '2' }, usuario }, res, jest.fn());
 
-    expect(InventarioService.obtenerInventarioPorSucursal).toHaveBeenCalledWith(2);
+    expect(InventarioService.obtenerInventarioPorSucursal).toHaveBeenCalledWith(2, usuario);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
@@ -25,9 +26,10 @@ describe('InventarioController', () => {
     InventarioService.obtenerResumenPorSucursal.mockResolvedValue({ total: 3 });
     const res = mockResponse();
 
-    await InventarioController.obtenerResumen({ params: { id_sucursal: '2' } }, res, jest.fn());
+    const usuario = { rol: 'dependiente', id_sucursal: 2 };
+    await InventarioController.obtenerResumen({ params: { id_sucursal: '2' }, usuario }, res, jest.fn());
 
-    expect(InventarioService.obtenerResumenPorSucursal).toHaveBeenCalledWith(2);
+    expect(InventarioService.obtenerResumenPorSucursal).toHaveBeenCalledWith(2, usuario);
     expect(res.json).toHaveBeenCalledWith({ total: 3 });
   });
 

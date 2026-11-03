@@ -28,11 +28,12 @@ describe('LoteController', () => {
     LoteService.obtenerPorProducto.mockResolvedValue([]);
     const res = mockResponse();
 
-    await LoteController.obtenerPorSucursal({ params: { id_sucursal: '3' } }, res, jest.fn());
-    await LoteController.obtenerPorProducto({ params: { id_producto: '4' } }, res, jest.fn());
+    const usuario = { rol: 'dependiente', id_sucursal: 3 };
+    await LoteController.obtenerPorSucursal({ params: { id_sucursal: '3' }, usuario }, res, jest.fn());
+    await LoteController.obtenerPorProducto({ params: { id_producto: '4' }, usuario }, res, jest.fn());
 
-    expect(LoteService.obtenerPorSucursal).toHaveBeenCalledWith(3);
-    expect(LoteService.obtenerPorProducto).toHaveBeenCalledWith(4);
+    expect(LoteService.obtenerPorSucursal).toHaveBeenCalledWith(3, usuario);
+    expect(LoteService.obtenerPorProducto).toHaveBeenCalledWith(4, usuario);
   });
 
   it('obtiene y elimina un lote por id', async () => {
@@ -40,10 +41,11 @@ describe('LoteController', () => {
     LoteService.eliminarLote.mockResolvedValue({ mensaje: 'Lote eliminado correctamente' });
     const res = mockResponse();
 
-    await LoteController.obtenerPorId({ params: { id: '7' } }, res, jest.fn());
+    const usuario = { rol: 'dueno' };
+    await LoteController.obtenerPorId({ params: { id: '7' }, usuario }, res, jest.fn());
     await LoteController.eliminar({ params: { id: '7' } }, res, jest.fn());
 
-    expect(LoteService.obtenerPorId).toHaveBeenCalledWith(7);
+    expect(LoteService.obtenerPorId).toHaveBeenCalledWith(7, usuario);
     expect(LoteService.eliminarLote).toHaveBeenCalledWith(7);
   });
 

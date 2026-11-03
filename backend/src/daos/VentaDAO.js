@@ -200,9 +200,15 @@ class VentaDAO {
          id_lote,
          cantidad,
          precio_unitario,
-         costo_unitario
+         costo_unitario,
+         id_producto_historico,
+         numero_lote_historico,
+         nombre_producto_historico
        )
-       VALUES ($1, $2, $3, $4, $5)
+       SELECT $1, $2, $3, $4, $5, l.id_producto, l.numero_lote, p.nombre_comercial
+       FROM lote l
+       JOIN producto p ON p.id_producto = l.id_producto
+       WHERE l.id_lote = $2
        RETURNING *`,
       [id_venta, id_lote, cantidad, precio_unitario, costo_unitario],
     );
@@ -212,7 +218,8 @@ class VentaDAO {
   async descontarStock(id_lote, cantidad, client) {
     const { rows } = await client.query(
       `UPDATE lote
-       SET stock_actual = stock_actual - $1
+       SET stock_actual = stock_actual - $1,
+           version = version + 1
        WHERE id_lote = $2
          AND stock_actual >= $1
        RETURNING id_lote, stock_actual`,
@@ -293,9 +300,9 @@ class VentaDAO {
              json_build_object(
                'id_detalle_venta', dv.id_detalle_venta,
                'id_lote', dv.id_lote,
-               'id_producto', l.id_producto,
-               'numero_lote', l.numero_lote,
-               'nombre_comercial', p.nombre_comercial,
+               'id_producto', COALESCE(dv.id_producto_historico, l.id_producto),
+               'numero_lote', COALESCE(dv.numero_lote_historico, l.numero_lote),
+               'nombre_comercial', COALESCE(dv.nombre_producto_historico, p.nombre_comercial),
                'cantidad', dv.cantidad,
                'precio_unitario', dv.precio_unitario,
                'costo_unitario', dv.costo_unitario,
@@ -348,7 +355,8 @@ class VentaDAO {
   async restaurarStock(id_lote, cantidad, client) {
     const { rows } = await client.query(
       `UPDATE lote
-       SET stock_actual = stock_actual + $1
+       SET stock_actual = stock_actual + $1,
+           version = version + 1
        WHERE id_lote = $2
        RETURNING id_lote, stock_actual`,
       [cantidad, id_lote],

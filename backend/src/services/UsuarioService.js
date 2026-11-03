@@ -4,6 +4,80 @@ const LaboratorioDAO = require('../daos/LaboratorioDAO');
 const AppError = require('../errors/AppError');
 
 const SALT_ROUNDS = 10;
+const ROLES_GESTIONABLES_POR_ADMIN = new Set(['dependiente', 'laboratorista']);
+
+const sinHash = (usuario) => {
+    if (!usuario) return usuario;
+    const { contrasena_hash, ...seguro } = usuario;
+    return seguro;
+};
+
+const exigirDueno = (actor) => {
+    if (actor?.rol !== 'dueno') {
+        throw new AppError('Solo un dueño puede realizar esta operación', 403);
+    }
+};
+
+const autorizarConsulta = (actor, objetivo) => {
+    if (!actor) throw new AppError('No autenticado', 401);
+    if (actor.rol === 'dueno' || Number(actor.id_usuario) === Number(objetivo.id_usuario)) return;
+    if (
+        actor.rol === 'administrador'
+        && Number(actor.id_sucursal) === Number(objetivo.id_sucursal)
+    ) return;
+    throw new AppError('No puedes consultar cuentas fuera de tus permisos', 403);
+};
+
+const autorizarActualizacion = (actor, objetivo, campos) => {
+    if (!actor) throw new AppError('No autenticado', 401);
+    if (actor.rol === 'dueno') return;
+    if (actor.rol !== 'administrador') {
+        throw new AppError('No tienes permiso para modificar usuarios', 403);
+    }
+    if (Number(actor.id_sucursal) !== Number(objetivo.id_sucursal)) {
+        throw new AppError('No puedes modificar cuentas de otra sucursal', 403);
+    }
+
+    const esPropia = Number(actor.id_usuario) === Number(objetivo.id_usuario);
+    if (objetivo.rol === 'dueno' || (objetivo.rol === 'administrador' && !esPropia)) {
+        throw new AppError('No puedes modificar una cuenta con permisos iguales o superiores', 403);
+    }
+
+    const sucursalFinal = Number(campos.id_sucursal ?? objetivo.id_sucursal);
+    if (sucursalFinal !== Number(actor.id_sucursal)) {
+        throw new AppError('No puedes asignar cuentas a otra sucursal', 403);
+    }
+
+    if (campos.rol !== undefined) {
+        const rolFinal = campos.rol;
+        const mantieneRolPropio = esPropia
+            && objetivo.rol === 'administrador'
+            && rolFinal === 'administrador';
+        if (!mantieneRolPropio && !ROLES_GESTIONABLES_POR_ADMIN.has(rolFinal)) {
+            throw new AppError('Un administrador no puede asignar roles elevados', 403);
+        }
+        if (esPropia && rolFinal !== 'administrador') {
+            throw new AppError('Un administrador no puede cambiar su propio rol', 403);
+        }
+    }
+};
+
+const protegerUltimoDuenoActivo = async (objetivo, dejaDeSerDuenoActivo, client) => {
+    if (
+        objetivo.rol !== 'dueno'
+        || objetivo.estado_usuario !== 'activo'
+        || !dejaDeSerDuenoActivo
+    ) return;
+
+    await UsuarioDAO.bloquearProteccionDuenos(client);
+    const total = await UsuarioDAO.contarDuenosActivos(client);
+    if (total <= 1) {
+        throw new AppError(
+            'Debe permanecer al menos un dueño activo en el sistema',
+            409,
+        );
+    }
+};
 
 const resolverLaboratorio = async(rol, id_laboratorio) => {
     if (rol !== 'laboratorista') {
@@ -23,7 +97,8 @@ const resolverLaboratorio = async(rol, id_laboratorio) => {
     return id;
 };
 
-const crearUsuario = async({ id_sucursal, id_laboratorio, nombre_usuario, correo_usuario, contrasena, rol }) => {
+const crearUsuario = async({ id_sucursal, id_laboratorio, nombre_usuario, correo_usuario, contrasena, rol }, actor) => {
+    exigirDueno(actor);
     const existente = await UsuarioDAO.obtenerPorCorreo(correo_usuario);
     if (existente) {
         throw new AppError('El correo ya está registrado', 409);
@@ -40,43 +115,59 @@ const crearUsuario = async({ id_sucursal, id_laboratorio, nombre_usuario, correo
         rol,
     });
 
-    delete usuario.contrasena_hash;
-    return usuario;
+    return sinHash(usuario);
 };
 
-const obtenerTodos = async() => {
-    const usuarios = await UsuarioDAO.obtenerTodos();
-    return usuarios.map(u => { delete u.contrasena_hash; return u; });
+const obtenerTodos = async(actor) => {
+    if (!actor) throw new AppError('No autenticado', 401);
+    const usuarios = actor.rol === 'administrador'
+        ? await UsuarioDAO.obtenerPorSucursal(actor.id_sucursal)
+        : await UsuarioDAO.obtenerTodos();
+    return usuarios.map(sinHash);
 };
 
-const obtenerPorId = async(id_usuario) => {
+const obtenerPorId = async(id_usuario, actor) => {
     const usuario = await UsuarioDAO.obtenerPorId(id_usuario);
     if (!usuario) {
         throw new AppError('Usuario no encontrado', 404);
     }
-    delete usuario.contrasena_hash;
-    return usuario;
+    autorizarConsulta(actor, usuario);
+    return sinHash(usuario);
 };
 
-const obtenerPorSucursal = async(id_sucursal) => {
-    const usuarios = await UsuarioDAO.obtenerPorSucursal(id_sucursal);
-    return usuarios.map(u => { delete u.contrasena_hash; return u; });
-};
-
-const actualizarUsuario = async(id_usuario, campos) => {
-    const existente = await UsuarioDAO.obtenerPorId(id_usuario);
-    if (!existente) {
-        throw new AppError('Usuario no encontrado', 404);
+const obtenerPorSucursal = async(id_sucursal, actor) => {
+    if (
+        actor?.rol !== 'dueno'
+        && !(
+            actor?.rol === 'administrador'
+            && Number(actor.id_sucursal) === Number(id_sucursal)
+        )
+    ) {
+        throw new AppError('No puedes consultar cuentas de otra sucursal', 403);
     }
+    const usuarios = await UsuarioDAO.obtenerPorSucursal(id_sucursal);
+    return usuarios.map(sinHash);
+};
+
+const actualizarUsuario = async(id_usuario, campos, actor) => (
+  UsuarioDAO.ejecutarEnTransaccion(async (client) => {
+    const existente = await UsuarioDAO.obtenerParaActualizar(id_usuario, client);
+    if (!existente) throw new AppError('Usuario no encontrado', 404);
+    autorizarActualizacion(actor, existente, campos);
 
     if (campos.correo_usuario && campos.correo_usuario !== existente.correo_usuario) {
-        const conMismoCorreo = await UsuarioDAO.obtenerPorCorreo(campos.correo_usuario);
+        const conMismoCorreo = await UsuarioDAO.obtenerPorCorreo(campos.correo_usuario, client);
         if (conMismoCorreo) {
             throw new AppError('El correo ya está en uso por otro usuario', 409);
         }
     }
 
     const rolFinal = campos.rol ?? existente.rol;
+    await protegerUltimoDuenoActivo(
+        existente,
+        rolFinal !== 'dueno',
+        client,
+    );
     const laboratorioSolicitado = Object.prototype.hasOwnProperty.call(campos, 'id_laboratorio')
         ? campos.id_laboratorio
         : existente.id_laboratorio;
@@ -86,10 +177,10 @@ const actualizarUsuario = async(id_usuario, campos) => {
         ...campos,
         rol: rolFinal,
         id_laboratorio,
-    });
-    delete usuario.contrasena_hash;
-    return usuario;
-};
+    }, client);
+    return sinHash(usuario);
+  })
+);
 
 const cambiarContrasena = async(id_usuario, contrasena_actual, contrasena_nueva) => {
     const usuario = await UsuarioDAO.obtenerPorId(id_usuario);
@@ -108,23 +199,39 @@ const cambiarContrasena = async(id_usuario, contrasena_actual, contrasena_nueva)
     return { mensaje: 'Contraseña actualizada correctamente' };
 };
 
-const cambiarEstado = async(id_usuario, nuevo_estado) => {
-    const existente = await UsuarioDAO.obtenerPorId(id_usuario);
-    if (!existente) {
-        throw new AppError('Usuario no encontrado', 404);
-    }
-
-    const usuario = await UsuarioDAO.cambiarEstado(id_usuario, nuevo_estado);
-    delete usuario.contrasena_hash;
-    return usuario;
+const cambiarEstado = async(id_usuario, nuevo_estado, actor) => {
+    exigirDueno(actor);
+    return UsuarioDAO.ejecutarEnTransaccion(async (client) => {
+        const existente = await UsuarioDAO.obtenerParaActualizar(id_usuario, client);
+        if (!existente) throw new AppError('Usuario no encontrado', 404);
+        await protegerUltimoDuenoActivo(
+            existente,
+            nuevo_estado !== 'activo',
+            client,
+        );
+        return sinHash(await UsuarioDAO.cambiarEstado(id_usuario, nuevo_estado, client));
+    });
 };
 
-const eliminarUsuario = async(id_usuario) => {
-    const eliminado = await UsuarioDAO.eliminar(id_usuario);
-    if (!eliminado) {
-        throw new AppError('Usuario no encontrado', 404);
-    }
-    return { mensaje: 'Usuario eliminado correctamente' };
+const eliminarUsuario = async(id_usuario, actor) => {
+    exigirDueno(actor);
+    return UsuarioDAO.ejecutarEnTransaccion(async (client) => {
+        const existente = await UsuarioDAO.obtenerParaActualizar(id_usuario, client);
+        if (!existente) throw new AppError('Usuario no encontrado', 404);
+        await protegerUltimoDuenoActivo(existente, true, client);
+        try {
+            await UsuarioDAO.eliminar(id_usuario, client);
+        } catch (error) {
+            if (error.code === '23503') {
+                throw new AppError(
+                    'No se puede eliminar una cuenta con actividad registrada; desactívala en su lugar',
+                    409,
+                );
+            }
+            throw error;
+        }
+        return { mensaje: 'Usuario eliminado correctamente' };
+    });
 };
 
 module.exports = {
