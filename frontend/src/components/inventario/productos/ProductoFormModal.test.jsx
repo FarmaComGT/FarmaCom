@@ -80,11 +80,11 @@ describe('ProductoFormModal', () => {
     await user.selectOptions(selectPresentacion, '2');
     await user.selectOptions(selectCategoria, '1');
     await user.selectOptions(selectCasa, '1');
-    await user.type(screen.getByPlaceholderText('Ej. Aspirina Forte'), 'Ibuprofeno Forte');
-    await user.type(screen.getByPlaceholderText('Ej. Ácido Acetilsalicílico'), 'Ibuprofeno');
-    await user.type(screen.getByPlaceholderText('Ej. 500 mg'), '400 mg');
+    await user.type(screen.getByPlaceholderText('Ej.: Aspirina Forte…'), 'Ibuprofeno Forte');
+    await user.type(screen.getByPlaceholderText('Ej.: Ácido acetilsalicílico…'), 'Ibuprofeno');
+    await user.type(screen.getByPlaceholderText('Ej.: 500 mg…'), '400 mg');
     await user.type(screen.getByPlaceholderText('0.00'), '10');
-    await user.type(screen.getByPlaceholderText('Ej. 6'), '6');
+    await user.type(screen.getByPlaceholderText('Ej.: 6…'), '6');
     await user.click(screen.getByRole('button', { name: 'Guardar producto' }));
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -104,10 +104,10 @@ describe('ProductoFormModal', () => {
     await user.selectOptions(selectPresentacion, '1');
     await user.selectOptions(selectCategoria, '1');
     await user.selectOptions(selectCasa, '1');
-    await user.type(screen.getByPlaceholderText('Ej. Aspirina Forte'), 'Alcohol en gel');
-    await user.type(screen.getByPlaceholderText('Ej. Ácido Acetilsalicílico'), 'Alcohol');
+    await user.type(screen.getByPlaceholderText('Ej.: Aspirina Forte…'), 'Alcohol en gel');
+    await user.type(screen.getByPlaceholderText('Ej.: Ácido acetilsalicílico…'), 'Alcohol');
     await user.type(screen.getByPlaceholderText('0.00'), '15');
-    await user.type(screen.getByPlaceholderText('Ej. 6'), '6');
+    await user.type(screen.getByPlaceholderText('Ej.: 6…'), '6');
     await user.click(screen.getByRole('button', { name: 'Guardar producto' }));
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -123,7 +123,7 @@ describe('ProductoFormModal', () => {
     await user.click(screen.getByRole('button', { name: /Nueva presentación/ }));
     expect(screen.getByRole('heading', { name: 'Nueva presentación' })).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText('Ej. Frasco, Sobre, Ampolla...'), 'Frasco');
+    await user.type(screen.getByPlaceholderText('Ej.: Frasco, sobre o ampolla…'), 'Frasco');
     await user.click(screen.getByRole('button', { name: 'Crear presentación' }));
 
     expect(onCrearPresentacion).toHaveBeenCalledWith({ nombre: 'Frasco' });
@@ -148,7 +148,7 @@ describe('ProductoFormModal', () => {
     await user.click(screen.getByRole('button', { name: 'Editar presentación seleccionada' }));
 
     expect(screen.getByRole('heading', { name: 'Editar presentación' })).toBeInTheDocument();
-    const nombre = screen.getByPlaceholderText('Ej. Frasco, Sobre, Ampolla...');
+    const nombre = screen.getByPlaceholderText('Ej.: Frasco, sobre o ampolla…');
     await user.clear(nombre);
     await user.type(nombre, 'Paquete');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
@@ -320,7 +320,7 @@ describe('regresión del formulario de producto dividido en secciones', () => {
 
   it.each([
     { estado: 'cargando catálogos', cargandoDatos: true, guardando: false, nombre: 'Guardar producto' },
-    { estado: 'guardando', cargandoDatos: false, guardando: true, nombre: 'Guardando...' },
+    { estado: 'guardando', cargandoDatos: false, guardando: true, nombre: 'Guardar producto' },
   ])('bloquea el envío mientras está $estado', async ({ cargandoDatos, guardando, nombre }) => {
     const usuario = userEvent.setup();
     const onSubmit = vi.fn();

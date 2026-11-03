@@ -1,52 +1,34 @@
 import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import styles from '../../../styles/ManagementUI.module.css';
 
-const Selector = ({ children, ...props }) => (
-  <div className="relative">
-    <select {...props} className="w-full appearance-none rounded-xl border border-slate-300 px-4 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none disabled:bg-slate-100 disabled:text-slate-400">
-      {children}
-    </select>
-    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-  </div>
-);
-
-export default function ProductoClasificacion({
-  formulario,
-  categorias,
-  casas,
-  proveedores,
-  cargandoDatos,
-  onChange,
-}) {
+export default function ProductoClasificacion({ formulario, categorias, casas, proveedores, cargandoDatos, onChange }) {
   return (
-    <>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-sm font-semibold text-slate-700">Categoría <span className="text-error">*</span></label>
-          <Selector name="id_categoria" value={formulario.id_categoria} onChange={onChange} required disabled={cargandoDatos}>
-            <option value="">Seleccionar...</option>
+    <section className={styles.section} aria-labelledby="producto-clasificacion-title">
+      <h3 id="producto-clasificacion-title" className={styles.sectionHeading}>Clasificación y abastecimiento</h3>
+      <div className={styles.formGrid}>
+        <div className={styles.field}>
+          <label htmlFor="id_categoria">Categoría</label>
+          <select id="id_categoria" name="id_categoria" value={formulario.id_categoria} onChange={onChange} required disabled={cargandoDatos} className={styles.input}>
+            <option value="">{cargandoDatos ? 'Cargando categorías…' : 'Selecciona una categoría'}</option>
             {(categorias || []).map((categoria) => <option key={categoria.id_categoria} value={categoria.id_categoria}>{categoria.nombre}</option>)}
-          </Selector>
+          </select>
         </div>
-        <div className="space-y-1">
-          <label className="text-sm font-semibold text-slate-700">Casa farmacéutica <span className="text-error">*</span></label>
-          <Selector name="id_casa" value={formulario.id_casa} onChange={onChange} required disabled={cargandoDatos}>
-            <option value="">Seleccionar...</option>
-            {(casas || [])
-              .filter((casa) => casa.activo || String(casa.id_casa) === String(formulario.id_casa))
-              .map((casa) => <option key={casa.id_casa} value={casa.id_casa}>{casa.nombre}</option>)}
-          </Selector>
+        <div className={styles.field}>
+          <label htmlFor="id_casa">Casa farmacéutica</label>
+          <select id="id_casa" name="id_casa" value={formulario.id_casa} onChange={onChange} required disabled={cargandoDatos} className={styles.input}>
+            <option value="">{cargandoDatos ? 'Cargando casas…' : 'Selecciona una casa'}</option>
+            {(casas || []).filter((casa) => casa.activo || String(casa.id_casa) === String(formulario.id_casa)).map((casa) => <option key={casa.id_casa} value={casa.id_casa}>{casa.nombre}</option>)}
+          </select>
         </div>
       </div>
-      <div className="space-y-1">
-        <label className="text-sm font-semibold text-slate-700">Proveedor</label>
-        <Selector name="id_proveedor" value={formulario.id_proveedor} onChange={onChange} disabled={cargandoDatos}>
-          <option value="">Sin proveedor</option>
-          {(proveedores || [])
-            .filter((proveedor) => proveedor.activo || String(proveedor.id_proveedor) === String(formulario.id_proveedor))
-            .map((proveedor) => <option key={proveedor.id_proveedor} value={proveedor.id_proveedor}>{proveedor.nombre}</option>)}
-        </Selector>
+      <div className={styles.field}>
+        <label htmlFor="id_proveedor">Proveedor <span className={styles.optional}>(opcional)</span></label>
+        <select id="id_proveedor" name="id_proveedor" value={formulario.id_proveedor} onChange={onChange} disabled={cargandoDatos} className={styles.input}>
+          <option value="">Sin proveedor predeterminado</option>
+          {(proveedores || []).filter((proveedor) => proveedor.activo || String(proveedor.id_proveedor) === String(formulario.id_proveedor)).map((proveedor) => <option key={proveedor.id_proveedor} value={proveedor.id_proveedor}>{proveedor.nombre}</option>)}
+        </select>
+        <p className={styles.helpText}>Podrás elegir otro proveedor al ingresar cada lote.</p>
       </div>
-    </>
+    </section>
   );
 }

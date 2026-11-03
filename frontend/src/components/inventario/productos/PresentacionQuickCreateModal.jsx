@@ -1,116 +1,70 @@
-import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { motion } from 'motion/react';
-import { PackagePlus, Pencil, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { LoaderCircle, X } from 'lucide-react';
+import useAvisoCambiosSinGuardar, { confirmarDescartarCambios } from '../../../hooks/useAvisoCambiosSinGuardar.js';
+import AccessibleDialog from '../../ui/AccessibleDialog.jsx';
+import styles from '../../../styles/ManagementUI.module.css';
 
-export default function PresentacionQuickCreateModal({
-  isOpen,
-  guardando,
-  presentacion = null,
-  onClose,
-  onGuardar,
-}) {
+export default function PresentacionQuickCreateModal({ isOpen, guardando, presentacion = null, onClose, onGuardar }) {
   const [nombre, setNombre] = useState('');
   const [error, setError] = useState(null);
+  const errorRef = useRef(null);
   const esEdicion = Boolean(presentacion);
+  const nombreInicial = presentacion?.nombre || '';
+  const hayCambios = isOpen && nombre !== nombreInicial;
+  useAvisoCambiosSinGuardar(hayCambios && !guardando);
 
   useEffect(() => {
     if (isOpen) {
-      setNombre(presentacion?.nombre || '');
+      setNombre(nombreInicial);
       setError(null);
     }
-  }, [isOpen, presentacion]);
+  }, [isOpen, nombreInicial]);
 
-  if (!isOpen || typeof document === 'undefined') return null;
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
-  const manejarEnvio = async (e) => {
-    e.preventDefault();
+  const manejarEnvio = async (evento) => {
+    evento.preventDefault();
     const nombreLimpio = nombre.trim();
     if (!nombreLimpio) {
       setError('El nombre es requerido.');
       return;
     }
-
     try {
       setError(null);
       await onGuardar({ nombre: nombreLimpio });
     } catch (err) {
-      setError(
-        err.response?.data?.mensaje
-          || `No se pudo ${esEdicion ? 'actualizar' : 'crear'} la presentación.`,
-      );
+      setError(err.response?.data?.mensaje || `No se pudo ${esEdicion ? 'actualizar' : 'crear'} la presentación.`);
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/55 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-2xl"
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-              {esEdicion
-                ? <Pencil className="h-4 w-4" />
-                : <PackagePlus className="h-4 w-4" />}
-            </span>
-            <h3 className="font-headline text-base font-extrabold text-primary">
-              {esEdicion ? 'Editar presentación' : 'Nueva presentación'}
-            </h3>
+  const solicitarCierre = () => {
+    if (guardando) return;
+    if (!hayCambios || confirmarDescartarCambios()) onClose();
+  };
+  const tituloId = 'titulo-formulario-presentacion';
+  const etiquetaGuardar = esEdicion ? 'Guardar cambios' : 'Crear presentación';
+
+  return (
+    <AccessibleDialog open={isOpen} labelledBy={tituloId} onClose={solicitarCierre} busy={guardando} size="small">
+      <div className={styles.dialogContent}>
+        <header className={styles.dialogHeader}>
+          <div><h2 id={tituloId}>{esEdicion ? 'Editar presentación' : 'Nueva presentación'}</h2><p>Define el formato en que se administra y vende el producto.</p></div>
+          <button type="button" onClick={solicitarCierre} disabled={guardando} className={`${styles.button} ${styles.iconButton}`} aria-label="Cerrar"><X size={17} aria-hidden="true" /></button>
+        </header>
+        <form onSubmit={manejarEnvio} noValidate className={styles.form}>
+          <div className={styles.field}>
+            <label htmlFor="nombre_presentacion">Nombre</label>
+            <input id="nombre_presentacion" type="text" name="nombre_presentacion" autoComplete="off" value={nombre} onChange={(evento) => { setNombre(evento.target.value); setError(null); }} placeholder="Ej.: Frasco, sobre o ampolla…" maxLength={100} className={styles.input} />
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={guardando}
-            className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
-            aria-label="Cerrar"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={manejarEnvio} className="space-y-4 px-5 py-4">
-          <div className="space-y-1">
-            <label className="text-sm font-semibold text-slate-700">
-              Nombre <span className="text-error">*</span>
-            </label>
-            <input
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Ej. Frasco, Sobre, Ampolla..."
-              maxLength={100}
-              autoFocus
-              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-
-          {error && <p className="text-sm font-semibold text-error">{error}</p>}
-
-          <div className="flex justify-end gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={guardando}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={guardando}
-              className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {guardando
-                ? 'Guardando...'
-                : esEdicion ? 'Guardar cambios' : 'Crear presentación'}
-            </button>
+          {error && <p ref={errorRef} tabIndex={-1} role="alert" className={styles.fieldError}>{error}</p>}
+          <div className={styles.dialogActions}>
+            <button type="button" onClick={solicitarCierre} disabled={guardando} className={styles.button}>Cancelar</button>
+            <button type="submit" disabled={guardando} className={`${styles.button} ${styles.primary}`}>{guardando && <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" />}{etiquetaGuardar}</button>
           </div>
         </form>
-      </motion.div>
-    </div>,
-    document.body,
+      </div>
+    </AccessibleDialog>
   );
 }
