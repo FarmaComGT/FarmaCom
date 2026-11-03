@@ -41,7 +41,7 @@ export default function CarritoVentaItem({
   const precioAplicado = item.precioAplicado ?? item.precioUnitario;
 
   return (
-    <div className="pos-item">
+    <li className="pos-item">
       <div className="pos-item-info">
         <span className="pos-item-name">
           {item.nombre_comercial}
@@ -70,6 +70,8 @@ export default function CarritoVentaItem({
           </button>
           <input
             type="text"
+            name={`cantidad_${item.id_lote || item.clave}`}
+            autoComplete="off"
             inputMode="numeric"
             pattern="[0-9]*"
             value={cantidadTexto}
@@ -85,6 +87,7 @@ export default function CarritoVentaItem({
             onFocus={(evento) => evento.currentTarget.select()}
             aria-label={`Cantidad de ${item.nombre_comercial}`}
             aria-invalid={excedeStock}
+            aria-describedby={excedeStock ? `error-cantidad-${item.clave}` : undefined}
           />
           <button
             type="button"
@@ -95,7 +98,7 @@ export default function CarritoVentaItem({
           </button>
         </div>
         {excedeStock && (
-          <p role="alert" className="pos-qty-alert">
+          <p id={`error-cantidad-${item.clave}`} role="alert" className="pos-qty-alert">
             Máx. {item.stock_disponible}
           </p>
         )}
@@ -123,6 +126,6 @@ export default function CarritoVentaItem({
       >
         <Trash2 className="h-4 w-4" aria-hidden="true" />
       </button>
-    </div>
+    </li>
   );
 }

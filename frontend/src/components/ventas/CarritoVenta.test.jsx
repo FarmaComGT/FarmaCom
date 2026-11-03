@@ -52,7 +52,7 @@ describe('CarritoVenta', () => {
     expect(screen.getByText('El carrito está vacío')).toBeInTheDocument();
     expect(screen.getByText('0 artículos')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Procesar venta' })).toBeDisabled();
-    expect(screen.queryByRole('button', { name: /Limpiar/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Vaciar' })).not.toBeInTheDocument();
   });
 
   it('lista los productos del carrito con su cantidad total', () => {
@@ -78,33 +78,35 @@ describe('CarritoVenta', () => {
     const user = userEvent.setup();
     renderizar({ items: [item()], cantidadTotal: 2, total: 10 });
 
-    await user.click(screen.getByRole('button', { name: 'Limpiar' }));
+    await user.click(screen.getByRole('button', { name: 'Vaciar' }));
     expect(callbacks.onLimpiar).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: '¿Vaciar este carrito?' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await user.click(screen.getByRole('button', { name: 'Vaciar carrito' }));
     expect(callbacks.onLimpiar).toHaveBeenCalledTimes(1);
   });
 
-  it('cancela la confirmación de limpieza al salir del botón', async () => {
+  it('permite cancelar la limpieza sin perder productos', async () => {
     const user = userEvent.setup();
     renderizar({ items: [item()], cantidadTotal: 2, total: 10 });
 
-    await user.click(screen.getByRole('button', { name: 'Limpiar' }));
-    await user.tab();
+    await user.click(screen.getByRole('button', { name: 'Vaciar' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
 
-    expect(screen.getByRole('button', { name: 'Limpiar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vaciar' })).toBeInTheDocument();
+    expect(screen.getByText('Paracetamol')).toBeInTheDocument();
     expect(callbacks.onLimpiar).not.toHaveBeenCalled();
   });
 
   it('reinicia la confirmación cuando el carrito queda vacío', async () => {
     const user = userEvent.setup();
     const { rerender } = renderizar({ items: [item()], cantidadTotal: 2, total: 10 });
-    await user.click(screen.getByRole('button', { name: 'Limpiar' }));
+    await user.click(screen.getByRole('button', { name: 'Vaciar' }));
 
     rerender(<CarritoVenta items={[]} total={0} cantidadTotal={0} metodoPago="efectivo" clientes={[]} {...callbacks} />);
     rerender(<CarritoVenta items={[item()]} total={10} cantidadTotal={2} metodoPago="efectivo" clientes={[]} {...callbacks} />);
 
-    expect(screen.getByRole('button', { name: 'Limpiar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vaciar' })).toBeInTheDocument();
   });
 
   it('envía las acciones de cada producto y procesa la venta', async () => {
@@ -115,6 +117,8 @@ describe('CarritoVenta', () => {
     await user.click(screen.getByRole('button', { name: 'Aumentar Paracetamol' }));
     await user.click(screen.getByRole('button', { name: 'Disminuir Paracetamol' }));
     await user.click(screen.getByRole('button', { name: 'Eliminar Paracetamol' }));
+    expect(callbacks.onEliminar).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Quitar producto' }));
     await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
 
     expect(callbacks.onIncrementar).toHaveBeenCalledWith(producto);

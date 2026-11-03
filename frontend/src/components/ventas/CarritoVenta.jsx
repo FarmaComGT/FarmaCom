@@ -3,8 +3,10 @@ import { ReceiptText, ShoppingCart, Trash2 } from 'lucide-react';
 import CarritoVentaItem from './CarritoVentaItem';
 import ClienteVentaSection from './ClienteVentaSection';
 import CarritoAccionesCobro from './CarritoAccionesCobro';
+import ConfirmacionCarritoModal from './ConfirmacionCarritoModal';
 
 export default function CarritoVenta({
+  carritoId,
   items,
   total,
   cantidadTotal,
@@ -23,30 +25,41 @@ export default function CarritoVenta({
   onProcesar,
 }) {
   const [confirmandoLimpieza, setConfirmandoLimpieza] = useState(false);
+  const [itemAEliminar, setItemAEliminar] = useState(null);
 
   useEffect(() => {
-    if (items.length === 0) setConfirmandoLimpieza(false);
+    if (items.length === 0) {
+      setConfirmandoLimpieza(false);
+      setItemAEliminar(null);
+    }
   }, [items.length]);
 
-  const manejarLimpieza = () => {
-    if (!confirmandoLimpieza) {
-      setConfirmandoLimpieza(true);
-      return;
-    }
-
+  const confirmarLimpieza = () => {
     onLimpiar();
     setConfirmandoLimpieza(false);
   };
 
+  const confirmarEliminacion = () => {
+    if (!itemAEliminar) return;
+    onEliminar(itemAEliminar);
+    setItemAEliminar(null);
+  };
+
   return (
-    <section className="pos-panel">
+    <section
+      id={carritoId ? `panel-${carritoId}` : undefined}
+      role={carritoId ? 'tabpanel' : undefined}
+      aria-labelledby={carritoId ? `pestana-${carritoId}` : undefined}
+      className="pos-panel"
+    >
       <header className="pos-cart-panel-head">
         <div>
+          <span className="pos-section-kicker">Carrito activo</span>
           <h2>
             <ShoppingCart aria-hidden="true" />
-            Caja / salida
+            Detalle del carrito
           </h2>
-          <p>
+          <p aria-live="polite">
             {cantidadTotal} {cantidadTotal === 1 ? 'artículo' : 'artículos'}
           </p>
         </div>
@@ -54,19 +67,18 @@ export default function CarritoVenta({
         {items.length > 0 && (
           <button
             type="button"
-            onClick={manejarLimpieza}
-            onBlur={() => setConfirmandoLimpieza(false)}
-            className={`pos-clear-btn ${confirmandoLimpieza ? 'pos-clear-btn--confirm' : ''}`}
+            onClick={() => setConfirmandoLimpieza(true)}
+            className="pos-clear-btn"
           >
             <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-            {confirmandoLimpieza ? 'Confirmar' : 'Limpiar'}
+            Vaciar
           </button>
         )}
       </header>
 
       <ClienteVentaSection clientes={clientes} cargando={cargandoClientes} seleccionado={clienteSeleccionado} onSeleccionar={onClienteChange} onNuevo={onNuevoCliente} />
 
-      <div className="pos-cart-columns">
+      <div className="pos-cart-columns" aria-hidden="true">
         <span>Producto</span>
         <span>Cantidad</span>
         <span>Importe</span>
@@ -83,20 +95,42 @@ export default function CarritoVenta({
             <p>Busca y selecciona un producto para iniciar la venta.</p>
           </div>
         ) : (
-          items.map((item) => (
-            <CarritoVentaItem
-              key={item.clave}
-              item={item}
-              onIncrementar={onIncrementar}
-              onDisminuir={onDisminuir}
-              onActualizarCantidad={onActualizarCantidad}
-              onEliminar={onEliminar}
-            />
-          ))
+          <ul aria-label="Productos del carrito">
+            {items.map((item) => (
+              <CarritoVentaItem
+                key={item.clave}
+                item={item}
+                onIncrementar={onIncrementar}
+                onDisminuir={onDisminuir}
+                onActualizarCantidad={onActualizarCantidad}
+                onEliminar={setItemAEliminar}
+              />
+            ))}
+          </ul>
         )}
       </div>
 
       <CarritoAccionesCobro total={total} metodoPago={metodoPago} deshabilitado={items.length === 0} onMetodoPagoChange={onMetodoPagoChange} onProcesar={onProcesar} />
+
+      <ConfirmacionCarritoModal
+        abierto={confirmandoLimpieza}
+        titulo="¿Vaciar este carrito?"
+        descripcion="Se quitarán todos los productos agregados. Esta acción no se puede deshacer."
+        detalle={`${cantidadTotal} ${cantidadTotal === 1 ? 'artículo' : 'artículos'} seleccionados`}
+        confirmarTexto="Vaciar carrito"
+        onCancelar={() => setConfirmandoLimpieza(false)}
+        onConfirmar={confirmarLimpieza}
+      />
+
+      <ConfirmacionCarritoModal
+        abierto={Boolean(itemAEliminar)}
+        titulo={`¿Quitar ${itemAEliminar?.nombre_comercial || 'este producto'}?`}
+        descripcion="El producto se eliminará de este carrito, pero seguirá disponible en el catálogo."
+        detalle={itemAEliminar ? `Lote ${itemAEliminar.numero_lote} · ${itemAEliminar.cantidad} unidades` : ''}
+        confirmarTexto="Quitar producto"
+        onCancelar={() => setItemAEliminar(null)}
+        onConfirmar={confirmarEliminacion}
+      />
     </section>
   );
 }
