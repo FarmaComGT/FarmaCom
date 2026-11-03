@@ -1,108 +1,101 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BadgePercent, PlusCircle, Search } from 'lucide-react';
-import InventarioSubNav from '../../components/inventario/InventarioSubNav';
-import PromocionFormModal from '../../components/inventario/promociones/PromocionFormModal';
-import PromocionesTable from '../../components/inventario/promociones/PromocionesTable';
+import { PlusCircle } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import InventarioSubNav from '../../components/inventario/InventarioSubNav.jsx';
+import PromocionEstadoModal from '../../components/inventario/promociones/PromocionEstadoModal.jsx';
+import PromocionFormModal from '../../components/inventario/promociones/PromocionFormModal.jsx';
+import PromocionesTable from '../../components/inventario/promociones/PromocionesTable.jsx';
+import ContentState from '../../components/ui/ContentState.jsx';
 import { useAuth } from '../../context/AuthContext';
 import useProductos from '../../hooks/useProductos';
 import usePromociones from '../../hooks/usePromociones';
 import useSucursales from '../../hooks/useSucursales';
 import useLotesProducto from '../../hooks/useLotesProducto';
 import { obtenerPrecioVentaMinimoDisponible } from '../../utils/promociones';
+import styles from '../../styles/ManagementUI.module.css';
 
-const formularioVacio = {
-  id_sucursal: '',
-  cantidad_minima: '1',
-  precio_promocion: '',
-  fecha_inicio: '',
-  fecha_fin: '',
-};
-
+const formularioVacio = { id_sucursal: '', cantidad_minima: '1', precio_promocion: '', fecha_inicio: '', fecha_fin: '' };
 const fechaInput = (valor) => (valor ? String(valor).slice(0, 10) : '');
-const mensajeError = (error, predeterminado) => (
-  error.response?.data?.mensaje || error.message || predeterminado
-);
+const mensajeError = (error, predeterminado) => error.response?.data?.mensaje || error.message || predeterminado;
 
 export default function Promociones() {
   const { sucursalActivaId } = useAuth();
-  const { productos, cargando: cargandoProductos, error: errorProductos } = useProductos();
-  const { sucursales, cargando: cargandoSucursales, error: errorSucursales } = useSucursales();
-  const [busquedaProducto, setBusquedaProducto] = useState('');
-  const [idProducto, setIdProducto] = useState('');
-  const [filtroSucursal, setFiltroSucursal] = useState('');
+  const { productos, cargando: cargandoProductos, error: errorProductos, refrescar: refrescarProductos } = useProductos();
+  const { sucursales, cargando: cargandoSucursales, error: errorSucursales, refrescar: refrescarSucursales } = useSucursales();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const busquedaProducto = searchParams.get('q') || '';
+  const idProducto = searchParams.get('producto') || '';
+  const filtroSucursal = searchParams.get('sucursal') || '';
   const [modalAbierto, setModalAbierto] = useState(false);
   const [promocionEditando, setPromocionEditando] = useState(null);
+  const [promocionACambiarEstado, setPromocionACambiarEstado] = useState(null);
   const [formulario, setFormulario] = useState(formularioVacio);
+  const [formularioBase, setFormularioBase] = useState(formularioVacio);
   const [guardando, setGuardando] = useState(false);
   const [cambiandoId, setCambiandoId] = useState(null);
   const [errorFormulario, setErrorFormulario] = useState(null);
+  const [campoError, setCampoError] = useState(null);
   const [errorAccion, setErrorAccion] = useState(null);
   const [mensaje, setMensaje] = useState(null);
+  const hayCambios = Object.keys(formularioVacio).some((campo) => formulario[campo] !== formularioBase[campo]);
+
+  useEffect(() => {
+    document.title = 'Promociones · FarmaCom';
+  }, []);
+
+  const actualizarParametro = (nombre, valor) => {
+    setSearchParams((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      if (valor) siguientes.set(nombre, valor);
+      else siguientes.delete(nombre);
+      return siguientes;
+    }, { replace: true });
+  };
+
+  const productoSeleccionado = productos.find((producto) => Number(producto.id_producto) === Number(idProducto));
+
+  useEffect(() => {
+    if (productos.length > 0 && !productoSeleccionado) actualizarParametro('producto', String(productos[0].id_producto));
+  }, [productos, productoSeleccionado]);
 
   const productosFiltrados = useMemo(() => {
     const termino = busquedaProducto.trim().toLocaleLowerCase('es');
     if (!termino) return productos;
-    return productos.filter((producto) => [
-      producto.codigo,
-      producto.nombre_comercial,
-      producto.nombre_generico,
-    ].some((valor) => String(valor || '').toLocaleLowerCase('es').includes(termino)));
+    return productos.filter((producto) => [producto.codigo, producto.nombre_comercial, producto.nombre_generico].some((valor) => String(valor || '').toLocaleLowerCase('es').includes(termino)));
   }, [busquedaProducto, productos]);
 
-  useEffect(() => {
-    if (!idProducto && productos.length > 0) {
-      setIdProducto(String(productos[0].id_producto));
-    }
-  }, [idProducto, productos]);
-
-  const productoSeleccionado = productos.find(
-    (producto) => Number(producto.id_producto) === Number(idProducto),
-  );
-  const {
-    lotes,
-    cargando: cargandoLotes,
-    error: errorLotes,
-  } = useLotesProducto(idProducto, { enabled: Boolean(idProducto) });
-  const {
-    promociones,
-    cargando: cargandoPromociones,
-    error: errorPromociones,
-    crear,
-    actualizar,
-    cambiarEstado,
-  } = usePromociones(idProducto);
+  const { lotes, cargando: cargandoLotes, error: errorLotes, refrescar: refrescarLotes } = useLotesProducto(idProducto, { enabled: Boolean(idProducto) });
+  const { promociones, cargando: cargandoPromociones, error: errorPromociones, refrescar: refrescarPromociones, crear, actualizar, cambiarEstado } = usePromociones(idProducto);
 
   const promocionesFiltradas = useMemo(() => (
-    filtroSucursal
-      ? promociones.filter((promocion) => Number(promocion.id_sucursal) === Number(filtroSucursal))
-      : promociones
+    filtroSucursal ? promociones.filter((promocion) => Number(promocion.id_sucursal) === Number(filtroSucursal)) : promociones
   ), [filtroSucursal, promociones]);
-  const precioReferencia = useMemo(() => obtenerPrecioVentaMinimoDisponible(
-    lotes,
-    formulario.id_sucursal,
-  ), [formulario.id_sucursal, lotes]);
+  const precioReferencia = useMemo(() => obtenerPrecioVentaMinimoDisponible(lotes, formulario.id_sucursal), [formulario.id_sucursal, lotes]);
 
   const abrirCrear = () => {
     if (!productoSeleccionado) return;
+    const valores = { ...formularioVacio, id_sucursal: String(sucursalActivaId || sucursales[0]?.id_sucursal || '') };
     setPromocionEditando(null);
-    setFormulario({
-      ...formularioVacio,
-      id_sucursal: String(sucursalActivaId || sucursales[0]?.id_sucursal || ''),
-    });
+    setFormulario(valores);
+    setFormularioBase(valores);
     setErrorFormulario(null);
+    setCampoError(null);
     setModalAbierto(true);
   };
 
   const abrirEditar = (promocion) => {
-    setPromocionEditando(promocion);
-    setFormulario({
+    const valores = {
       id_sucursal: String(promocion.id_sucursal),
       cantidad_minima: String(promocion.cantidad_minima),
       precio_promocion: String(promocion.precio_promocion),
       fecha_inicio: fechaInput(promocion.fecha_inicio),
       fecha_fin: fechaInput(promocion.fecha_fin),
-    });
+    };
+    setPromocionEditando(promocion);
+    setFormulario(valores);
+    setFormularioBase(valores);
     setErrorFormulario(null);
+    setCampoError(null);
     setModalAbierto(true);
   };
 
@@ -113,27 +106,27 @@ export default function Promociones() {
   const manejarCambio = (evento) => {
     const { name, value } = evento.target;
     setFormulario((actual) => ({ ...actual, [name]: value }));
+    if (errorFormulario) setErrorFormulario(null);
+    if (campoError === name) setCampoError(null);
+  };
+
+  const mostrarErrorFormulario = (campo, mensaje) => {
+    setCampoError(campo);
+    setErrorFormulario(mensaje);
   };
 
   const manejarGuardar = async (evento) => {
     evento.preventDefault();
     setErrorFormulario(null);
-    if (formulario.fecha_fin <= formulario.fecha_inicio) {
-      setErrorFormulario('La fecha de finalización debe ser posterior a la fecha de inicio.');
-      return;
-    }
-    if (precioReferencia === null) {
-      setErrorFormulario(
-        'No hay lotes vendibles con precio para validar la promoción en esta sucursal.',
-      );
-      return;
-    }
-    if (Number(formulario.precio_promocion) >= precioReferencia) {
-      setErrorFormulario(
-        `El precio promocional debe ser menor que Q${precioReferencia.toFixed(2)}.`,
-      );
-      return;
-    }
+    setCampoError(null);
+    if (!formulario.id_sucursal) return mostrarErrorFormulario('id_sucursal', 'Selecciona una sucursal.');
+    if (!Number.isInteger(Number(formulario.cantidad_minima)) || Number(formulario.cantidad_minima) < 1) return mostrarErrorFormulario('cantidad_minima', 'La cantidad mínima debe ser un número entero mayor que cero.');
+    if (!formulario.precio_promocion || Number(formulario.precio_promocion) <= 0) return mostrarErrorFormulario('precio_promocion', 'Ingresa un precio promocional válido.');
+    if (!formulario.fecha_inicio) return mostrarErrorFormulario('fecha_inicio', 'Selecciona la fecha de inicio.');
+    if (!formulario.fecha_fin) return mostrarErrorFormulario('fecha_fin', 'Selecciona la fecha de finalización.');
+    if (formulario.fecha_fin <= formulario.fecha_inicio) return mostrarErrorFormulario('fecha_fin', 'La fecha de finalización debe ser posterior a la fecha de inicio.');
+    if (precioReferencia === null) return mostrarErrorFormulario('precio_promocion', 'No hay lotes vendibles con precio para validar la promoción en esta sucursal.');
+    if (Number(formulario.precio_promocion) >= precioReferencia) return mostrarErrorFormulario('precio_promocion', `El precio promocional debe ser menor que Q${precioReferencia.toFixed(2)}.`);
 
     const datos = {
       cantidad_minima: Number(formulario.cantidad_minima),
@@ -159,14 +152,21 @@ export default function Promociones() {
     }
   };
 
-  const manejarEstado = async (promocion) => {
-    const nuevoEstado = !promocion.activo;
+  const solicitarCambiarEstado = (promocion) => {
+    setErrorAccion(null);
+    setMensaje(null);
+    setPromocionACambiarEstado(promocion);
+  };
+
+  const confirmarCambiarEstado = async () => {
+    if (!promocionACambiarEstado) return;
+    const nuevoEstado = !promocionACambiarEstado.activo;
     try {
       setErrorAccion(null);
-      setMensaje(null);
-      setCambiandoId(promocion.id_promocion);
-      await cambiarEstado(promocion.id_promocion, nuevoEstado);
+      setCambiandoId(promocionACambiarEstado.id_promocion);
+      await cambiarEstado(promocionACambiarEstado.id_promocion, nuevoEstado);
       setMensaje(`Promoción ${nuevoEstado ? 'activada' : 'desactivada'} correctamente.`);
+      setPromocionACambiarEstado(null);
     } catch (error) {
       setErrorAccion(mensajeError(error, 'No se pudo cambiar el estado de la promoción.'));
     } finally {
@@ -174,119 +174,56 @@ export default function Promociones() {
     }
   };
 
-  const errorCarga = errorProductos || errorSucursales || errorPromociones || errorLotes;
+  const reintentarCatalogos = () => {
+    refrescarProductos();
+    refrescarSucursales();
+  };
 
   return (
-    <div className="space-y-6">
+    <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="promociones-title">
       <InventarioSubNav />
-
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <header className={styles.heading}>
         <div>
-          <div className="flex items-center gap-2 text-primary">
-            <BadgePercent className="h-6 w-6" />
-            <h1 className="font-headline text-2xl font-extrabold">Promociones</h1>
-          </div>
-          <p className="mt-1 text-sm font-medium text-slate-500">
-            Configura precios especiales por producto, sucursal, vigencia y cantidad mínima.
-          </p>
+          <h1 id="promociones-title">Promociones</h1>
+          <p>Configura precios especiales por producto, sucursal, vigencia y cantidad mínima.</p>
         </div>
-        <button
-          type="button"
-          onClick={abrirCrear}
-          disabled={!productoSeleccionado || cargandoSucursales}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/15 disabled:opacity-50"
-        >
-          <PlusCircle className="h-4 w-4" />
-          Nueva promoción
-        </button>
+        <div className={styles.headingActions}>
+          <button type="button" onClick={abrirCrear} disabled={!productoSeleccionado || cargandoSucursales} className={`${styles.button} ${styles.primary}`}><PlusCircle size={16} aria-hidden="true" />Nueva promoción</button>
+        </div>
       </header>
 
-      <section className="grid gap-4 rounded-2xl bg-surface-container-low p-4 lg:grid-cols-[1fr_1fr_0.8fr]">
-        <label className="text-sm font-bold text-slate-700">
-          Buscar producto
-          <span className="relative mt-1 block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="search"
-              value={busquedaProducto}
-              onChange={(evento) => setBusquedaProducto(evento.target.value)}
-              placeholder="Código o nombre"
-              className="w-full rounded-xl border-none bg-white py-2.5 pl-10 pr-4 font-medium shadow-sm outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </span>
+      <div className={styles.filterGrid}>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Buscar producto</span>
+          <input type="search" name="q" autoComplete="off" value={busquedaProducto} onChange={(evento) => actualizarParametro('q', evento.target.value)} placeholder="Código o nombre…" className={styles.input} />
         </label>
-        <label className="text-sm font-bold text-slate-700">
-          Producto
-          <select
-            value={idProducto}
-            onChange={(evento) => setIdProducto(evento.target.value)}
-            disabled={cargandoProductos}
-            className="mt-1 w-full rounded-xl border-none bg-white px-4 py-2.5 font-medium shadow-sm outline-none focus:ring-2 focus:ring-primary/20"
-          >
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Producto</span>
+          <select name="producto" value={idProducto} onChange={(evento) => actualizarParametro('producto', evento.target.value)} disabled={cargandoProductos} className={styles.input}>
             <option value="">Selecciona un producto</option>
-            {productosFiltrados.map((producto) => (
-              <option key={producto.id_producto} value={producto.id_producto}>
-                {producto.codigo} · {producto.nombre_comercial}
-              </option>
-            ))}
+            {productosFiltrados.map((producto) => <option key={producto.id_producto} value={producto.id_producto}>{producto.codigo} · {producto.nombre_comercial}</option>)}
           </select>
         </label>
-        <label className="text-sm font-bold text-slate-700">
-          Filtrar por sucursal
-          <select
-            value={filtroSucursal}
-            onChange={(evento) => setFiltroSucursal(evento.target.value)}
-            disabled={cargandoSucursales}
-            className="mt-1 w-full rounded-xl border-none bg-white px-4 py-2.5 font-medium shadow-sm outline-none focus:ring-2 focus:ring-primary/20"
-          >
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Filtrar por sucursal</span>
+          <select name="sucursal" value={filtroSucursal} onChange={(evento) => actualizarParametro('sucursal', evento.target.value)} disabled={cargandoSucursales} className={styles.input}>
             <option value="">Todas las sucursales</option>
-            {sucursales.map((sucursal) => (
-              <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>
-                {sucursal.nombre_sucursal}
-              </option>
-            ))}
+            {sucursales.map((sucursal) => <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>{sucursal.nombre_sucursal}</option>)}
           </select>
         </label>
-      </section>
+      </div>
 
-      {errorCarga && (
-        <p role="alert" className="rounded-xl border border-error/20 bg-error-container/40 px-4 py-3 text-sm font-semibold text-on-error-container">
-          {errorCarga}
-        </p>
-      )}
-      {errorAccion && (
-        <p role="alert" className="rounded-xl border border-error/20 bg-error-container/40 px-4 py-3 text-sm font-semibold text-on-error-container">
-          {errorAccion}
-        </p>
-      )}
-      {mensaje && (
-        <p role="status" className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary">
-          {mensaje}
-        </p>
-      )}
+      {(errorProductos || errorSucursales) && <ContentState compact variant="error" title="No se pudieron cargar los catálogos" message={errorProductos || errorSucursales} onRetry={reintentarCatalogos} />}
+      {errorLotes && <ContentState compact variant="error" title="No se pudieron consultar los precios de referencia" message={errorLotes} onRetry={refrescarLotes} />}
+      {errorPromociones && promociones.length > 0 && <p role="alert" className={styles.alert}>{errorPromociones}</p>}
+      {errorAccion && !promocionACambiarEstado && <p role="alert" className={styles.alert}>{errorAccion}</p>}
+      {mensaje && <p role="status" className={styles.statusMessage}>{mensaje}</p>}
+      <p className={styles.resultCount} aria-live="polite"><strong>{promocionesFiltradas.length}</strong> de {promociones.length} promociones</p>
 
-      <PromocionesTable
-        promociones={promocionesFiltradas}
-        cargando={cargandoPromociones}
-        cambiandoId={cambiandoId}
-        onEditar={abrirEditar}
-        onCambiarEstado={manejarEstado}
-      />
+      <PromocionesTable promociones={promocionesFiltradas} cargando={cargandoPromociones} error={errorPromociones} productoSeleccionado={Boolean(productoSeleccionado)} hayFiltroSucursal={Boolean(filtroSucursal)} cambiandoId={cambiandoId} onRetry={refrescarPromociones} onEditar={abrirEditar} onCambiarEstado={solicitarCambiarEstado} />
 
-      <PromocionFormModal
-        isOpen={modalAbierto}
-        modoEdicion={Boolean(promocionEditando)}
-        producto={productoSeleccionado}
-        sucursales={sucursales}
-        formulario={formulario}
-        guardando={guardando}
-        cargandoPrecioReferencia={cargandoLotes}
-        precioReferencia={precioReferencia}
-        error={errorFormulario}
-        onChange={manejarCambio}
-        onClose={cerrarModal}
-        onSubmit={manejarGuardar}
-      />
-    </div>
+      <PromocionFormModal isOpen={modalAbierto} modoEdicion={Boolean(promocionEditando)} producto={productoSeleccionado} sucursales={sucursales} formulario={formulario} hayCambios={hayCambios} guardando={guardando} cargandoPrecioReferencia={cargandoLotes} precioReferencia={precioReferencia} error={errorFormulario} campoError={campoError} onChange={manejarCambio} onClose={cerrarModal} onSubmit={manejarGuardar} />
+      <PromocionEstadoModal isOpen={Boolean(promocionACambiarEstado)} promocion={promocionACambiarEstado} procesando={Boolean(cambiandoId)} error={errorAccion} onClose={() => { if (!cambiandoId) setPromocionACambiarEstado(null); }} onConfirm={confirmarCambiarEstado} />
+    </section>
   );
 }

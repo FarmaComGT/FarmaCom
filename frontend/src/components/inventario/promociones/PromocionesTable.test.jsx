@@ -19,6 +19,8 @@ describe('PromocionesTable', () => {
     render(<PromocionesTable
       promociones={[promocion]}
       cargando={false}
+      productoSeleccionado
+      hayFiltroSucursal={false}
       cambiandoId={null}
       onEditar={vi.fn()}
       onCambiarEstado={vi.fn()}
@@ -36,6 +38,8 @@ describe('PromocionesTable', () => {
     render(<PromocionesTable
       promociones={[promocion]}
       cargando={false}
+      productoSeleccionado
+      hayFiltroSucursal={false}
       cambiandoId={null}
       onEditar={vi.fn()}
       onCambiarEstado={onCambiarEstado}
@@ -43,5 +47,24 @@ describe('PromocionesTable', () => {
 
     await user.click(screen.getByRole('button', { name: 'Desactivar promoción 7' }));
     expect(onCambiarEstado).toHaveBeenCalledWith(promocion);
+  });
+
+  it('explica que se debe seleccionar un producto', () => {
+    render(<PromocionesTable promociones={[]} cargando={false} productoSeleccionado={false} hayFiltroSucursal={false} onEditar={vi.fn()} onCambiarEstado={vi.fn()} />);
+    expect(screen.getByText('Selecciona un producto')).toBeInTheDocument();
+  });
+
+  it('muestra carga, error recuperable y vacío filtrado', async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    const { rerender } = render(<PromocionesTable promociones={[]} cargando productoSeleccionado hayFiltroSucursal={false} onRetry={onRetry} onEditar={vi.fn()} onCambiarEstado={vi.fn()} />);
+    expect(screen.getByText('Cargando promociones…')).toBeInTheDocument();
+
+    rerender(<PromocionesTable promociones={[]} cargando={false} error="Servicio no disponible" productoSeleccionado hayFiltroSucursal={false} onRetry={onRetry} onEditar={vi.fn()} onCambiarEstado={vi.fn()} />);
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(onRetry).toHaveBeenCalledOnce();
+
+    rerender(<PromocionesTable promociones={[]} cargando={false} productoSeleccionado hayFiltroSucursal onRetry={onRetry} onEditar={vi.fn()} onCambiarEstado={vi.fn()} />);
+    expect(screen.getByText('Sin promociones en esta sucursal')).toBeInTheDocument();
   });
 });
