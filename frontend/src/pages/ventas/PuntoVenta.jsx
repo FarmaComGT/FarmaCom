@@ -36,6 +36,7 @@ export default function PuntoVenta() {
   } = useCaja(sucursalActivaId);
   const busquedaProducto = parametros.get('q') || '';
   const productoIdEnUrl = parametros.get('producto');
+  const carritoIdEnUrl = parametros.get('carrito');
   const {
     carritos,
     carritoActivoId,
@@ -104,6 +105,30 @@ export default function PuntoVenta() {
     }, { replace: true });
   }, [setParametros]);
 
+  const actualizarCarritoEnUrl = useCallback((idCarrito, reemplazar = false) => {
+    setParametros((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      if (idCarrito) siguientes.set('carrito', String(idCarrito));
+      else siguientes.delete('carrito');
+      return siguientes;
+    }, { replace: reemplazar });
+  }, [setParametros]);
+
+  const crearCarritoVenta = useCallback(() => {
+    const idCarrito = crearCarrito();
+    if (idCarrito) actualizarCarritoEnUrl(idCarrito);
+  }, [actualizarCarritoEnUrl, crearCarrito]);
+
+  const cambiarCarritoVenta = useCallback((idCarrito) => {
+    cambiarCarrito(idCarrito);
+    actualizarCarritoEnUrl(idCarrito);
+  }, [actualizarCarritoEnUrl, cambiarCarrito]);
+
+  const cerrarCarritoVenta = useCallback((idCarrito) => {
+    cerrarCarrito(idCarrito);
+    if (String(idCarrito) === String(carritoActivoId)) actualizarCarritoEnUrl(null, true);
+  }, [actualizarCarritoEnUrl, carritoActivoId, cerrarCarrito]);
+
   useEffect(() => {
     if (!productoIdEnUrl || productoSeleccionandoLote) return;
     const producto = productos.find(
@@ -111,6 +136,17 @@ export default function PuntoVenta() {
     );
     if (producto) setProductoSeleccionandoLote(producto);
   }, [productoIdEnUrl, productoSeleccionandoLote, productos]);
+
+  useEffect(() => {
+    const carritoExiste = carritos.some(
+      (carrito) => String(carrito.id) === String(carritoIdEnUrl),
+    );
+    if (carritoIdEnUrl && carritoExiste) {
+      if (String(carritoActivoId) !== String(carritoIdEnUrl)) cambiarCarrito(carritoIdEnUrl);
+      return;
+    }
+    if (carritoActivoId) actualizarCarritoEnUrl(carritoActivoId, true);
+  }, [actualizarCarritoEnUrl, cambiarCarrito, carritoActivoId, carritoIdEnUrl, carritos]);
 
   const { estadoTurno } = useSeleccionCajaVenta({
     cajas, idCajaSeleccionada, cajaSeleccionada, sesionActual, cargandoCajas,
@@ -219,10 +255,10 @@ export default function PuntoVenta() {
         carritos={carritos}
         carritoActivoId={carritoActivoId}
         bloqueado={Boolean(flujoVenta.modalActivo) || flujoVenta.procesandoCobro}
-        onCrear={crearCarrito}
-        onCambiar={cambiarCarrito}
+        onCrear={crearCarritoVenta}
+        onCambiar={cambiarCarritoVenta}
         onRenombrar={renombrarCarrito}
-        onCerrar={cerrarCarrito}
+        onCerrar={cerrarCarritoVenta}
       />
 
       <div className="pos-grid">
@@ -238,6 +274,7 @@ export default function PuntoVenta() {
         />
 
         <CarritoVenta
+          carritoId={carritoActivoId}
           items={items}
           total={total}
           cantidadTotal={cantidadTotal}

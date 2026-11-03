@@ -93,6 +93,10 @@ Los estados normales son neutros. Las alertas reciben texto más marcado y un fo
 - Seleccionar un producto abre un diálogo accesible con todos sus lotes vendibles, existencias, vencimiento y precio unitario; el lote elegido es el único que pasa al carrito.
 - Los lotes próximos a vencer muestran texto e icono de advertencia. Los lotes sin precio permanecen visibles, explican por qué no pueden seleccionarse y no dependen solo del color.
 - Carga, consulta vacía, error recuperable y coincidencias aproximadas conservan el mismo espacio para evitar saltos de distribución.
+- Los carritos abiertos funcionan como pestañas semánticas, muestran artículos y cliente, y conservan el carrito activo en `?carrito=`.
+- Crear, cambiar y renombrar carritos permanece disponible sin abandonar el punto de venta; la edición del nombre valida en línea y evita perder cambios por un cambio accidental de pestaña.
+- Cerrar o vaciar un carrito y quitar un producto solicitan confirmación en un diálogo accesible que describe exactamente qué información se perderá.
+- El detalle del carrito utiliza una lista adaptable con cantidades editables, stock máximo, lote, vencimiento, precio unitario, subtotal y estado de promoción.
 
 ### Acceso y gestión
 
