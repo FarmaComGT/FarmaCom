@@ -13,6 +13,18 @@ const estado = vi.hoisted(() => ({
   lotes: [],
   promociones: [],
   errorPromociones: null,
+  cargandoPromociones: false,
+  refrescarPromociones: vi.fn(),
+  cargandoProductos: false,
+  errorProductos: null,
+  refrescarProductos: vi.fn(),
+  sucursales: [],
+  cargandoSucursales: false,
+  errorSucursales: null,
+  refrescarSucursales: vi.fn(),
+  cargandoLotes: false,
+  errorLotes: null,
+  refrescarLotes: vi.fn(),
 }));
 
 vi.mock('../../context/AuthContext', () => ({
@@ -20,29 +32,28 @@ vi.mock('../../context/AuthContext', () => ({
 }));
 
 vi.mock('../../hooks/useProductos', () => ({
-  default: () => ({ productos: estado.productos, cargando: false, error: null }),
+  default: () => ({ productos: estado.productos, cargando: estado.cargandoProductos, error: estado.errorProductos, refrescar: estado.refrescarProductos }),
 }));
 
 vi.mock('../../hooks/useSucursales', () => ({
   default: () => ({
-    sucursales: [
-      { id_sucursal: 1, nombre_sucursal: 'Sucursal Centro' },
-      { id_sucursal: 2, nombre_sucursal: 'Sucursal Norte' },
-    ],
-    cargando: false,
-    error: null,
+    sucursales: estado.sucursales,
+    cargando: estado.cargandoSucursales,
+    error: estado.errorSucursales,
+    refrescar: estado.refrescarSucursales,
   }),
 }));
 
 vi.mock('../../hooks/useLotesProducto', () => ({
-  default: () => ({ lotes: estado.lotes, cargando: false, error: null }),
+  default: () => ({ lotes: estado.lotes, cargando: estado.cargandoLotes, error: estado.errorLotes, refrescar: estado.refrescarLotes }),
 }));
 
 vi.mock('../../hooks/usePromociones', () => ({
   default: () => ({
     promociones: estado.promociones,
-    cargando: false,
+    cargando: estado.cargandoPromociones,
     error: estado.errorPromociones,
+    refrescar: estado.refrescarPromociones,
     crear: estado.crear,
     actualizar: estado.actualizar,
     cambiarEstado: estado.cambiarEstado,
@@ -60,8 +71,8 @@ const promocionVigente = {
   activo: true,
 };
 
-const renderizar = () => render(
-  <MemoryRouter>
+const renderizar = (ruta = '/') => render(
+  <MemoryRouter initialEntries={[ruta]}>
     <Promociones />
   </MemoryRouter>,
 );
@@ -90,6 +101,17 @@ describe('pantalla de promociones', () => {
     estado.lotes = [{ id_lote: 1, id_sucursal: 1, stock_actual: 10, precio_venta: 10, estado_vencimiento: 'normal' }];
     estado.promociones = [promocionVigente];
     estado.errorPromociones = null;
+    estado.cargandoPromociones = false;
+    estado.cargandoProductos = false;
+    estado.errorProductos = null;
+    estado.sucursales = [
+      { id_sucursal: 1, nombre_sucursal: 'Sucursal Centro' },
+      { id_sucursal: 2, nombre_sucursal: 'Sucursal Norte' },
+    ];
+    estado.cargandoSucursales = false;
+    estado.errorSucursales = null;
+    estado.cargandoLotes = false;
+    estado.errorLotes = null;
     estado.crear.mockResolvedValue({ id_promocion: 9 });
     estado.actualizar.mockResolvedValue({});
     estado.cambiarEstado.mockResolvedValue({});
@@ -118,6 +140,7 @@ describe('pantalla de promociones', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Desactivar promoción 8' }));
+    await user.click(screen.getByRole('button', { name: 'Desactivar' }));
 
     expect(estado.cambiarEstado).toHaveBeenCalledWith(8, false);
     expect(await screen.findByRole('status')).toHaveTextContent('Promoción desactivada correctamente.');
@@ -212,6 +235,7 @@ describe('pantalla de promociones', () => {
 
     expect(screen.getByText('Inactiva')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Activar promoción 8' }));
+    await user.click(screen.getByRole('button', { name: 'Activar' }));
 
     expect(estado.cambiarEstado).toHaveBeenCalledWith(8, true);
     expect(await screen.findByRole('alert')).toHaveTextContent('Se solapa con otra promoción');
@@ -260,5 +284,65 @@ describe('pantalla de promociones', () => {
     renderizar();
 
     expect(screen.getByRole('alert')).toHaveTextContent('No se pudieron cargar las promociones.');
+  });
+
+  it('restaura producto y sucursal desde la URL', async () => {
+    renderizar('/?producto=5&sucursal=2&q=amoxi');
+
+    expect(await screen.findByLabelText('Producto')).toHaveValue('5');
+    expect(screen.getByLabelText('Filtrar por sucursal')).toHaveValue('2');
+    expect(screen.getByLabelText('Buscar producto')).toHaveValue('amoxi');
+  });
+
+  it('muestra errores recuperables de catálogos y precios', async () => {
+    const user = userEvent.setup();
+    estado.errorProductos = 'No se pudieron cargar los productos';
+    estado.errorLotes = 'No se pudieron cargar los lotes';
+    renderizar();
+
+    expect(screen.getByText('No se pudieron cargar los catálogos')).toBeInTheDocument();
+    expect(screen.getByText('No se pudieron consultar los precios de referencia')).toBeInTheDocument();
+    const reintentos = screen.getAllByRole('button', { name: 'Reintentar' });
+    await user.click(reintentos[0]);
+    await user.click(reintentos[1]);
+    expect(estado.refrescarProductos).toHaveBeenCalledOnce();
+    expect(estado.refrescarSucursales).toHaveBeenCalledOnce();
+    expect(estado.refrescarLotes).toHaveBeenCalledOnce();
+  });
+
+  it('protege los cambios sin guardar del formulario', async () => {
+    const user = userEvent.setup();
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    renderizar();
+    await abrirNueva(user);
+    await user.type(screen.getByLabelText('Precio promocional (Q)'), '6');
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.getByRole('heading', { name: 'Nueva promoción' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('heading', { name: 'Nueva promoción' })).not.toBeInTheDocument();
+    expect(confirmar).toHaveBeenCalledTimes(2);
+    confirmar.mockRestore();
+  });
+
+  it('valida cantidad, precio y fechas obligatorias', async () => {
+    const user = userEvent.setup();
+    renderizar();
+    await abrirNueva(user);
+
+    await user.clear(screen.getByLabelText('Cantidad mínima'));
+    await user.click(screen.getByRole('button', { name: 'Crear promoción' }));
+    expect(screen.getByText('La cantidad mínima debe ser un número entero mayor que cero.')).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Cantidad mínima'), '2');
+    await user.click(screen.getByRole('button', { name: 'Crear promoción' }));
+    expect(screen.getByText('Ingresa un precio promocional válido.')).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Precio promocional (Q)'), '6');
+    await user.click(screen.getByRole('button', { name: 'Crear promoción' }));
+    expect(screen.getByText('Selecciona la fecha de inicio.')).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Fecha de inicio'), '2026-11-01');
+    await user.click(screen.getByRole('button', { name: 'Crear promoción' }));
+    expect(screen.getByText('Selecciona la fecha de finalización.')).toBeInTheDocument();
   });
 });

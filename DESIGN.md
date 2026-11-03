@@ -8,7 +8,7 @@ Este documento registra la propuesta implementada para evaluar el rediseño de F
 
 Reducir la carga visual y facilitar las tareas diarias: encontrar productos, consultar existencias por sucursal y reconocer problemas de stock o vencimiento.
 
-La prueba actual incluye la navegación compartida (sidebar y navbar), inventario, productos, lotes, categorías, casas farmacéuticas, punto de venta, caja y las pantallas de acceso y gestión de Login, Usuarios, Sucursales, Laboratorios, Ciudades y Clientes. Los módulos no mencionados conservan su diseño anterior. La convivencia de estilos es temporal.
+La prueba actual incluye la navegación compartida (sidebar y navbar), inventario, productos, lotes, categorías, casas farmacéuticas, proveedores, promociones, punto de venta, caja y las pantallas de acceso y gestión de Login, Usuarios, Sucursales, Laboratorios, Ciudades y Clientes. Los módulos no mencionados conservan su diseño anterior. La convivencia de estilos es temporal.
 
 ## Principios de trabajo
 
@@ -82,6 +82,8 @@ Los estados normales son neutros. Las alertas reciben texto más marcado y un fo
 - Detalle de lotes como tabla semántica adaptable a móvil; sucursal, stock y vencimiento se conservan en la URL.
 - Categorías y casas farmacéuticas usan búsquedas persistidas en la URL, tablas semánticas y los mismos estados recuperables de las pantallas de gestión.
 - Las casas se filtran por estado; sus contactos se administran en un diálogo accesible y las acciones destructivas solicitan confirmación.
+- Proveedores conserva ese patrón para búsqueda, estado y contactos; promociones persiste producto, búsqueda y sucursal en la URL y presenta su vigencia en una tabla semántica.
+- Los formularios de promociones mantienen visibles las referencias de precio, validan fechas y valores en línea y solicitan confirmación antes de activar o desactivar una promoción.
 
 ### Acceso y gestión
 
