@@ -79,6 +79,7 @@ const itemProximoAVencer = {
 };
 
 let carritoItems = [];
+let carritosAdicionales = [];
 let clienteCarrito = null;
 const agregarAlCarrito = vi.fn((producto, opciones = {}) => {
   carritoItems.push({
@@ -131,7 +132,7 @@ vi.mock('../../context/CarritoContext', () => ({
         nombre: 'Carrito 1',
         items: carritoItems,
         clienteSeleccionado,
-      }],
+      }, ...carritosAdicionales],
       carritoActivoId: 'carrito-1',
       items: carritoItems,
       cantidadTotal: carritoItems.reduce((total, item) => total + item.cantidad, 0),
@@ -175,6 +176,7 @@ vi.mock('../../hooks/useCaja', () => ({
 describe('PuntoVenta', () => {
   beforeEach(() => {
     carritoItems = [];
+    carritosAdicionales = [];
     clienteCarrito = null;
     productosCatalogo = [];
     useCaja.mockReturnValue({
@@ -250,14 +252,14 @@ describe('PuntoVenta', () => {
     await user.clear(buscador);
     await user.type(buscador, 'paracetamol');
 
-    expect(screen.getByTestId('ruta-actual')).toHaveTextContent('?q=paracetamol');
+    expect(screen.getByTestId('ruta-actual')).toHaveTextContent('q=paracetamol');
   });
 
   it('renderiza el catalogo, el carrito y el selector de cliente con "Consumidor final" por defecto', () => {
     render(<PuntoVenta />);
 
     expect(screen.getByText('Buscar productos')).toBeInTheDocument();
-    expect(screen.getByText('Caja / salida')).toBeInTheDocument();
+    expect(screen.getByText('Detalle del carrito')).toBeInTheDocument();
     expect(screen.getByText(/El carrito est. vac.o/)).toBeInTheDocument();
     expect(screen.getByText('Consumidor final')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Efectivo' })).toBeInTheDocument();
@@ -270,9 +272,20 @@ describe('PuntoVenta', () => {
     render(<PuntoVenta />);
 
     expect(screen.getByRole('region', { name: 'Carritos de venta' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('ruta-actual')).toHaveTextContent('carrito=carrito-1'));
     await user.click(screen.getByRole('button', { name: 'Nuevo carrito' }));
 
     expect(crearCarrito).toHaveBeenCalledTimes(1);
+  });
+
+  it('restaura desde la URL el carrito que estaba abierto', async () => {
+    carritosAdicionales = [{
+      id: 'carrito-2', nombre: 'Pedido especial', items: [], clienteSeleccionado: null,
+    }];
+
+    render(<PuntoVenta />, { ruta: '/ventas?carrito=carrito-2' });
+
+    await waitFor(() => expect(cambiarCarrito).toHaveBeenCalledWith('carrito-2'));
   });
 
   it('permite seleccionar un cliente existente', async () => {
@@ -620,6 +633,8 @@ describe('PuntoVenta', () => {
       await user.click(screen.getByRole('button', { name: 'Aumentar Paracetamol' }));
       await user.click(screen.getByRole('button', { name: 'Disminuir Paracetamol' }));
       await user.click(screen.getByRole('button', { name: 'Eliminar Paracetamol' }));
+      expect(accionesItem.eliminarDelCarrito).not.toHaveBeenCalled();
+      await user.click(screen.getByRole('button', { name: 'Quitar producto' }));
 
       expect(accionesItem.incrementarCantidad).toHaveBeenCalledWith('lote-1');
       expect(accionesItem.disminuirCantidad).toHaveBeenCalledWith('lote-1');
