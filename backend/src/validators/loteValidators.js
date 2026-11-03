@@ -34,6 +34,8 @@ const validarCreacion = [
 ];
 
 const validarActualizacion = [
+  body('version').exists().withMessage('version es requerida').bail().isInt({ min: 1 })
+    .withMessage('version debe ser un entero positivo').toInt(),
   body('id_producto').optional()
     .isInt({ min: 1 }).withMessage('id_producto debe ser un entero positivo').toInt(),
   body('id_proveedor').optional()
@@ -44,10 +46,6 @@ const validarActualizacion = [
     .isLength({ max: 100 }).withMessage('numero_lote no puede superar los 100 caracteres'),
   body('fecha_vencimiento').optional({ nullable: true }).isISO8601()
     .withMessage('fecha_vencimiento debe ser una fecha válida (YYYY-MM-DD)').toDate(),
-  body('cantidad_ingresada').optional().isInt({ min: 1 })
-    .withMessage('cantidad_ingresada debe ser un entero mayor a 0').toInt(),
-  body('stock_actual').optional().isInt({ min: 0 })
-    .withMessage('stock_actual debe ser un entero mayor o igual a 0').toInt(),
   body('precio_venta').optional()
     .isFloat({ min: 0 }).withMessage('precio_venta debe ser mayor o igual a 0').toFloat(),
   body('precio_compra').optional()
@@ -62,10 +60,22 @@ const validarActualizacion = [
     .isBoolean().withMessage('limpiar_mayoreo debe ser un booleano').toBoolean(),
 ];
 
+const validarAjusteStock = [
+  body('version').isInt({ min: 1 })
+    .withMessage('version debe ser un entero positivo').toInt(),
+  body('stock_esperado').isInt({ min: 0 })
+    .withMessage('stock_esperado debe ser un entero mayor o igual a 0').toInt(),
+  body('cantidad_ajuste').isInt().custom((valor) => Number(valor) !== 0)
+    .withMessage('cantidad_ajuste debe ser un entero distinto de 0').toInt(),
+  body('motivo').trim().notEmpty().withMessage('motivo es requerido')
+    .isLength({ max: 500 }).withMessage('motivo no puede superar los 500 caracteres'),
+];
+
 module.exports = {
   validarParamId,
   validarParamIdSucursal,
   validarParamIdProducto,
   validarCreacion,
   validarActualizacion,
+  validarAjusteStock,
 };

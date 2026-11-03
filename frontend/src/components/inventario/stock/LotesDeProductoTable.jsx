@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, Pencil, Trash2 } from 'lucide-react';
+import { ChevronDown, Pencil, SlidersHorizontal, Trash2 } from 'lucide-react';
 import ContentState from '../../ui/ContentState.jsx';
 import EstadoBadge from './EstadoBadge.jsx';
 import useLotesProducto from '../../../hooks/useLotesProducto.js';
@@ -30,12 +30,12 @@ const obtenerEstadoLote = (lote) => {
 };
 
 export default function LotesDeProductoTable({
-  producto, sucursalId, activo, onEditar, onEliminar, refreshKey,
+  producto, sucursalId, activo, onEditar, onEliminar, onAjustar, refreshKey,
   filtroStock = '', filtroVencimiento = '',
 }) {
   const [mostrarAgotados, setMostrarAgotados] = useState(false);
   const { lotes, cargando, error, refrescar } = useLotesProducto(producto.id_producto, { enabled: activo, refreshKey });
-  const mostrarAcciones = Boolean(onEditar && onEliminar);
+  const mostrarAcciones = Boolean(onEditar || onEliminar || onAjustar);
   const lotesSucursal = useMemo(() => lotes.filter((lote) => (
     String(lote.id_sucursal) === String(sucursalId)
     && (!filtroStock || lote.estado_stock === filtroStock)
@@ -65,12 +65,15 @@ export default function LotesDeProductoTable({
       {mostrarAcciones && (
         <td data-label="Acciones" className={styles.actionsCell}>
           <div className={styles.rowActions}>
-            <button type="button" onClick={() => onEditar(lote)} className={`${styles.button} ${styles.iconButton}`} aria-label={`Editar lote ${lote.numero_lote}`} title="Editar lote…">
+            {onAjustar && <button type="button" onClick={() => onAjustar(lote)} className={`${styles.button} ${styles.iconButton}`} aria-label={`Ajustar stock del lote ${lote.numero_lote}`} title="Ajustar stock…">
+              <SlidersHorizontal size={15} aria-hidden="true" />
+            </button>}
+            {onEditar && <button type="button" onClick={() => onEditar(lote)} className={`${styles.button} ${styles.iconButton}`} aria-label={`Editar lote ${lote.numero_lote}`} title="Editar lote…">
               <Pencil size={15} aria-hidden="true" />
-            </button>
-            <button type="button" onClick={() => onEliminar(lote)} className={`${styles.button} ${styles.iconButton} ${styles.danger}`} aria-label={`Eliminar lote ${lote.numero_lote}`} title="Eliminar lote…">
+            </button>}
+            {onEliminar && <button type="button" onClick={() => onEliminar(lote)} className={`${styles.button} ${styles.iconButton} ${styles.danger}`} aria-label={`Eliminar lote ${lote.numero_lote}`} title="Eliminar lote…">
               <Trash2 size={15} aria-hidden="true" />
-            </button>
+            </button>}
           </div>
         </td>
       )}

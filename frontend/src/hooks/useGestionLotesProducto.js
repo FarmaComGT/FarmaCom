@@ -4,6 +4,7 @@ export default function useGestionLotesProducto({
   crearLote,
   actualizarLote,
   eliminarLote,
+  ajustarStock,
   limpiarError,
   onCambio,
   onExito,
@@ -11,6 +12,7 @@ export default function useGestionLotesProducto({
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [loteEditando, setLoteEditando] = useState(null);
   const [loteAEliminar, setLoteAEliminar] = useState(null);
+  const [loteAAjustar, setLoteAAjustar] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const abrirNuevo = useCallback(() => {
@@ -35,7 +37,7 @@ export default function useGestionLotesProducto({
     try {
       if (loteEditando) {
         await actualizarLote(loteEditando.id_lote, payload);
-        onExito?.(`Lote ${payload.numero_lote} actualizado correctamente.`);
+        onExito?.(`Lote ${payload.numero_lote || loteEditando.numero_lote} actualizado correctamente.`);
       } else {
         await crearLote(payload);
         onExito?.(`Lote ${payload.numero_lote} creado correctamente.`);
@@ -73,10 +75,34 @@ export default function useGestionLotesProducto({
     }
   }, [eliminarLote, loteAEliminar, onCambio, onExito]);
 
+  const solicitarAjuste = useCallback((lote) => {
+    limpiarError();
+    setLoteAAjustar(lote);
+  }, [limpiarError]);
+
+  const cancelarAjuste = useCallback(() => {
+    limpiarError();
+    setLoteAAjustar(null);
+  }, [limpiarError]);
+
+  const confirmarAjuste = useCallback(async (payload) => {
+    if (!loteAAjustar || !ajustarStock) return;
+    try {
+      await ajustarStock(loteAAjustar.id_lote, payload);
+      await onCambio?.();
+      setLoteAAjustar(null);
+      setRefreshKey((valor) => valor + 1);
+      onExito?.(`Stock del lote ${loteAAjustar.numero_lote} ajustado correctamente.`);
+    } catch {
+      // useLotes conserva el error para mostrarlo en el modal.
+    }
+  }, [ajustarStock, loteAAjustar, onCambio, onExito]);
+
   return {
     mostrarFormulario,
     loteEditando,
     loteAEliminar,
+    loteAAjustar,
     refreshKey,
     abrirNuevo,
     abrirEdicion,
@@ -85,5 +111,8 @@ export default function useGestionLotesProducto({
     solicitarEliminacion,
     cancelarEliminacion,
     confirmarEliminacion,
+    solicitarAjuste,
+    cancelarAjuste,
+    confirmarAjuste,
   };
 }

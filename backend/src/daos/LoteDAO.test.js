@@ -126,8 +126,7 @@ describe('LoteDAO', () => {
       });
 
       expect(pool.query).toHaveBeenCalledWith(expect.any(String), [
-        2, null, null, 'LT-02', null, null, null,
-        null, null, null, null, null, true, false, 7,
+        2, 'LT-02', null, null, 7,
       ]);
       expect(resultado).toEqual(fila);
     });
@@ -138,12 +137,9 @@ describe('LoteDAO', () => {
       await LoteDAO.actualizar(7, { fecha_vencimiento: null });
 
       const [consulta, valores] = pool.query.mock.calls[0];
-      expect(consulta).toContain(
-        'fecha_vencimiento  = CASE WHEN $14 THEN $5 ELSE fecha_vencimiento END',
-      );
-      expect(valores[4]).toBeNull();
-      expect(valores[13]).toBe(true);
-      expect(valores[14]).toBe(7);
+      expect(consulta).toContain('fecha_vencimiento = $1');
+      expect(consulta).toContain('version = version + 1');
+      expect(valores).toEqual([null, 7]);
     });
   });
 
@@ -180,7 +176,7 @@ describe('LoteDAO - consultas de inventario', () => {
     pool.query.mockResolvedValue({ rows: [{ id_lote: 1, nombre_sucursal: 'Central' }] });
 
     await expect(LoteDAO.obtenerPorProducto(5)).resolves.toEqual([{ id_lote: 1, nombre_sucursal: 'Central' }]);
-    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('WHERE v.id_producto = $1'), [5]);
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('WHERE v.id_producto = $1'), [5, null]);
   });
 
   it('obtiene un lote con su estado calculado o null', async () => {

@@ -70,6 +70,23 @@ const useLotes = () => {
     }
   }, []);
 
+  const ajustarStock = useCallback(async (idLote, payload) => {
+    setGuardando(true);
+    setError(null);
+    try {
+      const { data } = await api.patch(`/lotes/${idLote}/stock`, payload);
+      return data;
+    } catch (err) {
+      const mensaje = err.response
+        ? obtenerMensajeError(err, 'Error al ajustar las existencias')
+        : err.message || 'Error al ajustar las existencias';
+      setError(mensaje);
+      throw new Error(mensaje);
+    } finally {
+      setGuardando(false);
+    }
+  }, []);
+
   const limpiarError = useCallback(() => {
     setError(null);
   }, []);
@@ -80,6 +97,7 @@ const useLotes = () => {
     crear,
     actualizar,
     eliminar,
+    ajustarStock,
     limpiarError,
   };
 };

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import LoteDeleteModal from './LoteDeleteModal';
 import LoteFormModal from './LoteFormModal';
+import LoteStockAjusteModal from './LoteStockAjusteModal';
 
 const lote = {
   id_lote: 7,
@@ -19,6 +20,7 @@ const lote = {
   precio_venta: 12.5,
   precio_mayoreo: 10,
   cantidad_mayoreo: 5,
+  version: 1,
 };
 
 const catalogos = {
@@ -52,17 +54,15 @@ describe('modales de lote', () => {
 
     expect(screen.getByRole('heading', { name: 'Editar lote' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('LT-001')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('12')).toBeInTheDocument();
+    expect(screen.getByText('Existencias actuales: 12')).toBeInTheDocument();
+
+    const numeroLote = screen.getByDisplayValue('LT-001');
+    await user.clear(numeroLote);
+    await user.type(numeroLote, 'LT-002');
 
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
-      id_producto: 2,
-      numero_lote: 'LT-001',
-      stock_actual: 12,
-      precio_compra: 10,
-      limpiar_mayoreo: false,
-    }));
+    expect(onSubmit).toHaveBeenCalledWith({ version: 1, numero_lote: 'LT-002' });
   });
 
   it('permite cambiar y enviar el precio de compra del lote', async () => {
@@ -85,10 +85,11 @@ describe('modales de lote', () => {
     await user.type(precioCompra, '11.50');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+    expect(onSubmit).toHaveBeenCalledWith({
+      version: 1,
       precio_compra: 11.5,
-      precio_venta: 12.5,
-    }));
+      margen_ganancia: 8.6957,
+    });
   });
 
   it('fija y precarga el producto al registrar desde su detalle', async () => {
@@ -189,18 +190,13 @@ describe('regresión del formulario de lote dividido en secciones', () => {
 
     expect(screen.getByText('Completa precio y cantidad de mayoreo, o deja ambos vacíos.')).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(campo('stock_actual')).toHaveValue(12);
+    expect(screen.getByText('Existencias actuales: 12')).toBeInTheDocument();
 
     await usuario.clear(campoPrecio(/Precio de mayoreo/));
     expect(screen.queryByText('Completa precio y cantidad de mayoreo, o deja ambos vacíos.')).not.toBeInTheDocument();
     await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
-    expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
-      id_producto: 2, id_proveedor: 3, id_sucursal: 4, numero_lote: 'LT-001',
-      fecha_vencimiento: '2099-12-31', cantidad_ingresada: 20, stock_actual: 12,
-      precio_compra: 10, precio_venta: 12.5, margen_ganancia: 25,
-      precio_mayoreo: null, cantidad_mayoreo: null, limpiar_mayoreo: true,
-    });
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith({ version: 1, limpiar_mayoreo: true });
   });
 
   it('bloquea el stock superior al ingreso y permite corregirlo a cero', async () => {
@@ -208,18 +204,14 @@ describe('regresión del formulario de lote dividido en secciones', () => {
     const onSubmit = vi.fn();
     render(<LoteFormModal {...propsBase} lote={lote} onClose={vi.fn()} onSubmit={onSubmit} />);
 
-    await usuario.clear(campo('stock_actual'));
-    await usuario.type(campo('stock_actual'), '21');
+    expect(campo('stock_actual')).not.toBeInTheDocument();
+    expect(campo('cantidad_ingresada')).toBeDisabled();
+    expect(screen.getByText('Existencias actuales: 12')).toBeInTheDocument();
+
     await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
-    expect(screen.getByText('El stock actual no puede superar la cantidad ingresada.')).toBeInTheDocument();
+    expect(screen.getByText('No hay cambios para guardar.')).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
-
-    await usuario.clear(campo('stock_actual'));
-    await usuario.type(campo('stock_actual'), '0');
-    await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
-
-    expect(onSubmit).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ stock_actual: 0, cantidad_ingresada: 20 }));
   });
 
   it('recalcula el margen al cambiar el producto y conserva los datos del lote', async () => {
@@ -251,7 +243,7 @@ describe('regresión del formulario de lote dividido en secciones', () => {
     expect(screen.getByText('Ya existe ese lote')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /Número de lote/ })).toHaveValue('LT-DUPLICADO');
     expect(screen.getByLabelText('Precio de compra (Q)')).toHaveValue(10);
-    expect(campo('stock_actual')).toHaveValue(12);
+    expect(screen.getByText('Existencias actuales: 12')).toBeInTheDocument();
   });
 
   it('reinicia los campos y errores al cerrar una edición y abrir un lote nuevo', async () => {
@@ -313,6 +305,38 @@ describe('regresión del formulario de lote dividido en secciones', () => {
     await usuario.click(screen.getByRole('button', { name: 'Cerrar' }));
 
     expect(onClose).toHaveBeenCalledTimes(2);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+describe('ajuste trazable de existencias', () => {
+  it('envía la versión, el stock esperado y el motivo', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<LoteStockAjusteModal lote={lote} onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Cantidad del ajuste'), '-2');
+    await user.type(screen.getByLabelText('Motivo'), 'Conteo físico');
+    await user.click(screen.getByRole('button', { name: 'Registrar ajuste' }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      version: 1,
+      stock_esperado: 12,
+      cantidad_ajuste: -2,
+      motivo: 'Conteo físico',
+    });
+  });
+
+  it('impide que un ajuste deje existencias negativas', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<LoteStockAjusteModal lote={lote} onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Cantidad del ajuste'), '-13');
+    await user.type(screen.getByLabelText('Motivo'), 'Conteo físico');
+    await user.click(screen.getByRole('button', { name: 'Registrar ajuste' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('El ajuste no puede dejar existencias negativas.');
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });

@@ -7,17 +7,23 @@ const crear = asyncHandler(async (req, res) => {
 });
 
 const obtenerPorSucursal = asyncHandler(async (req, res) => {
-  const lotes = await LoteService.obtenerPorSucursal(Number(req.params.id_sucursal));
+  const lotes = await LoteService.obtenerPorSucursal(
+    Number(req.params.id_sucursal),
+    req.usuario,
+  );
   return res.status(200).json(lotes);
 });
 
 const obtenerPorProducto = asyncHandler(async (req, res) => {
-  const lotes = await LoteService.obtenerPorProducto(Number(req.params.id_producto));
+  const lotes = await LoteService.obtenerPorProducto(
+    Number(req.params.id_producto),
+    req.usuario,
+  );
   return res.status(200).json(lotes);
 });
 
 const obtenerPorId = asyncHandler(async (req, res) => {
-  const lote = await LoteService.obtenerPorId(Number(req.params.id));
+  const lote = await LoteService.obtenerPorId(Number(req.params.id), req.usuario);
   return res.status(200).json(lote);
 });
 
@@ -34,6 +40,23 @@ const eliminar = asyncHandler(async (req, res) => {
   return res.status(200).json(resultado);
 });
 
+const ajustarStock = asyncHandler(async (req, res) => {
+  const lote = await LoteService.ajustarStock(
+    Number(req.params.id),
+    req.body,
+    req.usuario,
+  );
+  return res.status(200).json(lote);
+});
+
+const obtenerMovimientos = asyncHandler(async (req, res) => {
+  const movimientos = await LoteService.obtenerMovimientos(
+    Number(req.params.id),
+    req.usuario,
+  );
+  return res.status(200).json(movimientos);
+});
+
 const obtenerAlertas = asyncHandler(async (req, res) => {
   const id_sucursal = req.params.id_sucursal ? Number(req.params.id_sucursal) : null;
   const alertas = await LoteService.obtenerAlertas(id_sucursal);
@@ -46,6 +69,8 @@ module.exports = {
   obtenerPorProducto,
   obtenerPorId,
   actualizar,
+  ajustarStock,
+  obtenerMovimientos,
   eliminar,
   obtenerAlertas,
 };

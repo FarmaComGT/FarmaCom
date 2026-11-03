@@ -6,6 +6,7 @@ jest.mock('../daos/CasaFarmaceuticaDAO');
 jest.mock('../daos/ProveedorDAO');
 jest.mock('../daos/LoteDAO');
 jest.mock('../daos/HistorialPrecioLoteDAO');
+jest.mock('../daos/MovimientoInventarioDAO');
 jest.mock('../middlewares/verificarToken', () => (req, _res, next) => {
   req.usuario = { id_usuario: 9, id_sucursal: 3, rol: 'administrador' };
   next();
@@ -45,6 +46,7 @@ const lote = {
   numero_lote: 'LT-007', fecha_vencimiento: null, cantidad_ingresada: 20,
   stock_actual: 12, precio_compra: 10, precio_venta: 12.5, margen_ganancia: 25,
   precio_mayoreo: 11, cantidad_mayoreo: 5,
+  version: 1,
 };
 const datosLote = {
   id_producto: '2', id_proveedor: '1', id_sucursal: '3', numero_lote: ' LT-NUEVO ',
@@ -178,17 +180,14 @@ describe('regresión de errores centralizados y validaciones extraídas', () => 
     expect(LoteDAO.crear).not.toHaveBeenCalled();
   });
 
-  it('permite poner el stock en cero y quitar el vencimiento sin cambiar otros campos', async () => {
-    const cambios = { stock_actual: 0, fecha_vencimiento: null };
-    const actualizado = { ...lote, ...cambios };
-    LoteDAO.actualizar.mockResolvedValue(true);
-    LoteDAO.obtenerPorId.mockResolvedValue(actualizado);
+  it('impide mezclar cambios de stock con la ediciÃ³n general del lote', async () => {
+    const respuesta = await request(app).patch('/api/lotes/7').send({ version: 1, stock_actual: '0', fecha_vencimiento: null });
 
-    const respuesta = await request(app).patch('/api/lotes/7').send({ stock_actual: '0', fecha_vencimiento: null });
-
-    expect(respuesta.status).toBe(200);
-    expect(respuesta.body).toEqual(actualizado);
-    expect(LoteDAO.actualizar).toHaveBeenCalledWith(7, cambios, client);
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body).toEqual({
+      mensaje: 'Las existencias no se modifican al editar el lote. Utiliza el ajuste de stock',
+    });
+    expect(LoteDAO.actualizar).not.toHaveBeenCalled();
   });
 
   it('conserva la limpieza explícita del mayoreo al actualizar un lote', async () => {
@@ -197,19 +196,19 @@ describe('regresión de errores centralizados y validaciones extraídas', () => 
     LoteDAO.obtenerPorId.mockResolvedValue(actualizado);
 
     const respuesta = await request(app).patch('/api/lotes/7').send({
-      precio_mayoreo: null, cantidad_mayoreo: null, limpiar_mayoreo: 'true',
+      version: 1, precio_mayoreo: null, cantidad_mayoreo: null, limpiar_mayoreo: 'true',
     });
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body).toEqual(actualizado);
-    expect(LoteDAO.actualizar).toHaveBeenCalledWith(7, { limpiar_mayoreo: true }, client);
+    expect(LoteDAO.actualizar).toHaveBeenCalledWith(7, { version: 1, limpiar_mayoreo: true }, client);
   });
 
   it('publica como 400 el error de negocio de stock sin escribir el lote', async () => {
-    const respuesta = await request(app).patch('/api/lotes/7').send({ stock_actual: 21 });
+    const respuesta = await request(app).patch('/api/lotes/7').send({ version: 1, stock_actual: 21 });
 
     expect(respuesta.status).toBe(400);
-    expect(respuesta.body).toEqual({ mensaje: 'El stock actual no puede superar la cantidad ingresada del lote' });
+    expect(respuesta.body).toEqual({ mensaje: 'Las existencias no se modifican al editar el lote. Utiliza el ajuste de stock' });
     expect(LoteDAO.actualizar).not.toHaveBeenCalled();
   });
 
@@ -238,7 +237,7 @@ describe('regresión de errores centralizados y validaciones extraídas', () => 
   it('traduce el conflicto de unicidad de PostgreSQL al 409 esperado', async () => {
     LoteDAO.actualizar.mockRejectedValue(Object.assign(new Error('Detalle SQL interno'), { code: '23505' }));
 
-    const respuesta = await request(app).patch('/api/lotes/7').send({ numero_lote: 'OTRO' });
+    const respuesta = await request(app).patch('/api/lotes/7').send({ version: 1, numero_lote: 'OTRO' });
 
     expect(respuesta.status).toBe(409);
     expect(respuesta.body).toEqual({ mensaje: 'Ya existe un lote con ese número para este producto en esta sucursal' });

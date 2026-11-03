@@ -68,12 +68,12 @@ describe('LoteRoutes - precio por lote y vencimiento opcional', () => {
 
     const respuesta = await request(crearApp())
       .patch('/api/lotes/7')
-      .send({ fecha_vencimiento: null });
+      .send({ version: 1, fecha_vencimiento: null });
 
     expect(respuesta.status).toBe(200);
     expect(LoteService.actualizarLote).toHaveBeenCalledWith(
       7,
-      { fecha_vencimiento: null },
+      { version: 1, fecha_vencimiento: null },
     );
   });
 });
@@ -88,12 +88,12 @@ describe('LoteRoutes - historial de precios', () => {
 
     const respuesta = await request(crearApp())
       .patch('/api/lotes/7')
-      .send({ precio_compra: 11.5, precio_venta: 17.25 });
+      .send({ version: 1, precio_compra: 11.5, precio_venta: 17.25 });
 
     expect(respuesta.status).toBe(200);
     expect(LoteService.actualizarLote).toHaveBeenCalledWith(
       7,
-      { precio_compra: 11.5, precio_venta: 17.25 },
+      { version: 1, precio_compra: 11.5, precio_venta: 17.25 },
     );
   });
 
