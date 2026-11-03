@@ -1,37 +1,12 @@
 .page {
-  --management-ink: #202b28;
-  --management-muted: #5c6863;
-  --management-line: #e7ece9;
-  --management-control: #b8c4be;
-  --management-accent: #005147;
-  --management-soft: #edf4f0;
-  --management-danger: #b42332;
-  --management-danger-bg: #ffefed;
-  min-width: 0;
-  width: calc(100% - 8px);
-  margin: 0 8px 8px 0;
-  padding: 28px;
-  border: 1px solid var(--management-line);
-  border-radius: 16px;
-  background: #fff;
-  color: var(--management-ink);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
+  composes: page from './PageShell.module.css';
 }
 
-.page :is(a, button, input, select, textarea, summary) {
-  touch-action: manipulation;
-}
-
-.page :is(a, button, input, select, textarea, summary):focus-visible,
 .dialogContent :is(button, input, select, textarea):focus-visible {
   outline: 2px solid var(--management-accent);
   outline-offset: 3px;
 }
 
-.page h1,
-.page h2,
 .dialogContent h2 {
   scroll-margin-top: 80px;
 }
@@ -592,19 +567,10 @@ textarea.input {
 }
 
 @media (max-width: 900px) {
-  .page { padding: 20px; }
   .rowActions { flex-wrap: wrap; }
 }
 
 @media (max-width: 767px) {
-  .page {
-    width: 100%;
-    margin: 0;
-    padding: 20px 16px max(20px, env(safe-area-inset-bottom));
-    border: 0;
-    border-radius: 0;
-  }
-
   .heading {
     flex-wrap: wrap;
     gap: 16px;
@@ -738,7 +704,7 @@ textarea.input {
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; }
   .locationPage { animation: none; }
-  .page *, .dialogContent * { transition: none !important; }
+  .dialogContent * { transition: none !important; }
 }
 
 @supports (view-transition-name: none) {

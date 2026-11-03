@@ -11,6 +11,7 @@ import ResultadoCard from '../../components/laboratorio/resultados/ResultadoCard
 import ResultadoEmptyState from '../../components/laboratorio/resultados/ResultadoEmptyState.jsx';
 import ResultadoUploadModal from '../../components/laboratorio/resultados/ResultadoUploadModal.jsx';
 import ResultadoAnularModal from '../../components/laboratorio/resultados/ResultadoAnularModal.jsx';
+import ContentState from '../../components/ui/ContentState.jsx';
 import HistorialExpediente from '../../components/laboratorio/pacientes/HistorialExpediente.jsx';
 import ConfiguracionAlmacenamientoModal from '../../components/laboratorio/ConfiguracionAlmacenamientoModal.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -195,7 +196,7 @@ export default function PacientePerfil() {
   }, [resultados, respaldosLocales]);
 
   if (cargando) {
-    return <section className={management.page}><div className={laboratory.loadingState} role="status">Cargando paciente…</div></section>;
+    return <section className={management.page}><ContentState variant="loading" message="Cargando paciente…" /></section>;
   }
 
   if (error || !paciente) {
@@ -208,9 +209,7 @@ export default function PacientePerfil() {
         >
           <ArrowLeft size={16} aria-hidden="true" /> Volver
         </button>
-        <div className={laboratory.errorState} role="alert">
-          {error || 'Paciente no encontrado.'}
-        </div>
+        <ContentState variant="error" message={error || 'Paciente no encontrado.'} />
       </section>
     );
   }
@@ -263,7 +262,7 @@ export default function PacientePerfil() {
           <div><h2 id="resultados-title">Resultados</h2><p>Documentos cargados y respaldos disponibles para este paciente.</p></div>
         </header>
         {cargandoResultados ? (
-          <div className={laboratory.loadingState} role="status">Cargando resultados…</div>
+          <ContentState variant="loading" message="Cargando resultados…" compact />
         ) : resultadosFusionados.length === 0 ? (
           <ResultadoEmptyState />
         ) : (

@@ -5,11 +5,14 @@ import styles from './AccessibleDialog.module.css';
 const SELECTOR_CONTROLES = [
   'a[href]',
   'button:not(:disabled)',
-  'input:not(:disabled)',
+  'input:not(:disabled):not([type="hidden"])',
   'select:not(:disabled)',
   'textarea:not(:disabled)',
-  '[tabindex="0"]',
+  '[contenteditable="true"]',
+  '[tabindex]:not([tabindex="-1"])',
 ].join(',');
+
+const dialogStack = [];
 
 export default function AccessibleDialog({
   open,
@@ -18,6 +21,8 @@ export default function AccessibleDialog({
   onClose,
   busy = false,
   size = 'medium',
+  className = '',
+  initialFocusRef,
   children,
 }) {
   const panelRef = useRef(null);
@@ -29,6 +34,8 @@ export default function AccessibleDialog({
   useEffect(() => {
     if (!open) return undefined;
 
+    const dialogId = Symbol('dialog');
+    dialogStack.push(dialogId);
     const previousFocus = document.activeElement;
     const appRoot = document.getElementById('root');
     const previousInert = appRoot?.inert;
@@ -37,13 +44,16 @@ export default function AccessibleDialog({
     document.body.style.overflow = 'hidden';
 
     const getControls = () => [...(panelRef.current?.querySelectorAll(SELECTOR_CONTROLES) || [])];
-    const initialFocus = panelRef.current?.querySelector('[aria-invalid="true"]')
+    const initialFocus = initialFocusRef?.current
+      || panelRef.current?.querySelector('[aria-invalid="true"]')
       || panelRef.current?.querySelector('input:not(:disabled), textarea:not(:disabled), select:not(:disabled)')
       || getControls()[0]
       || panelRef.current;
     initialFocus?.focus();
 
     const handleKeyDown = (event) => {
+      if (dialogStack.at(-1) !== dialogId) return;
+
       if (event.key === 'Escape') {
         event.preventDefault();
         if (!busyRef.current) onCloseRef.current?.();
@@ -68,6 +78,8 @@ export default function AccessibleDialog({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => {
+      const posicion = dialogStack.lastIndexOf(dialogId);
+      if (posicion >= 0) dialogStack.splice(posicion, 1);
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = previousOverflow;
       if (appRoot) appRoot.inert = previousInert;
@@ -87,7 +99,7 @@ export default function AccessibleDialog({
         aria-describedby={describedBy}
         aria-busy={busy}
         tabIndex={-1}
-        className={`${styles.dialog} ${styles[size] || styles.medium}`}
+        className={`${styles.dialog} ${styles[size] || styles.medium} ${className}`.trim()}
       >
         {children}
       </div>

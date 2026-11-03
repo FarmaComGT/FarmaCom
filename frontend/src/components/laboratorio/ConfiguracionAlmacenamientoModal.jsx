@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FolderOpen, LoaderCircle, X } from 'lucide-react';
 import AccessibleDialog from '../ui/AccessibleDialog.jsx';
+import ContentState from '../ui/ContentState.jsx';
 import management from '../../styles/ManagementUI.module.css';
 import laboratory from '../../styles/LaboratoryUI.module.css';
 
@@ -43,7 +44,12 @@ export default function ConfiguracionAlmacenamientoModal({
         </header>
 
         {!soportado ? (
-          <div className={laboratory.errorState} role="alert"><strong>Navegador no compatible</strong><span>Esta función solo está disponible en Google Chrome. Abre allí el módulo de laboratorio para configurar el respaldo local.</span></div>
+          <ContentState
+            variant="error"
+            title="Navegador no compatible"
+            message="Esta función solo está disponible en Google Chrome. Abre allí el módulo de laboratorio para configurar el respaldo local."
+            compact
+          />
         ) : (
           <div className={management.form}>
             <div className={laboratory.storageIntro}>
@@ -58,7 +64,7 @@ export default function ConfiguracionAlmacenamientoModal({
                 type="button"
                 onClick={manejarAccion}
                 disabled={procesando}
-                aria-label={procesando ? 'Procesando...' : etiquetaAccion}
+                aria-label={procesando ? 'Procesando…' : etiquetaAccion}
                 className={`${management.button} ${management.primary}`}
               >
                 {procesando && <LoaderCircle size={15} className={management.spinner} aria-hidden="true" />} {etiquetaAccion}

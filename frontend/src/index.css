@@ -24,6 +24,34 @@
   --radius-xl: 1.25rem;
 }
 
+:root {
+  --ui-ink: #202b28;
+  --ui-muted: #5c6863;
+  --ui-line: #e7ece9;
+  --ui-control: #b8c4be;
+  --ui-accent: #005147;
+  --ui-soft: #edf4f0;
+  --ui-danger: #b42332;
+  --ui-danger-bg: #ffefed;
+
+  /* Alias temporales para los módulos existentes. */
+  --management-ink: var(--ui-ink);
+  --management-muted: var(--ui-muted);
+  --management-line: var(--ui-line);
+  --management-control: var(--ui-control);
+  --management-accent: var(--ui-accent);
+  --management-soft: var(--ui-soft);
+  --management-danger: var(--ui-danger);
+  --management-danger-bg: var(--ui-danger-bg);
+  --report-ink: var(--ui-ink);
+  --report-muted: var(--ui-muted);
+  --report-line: var(--ui-line);
+  --report-control: var(--ui-control);
+  --report-accent: var(--ui-accent);
+  --report-soft: var(--ui-soft);
+  --report-danger: var(--ui-danger);
+}
+
 @layer base {
   body {
     @apply bg-background text-on-surface font-sans antialiased;

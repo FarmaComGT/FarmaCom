@@ -18,7 +18,7 @@ export default function LoteFormModal({
   if (!isOpen || typeof document === 'undefined') return null;
 
   return (
-    <Modal isOpen={isOpen} size="lg" labelledBy="titulo-formulario-lote" limitarAltura>
+    <Modal isOpen={isOpen} size="lg" labelledBy="titulo-formulario-lote" onClose={onClose} busy={guardando} limitarAltura>
       <ModalHeader
         title={modoEdicion ? 'Editar lote' : 'Ingresar lote'}
         titleId="titulo-formulario-lote"

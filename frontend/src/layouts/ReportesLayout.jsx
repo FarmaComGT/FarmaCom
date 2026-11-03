@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import ReportesNav from '../components/reportes/ReportesNav.jsx';
+import ContentState from '../components/ui/ContentState.jsx';
 import styles from '../styles/ReportsUI.module.css';
 
 export default function ReportesLayout() {
@@ -13,9 +14,7 @@ export default function ReportesLayout() {
       <ReportesNav />
       <div className={styles.content}>
         <Suspense fallback={(
-          <div role="status" className={`${styles.state} ${styles.skeleton}`}>
-            Cargando reporte…
-          </div>
+          <ContentState variant="loading" message="Cargando reporte…" compact className={styles.skeleton} />
         )}>
           <Outlet />
         </Suspense>

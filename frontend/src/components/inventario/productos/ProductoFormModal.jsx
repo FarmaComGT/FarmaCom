@@ -47,7 +47,7 @@ export default function ProductoFormModal({
   if (!isOpen || typeof document === 'undefined') return null;
 
   return (
-    <Modal isOpen={isOpen} size="md" labelledBy="titulo-formulario-producto">
+    <Modal isOpen={isOpen} size="md" labelledBy="titulo-formulario-producto" onClose={onClose} busy={guardando}>
       <ModalHeader
         title={modoEdicion ? 'Editar producto' : 'Nuevo producto'}
         titleId="titulo-formulario-producto"

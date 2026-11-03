@@ -19,7 +19,7 @@ export default function PromocionFormModal({
   onSubmit,
 }) {
   return (
-    <Modal isOpen={isOpen} size="md" labelledBy="titulo-promocion">
+    <Modal isOpen={isOpen} size="md" labelledBy="titulo-promocion" onClose={onClose} busy={guardando}>
       <ModalHeader
         title={modoEdicion ? 'Editar promoción' : 'Nueva promoción'}
         titleId="titulo-promocion"

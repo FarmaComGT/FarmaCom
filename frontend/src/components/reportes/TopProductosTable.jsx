@@ -1,5 +1,6 @@
 import React from 'react';
-import { PackageSearch, RefreshCw } from 'lucide-react';
+import { PackageSearch } from 'lucide-react';
+import ContentState from '../ui/ContentState.jsx';
 import { formatearMoneda, formatearNumero } from '../../utils/reportes';
 import styles from '../../styles/ReportsUI.module.css';
 
@@ -58,7 +59,7 @@ export default function TopProductosTable({
         aria-live="polite"
       >
       {cargando && datos.length === 0 && (
-        <div aria-label="Cargando productos más vendidos" className="mt-5 space-y-3">
+        <div role="status" aria-label="Cargando productos más vendidos" className="mt-5 space-y-3">
           {[1, 2, 3, 4, 5].map((fila) => (
             <div key={fila} className="h-14 animate-pulse rounded-xl bg-slate-100" />
           ))}
@@ -73,25 +74,11 @@ export default function TopProductosTable({
       )}
 
       {!cargando && error && (
-        <div role="alert" className={`${styles.state} ${styles.stateError}`}>
-          <p>{error}</p>
-          <button
-            type="button"
-            onClick={onReintentar}
-            className={styles.button}
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Reintentar
-          </button>
-        </div>
+        <ContentState variant="error" message={error} onRetry={onReintentar} />
       )}
 
       {!cargando && !error && datos.length === 0 && (
-        <div className={styles.state}>
-          <p className="text-sm font-medium text-slate-500">
-            No hay productos vendidos en el período seleccionado.
-          </p>
-        </div>
+        <ContentState message="No hay productos vendidos en el período seleccionado." />
       )}
 
       {!error && datos.length > 0 && (

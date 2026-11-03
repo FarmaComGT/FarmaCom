@@ -1,6 +1,7 @@
 import React from 'react';
 import { History, RefreshCw } from 'lucide-react';
 import useHistorialExpediente from '../../../hooks/useHistorialExpediente';
+import ContentState from '../../ui/ContentState.jsx';
 import management from '../../../styles/ManagementUI.module.css';
 import laboratory from '../../../styles/LaboratoryUI.module.css';
 
@@ -87,19 +88,15 @@ export default function HistorialExpediente({ idExpediente }) {
       </div>
 
       {cargando && (
-        <div aria-label="Cargando historial del expediente" className={laboratory.loadingState}>Cargando historial…</div>
+        <ContentState variant="loading" message="Cargando historial…" compact />
       )}
 
       {!cargando && error && (
-        <div role="alert" className={management.alert}>
-          {error}
-        </div>
+        <ContentState variant="error" message={error} onRetry={recargar} compact />
       )}
 
       {!cargando && !error && historial.length === 0 && (
-        <p className={laboratory.emptyState}>
-          Todavía no hay cambios registrados en este expediente.
-        </p>
+        <ContentState message="Todavía no hay cambios registrados en este expediente." compact />
       )}
 
       {!cargando && !error && historial.length > 0 && (

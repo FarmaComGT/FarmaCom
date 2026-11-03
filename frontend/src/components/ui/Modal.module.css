@@ -1,0 +1,11 @@
+.panel {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.limited {
+  display: flex;
+  max-height: 92dvh;
+  flex-direction: column;
+}

@@ -1,0 +1,44 @@
+.page {
+  min-width: 0;
+  width: calc(100% - 8px);
+  margin: 0 8px 8px 0;
+  padding: 28px;
+  border: 1px solid var(--ui-line);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ui-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.page :is(a, button, input, select, textarea, summary) {
+  touch-action: manipulation;
+}
+
+.page :is(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 3px;
+}
+
+.page :is(h1, h2, h3) {
+  scroll-margin-top: 80px;
+}
+
+@media (max-width: 900px) {
+  .page { padding: 20px; }
+}
+
+@media (max-width: 767px) {
+  .page {
+    width: 100%;
+    margin: 0;
+    padding: 20px 16px max(20px, env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page * { transition: none !important; }
+}

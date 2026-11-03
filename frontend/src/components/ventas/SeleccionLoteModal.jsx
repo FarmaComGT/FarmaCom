@@ -21,6 +21,7 @@ export default function SeleccionLoteModal({ producto, onClose, onSeleccionar })
       isOpen={Boolean(producto)}
       size="lg"
       labelledBy="titulo-seleccion-lote"
+      onClose={onClose}
       limitarAltura
     >
       <ModalHeader
