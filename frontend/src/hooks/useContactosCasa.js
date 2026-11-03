@@ -80,6 +80,7 @@ export default function useContactosCasa(idCasa) {
     proveedores,
     cargando,
     error,
+    refrescar: cargar,
     agregarTelefono,
     actualizarTelefono,
     eliminarTelefono,
