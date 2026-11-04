@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, MoreHorizontal, LoaderCircle } from 'lucide-react';
+import { MoreHorizontal, LoaderCircle } from 'lucide-react';
 
 const numero = new Intl.NumberFormat('es-GT');
 const stockLabels = { normal: 'Disponible', agotado: 'Agotado', poco_stock: 'Poco stock', sin_lotes: 'Sin lotes' };
@@ -42,12 +42,8 @@ function AccionesProducto({ producto, onEditar, onCambiarEstado, onVerHistorial,
 }
 
 export default function InventarioProductosTable({ productos, cargando, onEditar, onCambiarEstado,
-  onVerHistorial, puedeVerHistorial, cambiandoEstadoId, pagina = 1, onPaginaChange,
+  onVerHistorial, puedeVerHistorial, cambiandoEstadoId,
   onLimpiar, error, onReintentar }) {
-  const totalPaginas = Math.max(1, Math.ceil(productos.length / 25));
-  const actual = Math.min(Math.max(1, pagina), totalPaginas);
-  const inicio = (actual - 1) * 25;
-  const visibles = productos.slice(inicio, inicio + 25);
   return (
     <section className="inventory-results" aria-label="Productos en inventario" aria-busy={cargando}>
       <div className="inventory-table-scroll">
@@ -56,8 +52,8 @@ export default function InventarioProductosTable({ productos, cargando, onEditar
           <tbody>
             {cargando ? Array.from({length: 6}, (_,i) => <tr key={i} className="inventory-loading-row"><td colSpan={6}><span className="sr-only">{i === 0 ? 'Cargando inventario…' : ''}</span><div className="inventory-skeleton" /></td></tr>)
               : error ? <tr><td colSpan={6}><div className="inventory-empty" role="alert"><strong>No se pudo cargar el inventario</strong><p>{error}</p><button className="inventory-button" type="button" onClick={onReintentar}>Reintentar</button></div></td></tr>
-              : visibles.length === 0 ? <tr><td colSpan={6}><div className="inventory-empty"><strong>No hay productos que coincidan con los filtros.</strong><p>Prueba con otro nombre o revisa los filtros aplicados.</p>{onLimpiar && <button className="inventory-button" type="button" onClick={onLimpiar}>Limpiar búsqueda y filtros</button>}</div></td></tr>
-              : visibles.map((producto) => <tr key={producto.id_producto}>
+              : productos.length === 0 ? <tr><td colSpan={6}><div className="inventory-empty"><strong>No hay productos que coincidan con los filtros.</strong><p>Prueba con otro nombre o revisa los filtros aplicados.</p>{onLimpiar && <button className="inventory-button" type="button" onClick={onLimpiar}>Limpiar búsqueda y filtros</button>}</div></td></tr>
+              : productos.map((producto) => <tr key={producto.id_producto}>
                 <td className="inventory-identity" data-label="Producto"><Link className="inventory-product-name" aria-label={`Ver lotes de ${producto.nombre_comercial}`} to={`/inventario/productos/${producto.id_producto}/lotes`}>{producto.nombre_comercial}</Link>
                   <span className="inventory-product-generic">{producto.nombre_generico || 'Sin nombre genérico'}{producto.concentracion ? ` · ${producto.concentracion}` : ''}</span>
                   <span className="inventory-product-meta"><span translate="no">{producto.codigo}</span>{producto.presentacion && <span>{producto.presentacion}</span>}{!producto.activo && <span>Inactivo</span>}</span>
@@ -71,10 +67,7 @@ export default function InventarioProductosTable({ productos, cargando, onEditar
           </tbody>
         </table>
       </div>
-      {!cargando && !error && productos.length > 25 && <nav className="inventory-pagination" aria-label="Paginación de inventario">
-        <span>{numero.format(inicio + 1)}–{numero.format(Math.min(inicio + 25, productos.length))} de {numero.format(productos.length)} productos</span>
-        <div><button className="inventory-button" type="button" disabled={actual === 1} onClick={() => onPaginaChange?.(actual - 1)} aria-label="Página anterior"><ChevronLeft size={16} /></button><span>Página {actual} de {totalPaginas}</span><button className="inventory-button" type="button" disabled={actual === totalPaginas} onClick={() => onPaginaChange?.(actual + 1)} aria-label="Página siguiente"><ChevronRight size={16} /></button></div>
-      </nav>}
+
     </section>
   );
 }

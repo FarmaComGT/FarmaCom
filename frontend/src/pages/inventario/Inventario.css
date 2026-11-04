@@ -107,8 +107,6 @@
 .inventory-empty { padding: 40px 16px; text-align: center; }
 .inventory-empty strong { font-size: 14px; font-weight: 500; }
 .inventory-empty p { margin: 8px 0 16px; color: var(--inv-muted); }
-.inventory-pagination, .inventory-pagination > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.inventory-pagination { padding-top: 16px; color: var(--inv-muted); font-size: 12px; }
 .inventory-loading-row { height: 96px; }
 .inventory-skeleton { height: 52px; width: 80%; background: #eef1ef; border-radius: 4px; }
 .inventory-spinner { animation: inventory-spin 1s linear infinite; }
@@ -160,6 +158,4 @@
   .inventory-row-actions > summary { width: 36px; height: 44px; }
   .inventory-action-popover button { min-height: 44px; }
   .inventory-table tr:has(.inventory-empty), .inventory-table .inventory-loading-row { display: block; }
-  .inventory-pagination { align-items: flex-start; flex-direction: column; }
-  .inventory-pagination .inventory-button { min-height: 44px; min-width: 44px; }
 }

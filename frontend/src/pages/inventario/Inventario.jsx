@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useSearchParams, useLocation, useNavigationType } from 'react-router-dom';
 import { Plus, PackagePlus } from 'lucide-react';
 import './Inventario.css';
+import Paginacion from '../../components/ui/Paginacion.jsx';
 import ProductoFormModal from '../../components/inventario/productos/ProductoFormModal.jsx';
 import HistorialPrecioProductoModal from '../../components/inventario/productos/HistorialPrecioProductoModal.jsx';
 import LoteFormModal from '../../components/inventario/stock/LoteFormModal.jsx';
@@ -21,7 +22,6 @@ import useProveedores from '../../hooks/useProveedores.js';
 import useSucursales from '../../hooks/useSucursales.js';
 import {
   FILTROS_INVENTARIO_INICIALES,
-  filtrarProductosInventario,
   siguienteCodigoProducto,
 } from '../../utils/inventario.js';
 
@@ -33,7 +33,11 @@ export default function Inventario() {
   const filtros = useMemo(() => Object.fromEntries(
     Object.keys(FILTROS_INVENTARIO_INICIALES).map((campo) => [campo, params.get(campo) || '']),
   ), [params]);
-  const pagina = Math.max(1, Number(params.get('pagina')) || 1);
+  const paginaURL = Number(params.get('pagina'));
+  const pagina = Number.isSafeInteger(paginaURL) && paginaURL > 0 && paginaURL <= 2147483647 ? paginaURL : 1;
+  const limite = [10, 25, 50].includes(Number(params.get('limite'))) ? Number(params.get('limite')) : 25;
+  const location = useLocation();
+  const navigationType = useNavigationType();
   const actualizarVista = useCallback((cambios, replace = false) => {
     setParams((actuales) => {
       const siguientes = new URLSearchParams(actuales);
@@ -52,10 +56,35 @@ export default function Inventario() {
   const {
     productos: productosInventario,
     resumen,
+    paginacion,
+    cargandoResumen,
+    errorResumen,
     cargando,
     error: errorInventario,
     refrescar: refrescarInventario,
-  } = useInventarioSucursal(sucursalId);
+  } = useInventarioSucursal(sucursalId, { pagina, limite, busqueda, ...filtros });
+  const scrollPorEntrada = useRef(new Map());
+  useEffect(() => {
+    const guardar = () => scrollPorEntrada.current.set(location.key, window.scrollY);
+    window.addEventListener('scroll', guardar, { passive: true });
+    return () => window.removeEventListener('scroll', guardar);
+  }, [location.key]);
+  useEffect(() => {
+    if (navigationType === 'POP' && !cargando && paginacion) {
+      const posicion = scrollPorEntrada.current.get(location.key);
+      if (posicion !== undefined) window.scrollTo(0, posicion);
+    }
+  }, [location.key, navigationType, cargando, paginacion]);
+  useEffect(() => {
+    if (!cargando && paginacion && paginacion.pagina !== pagina) {
+      actualizarVista({ pagina: paginacion.pagina }, true);
+    }
+  }, [cargando, paginacion, pagina, actualizarVista]);
+  const crearDestino = (valor) => {
+    const siguientes = new URLSearchParams(params);
+    siguientes.set('pagina', String(valor));
+    return `${location.pathname}?${siguientes}`;
+  };
   const {
     productos: productosCatalogo,
     error: errorCatalogo,
@@ -85,10 +114,6 @@ export default function Inventario() {
     document.title = 'Inventario · FarmaCom';
   }, []);
 
-  const productosFiltrados = useMemo(
-    () => filtrarProductosInventario(productosInventario, busqueda, filtros),
-    [busqueda, filtros, productosInventario],
-  );
   const codigoSugerido = useMemo(
     () => siguienteCodigoProducto(productosCatalogo),
     [productosCatalogo],
@@ -141,9 +166,11 @@ export default function Inventario() {
       <InventarioResumen
         resumen={resumen}
         filtros={filtros}
-        cargando={cargando || Boolean(errorInventario)}
+        cargando={cargandoResumen || Boolean(errorResumen)}
         onSeleccionar={seleccionarResumen}
       />
+
+      {errorResumen && <div role="alert" className="inventory-summary-error">No se pudo cargar el resumen. {errorResumen} <button type="button" className="inventory-button" onClick={refrescarInventario}>Reintentar</button></div>}
 
       <InventarioFiltros
         busqueda={busqueda}
@@ -159,8 +186,7 @@ export default function Inventario() {
 
       <div className="inventory-result-count">
         <p aria-live="polite" hidden={cargando || Boolean(errorInventario)}>
-          Mostrando <strong className="text-primary">{productosFiltrados.length}</strong>
-          {' '}de <strong className="text-primary">{productosInventario.length}</strong> productos.
+          <strong className="text-primary">{new Intl.NumberFormat('es-GT').format(paginacion?.total ?? 0)}</strong> productos encontrados.
         </p>
         {filtros.estado_stock && filtros.estado_vencimiento && (
           <p className="font-semibold text-primary">Los filtros de stock y vencimiento se combinan.</p>
@@ -179,20 +205,24 @@ export default function Inventario() {
         </div>
       )}
 
+      <div id="listado-inventario">
       <InventarioProductosTable
-        productos={productosFiltrados}
+        productos={productosInventario}
         cargando={cargando}
         onEditar={gestionProducto.abrirEdicion}
         onCambiarEstado={gestionProducto.alternarEstado}
         onVerHistorial={gestionProducto.mostrarHistorial}
         puedeVerHistorial={puedeVerHistorial}
         cambiandoEstadoId={gestionProducto.cambiandoEstadoId}
-        pagina={pagina}
-        onPaginaChange={(valor) => actualizarVista({ pagina: valor })}
         onLimpiar={limpiarVista}
         error={errorInventario}
         onReintentar={refrescarInventario}
       />
+
+      </div>
+      {!errorInventario && <Paginacion paginacion={paginacion} crearDestino={crearDestino}
+        onLimiteChange={(valor) => actualizarVista({ limite: valor })} cargando={cargando}
+        sustantivo="productos" etiqueta="Paginación de inventario" controles="listado-inventario" />}
 
       <ProductoFormModal
         isOpen={gestionProducto.mostrarFormulario}
