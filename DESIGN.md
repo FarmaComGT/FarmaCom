@@ -97,6 +97,9 @@ Los estados normales son neutros. Las alertas reciben texto más marcado y un fo
 - Crear, cambiar y renombrar carritos permanece disponible sin abandonar el punto de venta; la edición del nombre valida en línea y evita perder cambios por un cambio accidental de pestaña.
 - Cerrar o vaciar un carrito y quitar un producto solicitan confirmación en un diálogo accesible que describe exactamente qué información se perderá.
 - El detalle del carrito utiliza una lista adaptable con cantidades editables, stock máximo, lote, vencimiento, precio unitario, subtotal y estado de promoción.
+- El cobro mantiene visible el total, el cliente, el método y un resumen breve de productos; en efectivo calcula el cambio mientras se escribe y valida el monto sin bloquear la entrada.
+- Los pagos con tarjeta distinguen el envío al POS de la espera de confirmación, bloquean el cierre mientras existe una transacción pendiente y ofrecen un error recuperable cuando el dispositivo rechaza el pago.
+- El comprobante confirma que inventario y carrito fueron actualizados, usa cifras y fechas localizadas y conserva una versión imprimible sin perder el diálogo accesible.
 
 ### Acceso y gestión
 

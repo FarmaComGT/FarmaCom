@@ -9,6 +9,7 @@ describe('CarritoAccionesCobro', () => {
     const onProcesar = vi.fn(); const onMetodoPagoChange = vi.fn();
     render(<CarritoAccionesCobro total={25} metodoPago="efectivo" deshabilitado={false} onMetodoPagoChange={onMetodoPagoChange} onProcesar={onProcesar} />);
     expect(screen.getByText('Q 25.00')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Método de pago' })).toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Tarjeta' }));
     await userEvent.setup().click(screen.getByRole('button', { name: 'Procesar venta' }));
     expect(onMetodoPagoChange).toHaveBeenCalledWith('tarjeta');
