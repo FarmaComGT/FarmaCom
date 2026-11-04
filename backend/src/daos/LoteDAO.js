@@ -103,7 +103,25 @@ class LoteDAO {
   }
 
   // Lista todos los lotes de un producto en todas las sucursales
-  async obtenerPorProducto(id_producto, id_sucursal = null) {
+  async obtenerPorProducto(id_producto, id_sucursal = null, filtros) {
+    const valores = [id_producto, id_sucursal];
+    const condiciones = ['v.id_producto = $1', '($2::INTEGER IS NULL OR v.id_sucursal = $2)'];
+    for (const campo of ['estado_stock', 'estado_vencimiento']) {
+      if (filtros?.[campo]) {
+        valores.push(filtros[campo]);
+        condiciones.push(`v.${campo} = $${valores.length}`);
+      }
+    }
+    let paginacion;
+    let limites = '';
+    if (filtros) {
+      const conteo = await pool.query(`SELECT COUNT(*) AS total FROM v_lote_estado v
+        WHERE ${condiciones.join(' AND ')}`, valores);
+      const { crearPaginacion } = require('../utils/paginacion');
+      paginacion = crearPaginacion(filtros.pagina, filtros.limite, Number(conteo.rows[0].total));
+      limites = `LIMIT $${valores.length + 1} OFFSET $${valores.length + 2}`;
+      valores.push(paginacion.limite, (paginacion.pagina - 1) * paginacion.limite);
+    }
     const query = `
       SELECT
         v.*,
@@ -116,12 +134,11 @@ class LoteDAO {
       JOIN presentacion pre ON pre.id_presentacion = p.id_presentacion
       JOIN sucursal  s  ON s.id_sucursal   = v.id_sucursal
       JOIN proveedor pr ON pr.id_proveedor = v.id_proveedor
-      WHERE v.id_producto = $1
-        AND ($2::INTEGER IS NULL OR v.id_sucursal = $2)
-      ORDER BY v.fecha_vencimiento ASC NULLS LAST, v.id_lote
+      WHERE ${condiciones.join(' AND ')}
+      ORDER BY v.fecha_vencimiento ASC NULLS LAST, v.id_lote ${limites}
     `;
-    const { rows } = await pool.query(query, [id_producto, id_sucursal]);
-    return rows;
+    const { rows } = await pool.query(query, valores);
+    return paginacion ? { datos: rows, paginacion } : rows;
   }
 
   async obtenerPorId(id_lote, client = pool) {

@@ -30,10 +30,10 @@ describe('LoteController', () => {
 
     const usuario = { rol: 'dependiente', id_sucursal: 3 };
     await LoteController.obtenerPorSucursal({ params: { id_sucursal: '3' }, usuario }, res, jest.fn());
-    await LoteController.obtenerPorProducto({ params: { id_producto: '4' }, usuario }, res, jest.fn());
+    await LoteController.obtenerPorProducto({ params: { id_producto: '4' }, usuario, query: { pagina: 2, limite: 10 } }, res, jest.fn());
 
     expect(LoteService.obtenerPorSucursal).toHaveBeenCalledWith(3, usuario);
-    expect(LoteService.obtenerPorProducto).toHaveBeenCalledWith(4, usuario);
+    expect(LoteService.obtenerPorProducto).toHaveBeenCalledWith(4, usuario, { pagina: 2, limite: 10 });
   });
 
   it('obtiene y elimina un lote por id', async () => {

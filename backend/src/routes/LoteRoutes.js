@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const { query } = require('express-validator');
 const LoteController = require('../controllers/LoteController');
 const HistorialPrecioLoteController = require('../controllers/HistorialPrecioLoteController');
 const verificarToken = require('../middlewares/verificarToken');
@@ -92,6 +93,13 @@ router.get('/producto/:id_producto',
   verificarToken,
   verificarRol('dueno', 'administrador', 'dependiente'),
   validarParamIdProducto,
+  query('pagina').optional().isString().bail()
+    .isInt({ min: 1, max: 2147483647 }).withMessage('Página inválida').toInt(),
+  query('limite').optional().isString().bail()
+    .isInt({ min: 1, max: 100 }).withMessage('Límite inválido').toInt(),
+  query('id_sucursal').optional().isString().bail().isInt({ min: 1, max: 2147483647 }).toInt(),
+  query('estado_stock').optional().isString().bail().isIn(['normal', 'poco_stock', 'agotado']),
+  query('estado_vencimiento').optional().isString().bail().isIn(['normal', 'proximo_a_vencer', 'vencido']),
   validateRequest,
   LoteController.obtenerPorProducto,
 );

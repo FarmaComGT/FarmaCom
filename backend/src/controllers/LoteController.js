@@ -18,6 +18,7 @@ const obtenerPorProducto = asyncHandler(async (req, res) => {
   const lotes = await LoteService.obtenerPorProducto(
     Number(req.params.id_producto),
     req.usuario,
+    req.query,
   );
   return res.status(200).json(lotes);
 });

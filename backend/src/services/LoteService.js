@@ -160,13 +160,22 @@ const obtenerPorSucursal = async (id_sucursal, usuario) => {
   return await LoteDAO.obtenerPorSucursal(id_sucursal);
 };
 
-const obtenerPorProducto = async (id_producto, usuario) => {
+const obtenerPorProducto = async (id_producto, usuario, filtros = {}) => {
   const producto = await ProductoDAO.obtenerPorId(id_producto);
   if (!producto) lanzarError('Producto no encontrado', 404);
   const idSucursal = usuario?.rol === 'dependiente'
     ? Number(usuario.id_sucursal)
-    : null;
-  return await LoteDAO.obtenerPorProducto(id_producto, idSucursal);
+    : filtros.id_sucursal ?? null;
+  if (filtros.id_sucursal) {
+    validarAccesoSucursal(usuario, filtros.id_sucursal, 'No tienes permiso para consultar lotes de otra sucursal');
+  }
+  if (filtros.pagina !== undefined || filtros.limite !== undefined) {
+    return LoteDAO.obtenerPorProducto(id_producto, idSucursal, {
+      pagina: filtros.pagina ?? 1, limite: filtros.limite ?? 25,
+      estado_stock: filtros.estado_stock, estado_vencimiento: filtros.estado_vencimiento,
+    });
+  }
+  return LoteDAO.obtenerPorProducto(id_producto, idSucursal);
 };
 
 const obtenerPorId = async (id_lote, usuario) => {

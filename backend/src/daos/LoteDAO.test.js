@@ -4,6 +4,26 @@ const pool = require('../database/db');
 const LoteDAO = require('./LoteDAO');
 
 describe('LoteDAO', () => {
+  it('cuenta y pagina después de filtrar producto, sucursal y estados', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ total: '26' }] })
+      .mockResolvedValueOnce({ rows: [{ id_lote: 27 }] });
+    const resultado = await LoteDAO.obtenerPorProducto(7, 2, {
+      pagina: 99, limite: 25, estado_stock: 'agotado', estado_vencimiento: 'vencido',
+    });
+    expect(resultado).toEqual({ datos: [{ id_lote: 27 }],
+      paginacion: { pagina: 2, limite: 25, total: 26, total_paginas: 2 } });
+    const [sql, valores] = pool.query.mock.calls.at(-1);
+    expect(sql).toContain('v.estado_stock = $3 AND v.estado_vencimiento = $4');
+    expect(sql).toContain('ORDER BY v.fecha_vencimiento ASC NULLS LAST, v.id_lote LIMIT $5 OFFSET $6');
+    expect(valores).toEqual([7, 2, 'agotado', 'vencido', 25, 25]);
+  });
+
+  it('devuelve metadatos para una página sin lotes', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ total: '0' }] }).mockResolvedValueOnce({ rows: [] });
+    await expect(LoteDAO.obtenerPorProducto(7, 2, { pagina: 8, limite: 10 })).resolves.toEqual({
+      datos: [], paginacion: { pagina: 1, limite: 10, total: 0, total_paginas: 1 },
+    });
+  });
   describe('ejecutarEnTransaccion', () => {
     it('confirma y libera la conexion cuando la operacion termina', async () => {
       const client = {

@@ -51,6 +51,7 @@ export default function LotesProducto() {
   const actualizarFiltro = (nombre, valor) => {
     setParams((actuales) => {
       const siguientes = new URLSearchParams(actuales);
+      siguientes.delete('pagina');
       if (valor) siguientes.set(nombre, valor);
       else siguientes.delete(nombre);
       return siguientes;
@@ -61,6 +62,7 @@ export default function LotesProducto() {
     setParams((actuales) => {
       const siguientes = new URLSearchParams(actuales);
       siguientes.delete('stock');
+      siguientes.delete('pagina');
       siguientes.delete('vencimiento');
       return siguientes;
     });
