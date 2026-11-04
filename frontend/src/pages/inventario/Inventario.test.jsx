@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Inventario from './Inventario.jsx';
+import { filtrarProductosInventario } from '../../utils/inventario.js';
 
 const mocks = vi.hoisted(() => ({
   useAuth: vi.fn(),
@@ -51,9 +52,10 @@ const productos = [
 
 vi.mock('../../context/AuthContext.jsx', () => ({ useAuth: mocks.useAuth }));
 vi.mock('../../hooks/useInventarioSucursal.js', () => ({
-  default: (idSucursal) => ({
+  default: (idSucursal, opciones) => ({
     ...mocks.sucursalConsultada(idSucursal),
-    productos,
+    productos: filtrarProductosInventario(productos, opciones.busqueda, opciones),
+    paginacion: { pagina: 1, limite: 25, total: 2, total_paginas: 1 },
     resumen: {
       total_productos: 2,
       productos_agotados: 1,

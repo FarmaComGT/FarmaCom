@@ -15,14 +15,14 @@ const verificarSucursal = async (id_sucursal) => {
   if (rows.length === 0) lanzarError('Sucursal no encontrada', 404);
 };
 
-const obtenerInventarioPorSucursal = async (id_sucursal, usuario) => {
+const obtenerInventarioPorSucursal = async (id_sucursal, usuario, filtros) => {
   validarAccesoSucursal(
     usuario,
     id_sucursal,
     'No tienes permiso para consultar el inventario de otra sucursal',
   );
   await verificarSucursal(id_sucursal);
-  return await InventarioDAO.obtenerPorSucursal(id_sucursal);
+  return await InventarioDAO.obtenerPorSucursal(...(filtros ? [id_sucursal, filtros] : [id_sucursal]));
 };
 
 const obtenerResumenPorSucursal = async (id_sucursal, usuario) => {

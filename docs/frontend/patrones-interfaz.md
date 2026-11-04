@@ -54,6 +54,98 @@ Orden recomendado de estados:
 
 Si una actualización conserva datos anteriores, no se debe desmontar la tabla. Se mantiene visible con `aria-busy="true"` y un indicador discreto dentro de su panel.
 
+## Paginación de listados
+
+Inventario establece el patrón de paginación en el servidor. Su tabla recibe únicamente
+las filas de la página actual; no se debe aplicar otro `slice` ni filtrar estas filas
+en el navegador. Los filtros se aplican antes del conteo y de `LIMIT/OFFSET` en el DAO.
+
+### Contrato de referencia
+
+`GET /api/sucursales/:id_sucursal/inventario?pagina=1&limite=25`
+
+```json
+{
+  "datos": [],
+  "paginacion": { "pagina": 1, "limite": 25, "total": 0, "total_paginas": 1 }
+}
+```
+
+- `pagina`: entero entre 1 y 2147483647. En este endpoint activa el modo paginado.
+- `limite`: entero entre 1 y 100; predeterminado 25. La interfaz ofrece 10, 25 y 50.
+- `busqueda`: hasta 150 caracteres, espacios exteriores recortados. Busca subcadenas
+  literales en código, nombre comercial y genérico, sin distinguir mayúsculas. Las
+  tildes siguen siendo significativas; `%` y `_` no son comodines.
+- Filtros combinables con AND: `id_categoria`, `activo` (`true` o `false`),
+  `estado_stock` y `estado_vencimiento`. Sus valores están definidos en OpenAPI.
+- Parámetros inválidos devuelven 400 antes de consultar la base. No se admiten arreglos
+  ni objetos en estos parámetros. Se mantienen autenticación y permisos por sucursal.
+- `total` cuenta todos los resultados filtrados. El orden conserva prioridad de
+  alertas, nombre comercial y un desempate por `id_producto`. No es una instantánea:
+  las modificaciones del inventario pueden cambiar la posición entre consultas.
+- Una página superior al máximo devuelve la última página efectiva. Sin resultados
+  devuelve `datos: []`, `total: 0`, `pagina: 1` y `total_paginas: 1`.
+
+Por compatibilidad, **sin `pagina` este endpoint conserva el arreglo completo** que
+consume `useCatalogoPOS`; los filtros de listado no se aplican en ese modo. Esta
+excepción es temporal y específica de inventario. No se debe cambiar el contrato
+de los demás módulos hasta migrar sus consumidores. Pacientes ya tiene su propio
+endpoint paginado y comparte la forma de los metadatos.
+
+### Componente y estado de navegación
+
+`components/ui/Paginacion.jsx` recibe `paginacion`, `crearDestino(pagina)`,
+`onLimiteChange(limite)`, `cargando`, `sustantivo`, `etiqueta` y `controles` (el ID
+del listado). Su estilo usa las variables de inventario con valores de respaldo.
+Se integra con `react-router-dom`, sin depender del hook ni del endpoint de inventario.
+
+```jsx
+<Paginacion
+  paginacion={paginacion}
+  crearDestino={crearDestino}
+  onLimiteChange={(limite) => actualizarVista({ limite })}
+  cargando={cargando}
+  sustantivo="productos"
+  etiqueta="Paginación de inventario"
+  controles="listado-inventario"
+/>
+```
+
+- Inventario conserva `pagina`, `limite`, `q`, `sucursal` y filtros en la URL.
+  `q` se envía al backend como `busqueda`. Los cambios de criterios regresan a página 1;
+  los enlaces anterior/siguiente conservan el resto de parámetros.
+- Recargar o abrir un enlace debe reproducir la consulta. Atrás/Adelante restaura
+  los parámetros; el scroll se restaura dentro de la instancia del listado después
+  de recibir los resultados. No se persiste el scroll al cerrar la pantalla.
+- El hook aplica una pausa de 300 ms a los cambios de búsqueda y cancela peticiones
+  anteriores. Una respuesta tardía no debe sobrescribir datos ni corregir una URL nueva.
+- Al corregir una página fuera de rango, se reemplaza la URL sin agregar una entrada
+  al historial. Los metadatos usados deben pertenecer a la consulta vigente.
+- El resumen es global por sucursal: no depende de página, búsqueda ni filtros.
+  Se consulta al cambiar sucursal y al refrescar después de una mutación; sus errores
+  no impiden mostrar el listado, ni los errores del listado ocultan el resumen.
+- Después de crear o editar productos, cambiar su estado o ingresar lotes, se refrescan
+  listado y resumen. El servidor vuelve a resolver la página disponible.
+
+### Verificación al adoptar el patrón
+
+Cada nuevo listado debe probar filtros combinados, varias páginas sin duplicados en
+un conjunto estable, estado vacío, parámetros inválidos, permisos, respuestas tardías,
+errores con reintento, navegación y refresco tras mutaciones. Antes de retirar un
+contrato anterior se deben identificar sus consumidores, incluidos selectores y POS.
+
+Para inventario: `npm --prefix backend test -- --runInBand Inventario paginacion`,
+`npm --prefix backend run test:integration -- --testPathPatterns=api.integration`,
+`npm --prefix frontend test -- Inventario useInventarioSucursal Paginacion useCatalogoPOS`
+y `npm --prefix frontend run build`.
+Integración requiere una base de pruebas cuyo nombre incluya `integration`; nunca
+debe apuntar a la base de desarrollo. Las credenciales se configuran con las variables
+que utiliza `backend/tests/integration/setup-env.js`.
+
+La pantalla todavía carga el catálogo de `/productos` para formularios y código
+sugerido. Paginar inventario reduce el listado y sus consultas, pero no elimina esa
+descarga ni migra lotes e historiales.
+
 ## Formularios
 
 - Cada control debe tener `label`, `name`, `autocomplete` y el `type`/`inputMode` correspondiente.
