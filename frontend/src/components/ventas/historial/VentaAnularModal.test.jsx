@@ -28,10 +28,14 @@ describe('VentaAnularModal', () => {
 
     expect(screen.getByText(/No se permiten devoluciones parciales/i)).toBeInTheDocument();
     const boton = screen.getByRole('button', { name: 'Sí, anular venta' });
-    expect(boton).toBeDisabled();
+    expect(boton).toBeEnabled();
+
+    await user.click(boton);
+    expect(screen.getByText(/El motivo es obligatorio/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Motivo de anulación/)).toHaveFocus();
+    expect(onConfirm).not.toHaveBeenCalled();
 
     await user.type(screen.getByLabelText(/Motivo de anulación/), '  Error de cobro  ');
-    expect(boton).toBeEnabled();
     await user.click(boton);
 
     expect(onConfirm).toHaveBeenCalledWith('Error de cobro');

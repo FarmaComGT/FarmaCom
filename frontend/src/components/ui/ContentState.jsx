@@ -16,6 +16,7 @@ export default function ContentState({
   compact = false,
   onRetry,
   retryLabel = 'Reintentar',
+  ariaLabel,
   className = '',
 }) {
   const Icon = icon || ICONOS[variant] || Inbox;
@@ -26,6 +27,7 @@ export default function ContentState({
   return (
     <div
       role={esError ? 'alert' : 'status'}
+      aria-label={ariaLabel}
       aria-live={esError ? 'assertive' : 'polite'}
       aria-busy={esCarga}
       className={`${styles.state} ${variantClass} ${compact ? styles.compact : ''} ${className}`.trim()}

@@ -1,5 +1,7 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { navegarConTransicionDeVista } from '../../../utils/viewTransition';
+import ui from '../../../styles/ManagementUI.module.css';
 
 const pestanas = [
   { ruta: '/ventas/historial', etiqueta: 'Ventas', fin: true },
@@ -7,15 +9,26 @@ const pestanas = [
 ];
 
 export default function HistorialVentasNav() {
-  const { search } = useLocation();
+  const navigate = useNavigate();
+  const { pathname, search } = useLocation();
+
+  const navegarConTransicion = (event, ruta) => {
+    navegarConTransicionDeVista({
+      event,
+      navigate,
+      destino: `${ruta}${search}`,
+      rutaActual: `${pathname}${search}`,
+    });
+  };
+
   return (
-    <nav aria-label="Vistas del historial de ventas" className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+    <nav aria-label="Vistas del historial de ventas" className={ui.subnav}>
       {pestanas.map(({ ruta, etiqueta, fin }) => (
         <NavLink
           key={ruta}
           to={`${ruta}${search}`}
           end={fin}
-          className={({ isActive }) => `rounded-xl px-4 py-2 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${isActive ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 hover:bg-primary/10'}`}
+          onClick={(event) => navegarConTransicion(event, ruta)}
         >
           {etiqueta}
         </NavLink>

@@ -1,0 +1,475 @@
+.content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sectionHeading {
+  color: var(--management-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px 0;
+  border-block: 1px solid var(--management-line);
+}
+
+.filterActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterActions > button {
+  min-height: 40px;
+}
+
+.resultsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.resultsHeader p {
+  margin: 0;
+}
+
+.salesTable {
+  min-width: 980px;
+}
+
+.salesTable th:first-child { width: 15%; }
+.salesTable th:nth-child(2) { width: 18%; }
+.salesTable th:nth-child(3) { width: 15%; }
+.salesTable th:nth-child(4) { width: 8%; }
+.salesTable th:nth-child(5) { width: 9%; }
+.salesTable th:nth-child(6) { width: 10%; }
+.salesTable th:nth-child(7) { width: 9%; }
+.salesTable th:last-child { width: 16%; text-align: right; }
+
+.saleId,
+.primaryLine,
+.secondaryLine {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.saleId {
+  color: var(--management-accent);
+  font-weight: 600;
+}
+
+.primaryLine {
+  color: var(--management-ink);
+  font-weight: 500;
+}
+
+.secondaryLine {
+  margin-top: 3px;
+  color: var(--management-muted);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.numberCell {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.loadingTable {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.skeleton {
+  display: block;
+  width: min(100%, 120px);
+  height: 12px;
+  border-radius: 4px;
+  background: #e9eeeb;
+  animation: historial-skeleton 1.2s ease-in-out infinite alternate;
+}
+
+.dialog {
+  --management-ink: #202b28;
+  --management-muted: #5c6863;
+  --management-line: #e7ece9;
+  --management-control: #b8c4be;
+  --management-accent: #005147;
+  --management-soft: #edf4f0;
+  --management-danger: #b42332;
+  --management-danger-bg: #ffefed;
+  color: var(--management-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dialog :is(button, input, select, textarea, a) {
+  touch-action: manipulation;
+}
+
+.dialog :is(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid var(--management-accent);
+  outline-offset: 3px;
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--management-line);
+}
+
+.dialogHeader h2 {
+  font-family: var(--font-headline);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+  text-wrap: balance;
+}
+
+.dialogHeader p {
+  margin-top: 3px;
+  color: var(--management-muted);
+  font-size: 13px;
+}
+
+.dialogClose {
+  display: inline-flex;
+  min-width: 36px;
+  min-height: 36px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--management-muted);
+}
+
+.dialogClose:hover {
+  border-color: var(--management-line);
+  background: var(--management-soft);
+  color: var(--management-ink);
+}
+
+.dialogClose:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 20px;
+}
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.paymentLabel {
+  color: var(--management-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-block: 1px solid var(--management-line);
+}
+
+.detailGrid > div {
+  min-width: 0;
+  padding: 12px 0;
+}
+
+.detailGrid > div:nth-child(even) {
+  padding-left: 20px;
+  border-left: 1px solid var(--management-line);
+}
+
+.detailGrid dt {
+  color: var(--management-muted);
+  font-size: 12px;
+}
+
+.detailGrid dd {
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+  color: var(--management-ink);
+  font-weight: 500;
+}
+
+.totalValue {
+  color: var(--management-accent) !important;
+  font-size: 17px;
+  font-weight: 600 !important;
+}
+
+.notice,
+.cancellationInfo {
+  padding: 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fff3d6;
+  color: #754500;
+}
+
+.notice svg,
+.cancellationHeading svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.cancellationInfo {
+  background: var(--management-danger-bg);
+  color: var(--management-danger);
+}
+
+.cancellationHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.cancellationGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin-top: 12px;
+}
+
+.cancellationGrid > div:last-child {
+  grid-column: 1 / -1;
+}
+
+.cancellationGrid dt {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cancellationGrid dd {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.productSection h3 {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.detailTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.detailTable th,
+.detailTable td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--management-line);
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.detailTable th {
+  color: var(--management-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.detailTable :is(th, td):first-child { padding-left: 0; }
+.detailTable :is(th, td):last-child { padding-right: 0; }
+.detailTable :is(th, td):not(:first-child) { text-align: right; }
+.detailTable th:first-child { width: 46%; }
+
+.dialogActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--management-line);
+}
+
+.permissionMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: var(--management-soft);
+  color: var(--management-muted);
+  font-size: 12px;
+}
+
+.confirmationText {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 7px;
+  background: var(--management-danger-bg);
+  color: var(--management-danger);
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.confirmationText svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.counter {
+  color: var(--management-muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+@keyframes historial-skeleton {
+  to { opacity: .48; }
+}
+
+@media (max-width: 1100px) {
+  .filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .filterActions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 767px) {
+  .filters {
+    grid-template-columns: 1fr;
+    padding-inline: 0;
+  }
+
+  .filterActions {
+    grid-column: auto;
+  }
+
+  .filterActions > button,
+  .dialogActions > button {
+    min-height: 44px;
+    flex: 1;
+  }
+
+  .salesTable {
+    min-width: 0;
+  }
+
+  .salesTable .numberCell {
+    text-align: left !important;
+  }
+
+  .resultsHeader {
+    align-items: baseline;
+  }
+
+  .dialogClose {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .detailGrid,
+  .cancellationGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .detailGrid > div:nth-child(even) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .detailGrid > div + div {
+    border-top: 1px solid var(--management-line);
+  }
+
+  .cancellationGrid > div:last-child {
+    grid-column: auto;
+  }
+
+  .detailTable,
+  .detailTable tbody,
+  .detailTable tr,
+  .detailTable td {
+    display: block;
+    width: 100%;
+  }
+
+  .detailTable thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .detailTable tr {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--management-line);
+  }
+
+  .detailTable td {
+    display: grid;
+    grid-template-columns: minmax(90px, 36%) minmax(0, 1fr);
+    gap: 10px;
+    padding: 4px 0;
+    border: 0;
+    text-align: right !important;
+  }
+
+  .detailTable td::before {
+    color: var(--management-muted);
+    content: attr(data-label);
+    font-size: 12px;
+    text-align: left;
+  }
+
+  .detailTable td:first-child {
+    display: block;
+    padding-bottom: 7px;
+    text-align: left !important;
+  }
+
+  .detailTable td:first-child::before {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  .dialog * { animation: none !important; transition: none !important; }
+}

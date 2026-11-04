@@ -38,6 +38,7 @@ export default function MainLayout() {
   const esGestion = esDetalleLotes || esCatalogoInventario
     || ['/usuarios', '/sucursales', '/laboratorios', '/ciudades', '/patients'].includes(location.pathname)
     || location.pathname.startsWith('/laboratorio/pacientes')
+    || location.pathname.startsWith('/ventas/historial')
     || location.pathname.startsWith('/reports');
   const anchoEscritorio = esInventario || esCaja || esGestion ? 1100 : ANCHO_ESCRITORIO;
   const [esEscritorio, setEsEscritorio] = useState(() => detectarEscritorio() && window.innerWidth >= anchoEscritorio);
