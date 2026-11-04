@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, PlusCircle, User } from 'lucide-react';
@@ -24,6 +25,7 @@ const ETIQUETAS_SEXO = { M: 'Masculino', F: 'Femenino', Otro: 'Otro' };
 const formatearFecha = (fecha) => (fecha ? new Date(fecha).toLocaleDateString('es-GT') : '—');
 
 export default function PacientePerfil() {
+  const toast = useToast();
   const { id } = useParams();
   const navigate = useNavigate();
   const { usuario } = useAuth();
@@ -90,24 +92,16 @@ export default function PacientePerfil() {
 
   const [mostrarModalSubida, setMostrarModalSubida] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
-  const [errorSubida, setErrorSubida] = useState(null);
   const [resultadoAAnular, setResultadoAAnular] = useState(null);
   const [anulandoResultado, setAnulandoResultado] = useState(false);
-  const [errorAnulacion, setErrorAnulacion] = useState(null);
-  const [mensajeExito, setMensajeExito] = useState(null);
 
-  useEffect(() => {
-    if (!mensajeExito) return undefined;
-    const temporizador = setTimeout(() => setMensajeExito(null), 4000);
-    return () => clearTimeout(temporizador);
-  }, [mensajeExito]);
 
   const abrirModalSubida = () => {
     if (!almacenamientoListo) {
       setMostrarModalAlmacenamiento(true);
       return;
     }
-    setErrorSubida(null);
+
     setMostrarModalSubida(true);
   };
 
@@ -119,7 +113,7 @@ export default function PacientePerfil() {
   const manejarSubir = async (datos) => {
     try {
       setSubiendo(true);
-      setErrorSubida(null);
+
       const creado = await subir(datos);
       if (almacenamientoListo) {
         try {
@@ -133,16 +127,16 @@ export default function PacientePerfil() {
         }
       }
       setMostrarModalSubida(false);
-      setMensajeExito('Resultado subido correctamente.');
+      toast.success('Resultado subido correctamente.');
     } catch (err) {
-      setErrorSubida(err.message || 'No se pudo subir el resultado.');
+      toast.error(err.message || 'No se pudo subir el resultado.');
     } finally {
       setSubiendo(false);
     }
   };
 
   const solicitarAnularResultado = (resultado) => {
-    setErrorAnulacion(null);
+
     setResultadoAAnular(resultado);
   };
 
@@ -155,12 +149,12 @@ export default function PacientePerfil() {
     if (!resultadoAAnular) return;
     try {
       setAnulandoResultado(true);
-      setErrorAnulacion(null);
+
       await anularResultado(resultadoAAnular.id_resultado, motivo);
       setResultadoAAnular(null);
-      setMensajeExito('Resultado anulado correctamente.');
+      toast.success('Resultado anulado correctamente.');
     } catch (err) {
-      setErrorAnulacion(err.message || 'No se pudo anular el resultado.');
+      toast.error(err.message || 'No se pudo anular el resultado.');
     } finally {
       setAnulandoResultado(false);
     }
@@ -249,9 +243,7 @@ export default function PacientePerfil() {
         </button>
       </header>
 
-      <PacienteAlert mensaje={mensajeExito} variante="success" />
       <PacienteAlert mensaje={errorResultados} />
-      <PacienteAlert mensaje={errorAnulacion} />
 
       {puedeVerHistorial && paciente.id_expediente && (
         <HistorialExpediente idExpediente={paciente.id_expediente} />
@@ -284,7 +276,7 @@ export default function PacientePerfil() {
         isOpen={mostrarModalSubida}
         categoriasSugeridas={categoriasSugeridas}
         subiendo={subiendo}
-        errorFormulario={errorSubida}
+        errorFormulario={null}
         onClose={cerrarModalSubida}
         onSubmit={manejarSubir}
       />
