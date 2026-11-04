@@ -8,7 +8,7 @@ Este documento registra la propuesta implementada para evaluar el rediseño de F
 
 Reducir la carga visual y facilitar las tareas diarias: encontrar productos, consultar existencias por sucursal y reconocer problemas de stock o vencimiento.
 
-La prueba actual incluye la navegación compartida (sidebar y navbar), inventario, productos, lotes, categorías, casas farmacéuticas, proveedores, promociones, punto de venta, caja y las pantallas de acceso y gestión de Login, Usuarios, Sucursales, Laboratorios, Ciudades y Clientes. Los módulos no mencionados conservan su diseño anterior. La convivencia de estilos es temporal.
+La prueba actual incluye la navegación compartida (sidebar y navbar), inventario, productos, lotes, categorías, casas farmacéuticas, proveedores, promociones, punto de venta, historial de ventas, caja y las pantallas de acceso y gestión de Login, Usuarios, Sucursales, Laboratorios, Ciudades y Clientes. Los módulos no mencionados conservan su diseño anterior. La convivencia de estilos es temporal.
 
 ## Principios de trabajo
 
@@ -100,6 +100,10 @@ Los estados normales son neutros. Las alertas reciben texto más marcado y un fo
 - El cobro mantiene visible el total, el cliente, el método y un resumen breve de productos; en efectivo calcula el cambio mientras se escribe y valida el monto sin bloquear la entrada.
 - Los pagos con tarjeta distinguen el envío al POS de la espera de confirmación, bloquean el cierre mientras existe una transacción pendiente y ofrecen un error recuperable cuando el dispositivo rechaza el pago.
 - El comprobante confirma que inventario y carrito fueron actualizados, usa cifras y fechas localizadas y conserva una versión imprimible sin perder el diálogo accesible.
+- El historial conserva sucursal, rango de fechas, paginación y vista activa en la URL; sus filtros comparten controles, densidad y foco visible con las pantallas de gestión.
+- Cada venta agrupa identificador y fecha, sucursal y responsable, y mantiene cliente, artículos, pago, total y estado disponibles en una tabla semántica que se adapta a lista en móvil.
+- El detalle de venta usa un diálogo accesible, ofrece recuperación ante errores y presenta productos, cobro y datos de anulación sin depender solo del color.
+- La anulación exige una confirmación explícita y un motivo; las ventas con tarjeta conservan las indicaciones de reembolso en Recurrente y no alteran caja ni existencias desde FarmaCom.
 
 ### Acceso y gestión
 
