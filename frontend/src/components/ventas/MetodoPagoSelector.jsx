@@ -8,7 +8,8 @@ const METODOS = [
 
 export default function MetodoPagoSelector({ seleccionado, onSeleccionar }) {
   return (
-    <div className="pos-pago">
+    <fieldset className="pos-pago">
+      <legend className="sr-only">Método de pago</legend>
       {METODOS.map(({ id, etiqueta, icono: Icono }) => {
         const activo = seleccionado === id;
         return (
@@ -24,6 +25,6 @@ export default function MetodoPagoSelector({ seleccionado, onSeleccionar }) {
           </button>
         );
       })}
-    </div>
+    </fieldset>
   );
 }

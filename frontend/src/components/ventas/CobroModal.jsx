@@ -1,6 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { motion } from 'motion/react';
 import {
   AlertCircle,
   Banknote,
@@ -11,6 +9,7 @@ import {
   User,
   X,
 } from 'lucide-react';
+import { Modal } from '../ui/Modal';
 import { formatearQuetzales } from '../../utils/pos';
 
 const etiquetasMetodo = {
@@ -20,7 +19,7 @@ const etiquetasMetodo = {
 };
 
 const normalizarMonto = (valor) => {
-  const monto = Number(valor);
+  const monto = Number(String(valor ?? '').trim().replace(',', '.'));
   return Number.isFinite(monto) ? monto : 0;
 };
 
@@ -62,11 +61,9 @@ export default function CobroModal({
     && items.length > 0
     && !procesando
     && !pagoEnviado;
-
-  const resumenItems = useMemo(() => items.slice(0, 3), [items]);
+  const resumenItems = useMemo(() => items.slice(0, 4), [items]);
   const restantes = Math.max(0, items.length - resumenItems.length);
-
-  if (!isOpen || typeof document === 'undefined') return null;
+  const etiquetaAccion = esTarjeta ? 'Cobrar con tarjeta' : 'Confirmar cobro';
 
   const manejarEnvio = (evento) => {
     evento.preventDefault();
@@ -74,220 +71,164 @@ export default function CobroModal({
       onConfirm({ montoRecibido: Number(montoNumerico.toFixed(2)) });
       return;
     }
-
-    if (puedeEnviarPagoPOS) {
-      onCrearPagoPOS();
-    }
+    if (puedeEnviarPagoPOS) onCrearPagoPOS();
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/55 p-4 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="my-auto w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl"
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <ReceiptText className="h-5 w-5" />
+  return (
+    <Modal
+      isOpen={isOpen}
+      size="lg"
+      labelledBy="titulo-cobro-venta"
+      describedBy="descripcion-cobro-venta"
+      onClose={onClose}
+      busy={!puedeCerrar}
+      limitarAltura
+      panelClassName="pos-checkout-dialog"
+    >
+      <header className="pos-checkout-dialog-head">
+        <div className="pos-checkout-dialog-title">
+          <span aria-hidden="true"><ReceiptText /></span>
+          <div>
+            <p>Finalizar venta</p>
+            <h2 id="titulo-cobro-venta">Cobro de venta</h2>
+            <span id="descripcion-cobro-venta">
+              {items.length} {items.length === 1 ? 'artículo' : 'artículos'} · Revisa los datos antes de confirmar
             </span>
-            <div>
-              <h3 className="font-headline text-lg font-extrabold text-primary">
-                Cobro de venta
-              </h3>
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                {items.length} {items.length === 1 ? 'artículo' : 'artículos'}
-              </p>
-            </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={!puedeCerrar}
-            aria-label="Cerrar"
-            className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
-          >
-            <X className="h-5 w-5" />
-          </button>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={!puedeCerrar}
+          aria-label="Cerrar cobro"
+          className="pos-checkout-dialog-close"
+        >
+          <X aria-hidden="true" />
+        </button>
+      </header>
+
+      <form onSubmit={manejarEnvio} className="pos-checkout-dialog-form">
+        <div className="pos-checkout-amount">
+          <div>
+            <span>Total a cobrar</span>
+            <strong>{formatearQuetzales(totalNumerico)}</strong>
+          </div>
+          <span className="pos-checkout-method">
+            {esTarjeta ? <CreditCard aria-hidden="true" /> : <Banknote aria-hidden="true" />}
+            {etiquetasMetodo[metodoPago] || metodoPago}
+          </span>
         </div>
 
-        <form onSubmit={manejarEnvio} className="space-y-5 px-6 py-5">
-          <div className="rounded-2xl bg-primary/5 p-4">
-            <div className="flex items-start justify-between gap-4">
+        <div className="pos-checkout-dialog-grid">
+          <section className="pos-checkout-payment" aria-labelledby="titulo-datos-pago">
+            <div className="pos-checkout-section-head">
               <div>
-                <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">
-                  Total a cobrar
-                </p>
-                <p className="mt-1 font-mono text-4xl font-black tracking-tight text-primary">
-                  {formatearQuetzales(totalNumerico)}
-                </p>
+                <span>Paso final</span>
+                <h3 id="titulo-datos-pago">Datos del pago</h3>
               </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-secondary shadow-sm">
-                <Banknote className="h-3.5 w-3.5" />
-                {etiquetasMetodo[metodoPago] || metodoPago}
-              </span>
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-slate-200 bg-white p-3">
-              <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-slate-400">
-                <User className="h-3.5 w-3.5" />
-                Cliente
-              </p>
-              <p className="mt-1 truncate text-sm font-bold text-on-surface">
-                {clienteSeleccionado?.nombre_cliente || 'Consumidor final'}
-              </p>
+              <p><User aria-hidden="true" />{clienteSeleccionado?.nombre_cliente || 'Consumidor final'}</p>
             </div>
 
-            {esEfectivo ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-3">
-                <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">
-                  Cambio
+            {esEfectivo && (
+              <div className="pos-checkout-cash">
+                <label htmlFor="monto-recibido">Monto recibido</label>
+                <div className="pos-checkout-money-input">
+                  <span aria-hidden="true">Q</span>
+                  <input
+                    id="monto-recibido"
+                    name="monto_recibido"
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={montoRecibido}
+                    onChange={(evento) => setMontoRecibido(evento.target.value)}
+                    disabled={procesando}
+                    aria-invalid={montoInsuficiente}
+                    aria-describedby={montoInsuficiente ? 'error-monto-recibido' : 'ayuda-monto-recibido'}
+                    placeholder="Ej.: 20.00…"
+                  />
+                </div>
+                <p id="ayuda-monto-recibido" className="pos-checkout-help">
+                  Puedes escribir el monto con punto o coma decimal.
                 </p>
-                <p className="mt-1 font-mono text-lg font-black text-primary">
-                  {formatearQuetzales(cambio)}
-                </p>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-slate-200 bg-white p-3">
-                <p className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-slate-400">
-                  <CreditCard className="h-3.5 w-3.5" />
-                  Estado
-                </p>
-                <p className="mt-1 truncate text-sm font-bold text-on-surface">
-                  {pagoEnviado ? 'Pago en proceso' : 'Pendiente de iniciar'}
-                </p>
+                {montoInsuficiente && (
+                  <p id="error-monto-recibido" className="pos-checkout-field-error">
+                    <AlertCircle aria-hidden="true" />
+                    El monto recibido no cubre el total de la venta.
+                  </p>
+                )}
+                <div className="pos-checkout-change" aria-live="polite">
+                  <span>Cambio a entregar</span>
+                  <strong>{formatearQuetzales(cambio)}</strong>
+                </div>
               </div>
             )}
-          </div>
 
-          {esEfectivo && (
-            <div className="space-y-2">
-              <label htmlFor="monto-recibido" className="text-sm font-semibold text-slate-700">
-                Monto recibido
-              </label>
-              <input
-                id="monto-recibido"
-                type="number"
-                min="0"
-                step="0.01"
-                inputMode="decimal"
-                value={montoRecibido}
-                onChange={(evento) => setMontoRecibido(evento.target.value)}
-                disabled={procesando}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 font-mono text-lg font-extrabold text-on-surface outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-400"
-                placeholder="0.00"
-                autoFocus
-              />
-              {montoInsuficiente && (
-                <p className="text-sm font-semibold text-error">
-                  El monto recibido no cubre el total de la venta.
-                </p>
-              )}
-            </div>
-          )}
-
-          {esTarjeta && (
-            <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div>
-                <p className="text-sm font-extrabold text-on-surface">
-                  Cobro con tarjeta
-                </p>
-                <p className="mt-1 text-sm font-medium text-slate-500">
-                  {pagoEnviado
-                    ? 'Estamos verificando el pago. Espera un momento, por favor.'
-                    : 'Acerca o inserta la tarjeta en el dispositivo. La venta se registrará cuando se verifique el pago.'}
-                </p>
-              </div>
-
-              {pagoEnviado && (
-                <p className="text-sm font-semibold text-amber-700">
-                  La venta se registrará automáticamente cuando el pago sea confirmado.
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="rounded-xl border border-slate-200">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">
-                Resumen
-              </p>
-            </div>
-            <div className="divide-y divide-slate-100">
-              {resumenItems.map((item) => (
-                <div key={item.clave} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                  <div className="min-w-0">
-                    <p className="truncate font-bold text-on-surface">{item.nombre_comercial}</p>
-                    <p className="text-xs font-medium text-slate-400">
-                      {item.cantidad} x {formatearQuetzales(item.precioAplicado ?? item.precioUnitario)}
-                    </p>
-                  </div>
-                  <p className="shrink-0 font-mono font-extrabold text-primary">
-                    {formatearQuetzales((item.precioAplicado ?? item.precioUnitario) * item.cantidad)}
+            {esTarjeta && (
+              <div className="pos-checkout-card" aria-live="polite">
+                <span className={pagoEnviado ? 'is-pending' : ''} aria-hidden="true">
+                  {pagoEnviado ? <Loader2 /> : <CreditCard />}
+                </span>
+                <div>
+                  <strong>{pagoEnviado ? 'Esperando confirmación del POS' : 'Dispositivo listo para cobrar'}</strong>
+                  <p>
+                    {pagoEnviado
+                      ? 'La venta se registrará automáticamente cuando el POS confirme el pago. No cierres esta ventana.'
+                      : 'Acerca o inserta la tarjeta. La venta se registrará únicamente cuando el POS confirme el pago.'}
                   </p>
                 </div>
+              </div>
+            )}
+
+            {!metodoSoportado && (
+              <div className="pos-checkout-notice pos-checkout-notice--warning" role="status">
+                <AlertCircle aria-hidden="true" />
+                Este método de pago aún no está disponible.
+              </div>
+            )}
+
+            {error && (
+              <div className="pos-checkout-notice pos-checkout-notice--error" role="alert">
+                <AlertCircle aria-hidden="true" />
+                <span>{error}</span>
+              </div>
+            )}
+          </section>
+
+          <aside className="pos-checkout-summary" aria-labelledby="titulo-resumen-cobro">
+            <div className="pos-checkout-summary-head">
+              <h3 id="titulo-resumen-cobro">Resumen de productos</h3>
+              <span>{items.length}</span>
+            </div>
+            <ul>
+              {resumenItems.map((item) => (
+                <li key={item.clave}>
+                  <div>
+                    <strong>{item.nombre_comercial}</strong>
+                    <span>{item.cantidad} × {formatearQuetzales(item.precioAplicado ?? item.precioUnitario)}</span>
+                  </div>
+                  <strong>{formatearQuetzales((item.precioAplicado ?? item.precioUnitario) * item.cantidad)}</strong>
+                </li>
               ))}
-              {restantes > 0 && (
-                <p className="px-4 py-3 text-sm font-semibold text-slate-500">
-                  + {restantes} productos más
-                </p>
-              )}
-            </div>
-          </div>
+            </ul>
+            {restantes > 0 && <p>Y {restantes} {restantes === 1 ? 'producto más' : 'productos más'}</p>}
+          </aside>
+        </div>
 
-          {!metodoSoportado && (
-            <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              Este método de pago aún no está disponible.
-            </div>
-          )}
-
-          {error && (
-            <div className="flex gap-2 rounded-xl border border-error/20 bg-error-container/40 px-4 py-3 text-sm font-semibold text-on-error-container">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {error}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={!puedeCerrar}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={
-                !puedeConfirmarEfectivo
-                && !puedeEnviarPagoPOS
-              }
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {procesando ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : esTarjeta && !pagoEnviado ? (
-                <CreditCard className="h-4 w-4" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4" />
-              )}
-              {procesando
-                ? 'Procesando...'
-                : esTarjeta && !pagoEnviado
-                  ? 'Cobrar con tarjeta'
-                  : esTarjeta
-                    ? 'Pago en proceso'
-                    : 'Confirmar cobro'}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </div>,
-    document.body,
+        <footer className="pos-checkout-dialog-actions">
+          <button type="button" onClick={onClose} disabled={!puedeCerrar} className="pos-checkout-cancel">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={!puedeConfirmarEfectivo && !puedeEnviarPagoPOS}
+            className="pos-checkout-confirm"
+          >
+            {procesando ? <Loader2 className="pos-checkout-spinner" aria-hidden="true" /> : esTarjeta ? <CreditCard aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
+            <span>{etiquetaAccion}</span>
+          </button>
+        </footer>
+      </form>
+    </Modal>
   );
 }

@@ -11,10 +11,13 @@ export default function CarritoAccionesCobro({ total, metodoPago, deshabilitado,
         <strong>{formatearQuetzales(total)}</strong>
       </div>
 
-      <MetodoPagoSelector
-        seleccionado={metodoPago}
-        onSeleccionar={onMetodoPagoChange}
-      />
+      <div className="pos-payment-choice">
+        <span>Método de pago</span>
+        <MetodoPagoSelector
+          seleccionado={metodoPago}
+          onSeleccionar={onMetodoPagoChange}
+        />
+      </div>
 
       <button
         type="button"
