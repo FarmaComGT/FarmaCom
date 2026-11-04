@@ -32,6 +32,17 @@ const datosLoteBase = {
 };
 
 describe('LoteService', () => {
+  it('restringe los lotes paginados a la sucursal del dependiente', async () => {
+    ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 7 });
+    LoteDAO.obtenerPorProducto.mockResolvedValue({ datos: [], paginacion: { total: 0 } });
+    const usuario = { rol: 'dependiente', id_sucursal: 3 };
+    await LoteService.obtenerPorProducto(7, usuario, { limite: 10, estado_stock: 'agotado' });
+    expect(LoteDAO.obtenerPorProducto).toHaveBeenCalledWith(7, 3, expect.objectContaining({
+      pagina: 1, limite: 10, estado_stock: 'agotado',
+    }));
+    await expect(LoteService.obtenerPorProducto(7, usuario, { pagina: 2, id_sucursal: 4 }))
+      .rejects.toMatchObject({ status: 403 });
+  });
   beforeEach(() => {
     jest.resetAllMocks();
     LoteDAO.ejecutarEnTransaccion.mockImplementation((fn) => fn(mockClient));

@@ -34,6 +34,20 @@ const payloadLote = {
 };
 
 describe('LoteRoutes - precio por lote y vencimiento opcional', () => {
+  it.each(['pagina=0', 'pagina=1.5', 'pagina=2147483648', 'limite=101', 'pagina[]=1',
+    'estado_stock=otro', 'estado_vencimiento=otro', 'id_sucursal=0'])('rechaza filtros o paginación inválidos: %s', async (consulta) => {
+    const respuesta = await request(crearApp()).get(`/api/lotes/producto/7?${consulta}`);
+    expect(respuesta.status).toBe(400);
+    expect(LoteService.obtenerPorProducto).not.toHaveBeenCalled();
+  });
+
+  it('entrega página, tamaño y filtros validados al servicio', async () => {
+    LoteService.obtenerPorProducto.mockResolvedValue({ datos: [], paginacion: { total: 0 } });
+    const respuesta = await request(crearApp()).get('/api/lotes/producto/7?pagina=2&limite=10&id_sucursal=3&estado_stock=agotado');
+    expect(respuesta.status).toBe(200);
+    expect(LoteService.obtenerPorProducto).toHaveBeenCalledWith(7, expect.objectContaining({ rol: 'administrador' }),
+      { pagina: 2, limite: 10, id_sucursal: 3, estado_stock: 'agotado' });
+  });
   beforeEach(() => jest.clearAllMocks());
 
   it('permite crear un lote con precio de compra y sin fecha de vencimiento', async () => {

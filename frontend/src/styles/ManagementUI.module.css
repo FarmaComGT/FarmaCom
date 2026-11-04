@@ -534,6 +534,7 @@
 }
 
 select.input {
+  cursor: pointer;
   padding-right: 28px;
   color-scheme: light;
 }

@@ -1,5 +1,8 @@
-import React, { useMemo, useState } from 'react';
-import { ChevronDown, Pencil, SlidersHorizontal, Trash2 } from 'lucide-react';
+import React from 'react';
+import { Pencil, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import usePaginacionURL, { leerPaginacionURL } from '../../../hooks/usePaginacionURL.js';
+import Paginacion from '../../ui/Paginacion.jsx';
 import ContentState from '../../ui/ContentState.jsx';
 import EstadoBadge from './EstadoBadge.jsx';
 import useLotesProducto from '../../../hooks/useLotesProducto.js';
@@ -33,17 +36,14 @@ export default function LotesDeProductoTable({
   producto, sucursalId, activo, onEditar, onEliminar, onAjustar, refreshKey,
   filtroStock = '', filtroVencimiento = '',
 }) {
-  const [mostrarAgotados, setMostrarAgotados] = useState(false);
-  const { lotes, cargando, error, refrescar } = useLotesProducto(producto.id_producto, { enabled: activo, refreshKey });
+  const [params] = useSearchParams();
+  const { pagina, limite } = leerPaginacionURL(params);
+  const { lotes, paginacion, cargando, error, refrescar } = useLotesProducto(producto.id_producto, {
+    enabled: activo && Boolean(sucursalId), refreshKey, pagina, limite,
+    id_sucursal: sucursalId, estado_stock: filtroStock, estado_vencimiento: filtroVencimiento,
+  });
+  const { crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const mostrarAcciones = Boolean(onEditar || onEliminar || onAjustar);
-  const lotesSucursal = useMemo(() => lotes.filter((lote) => (
-    String(lote.id_sucursal) === String(sucursalId)
-    && (!filtroStock || lote.estado_stock === filtroStock)
-    && (!filtroVencimiento || lote.estado_vencimiento === filtroVencimiento)
-  )), [filtroStock, filtroVencimiento, lotes, sucursalId]);
-  const lotesConExistencias = lotesSucursal.filter((lote) => Number(lote.stock_actual) > 0);
-  const lotesAgotados = lotesSucursal.filter((lote) => Number(lote.stock_actual) <= 0);
-  const agotadosVisibles = mostrarAgotados || filtroStock === 'agotado';
 
   const fila = (lote) => (
     <tr key={lote.id_lote}>
@@ -82,19 +82,20 @@ export default function LotesDeProductoTable({
 
   if (cargando) return <ContentState variant="loading" message="Cargando lotes…" compact />;
   if (error) return <ContentState variant="error" message={error} onRetry={refrescar} compact />;
-  if (lotesSucursal.length === 0) {
+  if (lotes.length === 0) {
     const hayFiltros = Boolean(filtroStock || filtroVencimiento);
     return (
-      <ContentState
+      <section id="lotes-producto" aria-label="Lotes del producto"><ContentState
         title={hayFiltros ? 'No hay coincidencias' : 'Este producto todavía no tiene lotes en la sucursal.'}
         message={hayFiltros ? 'Cambia o limpia los filtros para ver otros lotes.' : 'Usa “Agregar lote” para registrar las primeras existencias.'}
         compact
-      />
+      /><Paginacion paginacion={paginacion} crearDestino={crearDestino} onLimiteChange={onLimiteChange}
+        sustantivo="lotes" controles="lotes-producto" /></section>
     );
   }
 
   return (
-    <section className={styles.tablePanel} aria-label="Lotes del producto">
+    <section id="lotes-producto" className={styles.tablePanel} aria-label="Lotes del producto">
       <table className={styles.table}>
         <caption className={styles.visuallyHidden}>Lotes del producto en la sucursal seleccionada</caption>
         <thead>
@@ -105,23 +106,11 @@ export default function LotesDeProductoTable({
           </tr>
         </thead>
         <tbody>
-          {lotesConExistencias.map(fila)}
-          {lotesConExistencias.length === 0 && filtroStock !== 'agotado' && (
-            <tr><td colSpan={mostrarAcciones ? 7 : 6} className={styles.empty}><strong>No hay lotes con existencias en esta sucursal.</strong></td></tr>
-          )}
-          {lotesAgotados.length > 0 && filtroStock !== 'agotado' && (
-            <tr>
-              <td colSpan={mostrarAcciones ? 7 : 6}>
-                <button type="button" aria-expanded={mostrarAgotados} onClick={() => setMostrarAgotados((valor) => !valor)} className={styles.button}>
-                  {mostrarAgotados ? 'Ocultar' : 'Ver'} lotes agotados ({lotesAgotados.length})
-                  <ChevronDown size={15} aria-hidden="true" />
-                </button>
-              </td>
-            </tr>
-          )}
-          {agotadosVisibles && lotesAgotados.map(fila)}
+          {lotes.map(fila)}
         </tbody>
       </table>
+      <Paginacion paginacion={paginacion} crearDestino={crearDestino} onLimiteChange={onLimiteChange}
+        sustantivo="lotes" controles="lotes-producto" />
     </section>
   );
 }
