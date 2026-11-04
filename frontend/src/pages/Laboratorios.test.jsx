@@ -1,3 +1,4 @@
+import { ToastProvider } from '../context/ToastContext.jsx';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -34,9 +35,9 @@ vi.mock('../hooks/useCiudades', () => ({
 }));
 
 const renderizar = () => render(
-  <MemoryRouter>
+  <ToastProvider><MemoryRouter>
     <Laboratorios />
-  </MemoryRouter>,
+  </MemoryRouter></ToastProvider>,
 );
 
 describe('pantalla de laboratorios', () => {

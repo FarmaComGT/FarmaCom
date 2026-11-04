@@ -1,3 +1,4 @@
+import { useToast } from '../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { LoaderCircle, Pencil, PlusCircle, Search, Trash2, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
@@ -99,6 +100,7 @@ function CiudadDeleteModal({ isOpen, ciudad, eliminando, onClose, onConfirm }) {
 }
 
 export default function Ciudades() {
+  const toast = useToast();
   const { ciudades, cargandoCiudades, errorCiudades, crear, actualizar, eliminar } = useCiudades();
   const [searchParams, setSearchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
@@ -110,7 +112,6 @@ export default function Ciudades() {
   const [errorFormulario, setErrorFormulario] = useState(null);
   const [ciudadAEliminar, setCiudadAEliminar] = useState(null);
   const [eliminandoId, setEliminandoId] = useState(null);
-  const [errorAccion, setErrorAccion] = useState(null);
 
   useEffect(() => {
     document.title = 'Ciudades · FarmaCom';
@@ -169,10 +170,11 @@ export default function Ciudades() {
       setGuardando(true);
       if (modoEdicion && idEditando) await actualizar(idEditando, { nombre_ciudad: nombreCiudad });
       else await crear({ nombre_ciudad: nombreCiudad });
+      toast.success('Ciudad guardada correctamente.');
       setMostrarModal(false);
       setFormulario(formularioInicial);
     } catch (err) {
-      setErrorFormulario(err.response?.data?.mensaje || 'No se pudo guardar la ciudad.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo guardar la ciudad.');
     } finally {
       setGuardando(false);
     }
@@ -181,12 +183,13 @@ export default function Ciudades() {
   const confirmarEliminar = async () => {
     if (!ciudadAEliminar) return;
     try {
-      setErrorAccion(null);
+
       setEliminandoId(ciudadAEliminar.id_ciudad);
       await eliminar(ciudadAEliminar.id_ciudad);
+      toast.success('Ciudad eliminada correctamente.');
       setCiudadAEliminar(null);
     } catch (err) {
-      setErrorAccion(err.response?.data?.mensaje || 'No se pudo eliminar la ciudad.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo eliminar la ciudad.');
     } finally {
       setEliminandoId(null);
     }
@@ -227,7 +230,7 @@ export default function Ciudades() {
       </div>
 
       <p className={styles.resultCount} aria-live="polite"><strong>{ciudadesFiltradas.length}</strong> de {ciudades.length} ciudades</p>
-      <SucursalAlert mensaje={errorCiudades || errorAccion} />
+      <SucursalAlert mensaje={errorCiudades} />
 
       <section className={styles.tablePanel} aria-label="Ciudades registradas">
         <table className={styles.table} aria-busy={cargandoCiudades}>

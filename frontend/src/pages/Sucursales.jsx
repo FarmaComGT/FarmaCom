@@ -1,3 +1,4 @@
+import { useToast } from '../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import SucursalActionBar from '../components/sucursales/SucursalActionBar.jsx';
@@ -19,6 +20,7 @@ const estadoInicialFormulario = {
 };
 
 export default function Sucursales() {
+  const toast = useToast();
   const { sucursales, cargando, error, crear, actualizar, eliminar } = useSucursales();
   const { ciudades, cargandoCiudades, errorCiudades } = useCiudades();
 
@@ -28,7 +30,6 @@ export default function Sucursales() {
   const [guardando, setGuardando] = useState(false);
   const [eliminandoId, setEliminandoId] = useState(null);
   const [errorFormulario, setErrorFormulario] = useState(null);
-  const [errorAccion, setErrorAccion] = useState(null);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
   const [formulario, setFormulario] = useState(estadoInicialFormulario);
@@ -140,11 +141,12 @@ export default function Sucursales() {
         await crear(payload);
       }
 
+      toast.success('Sucursal guardada correctamente.');
       setMostrarModal(false);
       setFormulario(estadoInicialFormulario);
     } catch (err) {
       const mensaje = err.message || 'No se pudo guardar la sucursal.';
-      setErrorFormulario(mensaje);
+      toast.error(mensaje);
     } finally {
       setGuardando(false);
     }
@@ -168,12 +170,13 @@ export default function Sucursales() {
     }
 
     try {
-      setErrorAccion(null);
+
       setEliminandoId(sucursalAEliminar.id_sucursal);
       await eliminar(sucursalAEliminar.id_sucursal);
+      toast.success('Sucursal eliminada correctamente.');
       setSucursalAEliminar(null);
     } catch (err) {
-      setErrorAccion(err.message || 'No se pudo eliminar la sucursal.');
+      toast.error(err.message || 'No se pudo eliminar la sucursal.');
     } finally {
       setEliminandoId(null);
     }
@@ -206,7 +209,6 @@ export default function Sucursales() {
       </p>
 
       <SucursalAlert mensaje={error || errorCiudades} />
-      <SucursalAlert mensaje={errorAccion} />
 
       <SucursalTable
         cargando={cargando}

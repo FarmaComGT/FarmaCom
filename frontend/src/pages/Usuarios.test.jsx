@@ -1,3 +1,4 @@
+import { ToastProvider } from '../context/ToastContext.jsx';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -50,9 +51,9 @@ vi.mock('../context/AuthContext.jsx', () => ({
 }));
 
 const renderizar = () => render(
-  <MemoryRouter>
+  <ToastProvider><MemoryRouter>
     <Usuarios />
-  </MemoryRouter>,
+  </MemoryRouter></ToastProvider>,
 );
 
 describe('pantalla de usuarios', () => {
