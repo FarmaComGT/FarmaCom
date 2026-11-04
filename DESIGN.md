@@ -104,6 +104,9 @@ Los estados normales son neutros. Las alertas reciben texto más marcado y un fo
 - Cada venta agrupa identificador y fecha, sucursal y responsable, y mantiene cliente, artículos, pago, total y estado disponibles en una tabla semántica que se adapta a lista en móvil.
 - El detalle de venta usa un diálogo accesible, ofrece recuperación ante errores y presenta productos, cobro y datos de anulación sin depender solo del color.
 - La anulación exige una confirmación explícita y un motivo; las ventas con tarjeta conservan las indicaciones de reembolso en Recurrente y no alteran caja ni existencias desde FarmaCom.
+- El resumen por producto comparte el rango y la sucursal del historial, presenta productos distintos, unidades e ingresos como totales discretos y conserva la tabla como contenido principal.
+- Las listas extensas del resumen se dividen en páginas de hasta 25 productos; página y tamaño usan parámetros propios en la URL para no sobrescribir el estado de la vista de ventas.
+- Producto, unidades vendidas e ingresos generados mantienen numerales localizados y se transforman en una lista etiquetada en móvil sin ocultar los totales del período.
 
 ### Acceso y gestión
 
