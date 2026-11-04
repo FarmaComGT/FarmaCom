@@ -1,13 +1,26 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useCallback, useMemo } from 'react';
+import { Outlet, useSearchParams } from 'react-router-dom';
 import { History } from 'lucide-react';
 import useFiltrosHistorialVentas from '../hooks/useFiltrosHistorialVentas';
 import useSucursales from '../hooks/useSucursales';
 import HistorialVentasNav from '../components/ventas/historial/HistorialVentasNav';
 import HistorialVentasFiltros from '../components/ventas/historial/HistorialVentasFiltros';
+import { crearFiltrosInicialesHistorial } from '../utils/filtrosHistorialVentas';
 
 export default function HistorialVentasLayout() {
-  const filtros = useFiltrosHistorialVentas();
+  const [params, setParams] = useSearchParams();
+  const iniciales = useMemo(() => crearFiltrosInicialesHistorial(), []);
+  const filtrosURL = Object.fromEntries(Object.keys(iniciales).map((campo) => [campo, params.get(campo) ?? iniciales[campo]]));
+  const guardarURL = useCallback((valores) => setParams((actuales) => {
+    const siguientes = new URLSearchParams(actuales);
+    siguientes.delete('pagina');
+    Object.entries(valores).forEach(([campo, valor]) => {
+      if (valor === '') siguientes.delete(campo);
+      else siguientes.set(campo, String(valor));
+    });
+    return siguientes;
+  }), [setParams]);
+  const filtros = useFiltrosHistorialVentas(undefined, { filtrosURL, guardarURL });
   const { sucursales, cargando, error } = useSucursales();
 
   return (

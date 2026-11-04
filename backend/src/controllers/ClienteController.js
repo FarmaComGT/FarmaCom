@@ -5,8 +5,8 @@ const crear = asyncHandler(async (req, res) => (
   res.status(201).json(await clienteService.crearCliente(req.body))
 ));
 
-const obtenerTodas = asyncHandler(async (_req, res) => (
-  res.json(await clienteService.obtenerTodos())
+const obtenerTodas = asyncHandler(async (req, res) => (
+  res.json(await clienteService.obtenerTodos(req.query))
 ));
 
 const obtenerPorId = asyncHandler(async (req, res) => (

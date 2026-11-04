@@ -84,6 +84,8 @@ describe('HistorialCaja', () => {
       { signal: expect.any(AbortSignal) },
     );
     expect(useHistorialCaja).toHaveBeenLastCalledWith({
+      pagina: 1,
+      limite: 25,
       id_sucursal: '2',
       id_caja: '3',
       fecha_desde: '2026-09-01',

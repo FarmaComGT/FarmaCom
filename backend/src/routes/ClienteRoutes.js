@@ -57,7 +57,14 @@ const validarCorreo = [
     .custom(esCorreoValido)
     .withMessage('El correo no tiene un formato válido'),
 ];
+const validarPaginacion = [
+  query('pagina').optional().isString().bail()
+    .isInt({ min: 1, max: 2147483647 }).withMessage('Página inválida').toInt(),
+  query('limite').optional().isString().bail()
+    .isInt({ min: 1, max: 100 }).withMessage('Límite inválido').toInt(),
+];
 const validarFiltrosHistorial = [
+  ...validarPaginacion,
   query('id_sucursal')
     .optional()
     .isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo')
@@ -76,7 +83,9 @@ const validarFiltrosHistorial = [
     .withMessage('fecha_hasta debe tener formato YYYY-MM-DD'),
 ];
 
-router.get('/', verificarToken, ClienteController.obtenerTodas);
+router.get('/', verificarToken, validarPaginacion,
+  query('busqueda').optional().isString().bail().trim().isLength({ max: 2000 }),
+  validateRequest, ClienteController.obtenerTodas);
 router.get(
   '/:id/historial-compras',
   verificarToken,

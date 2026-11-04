@@ -102,6 +102,10 @@ const obtenerTodas = async (filtros, usuario) => {
     filtrosAplicados.id_sucursal = Number(usuario.id_sucursal);
   }
 
+  if (filtrosAplicados.pagina !== undefined || filtrosAplicados.limite !== undefined) {
+    filtrosAplicados.pagina ??= 1;
+    filtrosAplicados.limite ??= 25;
+  }
   return VentaDAO.obtenerTodas(filtrosAplicados);
 };
 

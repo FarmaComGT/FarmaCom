@@ -124,7 +124,7 @@ describe('Clientes', () => {
 
     await user.click(screen.getByRole('button', { name: 'Ver historial de María López' }));
 
-    expect(mockObtenerHistorialCompras).toHaveBeenCalledWith(7);
+    expect(mockObtenerHistorialCompras).toHaveBeenCalledWith(7, { pagina: 1, limite: 25 });
     const modal = await screen.findByRole('dialog', { name: 'Historial de ventas' });
 
     expect(within(modal).getByText('María López')).toBeInTheDocument();

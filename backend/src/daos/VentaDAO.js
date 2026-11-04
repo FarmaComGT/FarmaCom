@@ -229,6 +229,8 @@ class VentaDAO {
   }
 
   async obtenerTodas({
+    pagina,
+    limite = 25,
     id_sucursal,
     id_cliente,
     estado,
@@ -260,6 +262,18 @@ class VentaDAO {
     }
 
     const where = condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';
+    let paginacion;
+    let paginaVentas = '';
+    if (pagina !== undefined) {
+      const conteo = await pool.query(`SELECT COUNT(*) AS total FROM venta v ${where}`, valores);
+      const { crearPaginacion } = require('../utils/paginacion');
+      paginacion = crearPaginacion(pagina, limite, Number(conteo.rows[0].total));
+      paginaVentas = `JOIN (SELECT id_venta FROM venta v ${where}
+        ORDER BY v.fecha_venta DESC, v.id_venta DESC
+        LIMIT $${valores.length + 1} OFFSET $${valores.length + 2}) pagina_ventas
+        ON pagina_ventas.id_venta = v.id_venta`;
+      valores.push(limite, (paginacion.pagina - 1) * limite);
+    }
     const { rows } = await pool.query(
       `SELECT
          v.*,
@@ -269,6 +283,7 @@ class VentaDAO {
          c.nombre_cliente,
          COALESCE(SUM(dv.cantidad), 0)::INTEGER AS cantidad_articulos
        FROM venta v
+       ${paginaVentas}
        JOIN sucursal s ON s.id_sucursal = v.id_sucursal
        JOIN usuario u ON u.id_usuario = v.id_usuario
        LEFT JOIN usuario ua ON ua.id_usuario = v.id_usuario_anulacion
@@ -284,7 +299,7 @@ class VentaDAO {
        ORDER BY v.fecha_venta DESC, v.id_venta DESC`,
       valores,
     );
-    return rows;
+    return paginacion ? { datos: rows, paginacion } : rows;
   }
 
   async obtenerPorId(id_venta, client = pool) {

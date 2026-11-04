@@ -21,6 +21,19 @@ const crearApp = () => {
 };
 
 describe('VentaRoutes - anulación', () => {
+  it.each(['pagina=0', 'pagina=1.5', 'pagina=2147483648', 'limite=101', 'pagina[]=2'])('rechaza paginación inválida: %s', async (consulta) => {
+    const respuesta = await request(crearApp()).get(`/api/ventas?${consulta}`);
+    expect(respuesta.status).toBe(400);
+    expect(VentaService.obtenerTodas).not.toHaveBeenCalled();
+  });
+
+  it('entrega la paginación validada y el usuario al servicio', async () => {
+    VentaService.obtenerTodas.mockResolvedValue({ datos: [], paginacion: { total: 0 } });
+    const respuesta = await request(crearApp()).get('/api/ventas?pagina=2&limite=10');
+    expect(respuesta.status).toBe(200);
+    expect(VentaService.obtenerTodas).toHaveBeenCalledWith({ pagina: 2, limite: 10 },
+      expect.objectContaining({ rol: 'dependiente', id_sucursal: 1 }));
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });

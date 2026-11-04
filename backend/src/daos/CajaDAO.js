@@ -260,7 +260,7 @@ class CajaDAO {
     return rows[0];
   }
 
-  async obtenerCierres({ id_sucursal, id_caja, fecha_desde, fecha_hasta } = {}) {
+  async obtenerCierres({ id_sucursal, id_caja, fecha_desde, fecha_hasta, pagina, limite = 25 } = {}) {
     const condiciones = ["sc.estado = 'cerrada'"];
     const valores = [];
     const agregar = (condicion, valor) => {
@@ -273,6 +273,16 @@ class CajaDAO {
     if (fecha_desde) agregar('sc.fecha_operacion >= ?::date', fecha_desde);
     if (fecha_hasta) agregar('sc.fecha_operacion <= ?::date', fecha_hasta);
 
+    let paginacion;
+    let limites = '';
+    if (pagina !== undefined) {
+      const conteo = await pool.query(`SELECT COUNT(*) AS total FROM sesion_caja sc
+        JOIN caja c ON c.id_caja = sc.id_caja WHERE ${condiciones.join(' AND ')}`, valores);
+      const { crearPaginacion } = require('../utils/paginacion');
+      paginacion = crearPaginacion(pagina, limite, Number(conteo.rows[0].total));
+      limites = `LIMIT $${valores.length + 1} OFFSET $${valores.length + 2}`;
+      valores.push(limite, (paginacion.pagina - 1) * limite);
+    }
     const { rows } = await pool.query(
       `SELECT
          sc.*,
@@ -287,10 +297,10 @@ class CajaDAO {
        JOIN usuario ua ON ua.id_usuario = sc.id_usuario_apertura
        JOIN usuario uc ON uc.id_usuario = sc.id_usuario_cierre
        WHERE ${condiciones.join(' AND ')}
-       ORDER BY sc.fecha_hora_cierre DESC, sc.id_sesion_caja DESC`,
+       ORDER BY sc.fecha_hora_cierre DESC, sc.id_sesion_caja DESC ${limites}`,
       valores,
     );
-    return rows;
+    return paginacion ? { datos: rows, paginacion } : rows;
   }
 
   async obtenerResumenDiario(fecha, id_sucursal, id_caja = null) {

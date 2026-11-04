@@ -1,42 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import useConsultaListado from './useConsultaListado';
 import { obtenerVentas } from '../api/ventas';
 import { obtenerResumenProductos } from '../api/reportes';
 
-const useConsulta = (cargar, filtros, mensajePredeterminado) => {
-  const [estado, setEstado] = useState({ datos: [], cargando: true, error: null });
-  const [version, setVersion] = useState(0);
-  const recargar = useCallback(() => setVersion((actual) => actual + 1), []);
-  const idSucursal = filtros?.id_sucursal ?? '';
-  const fechaDesde = filtros?.fecha_desde ?? '';
-  const fechaHasta = filtros?.fecha_hasta ?? '';
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setEstado((actual) => ({ ...actual, cargando: true, error: null }));
-
-    cargar({
-      id_sucursal: idSucursal,
-      fecha_desde: fechaDesde,
-      fecha_hasta: fechaHasta,
-    }, { signal: controller.signal })
-      .then((datos) => {
-        if (!controller.signal.aborted) setEstado({ datos, cargando: false, error: null });
-      })
-      .catch((error) => {
-        if (!controller.signal.aborted) {
-          setEstado({
-            datos: [],
-            cargando: false,
-            error: error?.message || mensajePredeterminado,
-          });
-        }
-      });
-
-    return () => controller.abort();
-  }, [cargar, fechaDesde, fechaHasta, idSucursal, mensajePredeterminado, version]);
-
-  return { ...estado, recargar };
-};
+const useConsulta = (cargar, filtros, mensaje) => useConsultaListado(cargar, {
+  id_sucursal: filtros?.id_sucursal ?? '',
+  fecha_desde: filtros?.fecha_desde ?? '',
+  fecha_hasta: filtros?.fecha_hasta ?? '',
+  ...(filtros?.pagina !== undefined ? { pagina: filtros.pagina, limite: filtros.limite ?? 25 } : {}),
+}, mensaje);
 
 export const useVentas = (filtros) => useConsulta(
   obtenerVentas,

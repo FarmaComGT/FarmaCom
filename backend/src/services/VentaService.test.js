@@ -58,6 +58,14 @@ const lotesDisponibles = [
 ];
 
 describe('VentaService', () => {
+  it('restringe también las ventas paginadas a la sucursal del dependiente', async () => {
+    const respuesta = { datos: [], paginacion: { total: 0 } };
+    VentaDAO.obtenerTodas.mockResolvedValue(respuesta);
+    await expect(VentaService.obtenerTodas({ limite: 10 }, usuarioDependiente)).resolves.toEqual(respuesta);
+    expect(VentaDAO.obtenerTodas).toHaveBeenCalledWith({ pagina: 1, limite: 10, id_sucursal: 1 });
+    await expect(VentaService.obtenerTodas({ pagina: 2, id_sucursal: 2 }, usuarioDependiente))
+      .rejects.toMatchObject({ status: 403 });
+  });
   beforeEach(() => {
     delete process.env.RECURRENTE_TERMINAL_ID;
     VentaDAO.ejecutarEnTransaccion.mockImplementation((operacion) => operacion({}));

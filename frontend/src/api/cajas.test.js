@@ -22,6 +22,12 @@ vi.mock('./axios', () => ({
 }));
 
 describe('API de caja', () => {
+  it('envía página y tamaño al consultar cierres', async () => {
+    const data = { datos: [], paginacion: { pagina: 2, limite: 10, total: 11, total_paginas: 2 } };
+    api.get.mockResolvedValue({ data });
+    await expect(obtenerCierres({ pagina: 2, limite: 10, id_caja: 3 })).resolves.toEqual(data);
+    expect(api.get).toHaveBeenCalledWith('/cajas/cierres', { params: { pagina: 2, limite: 10, id_caja: 3 } });
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });

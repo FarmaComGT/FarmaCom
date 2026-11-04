@@ -15,6 +15,9 @@ import {
 } from 'lucide-react';
 import { obtenerHistorialCompras } from '../../api/clientes';
 import { formatearQuetzales } from '../../utils/pos';
+import { useSearchParams } from 'react-router-dom';
+import usePaginacionURL from '../../hooks/usePaginacionURL';
+import Paginacion from '../ui/Paginacion';
 import AccessibleDialog from '../ui/AccessibleDialog.jsx';
 import styles from './ClienteDetailsModal.module.css';
 
@@ -116,11 +119,21 @@ function VentaHistorial({ compra, expandida, onAlternar }) {
 }
 
 export default function HistorialClienteModal({ cliente, onClose }) {
+  const [params] = useSearchParams();
+  const numero = Number(params.get('historial_pagina'));
+  const pagina = Number.isSafeInteger(numero) && numero > 0 && numero <= 2147483647 ? numero : 1;
+  const limite = [10, 25, 50].includes(Number(params.get('historial_limite'))) ? Number(params.get('historial_limite')) : 25;
   const [historial, setHistorial] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
   const [ventaExpandida, setVentaExpandida] = useState(null);
   const [intento, setIntento] = useState(0);
+
+  const [consultaResuelta, setConsultaResuelta] = useState(null);
+  const clave = JSON.stringify([cliente?.id_cliente, pagina, limite]);
+  const pendiente = Boolean(cliente && (cargando || clave !== consultaResuelta));
+  const { crearDestino, onLimiteChange } = usePaginacionURL({ prefijo: 'historial_',
+    paginacion: clave === consultaResuelta ? historial?.paginacion : null, cargando: pendiente });
 
   useEffect(() => {
     if (!cliente) return undefined;
@@ -131,13 +144,13 @@ export default function HistorialClienteModal({ cliente, onClose }) {
     setError(null);
     setVentaExpandida(null);
 
-    obtenerHistorialCompras(cliente.id_cliente)
+    obtenerHistorialCompras(cliente.id_cliente, { pagina, limite })
       .then((datos) => { if (vigente) setHistorial(datos); })
       .catch((err) => { if (vigente) setError(err.response?.data?.mensaje || 'No se pudo cargar el historial de ventas.'); })
-      .finally(() => { if (vigente) setCargando(false); });
+      .finally(() => { if (vigente) { setCargando(false); setConsultaResuelta(clave); } });
 
     return () => { vigente = false; };
-  }, [cliente, intento]);
+  }, [cliente, intento, pagina, limite, clave]);
 
   const compras = historial?.compras || [];
 
@@ -164,9 +177,9 @@ export default function HistorialClienteModal({ cliente, onClose }) {
         </header>
 
         <div className={styles.content}>
-          {cargando && <div role="status" className={styles.state}><LoaderCircle size={26} className={styles.spinner} aria-hidden="true" /><strong>Cargando historial…</strong><span>Estamos consultando las compras asociadas.</span></div>}
+          {pendiente && <div role="status" className={styles.state}><LoaderCircle size={26} className={styles.spinner} aria-hidden="true" /><strong>Cargando historial…</strong><span>Estamos consultando las compras asociadas.</span></div>}
 
-          {!cargando && error && (
+          {!pendiente && error && (
             <div role="alert" className={`${styles.state} ${styles.stateError}`}>
               <AlertCircle size={20} aria-hidden="true" />
               <strong>No se pudo cargar el historial</strong>
@@ -175,21 +188,23 @@ export default function HistorialClienteModal({ cliente, onClose }) {
             </div>
           )}
 
-          {!cargando && historial && (
+          {!pendiente && historial && (
             <>
               <Resumen resumen={historial.resumen} />
               {compras.length === 0 ? (
                 <div className={styles.state}><ReceiptText size={26} aria-hidden="true" /><strong>Sin ventas registradas</strong><span>Este cliente todavía no tiene compras asociadas.</span></div>
               ) : (
                 <section className={styles.salesSection} aria-labelledby="ventas-cliente-title">
-                  <div className={styles.salesHeading}><h3 id="ventas-cliente-title">Ventas realizadas</h3><span>{compras.length} {compras.length === 1 ? 'registro' : 'registros'}</span></div>
-                  <div className={styles.salesList}>
+                  <div className={styles.salesHeading}><h3 id="ventas-cliente-title">Ventas realizadas</h3><span>{historial.paginacion?.total ?? compras.length} {(historial.paginacion?.total ?? compras.length) === 1 ? 'registro' : 'registros'}</span></div>
+                  <div id="compras-cliente" className={styles.salesList}>
                     {compras.map((compra) => (
                       <VentaHistorial key={compra.id_venta} compra={compra} expandida={ventaExpandida === compra.id_venta} onAlternar={() => setVentaExpandida((actual) => (actual === compra.id_venta ? null : compra.id_venta))} />
                     ))}
                   </div>
                 </section>
               )}
+              <Paginacion paginacion={historial.paginacion} crearDestino={crearDestino}
+                onLimiteChange={onLimiteChange} sustantivo="compras" controles="compras-cliente" />
             </>
           )}
         </div>
