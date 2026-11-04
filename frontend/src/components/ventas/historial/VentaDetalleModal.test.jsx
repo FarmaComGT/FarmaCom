@@ -187,7 +187,7 @@ describe('VentaDetalleModal', () => {
     expect(mocks.anularVenta).not.toHaveBeenCalled();
   });
 
-  it('cierra el detalle con el botón o al hacer clic fuera del cuadro', async () => {
+  it('cierra el detalle con el botón o con Escape', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
 
@@ -195,8 +195,7 @@ describe('VentaDetalleModal', () => {
     await screen.findByText('Sucursal Central');
 
     await user.click(screen.getByRole('button', { name: 'Cerrar detalle de venta' }));
-    await user.click(screen.getByRole('dialog', { name: /Detalle de venta/ }).parentElement);
-    await user.click(screen.getByText('Sucursal Central'));
+    await user.keyboard('{Escape}');
 
     expect(onClose).toHaveBeenCalledTimes(2);
   });
