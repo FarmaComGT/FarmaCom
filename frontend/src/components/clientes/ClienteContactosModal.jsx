@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useState } from 'react';
 import { Check, Contact, LoaderCircle, Mail, Pencil, Phone, Plus, Trash2, X } from 'lucide-react';
 import useContactosCliente from '../../hooks/useContactosCliente';
@@ -19,6 +20,7 @@ const mensajeDeError = (err, alternativo) => (
 );
 
 function ContactoItem({ etiqueta, descripcion, type, onActualizar, onEliminar }) {
+  const toast = useToast();
   const [editando, setEditando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [valor, setValor] = useState(etiqueta);
@@ -43,9 +45,11 @@ function ContactoItem({ etiqueta, descripcion, type, onActualizar, onEliminar })
     setError('');
     try {
       await onActualizar(limpio);
+      toast.success('Contacto actualizado correctamente.');
       setEditando(false);
     } catch (err) {
-      setError(mensajeDeError(err, 'No se pudo actualizar'));
+      if (err.response?.data?.errores?.length) setError(mensajeDeError(err, 'No se pudo actualizar'));
+      else toast.error(mensajeDeError(err, 'No se pudo actualizar'));
     } finally {
       setProcesando(false);
     }
@@ -56,8 +60,10 @@ function ContactoItem({ etiqueta, descripcion, type, onActualizar, onEliminar })
     setError('');
     try {
       await onEliminar();
+      toast.success('Contacto eliminado correctamente.');
     } catch (err) {
-      setError(mensajeDeError(err, 'No se pudo eliminar'));
+      if (err.response?.data?.errores?.length) setError(mensajeDeError(err, 'No se pudo eliminar'));
+      else toast.error(mensajeDeError(err, 'No se pudo eliminar'));
       setProcesando(false);
       setConfirmando(false);
     }
@@ -119,6 +125,7 @@ function ContactoItem({ etiqueta, descripcion, type, onActualizar, onEliminar })
 }
 
 function AgregarContacto({ etiqueta, placeholder, type, onAgregar }) {
+  const toast = useToast();
   const [valor, setValor] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
@@ -132,9 +139,11 @@ function AgregarContacto({ etiqueta, placeholder, type, onAgregar }) {
     setError('');
     try {
       await onAgregar(limpio);
+      toast.success('Contacto agregado correctamente.');
       setValor('');
     } catch (err) {
-      setError(mensajeDeError(err, 'No se pudo agregar'));
+      if (err.response?.data?.errores?.length) setError(mensajeDeError(err, 'No se pudo agregar'));
+      else toast.error(mensajeDeError(err, 'No se pudo agregar'));
     } finally {
       setGuardando(false);
     }

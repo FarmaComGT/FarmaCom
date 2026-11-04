@@ -1,3 +1,4 @@
+import { useToast } from '../../../context/ToastContext.jsx';
 import React, { useEffect, useRef, useState } from 'react';
 import { LoaderCircle, X } from 'lucide-react';
 import useAvisoCambiosSinGuardar, { confirmarDescartarCambios } from '../../../hooks/useAvisoCambiosSinGuardar.js';
@@ -5,6 +6,7 @@ import AccessibleDialog from '../../ui/AccessibleDialog.jsx';
 import styles from '../../../styles/ManagementUI.module.css';
 
 export default function PresentacionQuickCreateModal({ isOpen, guardando, presentacion = null, onClose, onGuardar }) {
+  const toast = useToast();
   const [nombre, setNombre] = useState('');
   const [error, setError] = useState(null);
   const errorRef = useRef(null);
@@ -34,8 +36,9 @@ export default function PresentacionQuickCreateModal({ isOpen, guardando, presen
     try {
       setError(null);
       await onGuardar({ nombre: nombreLimpio });
+      toast.success('Presentación guardada correctamente.');
     } catch (err) {
-      setError(err.response?.data?.mensaje || `No se pudo ${esEdicion ? 'actualizar' : 'crear'} la presentación.`);
+      toast.error(err.response?.data?.mensaje || `No se pudo ${esEdicion ? 'actualizar' : 'crear'} la presentación.`);
     }
   };
 

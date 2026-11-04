@@ -1,5 +1,6 @@
+import { ToastProvider } from '../../../context/ToastContext.jsx';
 import React from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render as renderBase, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import VentaDetalleModal from './VentaDetalleModal';
@@ -200,3 +201,5 @@ describe('VentaDetalleModal', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 });
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

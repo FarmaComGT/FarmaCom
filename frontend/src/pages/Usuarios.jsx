@@ -1,3 +1,4 @@
+import { useToast } from '../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import UsuarioTable from '../components/usuarios/UsuarioTable.jsx';
@@ -30,6 +31,7 @@ const estadoInicialFormulario = {
 };
 
 export default function Usuarios() {
+  const toast = useToast();
   const { usuario: usuarioSesion } = useAuth();
   const { usuarios, cargando, error, crear, actualizar, cambiarEstado } = useUsuarios();
   const { sucursales, cargando: cargandoSucursales } = useSucursales();
@@ -45,7 +47,6 @@ export default function Usuarios() {
   const [guardando, setGuardando] = useState(false);
   const [cambiandoEstadoId, setCambiandoEstadoId] = useState(null);
   const [errorFormulario, setErrorFormulario] = useState(null);
-  const [errorAccion, setErrorAccion] = useState(null);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
   const [formulario, setFormulario] = useState(estadoInicialFormulario);
@@ -215,10 +216,11 @@ export default function Usuarios() {
           id_laboratorio: rol === 'laboratorista' ? idLaboratorio : null,
         });
       }
+      toast.success('Usuario guardado correctamente.');
       setMostrarModal(false);
       setFormulario(estadoInicialFormulario);
     } catch (err) {
-      setErrorFormulario(err.message || 'No se pudo guardar el usuario.');
+      toast.error(err.message || 'No se pudo guardar el usuario.');
     } finally {
       setGuardando(false);
     }
@@ -241,12 +243,13 @@ export default function Usuarios() {
     const nuevoEstado = esActivo ? 'inactivo' : 'activo';
 
     try {
-      setErrorAccion(null);
+
       setCambiandoEstadoId(usuarioACambiarEstado.id_usuario);
       await cambiarEstado(usuarioACambiarEstado.id_usuario, nuevoEstado);
+      toast.success('Estado del usuario actualizado correctamente.');
       setUsuarioACambiarEstado(null);
     } catch (err) {
-      setErrorAccion(err.message || 'No se pudo cambiar el estado del usuario.');
+      toast.error(err.message || 'No se pudo cambiar el estado del usuario.');
     } finally {
       setCambiandoEstadoId(null);
     }
@@ -280,7 +283,6 @@ export default function Usuarios() {
       </p>
 
       <UsuarioAlert mensaje={error} />
-      <UsuarioAlert mensaje={errorAccion} />
 
       <UsuarioTable
         cargando={cargando}

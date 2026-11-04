@@ -1,3 +1,4 @@
+import { useToast } from '../../../context/ToastContext.jsx';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -26,15 +27,15 @@ const formatearFecha = (valor) => {
 };
 
 export default function VentaDetalleModal({ idVenta, onClose, onVentaAnulada }) {
+  const toast = useToast();
   const { usuario } = useAuth();
   const [estado, setEstado] = useState({ venta: null, cargando: false, error: null });
   const [modalAnulacionAbierto, setModalAnulacionAbierto] = useState(false);
   const [anulando, setAnulando] = useState(false);
-  const [errorAnulacion, setErrorAnulacion] = useState(null);
 
   useEffect(() => {
     setModalAnulacionAbierto(false);
-    setErrorAnulacion(null);
+
     setAnulando(false);
     if (!idVenta) return undefined;
 
@@ -58,26 +59,27 @@ export default function VentaDetalleModal({ idVenta, onClose, onVentaAnulada }) 
   const puedeSolicitarAnulacion = rolGlobal || esResponsable;
 
   const abrirAnulacion = () => {
-    setErrorAnulacion(null);
+
     setModalAnulacionAbierto(true);
   };
 
   const cerrarAnulacion = () => {
     if (anulando) return;
     setModalAnulacionAbierto(false);
-    setErrorAnulacion(null);
+
   };
 
   const confirmarAnulacion = async (motivo) => {
     setAnulando(true);
-    setErrorAnulacion(null);
+
     try {
       const ventaActualizada = await anularVenta(idVenta, motivo);
       setEstado({ venta: ventaActualizada, cargando: false, error: null });
       setModalAnulacionAbierto(false);
+      toast.success('Venta anulada correctamente.');
       onVentaAnulada?.(ventaActualizada);
     } catch (errorSolicitud) {
-      setErrorAnulacion(errorSolicitud.message || 'No se pudo anular la venta.');
+      toast.error(errorSolicitud.message || 'No se pudo anular la venta.');
     } finally {
       setAnulando(false);
     }
@@ -246,7 +248,7 @@ export default function VentaDetalleModal({ idVenta, onClose, onVentaAnulada }) 
         isOpen={modalAnulacionAbierto}
         venta={venta}
         anulando={anulando}
-        error={errorAnulacion}
+        error={null}
         onClose={cerrarAnulacion}
         onConfirm={confirmarAnulacion}
       />

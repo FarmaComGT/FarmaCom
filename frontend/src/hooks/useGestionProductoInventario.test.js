@@ -68,3 +68,17 @@ describe('useGestionProductoInventario', () => {
     await waitFor(() => expect(result.current.productoEditando).toBeNull());
   });
 });
+
+
+it('conserva el éxito de guardar si falla la actualización posterior', async () => {
+  const propiedades = { ...crearPropiedades(), onError: vi.fn() };
+  propiedades.refrescarInventario.mockRejectedValue(new Error('Sin conexión'));
+  const { result } = renderHook(() => useGestionProductoInventario(propiedades));
+  act(() => result.current.abrirNuevo());
+  await act(() => result.current.guardar(formulario));
+  expect(propiedades.crearProducto).toHaveBeenCalledOnce();
+  expect(propiedades.onExito).toHaveBeenCalledOnce();
+  expect(propiedades.onError).toHaveBeenCalledWith(expect.stringContaining('La operación se completó'));
+  expect(result.current.errorFormulario).toBeNull();
+  expect(result.current.mostrarFormulario).toBe(false);
+});

@@ -1,5 +1,6 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render as renderBase, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import NuevoClienteModal from './NuevoClienteModal';
@@ -38,3 +39,5 @@ describe('NuevoClienteModal', () => {
     expect(onCrear).toHaveBeenCalledWith(expect.objectContaining({ nit: null }));
   });
 });
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

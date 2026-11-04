@@ -1,5 +1,6 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render as renderBase, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -89,3 +90,5 @@ describe('detalle de lotes por producto', () => {
     expect(screen.getByText('Filtros: agotado / vencido')).toBeInTheDocument();
   });
 });
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

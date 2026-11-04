@@ -1,3 +1,4 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -48,9 +49,9 @@ vi.mock('../../hooks/usePacientes', () => ({
 }));
 
 const renderizar = () => render(
-  <MemoryRouter>
+  <ToastProvider><MemoryRouter>
     <Pacientes />
-  </MemoryRouter>,
+  </MemoryRouter></ToastProvider>,
 );
 
 describe('Pacientes', () => {

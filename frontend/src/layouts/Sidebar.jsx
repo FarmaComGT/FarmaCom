@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useToast } from '../context/ToastContext.jsx';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import NavigationIcon from '../components/navigation/NavigationIcon.jsx';
 import { logout } from '../api/auth';
@@ -61,6 +62,8 @@ function NavigationGroup({ label, icon, open, onToggle, children, id, active }) 
 }
 
 export default function Sidebar({ abierta, onCerrar, onNavegar }) {
+  const toast = useToast();
+  const avisoSesion = useRef(null);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { dispatch, usuario } = useAuth();
@@ -69,13 +72,12 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
   const [inventarioAbierto, setInventarioAbierto] = useState(inventarioActivo);
   const [ubicacionesAbiertas, setUbicacionesAbiertas] = useState(ubicacionesActivas);
   const [cerrando, setCerrando] = useState(false);
-  const [errorSesion, setErrorSesion] = useState('');
   useEffect(() => { if (inventarioActivo) setInventarioAbierto(true); }, [inventarioActivo]);
   useEffect(() => { if (ubicacionesActivas) setUbicacionesAbiertas(true); }, [ubicacionesActivas]);
   const visible = (item) => !item.roles || item.roles.includes(usuario?.rol);
   const handleLogout = async () => {
+    toast.cerrar(avisoSesion.current);
     setCerrando(true);
-    setErrorSesion('');
     try {
       await logout();
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
@@ -85,7 +87,7 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
         dispatch({ type: AUTH_ACTIONS.LOGOUT });
         navigate('/login', { replace: true });
       } else {
-        setErrorSesion(error.response?.data?.mensaje || 'No se pudo cerrar sesión. Intenta de nuevo.');
+        avisoSesion.current = toast.error(error.response?.data?.mensaje || 'No se pudo cerrar sesión. Intenta de nuevo.');
       }
     } finally { setCerrando(false); }
   };
@@ -118,7 +120,6 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
       <button type="button" className="shell-nav-link shell-logout" onClick={handleLogout} disabled={cerrando}>
         <NavigationIcon name={cerrando ? 'loading' : 'exit'} className={cerrando ? 'shell-loading' : ''} /><span>Cerrar sesión{cerrando ? '…' : ''}</span>
       </button>
-      {errorSesion && <p role="status" className="shell-session-error">{errorSesion}</p>}
     </div>
   </aside>;
 }

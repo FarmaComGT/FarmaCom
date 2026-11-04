@@ -1,3 +1,4 @@
+import { useToast } from '../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import LaboratorioActionBar from '../components/laboratorios/LaboratorioActionBar.jsx';
@@ -17,6 +18,7 @@ const formularioInicial = {
 };
 
 export default function Laboratorios() {
+  const toast = useToast();
   const { laboratorios, cargando, error, crear, actualizar } = useLaboratorios();
   const { ciudades, cargandoCiudades, errorCiudades } = useCiudades();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,10 +116,11 @@ export default function Laboratorios() {
       } else {
         await crear(datos);
       }
+      toast.success('Laboratorio guardado correctamente.');
       setMostrarModal(false);
       setFormulario(formularioInicial);
     } catch (err) {
-      setErrorFormulario(err.message || 'No se pudo guardar el laboratorio.');
+      toast.error(err.message || 'No se pudo guardar el laboratorio.');
     } finally {
       setGuardando(false);
     }

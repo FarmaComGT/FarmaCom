@@ -1,3 +1,4 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render as renderBase, screen, waitFor } from '@testing-library/react';
@@ -18,10 +19,10 @@ function RutaActual() {
 }
 
 const render = (elemento, { ruta = '/ventas' } = {}) => renderBase(
-  <MemoryRouter initialEntries={[ruta]}>
+  <ToastProvider><MemoryRouter initialEntries={[ruta]}>
     {elemento}
     <RutaActual />
-  </MemoryRouter>,
+  </MemoryRouter></ToastProvider>,
 );
 
 const productoNormal = {

@@ -1,0 +1,73 @@
+.viewport {
+  position: fixed;
+  z-index: 10000;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  width: min(384px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: none;
+  font-family: var(--font-sans);
+}
+.list { display: grid; gap: 10px; margin: 0; padding: 4px; list-style: none; }
+.toast {
+  --toast-color: var(--ui-ink);
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 12px 17px 16px;
+  background: var(--color-surface-container-lowest);
+  color: var(--ui-ink);
+  border: 1px solid var(--ui-line);
+  border-radius: 6px;
+  box-shadow: 0 2px 6px #202b280d, 0 8px 24px #202b2814;
+  pointer-events: auto;
+  animation: enter 160ms ease-out;
+}
+.success { --toast-color: var(--ui-accent); }
+.error { --toast-color: var(--ui-danger); }
+.warning { --toast-color: #945600; }
+.info { --toast-color: var(--ui-ink); }
+.icon { flex-shrink: 0; margin-top: 1px; color: var(--toast-color); }
+.content { min-width: 0; flex: 1; overflow-wrap: anywhere; font-size: 14px; line-height: 1.5; }
+.content strong { color: var(--toast-color); font-weight: 600; letter-spacing: -.01em; }
+.content p { margin: 3px 0 0; }
+.close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ui-muted);
+  touch-action: manipulation;
+  margin-top: -5px;
+}
+.close:hover, .close:active { background: var(--ui-soft); color: var(--ui-ink); }
+.close:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+@keyframes enter { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.progress {
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 0 0 5px 5px;
+  background: var(--ui-soft);
+}
+.progressFill {
+  display: block;
+  height: 100%;
+  background: var(--toast-color);
+  transform-origin: left center;
+  animation: countdown linear forwards;
+}
+@keyframes countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@media (pointer: coarse), (max-width: 599px) { .close { width: 44px; height: 44px; } }
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+  .progressFill { animation-timing-function: steps(5, end); }
+}

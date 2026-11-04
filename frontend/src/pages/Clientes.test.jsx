@@ -1,3 +1,4 @@
+import { ToastProvider } from '../context/ToastContext.jsx';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
@@ -77,7 +78,7 @@ const historial = {
   ],
 };
 
-const renderizar = () => render(<MemoryRouter><Clientes /></MemoryRouter>);
+const renderizar = () => render(<ToastProvider><MemoryRouter><Clientes /></MemoryRouter></ToastProvider>);
 
 describe('Clientes', () => {
   beforeEach(() => {

@@ -1,6 +1,7 @@
+import { ToastProvider } from '../context/ToastContext.jsx';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render as renderBase, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
@@ -53,3 +54,5 @@ describe('Navegación por tareas de FarmaCom', () => {
     expect(screen.getByLabelText('Ruta actual')).toHaveTextContent('/login');
   });
 });
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

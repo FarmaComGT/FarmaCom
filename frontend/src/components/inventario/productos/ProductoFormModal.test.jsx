@@ -1,6 +1,7 @@
+import { ToastProvider } from '../../../context/ToastContext.jsx';
 import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render as renderBase, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ProductoFormModal from './ProductoFormModal';
 
@@ -356,3 +357,5 @@ describe('regresión del formulario de producto dividido en secciones', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

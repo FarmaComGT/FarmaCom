@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -17,6 +18,7 @@ import management from '../../styles/ManagementUI.module.css';
 import laboratory from '../../styles/LaboratoryUI.module.css';
 
 export default function Pacientes() {
+  const toast = useToast();
   const { usuario } = useAuth();
   const esLaboratorista = usuario?.rol === 'laboratorista';
   const { laboratorios } = useLaboratorios({ omitir: esLaboratorista });
@@ -62,14 +64,11 @@ export default function Pacientes() {
   const [modoEdicion, setModoEdicion] = useState(false);
   const [pacienteEditando, setPacienteEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
-  const [errorFormulario, setErrorFormulario] = useState(null);
 
   const [pacienteAAnular, setPacienteAAnular] = useState(null);
   const [anulando, setAnulando] = useState(false);
   const [pacienteAEliminar, setPacienteAEliminar] = useState(null);
   const [eliminando, setEliminando] = useState(false);
-  const [errorAccion, setErrorAccion] = useState(null);
-  const [mensajeExito, setMensajeExito] = useState(null);
 
   const {
     soportado: almacenamientoSoportado,
@@ -89,11 +88,6 @@ export default function Pacientes() {
     setMostrarModalAlmacenamiento(!carpetaConfigurada || !permisoOk);
   }, [cargandoAlmacenamiento, almacenamientoSoportado, carpetaConfigurada, permisoOk]);
 
-  useEffect(() => {
-    if (!mensajeExito) return undefined;
-    const temporizador = setTimeout(() => setMensajeExito(null), 4000);
-    return () => clearTimeout(temporizador);
-  }, [mensajeExito]);
 
   const totalPacientes = useMemo(
     () => resumenEstados.activos + resumenEstados.anulados,
@@ -121,14 +115,14 @@ export default function Pacientes() {
   const abrirCrear = () => {
     setModoEdicion(false);
     setPacienteEditando(null);
-    setErrorFormulario(null);
+
     setMostrarModal(true);
   };
 
   const abrirEditar = (paciente) => {
     setModoEdicion(true);
     setPacienteEditando(paciente);
-    setErrorFormulario(null);
+
     setMostrarModal(true);
   };
 
@@ -140,25 +134,25 @@ export default function Pacientes() {
   const manejarGuardar = async (datos) => {
     try {
       setGuardando(true);
-      setErrorFormulario(null);
+
       if (modoEdicion && pacienteEditando) {
         await actualizar(pacienteEditando.id_paciente, datos);
-        setMensajeExito('Paciente actualizado correctamente.');
+        toast.success('Paciente actualizado correctamente.');
       } else {
         const paciente = await crear(datos);
         await crearCarpetaDePaciente(paciente.id_paciente, paciente.nombre_paciente);
-        setMensajeExito('Paciente registrado correctamente.');
+        toast.success('Paciente registrado correctamente.');
       }
       setMostrarModal(false);
     } catch (err) {
-      setErrorFormulario(err.message || 'No se pudo guardar el paciente.');
+      toast.error(err.message || 'No se pudo guardar el paciente.');
     } finally {
       setGuardando(false);
     }
   };
 
   const solicitarAnular = (paciente) => {
-    setErrorAccion(null);
+
     setPacienteAAnular(paciente);
   };
 
@@ -171,19 +165,19 @@ export default function Pacientes() {
     if (!pacienteAAnular) return;
     try {
       setAnulando(true);
-      setErrorAccion(null);
+
       await anular(pacienteAAnular.id_paciente, motivo);
       setPacienteAAnular(null);
-      setMensajeExito('Paciente anulado correctamente.');
+      toast.success('Paciente anulado correctamente.');
     } catch (err) {
-      setErrorAccion(err.message || 'No se pudo anular el paciente.');
+      toast.error(err.message || 'No se pudo anular el paciente.');
     } finally {
       setAnulando(false);
     }
   };
 
   const solicitarEliminar = (paciente) => {
-    setErrorAccion(null);
+
     setPacienteAEliminar(paciente);
   };
 
@@ -196,13 +190,13 @@ export default function Pacientes() {
     if (!pacienteAEliminar) return;
     try {
       setEliminando(true);
-      setErrorAccion(null);
+
       await eliminar(pacienteAEliminar.id_paciente);
       await eliminarCarpetaDePaciente(pacienteAEliminar.id_paciente, pacienteAEliminar.nombre_paciente);
       setPacienteAEliminar(null);
-      setMensajeExito('Paciente eliminado correctamente.');
+      toast.success('Paciente eliminado correctamente.');
     } catch (err) {
-      setErrorAccion(err.message || 'No se pudo eliminar el paciente.');
+      toast.error(err.message || 'No se pudo eliminar el paciente.');
     } finally {
       setEliminando(false);
     }
@@ -249,9 +243,7 @@ export default function Pacientes() {
         <strong>{paginacion.total}</strong> pacientes encontrados
       </p>
 
-      <PacienteAlert mensaje={mensajeExito} variante="success" />
       <PacienteAlert mensaje={error} />
-      <PacienteAlert mensaje={errorAccion} />
 
       <PacienteTable
         cargando={cargando}
@@ -290,7 +282,7 @@ export default function Pacientes() {
         modoEdicion={modoEdicion}
         paciente={pacienteEditando}
         guardando={guardando}
-        errorFormulario={errorFormulario}
+        errorFormulario={null}
         onClose={cerrarModal}
         onSubmit={manejarGuardar}
       />

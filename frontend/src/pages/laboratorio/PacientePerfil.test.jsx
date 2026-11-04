@@ -1,3 +1,4 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -65,11 +66,11 @@ const paciente = {
 };
 
 const renderizar = () => render(
-  <MemoryRouter initialEntries={['/laboratorio/pacientes/3']}>
+  <ToastProvider><MemoryRouter initialEntries={['/laboratorio/pacientes/3']}>
     <Routes>
       <Route path="/laboratorio/pacientes/:id" element={<PacientePerfil />} />
     </Routes>
-  </MemoryRouter>,
+  </MemoryRouter></ToastProvider>,
 );
 
 describe('PacientePerfil', () => {

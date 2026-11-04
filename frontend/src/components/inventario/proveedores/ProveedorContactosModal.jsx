@@ -1,3 +1,4 @@
+import { useToast } from '../../../context/ToastContext.jsx';
 import React, { useId, useState } from 'react';
 import { Check, LoaderCircle, Mail, Pencil, Phone, Plus, Trash2, X } from 'lucide-react';
 import useContactosProveedor from '../../../hooks/useContactosProveedor';
@@ -6,6 +7,7 @@ import ContentState from '../../ui/ContentState.jsx';
 import styles from '../../../styles/ManagementUI.module.css';
 
 function ContactoItem({ label, type = 'text', onActualizar, onSolicitarEliminar, eliminando }) {
+  const toast = useToast();
   const campoId = useId();
   const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState(label);
@@ -30,9 +32,10 @@ function ContactoItem({ label, type = 'text', onActualizar, onSolicitarEliminar,
     setError('');
     try {
       await onActualizar(valorLimpio);
+      toast.success('Contacto actualizado correctamente.');
       setEditando(false);
     } catch (err) {
-      setError(err.response?.data?.mensaje || 'No se pudo actualizar');
+      toast.error(err.response?.data?.mensaje || 'No se pudo actualizar');
     } finally {
       setGuardando(false);
     }
@@ -66,6 +69,7 @@ function ContactoItem({ label, type = 'text', onActualizar, onSolicitarEliminar,
 }
 
 function AgregarInput({ id, label, placeholder, type = 'text', onAgregar }) {
+  const toast = useToast();
   const [valor, setValor] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
@@ -78,9 +82,10 @@ function AgregarInput({ id, label, placeholder, type = 'text', onAgregar }) {
     setGuardando(true);
     try {
       await onAgregar(valorLimpio);
+      toast.success('Contacto agregado correctamente.');
       setValor('');
     } catch (err) {
-      setError(err.response?.data?.mensaje || 'No se pudo agregar');
+      toast.error(err.response?.data?.mensaje || 'No se pudo agregar');
     } finally {
       setGuardando(false);
     }
@@ -100,6 +105,7 @@ function AgregarInput({ id, label, placeholder, type = 'text', onAgregar }) {
 }
 
 export default function ProveedorContactosModal({ isOpen, proveedor, onClose }) {
+  const toast = useToast();
   const [contactoAEliminar, setContactoAEliminar] = useState(null);
   const [eliminandoId, setEliminandoId] = useState(null);
   const [errorEliminacion, setErrorEliminacion] = useState('');
@@ -120,9 +126,10 @@ export default function ProveedorContactosModal({ isOpen, proveedor, onClose }) 
     try {
       if (contactoAEliminar.tipo === 'tel') await eliminarTelefono(contactoAEliminar.id);
       else await eliminarCorreo(contactoAEliminar.id);
+      toast.success('Contacto eliminado correctamente.');
       setContactoAEliminar(null);
     } catch (err) {
-      setErrorEliminacion(err.response?.data?.mensaje || 'No se pudo eliminar el contacto.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo eliminar el contacto.');
     } finally {
       setEliminandoId(null);
     }

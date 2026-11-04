@@ -1,3 +1,4 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -31,9 +32,9 @@ vi.mock('../../hooks/useCasas', () => ({
 }));
 
 const renderizar = (ruta = '/') => render(
-  <MemoryRouter initialEntries={[ruta]}>
+  <ToastProvider><MemoryRouter initialEntries={[ruta]}>
     <Casas />
-  </MemoryRouter>,
+  </MemoryRouter></ToastProvider>,
 );
 
 describe('pantalla de casas farmacéuticas', () => {

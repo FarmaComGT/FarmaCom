@@ -1,3 +1,4 @@
+import { useToast } from '../../../context/ToastContext.jsx';
 import React, { useEffect, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import PresentacionDeleteModal from './PresentacionDeleteModal.jsx';
@@ -9,6 +10,7 @@ export default function ProductoPresentacionControl({
   puedeGestionar, puedeEliminar, onChange, onSeleccionar, onCrear,
   onActualizar, onEliminar,
 }) {
+  const toast = useToast();
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [presentacionEditando, setPresentacionEditando] = useState(null);
   const [presentacionAEliminar, setPresentacionAEliminar] = useState(null);
@@ -43,10 +45,11 @@ export default function ProductoPresentacionControl({
       setProcesando(true);
       setErrorEliminar(null);
       await onEliminar(presentacionAEliminar.id_presentacion);
+      toast.success('Presentación eliminada correctamente.');
       onSeleccionar(null);
       setPresentacionAEliminar(null);
     } catch (error) {
-      setErrorEliminar(error.response?.data?.mensaje || 'No se pudo eliminar la presentación.');
+      toast.error(error.response?.data?.mensaje || 'No se pudo eliminar la presentación.');
     } finally {
       setProcesando(false);
     }

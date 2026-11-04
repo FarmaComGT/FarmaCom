@@ -1,3 +1,4 @@
+import { useToast } from '../context/ToastContext.jsx';
 import React, { useEffect, useState } from 'react';
 import {
   Contact,
@@ -23,6 +24,7 @@ import styles from '../styles/ManagementUI.module.css';
 const inicial = { nombre_cliente: '', nit: '', observaciones: '' };
 
 export default function Clientes() {
+  const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
   const numero = Number(searchParams.get('pagina'));
@@ -123,9 +125,10 @@ export default function Clientes() {
 
       if (editando.nuevo) await crear(datos);
       else await actualizar(editando.id_cliente, datos);
+      toast.success('Cliente guardado correctamente.');
       setEditando(null);
     } catch (err) {
-      setErrorFormulario(err.response?.data?.mensaje || 'No se pudo guardar el cliente.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo guardar el cliente.');
     } finally {
       setGuardando(false);
     }
@@ -135,11 +138,12 @@ export default function Clientes() {
     if (!eliminarCliente) return;
     try {
       setBorrando(true);
-      setErrorAccion(null);
+
       await eliminar(eliminarCliente.id_cliente);
+      toast.success('Cliente eliminado correctamente.');
       setEliminarCliente(null);
     } catch (err) {
-      setErrorAccion(err.response?.data?.mensaje || 'No se pudo eliminar el cliente.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo eliminar el cliente.');
     } finally {
       setBorrando(false);
     }

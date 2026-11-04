@@ -1,5 +1,6 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render as renderBase, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -316,3 +317,5 @@ describe('Inventario unificado', () => {
     expect(screen.getByText('/inventario/productos/1/lotes')).toBeInTheDocument();
   });
 });
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

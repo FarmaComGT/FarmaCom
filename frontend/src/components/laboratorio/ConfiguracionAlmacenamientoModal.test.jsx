@@ -1,8 +1,11 @@
 import React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act, render as renderBase, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ConfiguracionAlmacenamientoModal from './ConfiguracionAlmacenamientoModal.jsx';
+import { ToastProvider } from '../../context/ToastContext.jsx';
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });
 
 describe('ConfiguracionAlmacenamientoModal', () => {
   let props;
@@ -73,6 +76,8 @@ describe('ConfiguracionAlmacenamientoModal', () => {
 
     await usuario.click(screen.getByRole('button', { name: 'Reconectar carpeta' }));
     expect(screen.getByText('No se otorgó permiso sobre la carpeta local.')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('No se otorgó permiso');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
 
     await usuario.click(screen.getByRole('button', { name: 'Reconectar carpeta' }));
 
@@ -90,6 +95,9 @@ describe('ConfiguracionAlmacenamientoModal', () => {
     await usuario.click(screen.getByRole('button', { name: nombreBoton }));
 
     expect(screen.getByText('No se pudo acceder a la carpeta seleccionada. Intenta de nuevo.')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('No se pudo acceder');
+    expect(screen.getByRole('status').closest('[role="dialog"]')).toBeNull();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: nombreBoton })).toBeEnabled();
 
     await usuario.click(screen.getByRole('button', { name: nombreBoton }));

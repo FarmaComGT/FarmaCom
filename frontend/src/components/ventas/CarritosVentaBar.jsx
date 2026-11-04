@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Check,
   Pencil,
@@ -6,6 +6,7 @@ import {
   X,
 } from 'lucide-react';
 import ConfirmacionCarritoModal from './ConfirmacionCarritoModal';
+import { useToast } from '../../context/ToastContext.jsx';
 
 const cantidadArticulos = (carrito) => carrito.items.reduce(
   (total, item) => total + Number(item.cantidad || 0),
@@ -21,6 +22,8 @@ export default function CarritosVentaBar({
   onRenombrar,
   onCerrar,
 }) {
+  const toast = useToast();
+  const avisoNombre = useRef(null);
   const [editandoId, setEditandoId] = useState(null);
   const [nombreEditado, setNombreEditado] = useState('');
   const [cerrandoId, setCerrandoId] = useState(null);
@@ -48,11 +51,16 @@ export default function CarritosVentaBar({
       setErrorNombre('Escribe un nombre para identificar este carrito.');
       return;
     }
-    if (onRenombrar(editandoId, nombreLimpio)) {
-      setEditandoId(null);
-      setErrorNombre('');
-    } else {
-      setErrorNombre('No se pudo cambiar el nombre del carrito.');
+    setErrorNombre('');
+    try {
+      toast.cerrar(avisoNombre.current);
+      if (onRenombrar(editandoId, nombreLimpio)) {
+        setEditandoId(null);
+      } else {
+        avisoNombre.current = toast.error('No se pudo cambiar el nombre del carrito.');
+      }
+    } catch {
+      avisoNombre.current = toast.error('No se pudo cambiar el nombre del carrito.');
     }
   };
 

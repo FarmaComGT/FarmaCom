@@ -1,5 +1,6 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as renderBase, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -154,3 +155,5 @@ describe('Inventario: página, hook y API paginada', () => {
     expect(api.get.mock.calls.filter(([url]) => url.endsWith('/resumen'))).toHaveLength(2);
   });
 });
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

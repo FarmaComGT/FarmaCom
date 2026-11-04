@@ -285,3 +285,17 @@ describe('useFlujoVenta', () => {
     expect(result.current.errorCobro).toBeNull();
   });
 });
+
+
+it('mantiene el comprobante si falla el catálogo después de registrar la venta', async () => {
+  const venta = { id_venta: 88, total: 25 };
+  crearVenta.mockResolvedValueOnce(venta);
+  const opciones = crearOpciones({ onExito: vi.fn(), onError: vi.fn(), refrescarCatalogo: vi.fn().mockRejectedValue(new Error('Sin conexión')) });
+  const { result } = usarFlujo(opciones);
+  await act(() => result.current.confirmarCobro({ montoRecibido: 25 }));
+  expect(result.current.ventaCompletada).toEqual(venta);
+  expect(result.current.modalActivo).toBe('comprobante');
+  expect(result.current.errorCobro).toBeNull();
+  expect(opciones.onExito).toHaveBeenCalledWith('Venta registrada correctamente.');
+  expect(opciones.onError).toHaveBeenCalledWith(expect.stringContaining('La venta se registró'));
+});

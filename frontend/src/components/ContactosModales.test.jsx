@@ -1,5 +1,6 @@
+import { ToastProvider } from '../context/ToastContext.jsx';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as renderBase, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import useContactosCasa from '../hooks/useContactosCasa';
@@ -214,6 +215,8 @@ describe.each(modales)('modal de contactos de $nombre', ({
 
     await user.click(screen.getByRole('button', { name: etiquetas.cancelar }));
     expect(screen.getByText(correo.correo)).toBeInTheDocument();
+    expect(screen.getByText('Correo duplicado')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cerrar notificación: Correo duplicado' }));
     expect(screen.queryByText('Correo duplicado')).not.toBeInTheDocument();
   });
 
@@ -280,3 +283,5 @@ describe('proveedores asociados a una casa farmacéutica', () => {
     expect(screen.getByText('No hay proveedores vinculados a esta casa farmacéutica.')).toBeInTheDocument();
   });
 });
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

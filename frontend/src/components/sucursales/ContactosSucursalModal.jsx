@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
@@ -5,6 +6,7 @@ import { Check, Pencil, X, Phone, Mail, Plus, Trash2 } from 'lucide-react';
 import useContactosSucursal from '../../hooks/useContactosSucursal';
 
 function ContactoItem({ label, type = 'text', onActualizar, onEliminar, eliminando }) {
+  const toast = useToast();
   const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState(label);
   const [guardando, setGuardando] = useState(false);
@@ -27,9 +29,10 @@ function ContactoItem({ label, type = 'text', onActualizar, onEliminar, eliminan
     setError('');
     try {
       await onActualizar(valor.trim());
+      toast.success('Contacto actualizado correctamente.');
       setEditando(false);
     } catch (err) {
-      setError(err.response?.data?.mensaje || 'No se pudo actualizar');
+      toast.error(err.response?.data?.mensaje || 'No se pudo actualizar');
     } finally {
       setGuardando(false);
     }
@@ -96,6 +99,7 @@ function ContactoItem({ label, type = 'text', onActualizar, onEliminar, eliminan
 }
 
 function AgregarInput({ placeholder, type = 'text', onAgregar }) {
+  const toast = useToast();
   const [valor, setValor] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
@@ -107,9 +111,10 @@ function AgregarInput({ placeholder, type = 'text', onAgregar }) {
     setGuardando(true);
     try {
       await onAgregar(valor.trim());
+      toast.success('Contacto agregado correctamente.');
       setValor('');
     } catch (err) {
-      setError(err.response?.data?.mensaje || 'No se pudo agregar');
+      toast.error(err.response?.data?.mensaje || 'No se pudo agregar');
     } finally {
       setGuardando(false);
     }
@@ -140,6 +145,7 @@ function AgregarInput({ placeholder, type = 'text', onAgregar }) {
 }
 
 export default function ContactosSucursalModal({ isOpen, sucursal, onClose }) {
+  const toast = useToast();
   const [eliminandoId, setEliminandoId] = useState(null);
   const {
     telefonos, correos, cargando, error,
@@ -151,12 +157,12 @@ export default function ContactosSucursalModal({ isOpen, sucursal, onClose }) {
 
   const handleEliminarTelefono = async (id) => {
     setEliminandoId(`tel-${id}`);
-    try { await eliminarTelefono(id); } finally { setEliminandoId(null); }
+    try { await eliminarTelefono(id); toast.success('Contacto eliminado correctamente.'); } catch (errorOperacion) { toast.error(errorOperacion.response?.data?.mensaje || 'No se pudo eliminar el contacto.'); } finally { setEliminandoId(null); }
   };
 
   const handleEliminarCorreo = async (id) => {
     setEliminandoId(`cor-${id}`);
-    try { await eliminarCorreo(id); } finally { setEliminandoId(null); }
+    try { await eliminarCorreo(id); toast.success('Contacto eliminado correctamente.'); } catch (errorOperacion) { toast.error(errorOperacion.response?.data?.mensaje || 'No se pudo eliminar el contacto.'); } finally { setEliminandoId(null); }
   };
 
   return createPortal(

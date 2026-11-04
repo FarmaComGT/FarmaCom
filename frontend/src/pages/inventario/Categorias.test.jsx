@@ -1,3 +1,4 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -29,9 +30,9 @@ vi.mock('../../hooks/useCategorias', () => ({
 }));
 
 const renderizar = (ruta = '/') => render(
-  <MemoryRouter initialEntries={[ruta]}>
+  <ToastProvider><MemoryRouter initialEntries={[ruta]}>
     <Categorias />
-  </MemoryRouter>,
+  </MemoryRouter></ToastProvider>,
 );
 
 describe('pantalla de categorías', () => {

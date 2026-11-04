@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import InventarioSubNav from '../../components/inventario/InventarioSubNav.jsx';
@@ -11,6 +12,7 @@ import styles from '../../styles/ManagementUI.module.css';
 const formularioInicial = { nombre: '' };
 
 export default function Categorias() {
+  const toast = useToast();
   const { categorias, cargando, error, refrescar, crear, actualizar, eliminar } = useCategorias();
   const [searchParams, setSearchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
@@ -23,7 +25,6 @@ export default function Categorias() {
   const [errorFormulario, setErrorFormulario] = useState(null);
   const [categoriaAEliminar, setCategoriaAEliminar] = useState(null);
   const [eliminandoId, setEliminandoId] = useState(null);
-  const [errorAccion, setErrorAccion] = useState(null);
   const hayCambios = formulario.nombre !== formularioBase.nombre;
 
   useEffect(() => {
@@ -86,11 +87,12 @@ export default function Categorias() {
       setGuardando(true);
       if (modoEdicion && idEditando) await actualizar(idEditando, { nombre });
       else await crear({ nombre });
+      toast.success('Categoría guardada correctamente.');
       setMostrarModal(false);
       setFormulario(formularioInicial);
       setFormularioBase(formularioInicial);
     } catch (err) {
-      setErrorFormulario(err.response?.data?.mensaje || 'No se pudo guardar la categoría.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo guardar la categoría.');
     } finally {
       setGuardando(false);
     }
@@ -99,19 +101,18 @@ export default function Categorias() {
   const confirmarEliminar = async () => {
     if (!categoriaAEliminar) return;
     try {
-      setErrorAccion(null);
       setEliminandoId(categoriaAEliminar.id_categoria);
       await eliminar(categoriaAEliminar.id_categoria);
+      toast.success('Categoría eliminada correctamente.');
       setCategoriaAEliminar(null);
     } catch (err) {
-      setErrorAccion(err.response?.data?.mensaje || 'No se pudo eliminar la categoría.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo eliminar la categoría.');
     } finally {
       setEliminandoId(null);
     }
   };
 
   const solicitarEliminar = (categoria) => {
-    setErrorAccion(null);
     setCategoriaAEliminar(categoria);
   };
 
@@ -131,7 +132,6 @@ export default function Categorias() {
         <strong>{categoriasFiltradas.length}</strong> de {categorias.length} categorías
       </p>
 
-      {errorAccion && !categoriaAEliminar && <p role="alert" className={styles.alert}>{errorAccion}</p>}
       {error && categorias.length > 0 && <p role="alert" className={styles.alert}>{error}</p>}
 
       <CategoriaTable
@@ -161,7 +161,7 @@ export default function Categorias() {
         isOpen={Boolean(categoriaAEliminar)}
         categoria={categoriaAEliminar}
         eliminando={Boolean(eliminandoId)}
-        error={errorAccion}
+        error={null}
         onClose={() => { if (!eliminandoId) setCategoriaAEliminar(null); }}
         onConfirm={confirmarEliminar}
       />

@@ -1,5 +1,6 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render as renderBase, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import useCaja from '../../hooks/useCaja';
@@ -306,3 +307,5 @@ describe('CajaOperativa', () => {
     expect(screen.getByText(/faltante de/)).toHaveTextContent(/Q\s*5\.00/);
   });
 });
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });
