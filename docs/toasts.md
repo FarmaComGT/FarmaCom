@@ -13,8 +13,9 @@ toast.warning('Revisa las existencias antes de continuar.');
 toast.info('La consulta está disponible.');
 ```
 
-- Éxito e información duran 5 segundos; error y advertencia requieren cierre manual.
+- Éxito e información duran 5 segundos; los errores duran 10 segundos. Las advertencias requieren cierre manual.
 - Se puede especificar `{ duracion: 8000 }`; `0` conserva el mensaje hasta cerrarlo.
+- Para errores que requieren atención antes de continuar, usar explícitamente `toast.error('El resultado del pago requiere verificación.', { duracion: 0 })`. Mantener además el estado pendiente y su recuperación en la pantalla.
 - Cada llamada devuelve un identificador para `toast.cerrar(id)`. Los mensajes idénticos del mismo tipo se deduplican mientras están pendientes o visibles.
 - Hay tres mensajes visibles; los demás esperan en orden. Su temporizador empieza al aparecer.
 - El tiempo se pausa con el puntero, el foco o la pestaña oculta.

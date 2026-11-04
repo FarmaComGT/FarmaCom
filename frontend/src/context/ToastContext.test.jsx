@@ -12,7 +12,7 @@ describe('notificaciones globales', () => {
     const { result } = renderHook(useToast, { wrapper });
     act(() => {
       result.current.success('Guardado.');
-      result.current.error('Fallo persistente.');
+      result.current.error('Fallo persistente.', { duracion: 0 });
       result.current.error('Fallo temporal.', { duracion: 8000 });
     });
     const temporizador = (texto) => screen.getByText(texto).closest('li').querySelector('[data-toast-timer]');
@@ -37,15 +37,33 @@ describe('notificaciones globales', () => {
     entrada.remove();
   });
 
-  it('oculta éxitos y mantiene errores hasta cerrarlos', () => {
+  it('cierra éxitos a los 5 segundos y errores a los 10 segundos con su barra', () => {
     vi.useFakeTimers();
     const { result } = renderHook(useToast, { wrapper });
     act(() => { result.current.success('Guardado.'); result.current.error('No se pudo guardar.'); });
     act(() => vi.advanceTimersByTime(5000));
     expect(screen.queryByText('Guardado.')).not.toBeInTheDocument();
     expect(screen.getByText('No se pudo guardar.')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Cerrar notificación: No se pudo guardar.' }));
+    const barra = screen.getByText('No se pudo guardar.').closest('li').querySelector('[data-toast-timer] span');
+    expect(barra).toHaveStyle({ animationDuration: '10000ms' });
+    act(() => vi.advanceTimersByTime(4999));
+    expect(screen.getByText('No se pudo guardar.')).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(1));
     expect(screen.queryByText('No se pudo guardar.')).not.toBeInTheDocument();
+  });
+
+  it('conserva las advertencias y los errores con duración cero hasta su cierre manual', () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(useToast, { wrapper });
+    act(() => {
+      result.current.error('Requiere verificación.', { duracion: 0 });
+      result.current.warning('Revisa los datos.');
+    });
+    act(() => vi.advanceTimersByTime(60000));
+    expect(screen.getByText('Requiere verificación.')).toBeInTheDocument();
+    expect(screen.getByText('Revisa los datos.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar notificación: Requiere verificación.' }));
+    expect(screen.queryByText('Requiere verificación.')).not.toBeInTheDocument();
   });
 
   it('pausa el tiempo al apuntar o enfocar y lo reanuda al salir', () => {
@@ -74,7 +92,7 @@ describe('notificaciones globales', () => {
     vi.useFakeTimers();
     const { result } = renderHook(useToast, { wrapper });
     act(() => {
-      ['Uno', 'Dos', 'Tres'].forEach((texto) => result.current.error(texto));
+      ['Uno', 'Dos', 'Tres'].forEach((texto) => result.current.error(texto, { duracion: 0 }));
       result.current.success('Cuatro');
     });
     act(() => vi.advanceTimersByTime(15000));

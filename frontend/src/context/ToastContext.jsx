@@ -3,6 +3,7 @@ import ToastViewport from '../components/ui/ToastViewport.jsx';
 
 const ToastContext = createContext(null);
 const TIPOS = ['success', 'error', 'warning', 'info'];
+const DURACIONES = { success: 5000, error: 10000, warning: 0, info: 5000 };
 
 export function ToastProvider({ children }) {
   const [mensajes, setMensajes] = useState([]);
@@ -14,7 +15,7 @@ export function ToastProvider({ children }) {
     const variante = TIPOS.includes(tipo) ? tipo : 'info';
     const id = `${variante}:${texto.trim()}`;
     const tiempo = Number.isFinite(duracion) && duracion >= 0
-      ? duracion : (variante === 'error' || variante === 'warning' ? 0 : 5000);
+      ? duracion : DURACIONES[variante];
     setMensajes((actuales) => {
       // Una misma operación no debe llenar la cola con avisos idénticos.
       if (actuales.some((mensaje) => mensaje.texto === texto.trim() && mensaje.tipo === variante)) return actuales;
