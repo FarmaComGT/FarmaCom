@@ -11,6 +11,15 @@ const mockResponse = () => {
 };
 
 describe('InventarioController', () => {
+  it('delega únicamente los filtros del contrato y el límite predeterminado', async () => {
+    const usuario = { rol: 'dependiente', id_sucursal: 2 };
+    InventarioService.obtenerInventarioPorSucursal.mockResolvedValue({ datos: [], paginacion: {} });
+    await InventarioController.obtenerInventario({ params: { id_sucursal: '2' }, usuario,
+      query: { pagina: 1, activo: false, busqueda: 'med', extra: 'ignorar' } }, mockResponse(), jest.fn());
+    expect(InventarioService.obtenerInventarioPorSucursal).toHaveBeenCalledWith(2, usuario,
+      { pagina: 1, limite: 25, activo: false, busqueda: 'med' });
+  });
+
   it('devuelve el inventario de la sucursal', async () => {
     InventarioService.obtenerInventarioPorSucursal.mockResolvedValue([{ id_producto: 1 }]);
     const res = mockResponse();

@@ -14,13 +14,15 @@ const validarParamIdSucursal = [
 ];
 
 const validarListado = [
-  query('pagina').optional().isInt({ min: 1, max: 2147483647 }).withMessage('P?gina inv?lida').toInt(),
-  query('limite').optional().isInt({ min: 1, max: 100 }).withMessage('L?mite inv?lido').toInt(),
-  query('busqueda').optional().trim().isLength({ max: 150 }),
-  query('id_categoria').optional().isInt({ min: 1 }).toInt(),
-  query('activo').optional().isIn(['true', 'false']).toBoolean(),
-  query('estado_stock').optional().isIn(['normal', 'agotado', 'poco_stock', 'sin_lotes']),
-  query('estado_vencimiento').optional().isIn(['normal', 'vencido', 'proximo_a_vencer', 'sin_lotes']),
+  query('pagina').optional().isString().bail()
+    .isInt({ min: 1, max: 2147483647 }).withMessage('Página inválida').toInt(),
+  query('limite').optional().isString().bail()
+    .isInt({ min: 1, max: 100 }).withMessage('Límite inválido').toInt(),
+  query('busqueda').optional().isString().bail().trim().isLength({ max: 150 }),
+  query('id_categoria').optional().isString().bail().isInt({ min: 1, max: 2147483647 }).toInt(),
+  query('activo').optional().isString().bail().isIn(['true', 'false']).toBoolean(),
+  query('estado_stock').optional().isString().bail().isIn(['normal', 'agotado', 'poco_stock', 'sin_lotes']),
+  query('estado_vencimiento').optional().isString().bail().isIn(['normal', 'vencido', 'proximo_a_vencer', 'sin_lotes']),
 ];
 
 // GET /api/sucursales/:id_sucursal/inventario

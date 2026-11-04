@@ -97,7 +97,7 @@ describe('InventarioDAO', () => {
 
 
 describe('inventario paginado', () => {
-  it('filtra antes de contar y limita usando una p?gina v?lida', async () => {
+  it('filtra antes de contar y limita usando una página válida', async () => {
     pool.query.mockReset();
     pool.query.mockResolvedValueOnce({ rows: [{ total: '26' }] });
     pool.query.mockResolvedValueOnce({ rows: [{ id_producto: 7 }] });
