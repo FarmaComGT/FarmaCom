@@ -17,6 +17,18 @@ const crearApp = () => {
 };
 
 describe('ClienteRoutes - NIT', () => {
+  it.each(['pagina=0', 'pagina=1.5', 'pagina=2147483648', 'limite=101', 'pagina[]=1'])('rechaza paginación inválida: %s', async (consulta) => {
+    const respuesta = await request(crearApp()).get(`/api/clientes?${consulta}`);
+    expect(respuesta.status).toBe(400);
+    expect(ClienteService.obtenerTodos).not.toHaveBeenCalled();
+  });
+
+  it('convierte y entrega los parámetros de paginación al servicio', async () => {
+    ClienteService.obtenerTodos.mockResolvedValue({ datos: [], paginacion: { total: 0 } });
+    const respuesta = await request(crearApp()).get('/api/clientes?pagina=2&limite=10&busqueda=%20Ana%20');
+    expect(respuesta.status).toBe(200);
+    expect(ClienteService.obtenerTodos).toHaveBeenCalledWith({ pagina: 2, limite: 10, busqueda: 'Ana' });
+  });
   beforeEach(() => {
     ClienteService.crearCliente.mockImplementation(async (datos) => datos);
     ClienteService.actualizarCliente.mockImplementation(async (_id, datos) => datos);

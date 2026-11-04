@@ -7,6 +7,8 @@ class HistorialCompraDAO {
     estado,
     fecha_desde,
     fecha_hasta,
+    pagina,
+    limite = 25,
   }) {
     const condiciones = ['v.id_cliente = $1'];
     const valores = [id_cliente];
@@ -23,6 +25,30 @@ class HistorialCompraDAO {
       agregarCondicion("v.fecha_venta < (?::date + INTERVAL '1 day')", fecha_hasta);
     }
 
+    let paginacion;
+    let resumen;
+    if (pagina !== undefined) {
+      const agregado = await pool.query(`
+        SELECT COUNT(*) AS total,
+          COUNT(*) FILTER (WHERE v.estado <> 'anulada') AS total_compras,
+          COALESCE(SUM(v.total) FILTER (WHERE v.estado <> 'anulada'), 0) AS monto_total,
+          COALESCE(SUM((SELECT COALESCE(SUM(d.cantidad), 0) FROM detalle_venta d
+            WHERE d.id_venta = v.id_venta)) FILTER (WHERE v.estado <> 'anulada'), 0) AS total_articulos
+        FROM venta v WHERE ${condiciones.join(' AND ')}`, valores);
+      const fila = agregado.rows[0];
+      const { crearPaginacion } = require('../utils/paginacion');
+      paginacion = crearPaginacion(pagina, limite, Number(fila.total));
+      resumen = { total_compras: Number(fila.total_compras), total_articulos: Number(fila.total_articulos),
+        monto_total: Number(fila.monto_total).toFixed(2) };
+    }
+    // Limitar las ventas antes de unir sus artículos evita agregar todo el historial.
+    const paginaVentas = paginacion
+      ? `JOIN (SELECT id_venta FROM venta v WHERE ${condiciones.join(' AND ')}
+          ORDER BY v.fecha_venta DESC, v.id_venta DESC
+          LIMIT $${valores.length + 1} OFFSET $${valores.length + 2}) pagina_ventas
+          ON pagina_ventas.id_venta = v.id_venta`
+      : '';
+    if (paginacion) valores.push(limite, (paginacion.pagina - 1) * limite);
     const { rows } = await pool.query(
       `SELECT
          v.id_venta,
@@ -62,6 +88,7 @@ class HistorialCompraDAO {
            '[]'::json
          ) AS detalles
        FROM venta v
+       ${paginaVentas}
        JOIN sucursal s ON s.id_sucursal = v.id_sucursal
        JOIN usuario u ON u.id_usuario = v.id_usuario
        JOIN cliente c ON c.id_cliente = v.id_cliente
@@ -79,7 +106,7 @@ class HistorialCompraDAO {
       valores,
     );
 
-    return rows;
+    return paginacion ? { compras: rows, paginacion, resumen } : rows;
   }
 }
 

@@ -32,7 +32,9 @@ const crearCliente = async ({ nombre_cliente, nit, observaciones }) => {
   }
 };
 
-const obtenerTodos = () => ClienteDAO.obtenerTodos();
+const obtenerTodos = (filtros = {}) => filtros.pagina !== undefined || filtros.limite !== undefined
+  ? ClienteDAO.obtenerPaginados(filtros)
+  : ClienteDAO.obtenerTodos();
 
 const obtenerPorId = async (id_cliente) => {
   const cliente = await ClienteDAO.obtenerPorId(id_cliente);

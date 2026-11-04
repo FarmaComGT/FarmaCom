@@ -3,6 +3,21 @@ jest.mock('../database/db');
 const pool = require('../database/db');
 const ClienteDAO = require('./ClienteDAO');
 
+describe('clientes paginados', () => {
+  it('busca en SQL y ajusta una página fuera del rango', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ total: '11' }] })
+      .mockResolvedValueOnce({ rows: [{ id_cliente: 11 }] });
+    const resultado = await ClienteDAO.obtenerPaginados({ pagina: 9, limite: 10, busqueda: '  María%  ' });
+    expect(resultado.paginacion).toEqual({ pagina: 2, limite: 10, total: 11, total_paginas: 2 });
+    expect(pool.query.mock.calls.at(-2)).toEqual([
+      expect.stringContaining('strpos'), ['maría%'],
+    ]);
+    expect(pool.query.mock.calls.at(-1)).toEqual([
+      expect.stringContaining('ORDER BY nombre_cliente, id_cliente LIMIT $2 OFFSET $3'), ['maría%', 10, 10],
+    ]);
+  });
+});
+
 describe('ClienteDAO', () => {
   it('crea un cliente incluyendo su NIT', async () => {
     const fila = { id_cliente: 1, nombre_cliente: 'Ana', nit: '1234567-1' };
