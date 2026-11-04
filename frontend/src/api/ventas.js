@@ -1,7 +1,7 @@
 import api from './axios';
 import { normalizarVentas } from '../utils/ventas';
 
-const CAMPOS_FILTRO = ['id_sucursal', 'estado', 'fecha_desde', 'fecha_hasta'];
+const CAMPOS_FILTRO = ['id_sucursal', 'estado', 'fecha_desde', 'fecha_hasta', 'pagina', 'limite'];
 
 const construirParametros = (filtros = {}) => CAMPOS_FILTRO.reduce((parametros, campo) => {
   const valor = filtros[campo];
@@ -15,7 +15,8 @@ export const obtenerVentas = async (filtros = {}, opciones = {}) => {
       params: construirParametros(filtros),
       ...(opciones.signal ? { signal: opciones.signal } : {}),
     });
-    return normalizarVentas(data);
+    return Array.isArray(data) ? normalizarVentas(data)
+      : { ...data, datos: normalizarVentas(data.datos) };
   } catch (err) {
     const mensaje = err.response?.data?.mensaje || 'No se pudo cargar el historial de ventas.';
     throw new Error(mensaje);

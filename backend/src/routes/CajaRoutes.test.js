@@ -20,6 +20,18 @@ const crearApp = () => {
 };
 
 describe('CajaRoutes', () => {
+  it.each(['pagina=0', 'pagina=1.5', 'pagina=2147483648', 'limite=101', 'limite[]=10'])('rechaza paginación inválida: %s', async (consulta) => {
+    const respuesta = await request(crearApp()).get(`/api/cajas/cierres?${consulta}`);
+    expect(respuesta.status).toBe(400);
+    expect(CajaService.obtenerCierres).not.toHaveBeenCalled();
+  });
+
+  it('entrega la paginación validada al servicio de cierres', async () => {
+    CajaService.obtenerCierres.mockResolvedValue({ datos: [], paginacion: { total: 0 } });
+    const respuesta = await request(crearApp()).get('/api/cajas/cierres?pagina=2&limite=10');
+    expect(respuesta.status).toBe(200);
+    expect(CajaService.obtenerCierres).toHaveBeenCalledWith({ pagina: 2, limite: 10 });
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });

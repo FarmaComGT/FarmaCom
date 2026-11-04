@@ -13,6 +13,14 @@ const dependienteSucursal2 = { id_usuario: 3, rol: 'dependiente', id_sucursal: 2
 const otroDependienteSucursal1 = { id_usuario: 5, rol: 'dependiente', id_sucursal: 1 };
 
 describe('CajaService', () => {
+  it('conserva los metadatos y calcula ventas totales para una página de cierres', async () => {
+    const paginacion = { pagina: 1, limite: 25, total: 1, total_paginas: 1 };
+    CajaDAO.obtenerCierres.mockResolvedValue({ datos: [{ total_ventas_efectivo: '30', total_ventas_tarjeta: '20' }], paginacion });
+    const resultado = await CajaService.obtenerCierres({ limite: 25, id_sucursal: 2 });
+    expect(CajaDAO.obtenerCierres).toHaveBeenCalledWith({ pagina: 1, limite: 25, id_sucursal: 2 });
+    expect(resultado.paginacion).toEqual(paginacion);
+    expect(Number(resultado.datos[0].total_ventas)).toBe(50);
+  });
   beforeEach(() => {
     jest.resetAllMocks();
     CajaDAO.ejecutarEnTransaccion.mockImplementation((fn) => fn(mockClient));

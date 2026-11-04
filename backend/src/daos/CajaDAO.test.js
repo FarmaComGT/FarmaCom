@@ -4,6 +4,18 @@ const pool = require('../database/db');
 const CajaDAO = require('./CajaDAO');
 
 describe('CajaDAO', () => {
+  it('cuenta y pagina los cierres filtrados con orden estable', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ total: '26' }] })
+      .mockResolvedValueOnce({ rows: [{ id_sesion_caja: 9 }] });
+    const resultado = await CajaDAO.obtenerCierres({ pagina: 99, limite: 25, id_sucursal: 2,
+      id_caja: 3, fecha_desde: '2026-10-01', fecha_hasta: '2026-10-31' });
+    expect(resultado).toEqual({ datos: [{ id_sesion_caja: 9 }],
+      paginacion: { pagina: 2, limite: 25, total: 26, total_paginas: 2 } });
+    const [sql, valores] = pool.query.mock.calls.at(-1);
+    expect(sql).toContain("sc.estado = 'cerrada' AND c.id_sucursal = $1 AND sc.id_caja = $2");
+    expect(sql).toContain('ORDER BY sc.fecha_hora_cierre DESC, sc.id_sesion_caja DESC LIMIT $5 OFFSET $6');
+    expect(valores).toEqual([2, 3, '2026-10-01', '2026-10-31', 25, 25]);
+  });
   describe('ejecutarEnTransaccion', () => {
     it('hace COMMIT cuando la operación resuelve y libera el cliente', async () => {
       const client = { query: jest.fn().mockResolvedValue({}), release: jest.fn() };

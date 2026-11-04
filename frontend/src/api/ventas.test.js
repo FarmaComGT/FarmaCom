@@ -19,6 +19,14 @@ describe('API de ventas', () => {
   });
 
   describe('obtenerVentas', () => {
+    it('envía la página y normaliza los datos sin perder los metadatos', async () => {
+      const paginacion = { pagina: 2, limite: 10, total: 11, total_paginas: 2 };
+      api.get.mockResolvedValue({ data: { datos: [{ id_venta: '3', total: '25.50' }], paginacion } });
+      const resultado = await obtenerVentas({ pagina: 2, limite: 10 });
+      expect(api.get).toHaveBeenCalledWith('/ventas', { params: { pagina: 2, limite: 10 } });
+      expect(resultado.paginacion).toEqual(paginacion);
+      expect(resultado.datos[0]).toMatchObject({ id_venta: 3, total: 25.5 });
+    });
     it('consulta el historial con los filtros admitidos y normaliza los montos', async () => {
       api.get.mockResolvedValue({
         data: [{

@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 
+export function leerPaginacionURL(params, prefijo = '') {
+  const numero = Number(params.get(`${prefijo}pagina`));
+  return {
+    pagina: Number.isSafeInteger(numero) && numero > 0 && numero <= 2147483647 ? numero : 1,
+    limite: [10, 25, 50].includes(Number(params.get(`${prefijo}limite`))) ? Number(params.get(`${prefijo}limite`)) : 25,
+  };
+}
+
 export default function usePaginacionURL({ prefijo = '', paginacion, cargando = false } = {}) {
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const navigationType = useNavigationType();
   const campoPagina = `${prefijo}pagina`;
   const campoLimite = `${prefijo}limite`;
-  const numero = Number(params.get(campoPagina));
-  const pagina = Number.isSafeInteger(numero) && numero > 0 && numero <= 2147483647 ? numero : 1;
-  const limite = [10, 25, 50].includes(Number(params.get(campoLimite))) ? Number(params.get(campoLimite)) : 25;
+  const { pagina, limite } = leerPaginacionURL(params, prefijo);
   const actualizar = useCallback((cambios, replace = false) => {
     setParams((actuales) => {
       const siguientes = new URLSearchParams(actuales);
