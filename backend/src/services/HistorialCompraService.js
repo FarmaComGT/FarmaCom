@@ -44,6 +44,11 @@ const obtenerPorCliente = async (id_cliente, filtros = {}) => {
     fecha_hasta: filtros.fecha_hasta,
   };
 
+  if (filtros.pagina !== undefined || filtros.limite !== undefined) {
+    const resultado = await HistorialCompraDAO.obtenerPorCliente({ ...filtrosAplicados,
+      pagina: filtros.pagina ?? 1, limite: filtros.limite ?? 25 });
+    return { cliente, ...resultado };
+  }
   const compras = await HistorialCompraDAO.obtenerPorCliente(filtrosAplicados);
 
   return {

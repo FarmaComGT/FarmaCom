@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Contact,
   History,
@@ -14,25 +14,55 @@ import ClienteContactosModal from '../components/clientes/ClienteContactosModal'
 import HistorialClienteModal from '../components/clientes/HistorialClienteModal';
 import AccessibleDialog from '../components/ui/AccessibleDialog.jsx';
 import useClientes from '../hooks/useClientes';
+import api from '../api/axios';
+import usePaginacionURL from '../hooks/usePaginacionURL';
+import Paginacion from '../components/ui/Paginacion';
 import { esNitValido, MENSAJE_NIT_INVALIDO, normalizarNit } from '../utils/nit';
 import styles from '../styles/ManagementUI.module.css';
 
 const inicial = { nombre_cliente: '', nit: '', observaciones: '' };
 
 export default function Clientes() {
-  const { clientes, cargando, error, crear, actualizar, eliminar } = useClientes();
   const [searchParams, setSearchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
+  const numero = Number(searchParams.get('pagina'));
+  const pagina = Number.isSafeInteger(numero) && numero > 0 && numero <= 2147483647 ? numero : 1;
+  const limite = [10, 25, 50].includes(Number(searchParams.get('limite'))) ? Number(searchParams.get('limite')) : 25;
+  const { clientes, paginacion, cargando, error, crear, actualizar, eliminar } = useClientes({ pagina, limite, busqueda });
+  const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const [formulario, setFormulario] = useState(inicial);
   const [editando, setEditando] = useState(null);
   const [eliminarCliente, setEliminarCliente] = useState(null);
-  const [clienteHistorial, setClienteHistorial] = useState(null);
+  const [clienteHistorial, guardarClienteHistorial] = useState(null);
+  const idHistorial = searchParams.get('historial_cliente');
+  const setClienteHistorial = (cliente) => {
+    guardarClienteHistorial(cliente);
+    setSearchParams((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      siguientes.delete('historial_pagina');
+      siguientes.delete('historial_limite');
+      if (cliente) siguientes.set('historial_cliente', String(cliente.id_cliente));
+      else siguientes.delete('historial_cliente');
+      return siguientes;
+    });
+  };
   const [clienteContactos, setClienteContactos] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [borrando, setBorrando] = useState(false);
   const [errorFormulario, setErrorFormulario] = useState(null);
   const [errorAccion, setErrorAccion] = useState(null);
   const errorFormularioRef = React.useRef(null);
+
+  useEffect(() => {
+    if (!idHistorial) { guardarClienteHistorial(null); return undefined; }
+    if (String(clienteHistorial?.id_cliente) === idHistorial) return undefined;
+    let vigente = true;
+    guardarClienteHistorial(null);
+    api.get(`/clientes/${encodeURIComponent(idHistorial)}`)
+      .then(({ data }) => { if (vigente) guardarClienteHistorial(data); })
+      .catch((err) => { if (vigente) setErrorAccion(err.response?.data?.mensaje || 'No se pudo cargar el cliente del historial.'); });
+    return () => { vigente = false; };
+  }, [idHistorial, clienteHistorial?.id_cliente]);
 
   useEffect(() => {
     document.title = 'Clientes · FarmaCom';
@@ -42,25 +72,7 @@ export default function Clientes() {
     if (errorFormulario) errorFormularioRef.current?.focus();
   }, [errorFormulario]);
 
-  const filtrados = useMemo(() => {
-    const texto = busqueda.trim().toLowerCase();
-    return !texto
-      ? clientes
-      : clientes.filter((cliente) => (
-        `${cliente.nombre_cliente} ${cliente.nit || ''} ${cliente.observaciones || ''}`
-          .toLowerCase()
-          .includes(texto)
-      ));
-  }, [busqueda, clientes]);
-
-  const actualizarBusqueda = (valor) => {
-    setSearchParams((actuales) => {
-      const siguientes = new URLSearchParams(actuales);
-      if (valor) siguientes.set('q', valor);
-      else siguientes.delete('q');
-      return siguientes;
-    }, { replace: true });
-  };
+  const actualizarBusqueda = (valor) => actualizarVista({ q: valor }, true);
 
   const abrirNuevo = () => {
     setEditando({ nuevo: true });
@@ -146,8 +158,8 @@ export default function Clientes() {
       </header>
 
       <div className={styles.summary} aria-label="Resumen de clientes">
-        <div className={styles.stat}><strong>{clientes.length}</strong><span>Clientes registrados</span></div>
-        <div className={styles.stat}><strong>{filtrados.length}</strong><span>Resultados visibles</span></div>
+        <div className={styles.stat}><strong>{paginacion?.total ?? 0}</strong><span>Clientes encontrados</span></div>
+        <div className={styles.stat}><strong>{clientes.length}</strong><span>Resultados visibles</span></div>
       </div>
 
       <div className={styles.toolbar}>
@@ -168,12 +180,12 @@ export default function Clientes() {
         </button>
       </div>
 
-      <p className={styles.resultCount} aria-live="polite"><strong>{filtrados.length}</strong> de {clientes.length} clientes</p>
+      <p className={styles.resultCount} aria-live="polite"><strong>{paginacion?.total ?? 0}</strong> clientes encontrados</p>
 
       {(error || errorAccion) && <div className={styles.alert} role="alert">{error || errorAccion}</div>}
 
       <section className={styles.tablePanel} aria-label="Clientes registrados">
-        <table className={styles.table} aria-busy={cargando}>
+        <table id="listado-clientes" className={styles.table} aria-busy={cargando}>
           <thead>
             <tr>
               <th scope="col" style={{ width: '8%' }}>ID</th>
@@ -186,9 +198,9 @@ export default function Clientes() {
           <tbody>
             {cargando ? (
               <tr><td colSpan="5" className={styles.loading}>Cargando clientes…</td></tr>
-            ) : filtrados.length === 0 ? (
+            ) : clientes.length === 0 ? (
               <tr><td colSpan="5" className={styles.empty}><strong>No hay clientes para mostrar.</strong><span>Prueba con otra búsqueda o registra un cliente.</span></td></tr>
-            ) : filtrados.map((cliente) => (
+            ) : clientes.map((cliente) => (
               <tr key={cliente.id_cliente}>
                 <td data-label="ID" className={`${styles.secondary} ${styles.mono}`}>{cliente.id_cliente}</td>
                 <td data-label="Nombre"><span className={styles.identity}>{cliente.nombre_cliente}</span></td>
@@ -207,6 +219,9 @@ export default function Clientes() {
           </tbody>
         </table>
       </section>
+
+      {!error && <Paginacion paginacion={paginacion} crearDestino={crearDestino}
+        onLimiteChange={onLimiteChange} cargando={cargando} sustantivo="clientes" controles="listado-clientes" />}
 
       <AccessibleDialog open={Boolean(editando)} labelledBy={tituloFormularioId} onClose={() => !guardando && setEditando(null)} busy={guardando} size="medium">
         <div className={styles.dialogContent}>

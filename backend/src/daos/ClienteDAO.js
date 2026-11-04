@@ -10,6 +10,19 @@ class ClienteDAO {
     return rows[0];
   }
 
+  async obtenerPaginados({ pagina = 1, limite = 25, busqueda = '' }) {
+    const valores = [busqueda.trim().toLowerCase()];
+    const base = `FROM cliente WHERE strpos(lower(concat_ws(' ', nombre_cliente, nit, observaciones)), $1) > 0`;
+    const conteo = await pool.query(`SELECT COUNT(*) AS total ${base}`, valores);
+    const { crearPaginacion } = require('../utils/paginacion');
+    const paginacion = crearPaginacion(pagina, limite, Number(conteo.rows[0].total));
+    const { rows } = await pool.query(
+      `SELECT * ${base} ORDER BY nombre_cliente, id_cliente LIMIT $2 OFFSET $3`,
+      [...valores, limite, (paginacion.pagina - 1) * limite],
+    );
+    return { datos: rows, paginacion };
+  }
+
   async obtenerTodos() {
     const { rows } = await pool.query(
       'SELECT * FROM cliente ORDER BY nombre_cliente, id_cliente',
