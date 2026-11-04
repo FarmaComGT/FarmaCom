@@ -1,8 +1,8 @@
 const pool = require('../database/db');
 
 class InventarioDAO {
-  async obtenerPorSucursal(id_sucursal) {
-    const query = `
+  async obtenerPorSucursal(id_sucursal, filtros = null) {
+    let query = `
       WITH inventario_producto AS (
         SELECT
           p.id_producto,
@@ -112,11 +112,38 @@ class InventarioDAO {
           WHEN estado_stock = 'sin_lotes' THEN 5
           ELSE 6
         END,
-        nombre_comercial ASC
+        nombre_comercial ASC, id_producto ASC
     `;
 
-    const { rows } = await pool.query(query, [id_sucursal]);
-    return rows;
+    if (!filtros) {
+      const { rows } = await pool.query(query, [id_sucursal]);
+      return rows;
+    }
+    const valores = [id_sucursal];
+    const condiciones = [];
+    const agregar = (campo, valor) => {
+      if (valor === undefined || valor === '') return;
+      valores.push(valor);
+      condiciones.push(`${campo} = $${valores.length}`);
+    };
+    agregar('id_categoria', filtros.id_categoria);
+    agregar('activo', filtros.activo);
+    agregar('estado_stock', filtros.estado_stock);
+    agregar('estado_vencimiento', filtros.estado_vencimiento);
+    if (filtros.busqueda) {
+      valores.push(filtros.busqueda.toLocaleLowerCase('es-GT'));
+      const parametro = `$${valores.length}`;
+      condiciones.push(`(strpos(lower(nombre_comercial), ${parametro}) > 0 OR strpos(lower(COALESCE(nombre_generico, '')), ${parametro}) > 0 OR strpos(lower(codigo), ${parametro}) > 0)`);
+    }
+    const orden = query.indexOf('      ORDER BY');
+    const base = query.slice(0, orden) + (condiciones.length ? ` WHERE ${condiciones.join(' AND ')}` : '');
+    const conteo = await pool.query(`SELECT COUNT(*) AS total FROM (${base}) AS filtrados`, valores);
+    const total = Number(conteo.rows[0].total);
+    const { crearPaginacion } = require('../utils/paginacion');
+    const paginacion = crearPaginacion(filtros.pagina, filtros.limite, total);
+    valores.push(paginacion.limite, (paginacion.pagina - 1) * paginacion.limite);
+    const { rows } = await pool.query(`${base} ${query.slice(orden)} LIMIT $${valores.length - 1} OFFSET $${valores.length}`, valores);
+    return { datos: rows, paginacion };
   }
 
   async obtenerResumenPorSucursal(id_sucursal) {

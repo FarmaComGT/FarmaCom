@@ -5,6 +5,7 @@ const obtenerInventario = asyncHandler(async (req, res) => {
   const productos = await InventarioService.obtenerInventarioPorSucursal(
     Number(req.params.id_sucursal),
     req.usuario,
+    ...(req.query?.pagina !== undefined ? [{ ...req.query, limite: req.query.limite ?? 25 }] : []),
   );
   return res.status(200).json(productos);
 });

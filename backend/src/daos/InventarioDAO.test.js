@@ -94,3 +94,22 @@ describe('InventarioDAO', () => {
     });
   });
 });
+
+
+describe('inventario paginado', () => {
+  it('filtra antes de contar y limita usando una p?gina v?lida', async () => {
+    pool.query.mockReset();
+    pool.query.mockResolvedValueOnce({ rows: [{ total: '26' }] });
+    pool.query.mockResolvedValueOnce({ rows: [{ id_producto: 7 }] });
+    const resultado = await InventarioDAO.obtenerPorSucursal(3, {
+      pagina: 99, limite: 25, activo: false, busqueda: 'med', estado_stock: 'agotado',
+    });
+    expect(resultado.paginacion.pagina).toBe(2);
+    expect(resultado.datos).toEqual([{ id_producto: 7 }]);
+    const [sql, valores] = pool.query.mock.calls[1];
+    expect(sql).toContain('LIMIT $5 OFFSET $6');
+    expect(sql).toContain('id_producto ASC');
+    expect(valores).toEqual([3, false, 'agotado', 'med', 25, 25]);
+    expect(pool.query.mock.calls[0][0]).toContain('WHERE activo = $2 AND estado_stock = $3');
+  });
+});
