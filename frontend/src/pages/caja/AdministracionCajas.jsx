@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
@@ -13,6 +14,7 @@ import useSucursales from '../../hooks/useSucursales';
 const formularioInicial = { id_sucursal: '', nombre: '' };
 
 export default function AdministracionCajas() {
+  const toast = useToast();
   const { usuario } = useAuth();
   const { cajas, cargando, error, crear, actualizar, recargar } = useAdministracionCajas();
   const { sucursales, cargando: cargandoSucursales, error: errorSucursales } = useSucursales();
@@ -30,9 +32,7 @@ export default function AdministracionCajas() {
   const [guardando, setGuardando] = useState(false);
   const [cambiandoEstadoId, setCambiandoEstadoId] = useState(null);
   const [errorFormulario, setErrorFormulario] = useState(null);
-  const [errorAccion, setErrorAccion] = useState(null);
 
-  const [mensajeAccion, setMensajeAccion] = useState(null);
   const hayCambios = mostrarModal && (formulario.nombre !== (cajaEditando?.nombre || '') || formulario.id_sucursal !== String(cajaEditando?.id_sucursal || usuario?.id_sucursal || ''));
   useAvisoCambiosCaja(hayCambios);
   useEffect(() => { document.title = 'Administración de cajas · FarmaCom'; }, []);
@@ -76,9 +76,9 @@ export default function AdministracionCajas() {
       if (cajaEditando) await actualizar(cajaEditando.id_caja, { nombre });
       else await crear({ id_sucursal: Number(formulario.id_sucursal), nombre });
       setMostrarModal(false);
-      setMensajeAccion(cajaEditando ? 'La caja se actualizó correctamente.' : 'La caja se creó correctamente.');
+      toast.success(cajaEditando ? 'La caja se actualizó correctamente.' : 'La caja se creó correctamente.');
     } catch (errorSolicitud) {
-      setErrorFormulario(errorSolicitud.message || 'No se pudo guardar la caja.');
+      toast.error(errorSolicitud.message || 'No se pudo guardar la caja.');
     } finally {
       setGuardando(false);
     }
@@ -87,11 +87,10 @@ export default function AdministracionCajas() {
   const cambiarEstado = async (caja) => {
     try {
       setCambiandoEstadoId(caja.id_caja);
-      setErrorAccion(null);
       await actualizar(caja.id_caja, { activa: !caja.activa });
-      setMensajeAccion(caja.activa ? 'La caja se desactivó correctamente.' : 'La caja se activó correctamente.');
+      toast.success(caja.activa ? 'La caja se desactivó correctamente.' : 'La caja se activó correctamente.');
     } catch (errorSolicitud) {
-      setErrorAccion(errorSolicitud.message || 'No se pudo cambiar el estado de la caja.');
+      toast.error(errorSolicitud.message || 'No se pudo cambiar el estado de la caja.');
     } finally {
       setCambiandoEstadoId(null);
     }
@@ -108,8 +107,7 @@ export default function AdministracionCajas() {
         <label className={ui.search}><Search size={16} aria-hidden="true" /><input type="search" name="buscar_caja" autoComplete="off" aria-label="Buscar cajas" placeholder="Buscar por caja o sucursal…" value={busqueda} onChange={(evento) => actualizarVista({q: evento.target.value, pagina: ''})} /></label>
         {!cargando && !error && <p className={ui.count} aria-live="polite">{cajasFiltradas.length} de {cajas.length} cajas</p>}
       </div>
-      {(error || errorSucursales || errorAccion) && <div role="alert" className={`${ui.notice} ${ui.error}`}>{error || errorSucursales || errorAccion}{error && <button type="button" className={ui.button} onClick={recargar}>Reintentar</button>}</div>}
-      {mensajeAccion && <div role="status" className={ui.notice}>{mensajeAccion}</div>}
+      {(error || errorSucursales) && <div role="alert" className={`${ui.notice} ${ui.error}`}>{error || errorSucursales}{error && <button type="button" className={ui.button} onClick={recargar}>Reintentar</button>}</div>}
       {!error && <CajaTable cargando={cargando} cajas={cajasFiltradas} onEditar={abrirEdicion} onCambiarEstado={cambiarEstado} cambiandoEstadoId={cambiandoEstadoId} onLimpiar={busqueda ? () => actualizarVista({q: '', pagina: ''}) : undefined} pagina={pagina} onPaginaChange={(valor) => actualizarVista({pagina: valor})} />}
       <CajaFormModal abierta={mostrarModal} editando={Boolean(cajaEditando)} formulario={formulario} sucursales={sucursales} cargandoSucursales={cargandoSucursales} guardando={guardando} error={errorFormulario} onClose={cerrarModal} onChange={({ target: { name, value } }) => { setFormulario((actual) => ({ ...actual, [name]: value })); setErrorFormulario(null); }} onSubmit={manejarGuardar} />
     </div>

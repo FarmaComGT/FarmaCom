@@ -6,6 +6,7 @@ export default function useGestionProductoInventario({
   cambiarEstado,
   refrescarInventario,
   onExito,
+  onError,
 }) {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [productoEditando, setProductoEditando] = useState(null);
@@ -45,11 +46,11 @@ export default function useGestionProductoInventario({
         await crearProducto(payload);
         onExito?.(`Producto ${payload.nombre_comercial} creado correctamente.`);
       }
-      await refrescarInventario();
+      await Promise.resolve().then(() => refrescarInventario()).catch(() => onError?.('La operación se completó, pero no se pudo actualizar el inventario. Actualiza la vista.'));
       setMostrarFormulario(false);
       setProductoEditando(null);
     } catch (error) {
-      setErrorFormulario(error.message || 'No se pudo guardar el producto.');
+      (onError || setErrorFormulario)(error.message || 'No se pudo guardar el producto.');
     } finally {
       setGuardando(false);
     }
@@ -57,6 +58,7 @@ export default function useGestionProductoInventario({
     actualizarProducto,
     crearProducto,
     onExito,
+    onError,
     productoEditando,
     refrescarInventario,
   ]);
@@ -66,13 +68,14 @@ export default function useGestionProductoInventario({
       setCambiandoEstadoId(producto.id_producto);
       setErrorAccion(null);
       await cambiarEstado(producto.id_producto, !producto.activo);
-      await refrescarInventario();
+      onExito?.('Estado del producto actualizado correctamente.');
+      await Promise.resolve().then(() => refrescarInventario()).catch(() => onError?.('La operación se completó, pero no se pudo actualizar el inventario. Actualiza la vista.'));
     } catch (error) {
-      setErrorAccion(error.message || 'No se pudo cambiar el estado del producto.');
+      (onError || setErrorAccion)(error.message || 'No se pudo cambiar el estado del producto.');
     } finally {
       setCambiandoEstadoId(null);
     }
-  }, [cambiarEstado, refrescarInventario]);
+  }, [cambiarEstado, refrescarInventario, onError, onExito]);
 
   return {
     mostrarFormulario,

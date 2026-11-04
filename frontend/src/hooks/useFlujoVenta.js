@@ -19,7 +19,7 @@ export const construirPayloadVenta = ({ items, sucursalId, sesionCajaId, cliente
 };
 
 export default function useFlujoVenta({
-  items, sucursalId, sesionCajaId, clienteId, vaciarCarrito, refrescarCatalogo, onAviso,
+  items, sucursalId, sesionCajaId, clienteId, vaciarCarrito, refrescarCatalogo, onAviso, onExito, onError,
 }) {
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [modalActivo, setModalActivo] = useState(null);
@@ -44,8 +44,9 @@ export default function useFlujoVenta({
   const cambiarMetodoPago = useCallback((metodo) => { setMetodoPago(metodo); setPagoPOS(null); setErrorCobro(null); }, []);
   const completarVenta = useCallback((venta) => {
     vaciarCarrito(); setModalActivo('comprobante'); setPagoPOS(null); setErrorCobro(null);
-    setVentaCompletada(venta); refrescarCatalogo();
-  }, [refrescarCatalogo, vaciarCarrito]);
+    setVentaCompletada(venta); onExito?.('Venta registrada correctamente.');
+    Promise.resolve().then(() => refrescarCatalogo()).catch(() => onError?.('La venta se registró, pero no se pudo actualizar el catálogo. Actualiza la vista.'));
+  }, [refrescarCatalogo, vaciarCarrito, onExito, onError]);
   const iniciarPagoPOS = useCallback(async () => {
     if (metodoPago !== 'tarjeta') { setErrorCobro('Selecciona tarjeta para enviar el cobro al POS.'); return; }
     if (procesandoCobro || pagoPOS?.external_id) return;
@@ -54,18 +55,18 @@ export default function useFlujoVenta({
       const pago = await crearPagoPOS(payloadBase());
       if (!pago?.external_id) throw new Error('No se pudo iniciar el pago. Inténtalo de nuevo.');
       setPagoPOS(pago);
-    } catch (error) { setErrorCobro(error.message || 'No se pudo enviar el cobro al POS.'); }
+    } catch (error) { (onError || setErrorCobro)(error.message || 'No se pudo enviar el cobro al POS.'); }
     finally { setProcesandoCobro(false); }
-  }, [metodoPago, pagoPOS, payloadBase, procesandoCobro]);
+  }, [metodoPago, pagoPOS, payloadBase, procesandoCobro, onError]);
   const confirmarCobro = useCallback(async ({ montoRecibido } = {}) => {
     if (metodoPago !== 'efectivo') { setErrorCobro('Los pagos con tarjeta deben confirmarse desde el POS.'); return; }
     setErrorCobro(null); setProcesandoCobro(true);
     try {
       const venta = await crearVenta({ ...payloadBase(), metodo_pago: metodoPago, monto_recibido: montoRecibido });
       completarVenta(venta);
-    } catch (error) { setErrorCobro(error.message || 'No se pudo registrar la venta.'); }
+    } catch (error) { (onError || setErrorCobro)(error.message || 'No se pudo registrar la venta.'); }
     finally { setProcesandoCobro(false); }
-  }, [completarVenta, metodoPago, payloadBase]);
+  }, [completarVenta, metodoPago, payloadBase, onError]);
 
   useEffect(() => {
     if (modalActivo !== 'cobro' || metodoPago !== 'tarjeta' || !pagoPOS?.external_id) return undefined;

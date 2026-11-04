@@ -8,6 +8,7 @@ export default function useGestionLotesProducto({
   limpiarError,
   onCambio,
   onExito,
+  onError,
 }) {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [loteEditando, setLoteEditando] = useState(null);
@@ -42,14 +43,15 @@ export default function useGestionLotesProducto({
         await crearLote(payload);
         onExito?.(`Lote ${payload.numero_lote} creado correctamente.`);
       }
-      await onCambio?.();
+      await Promise.resolve().then(() => onCambio?.()).catch(() => onError?.('La operación se completó, pero no se pudo actualizar el inventario. Actualiza la vista.'));
       setMostrarFormulario(false);
       setLoteEditando(null);
       setRefreshKey((valor) => valor + 1);
-    } catch {
-      // useLotes conserva el error para mostrarlo en el modal.
+    } catch (error) {
+      onError?.(error.message || 'No se pudo completar la operación del lote.');
+      // Otros consumidores pueden conservar el error en el modal.
     }
-  }, [actualizarLote, crearLote, loteEditando, onCambio, onExito]);
+  }, [actualizarLote, crearLote, loteEditando, onCambio, onExito, onError]);
 
   const solicitarEliminacion = useCallback((lote) => {
     limpiarError();
@@ -66,14 +68,15 @@ export default function useGestionLotesProducto({
     try {
       const numeroLote = loteAEliminar.numero_lote;
       await eliminarLote(loteAEliminar.id_lote);
-      await onCambio?.();
+      await Promise.resolve().then(() => onCambio?.()).catch(() => onError?.('La operación se completó, pero no se pudo actualizar el inventario. Actualiza la vista.'));
       setLoteAEliminar(null);
       setRefreshKey((valor) => valor + 1);
       onExito?.(`Lote ${numeroLote} eliminado correctamente.`);
-    } catch {
-      // useLotes conserva el error para mostrarlo en el modal.
+    } catch (error) {
+      onError?.(error.message || 'No se pudo completar la operación del lote.');
+      // Otros consumidores pueden conservar el error en el modal.
     }
-  }, [eliminarLote, loteAEliminar, onCambio, onExito]);
+  }, [eliminarLote, loteAEliminar, onCambio, onExito, onError]);
 
   const solicitarAjuste = useCallback((lote) => {
     limpiarError();
@@ -89,14 +92,15 @@ export default function useGestionLotesProducto({
     if (!loteAAjustar || !ajustarStock) return;
     try {
       await ajustarStock(loteAAjustar.id_lote, payload);
-      await onCambio?.();
+      await Promise.resolve().then(() => onCambio?.()).catch(() => onError?.('La operación se completó, pero no se pudo actualizar el inventario. Actualiza la vista.'));
       setLoteAAjustar(null);
       setRefreshKey((valor) => valor + 1);
       onExito?.(`Stock del lote ${loteAAjustar.numero_lote} ajustado correctamente.`);
-    } catch {
-      // useLotes conserva el error para mostrarlo en el modal.
+    } catch (error) {
+      onError?.(error.message || 'No se pudo completar la operación del lote.');
+      // Otros consumidores pueden conservar el error en el modal.
     }
-  }, [ajustarStock, loteAAjustar, onCambio, onExito]);
+  }, [ajustarStock, loteAAjustar, onCambio, onExito, onError]);
 
   return {
     mostrarFormulario,

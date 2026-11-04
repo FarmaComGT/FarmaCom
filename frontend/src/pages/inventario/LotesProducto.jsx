@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, PackagePlus, RotateCcw } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
@@ -15,6 +16,7 @@ import useSucursales from '../../hooks/useSucursales.js';
 import styles from '../../styles/ManagementUI.module.css';
 
 export default function LotesProducto() {
+  const toast = useToast();
   const { productoId } = useParams();
   const { sucursalActivaId, usuario } = useAuth();
   const [params, setParams] = useSearchParams();
@@ -23,7 +25,6 @@ export default function LotesProducto() {
     : params.get('sucursal') || String(sucursalActivaId || '');
   const filtroStock = params.get('stock') || '';
   const filtroVencimiento = params.get('vencimiento') || '';
-  const [mensajeAccion, setMensajeAccion] = useState(null);
   const { productos, cargando: cargandoProductos, error: errorProductos } = useProductos();
   const { proveedores, cargando: cargandoProveedores } = useProveedores();
   const { sucursales, cargando: cargandoSucursales } = useSucursales();
@@ -39,7 +40,7 @@ export default function LotesProducto() {
   ), [sucursales, usuario?.id_sucursal, usuario?.rol]);
   const gestion = useGestionLotesProducto({
     crearLote: crear, actualizarLote: actualizar, eliminarLote: eliminar, ajustarStock,
-    limpiarError, onExito: setMensajeAccion,
+    limpiarError, onExito: toast.success, onError: toast.error,
   });
   const puedeGestionar = ['dueno', 'administrador'].includes(usuario?.rol);
   const cargandoCatalogos = cargandoProductos || cargandoProveedores || cargandoSucursales;
@@ -136,7 +137,6 @@ export default function LotesProducto() {
         </div>
       )}
 
-      {mensajeAccion && <div role="status" className={styles.statusMessage}>{mensajeAccion}</div>}
 
       <LotesDeProductoTable
         producto={producto}
@@ -161,17 +161,17 @@ export default function LotesProducto() {
         lote={gestion.loteEditando}
         cargandoDatos={cargandoCatalogos}
         guardando={guardando}
-        errorFormulario={errorLote}
+        errorFormulario={null}
         onClose={gestion.cerrarFormulario}
         onSubmit={gestion.guardar}
       />
 
-      <LoteDeleteModal isOpen={Boolean(gestion.loteAEliminar)} lote={gestion.loteAEliminar} eliminando={guardando} error={errorLote} onClose={gestion.cancelarEliminacion} onConfirm={gestion.confirmarEliminacion} />
+      <LoteDeleteModal isOpen={Boolean(gestion.loteAEliminar)} lote={gestion.loteAEliminar} eliminando={guardando} error={null} onClose={gestion.cancelarEliminacion} onConfirm={gestion.confirmarEliminacion} />
 
       <LoteStockAjusteModal
         lote={gestion.loteAAjustar}
         guardando={guardando}
-        error={errorLote}
+        error={null}
         onClose={gestion.cancelarAjuste}
         onSubmit={gestion.confirmarAjuste}
       />

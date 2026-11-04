@@ -1,6 +1,7 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as renderBase, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
@@ -95,3 +96,5 @@ it('corrige la página después de eliminar el último lote de la última págin
   });
   expect(mocks.eliminar).toHaveBeenCalledWith(2);
 });
+
+const render = (ui, options) => renderBase(<ToastProvider>{ui}</ToastProvider>, options);

@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import './PuntoVenta.css';
@@ -22,6 +23,7 @@ import { normalizarCantidadCarrito, validarProductoAgregable } from '../../utils
 import { crearItemLotePOS } from '../../utils/pos';
 
 export default function PuntoVenta() {
+  const toast = useToast();
   const { sucursalActivaId } = useAuth();
   const [parametros, setParametros] = useSearchParams();
   const {
@@ -160,6 +162,8 @@ export default function PuntoVenta() {
     vaciarCarrito,
     refrescarCatalogo: refrescar,
     onAviso: setAviso,
+    onExito: toast.success,
+    onError: toast.error,
   });
 
   const agregarAlCarritoValidandoStock = useCallback((producto) => {

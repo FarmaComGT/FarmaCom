@@ -1,3 +1,4 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
 import { render as renderBase, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -9,7 +10,7 @@ import AdministracionCajas from './AdministracionCajas';
 
 const crear = vi.fn();
 const actualizar = vi.fn();
-const render = (elemento) => renderBase(<MemoryRouter>{elemento}</MemoryRouter>);
+const render = (elemento) => renderBase(<ToastProvider><MemoryRouter>{elemento}</MemoryRouter></ToastProvider>);
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({
@@ -134,7 +135,7 @@ describe('AdministracionCajas', () => {
     await user.click(screen.getByRole('button', { name: 'Activar Caja principal' }));
 
     expect(actualizar).toHaveBeenCalledWith(3, { activa: true });
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se puede activar la caja');
+    expect(await screen.findByRole('status')).toHaveTextContent('No se puede activar la caja');
   });
 
   it('cierra el formulario sin guardar', async () => {

@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useSearchParams, useLocation, useNavigationType } from 'react-router-dom';
 import { Plus, PackagePlus } from 'lucide-react';
@@ -26,6 +27,7 @@ import {
 } from '../../utils/inventario.js';
 
 export default function Inventario() {
+  const toast = useToast();
   const { sucursalActivaId, usuario } = useAuth();
   const [params, setParams] = useSearchParams();
   const sucursalId = Number(params.get('sucursal')) || sucursalActivaId;
@@ -51,7 +53,6 @@ export default function Inventario() {
   }, [setParams]);
   const setBusqueda = (valor) => actualizarVista({ q: valor }, true);
   const limpiarVista = () => actualizarVista({ ...FILTROS_INVENTARIO_INICIALES, q: '' });
-  const [mensajeAccion, setMensajeAccion] = useState(null);
 
   const {
     productos: productosInventario,
@@ -130,13 +131,13 @@ export default function Inventario() {
     actualizarProducto,
     cambiarEstado,
     refrescarInventario,
-    onExito: setMensajeAccion,
+    onExito: toast.success, onError: toast.error,
   });
   const gestionLotes = useGestionLotesProducto({
     crearLote,
     limpiarError: limpiarErrorLote,
     onCambio: refrescarInventario,
-    onExito: setMensajeAccion,
+    onExito: toast.success, onError: toast.error,
   });
 
   const cambiarSucursal = useCallback((id) => {
@@ -193,17 +194,12 @@ export default function Inventario() {
         )}
       </div>
 
-      {(errorCatalogo || gestionProducto.errorAccion) && (
+      {(errorCatalogo) && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          {errorCatalogo || gestionProducto.errorAccion}
+          {errorCatalogo}
         </div>
       )}
 
-      {mensajeAccion && (
-        <div role="status" className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
-          {mensajeAccion}
-        </div>
-      )}
 
       <div id="listado-inventario">
       <InventarioProductosTable
@@ -254,7 +250,7 @@ export default function Inventario() {
         lote={null}
         cargandoDatos={cargandoDatosLote}
         guardando={guardandoLote}
-        errorFormulario={errorLote}
+        errorFormulario={null}
         onClose={gestionLotes.cerrarFormulario}
         onSubmit={gestionLotes.guardar}
       />

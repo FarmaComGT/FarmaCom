@@ -1,9 +1,9 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useState, useEffect } from 'react';
 import {
   AlertCircle,
   ArrowDownToLine,
   ArrowUpFromLine,
-  CheckCircle2,
   Clock3,
   LoaderCircle,
 } from 'lucide-react';
@@ -69,6 +69,7 @@ const obtenerResultadoCierre = (cierre) => {
 };
 
 export default function CajaOperativa() {
+  const toast = useToast();
   const { sucursalActivaId, usuario } = useAuth();
   const {
     cajas,
@@ -91,7 +92,6 @@ export default function CajaOperativa() {
   const [ultimoCierre, setUltimoCierre] = useState(null);
   const [confirmandoCierre, setConfirmandoCierre] = useState(false);
   const [errorFormulario, setErrorFormulario] = useState(null);
-  const [mensajeExito, setMensajeExito] = useState(null);
 
   const [campoError, setCampoError] = useState(null);
   const hayCambios = Boolean(formulario.turno || formulario.fondo_inicial || movimiento.monto || movimiento.motivo || datosCierre.efectivo_contado || datosCierre.observaciones);
@@ -112,7 +112,7 @@ export default function CajaOperativa() {
     setUltimoCierre(null);
     setConfirmandoCierre(false);
     setErrorFormulario(null);
-    setMensajeExito(null);
+
     limpiarError();
   };
 
@@ -122,7 +122,7 @@ export default function CajaOperativa() {
       [evento.target.name]: evento.target.value,
     }));
     setErrorFormulario(null);
-    setMensajeExito(null);
+
   };
 
   const abrirTurno = async (evento) => {
@@ -147,9 +147,11 @@ export default function CajaOperativa() {
       });
       setUltimoCierre(null);
       setFormulario(FORMULARIO_INICIAL);
-      setMensajeExito('La sesión de caja se abrió correctamente.');
-    } catch {
-      // El hook expone el mensaje enviado por el backend.
+      toast.success('La sesión de caja se abrió correctamente.');
+    } catch (errorOperacion) {
+      toast.error(errorOperacion.message);
+      limpiarError();
+      // El fallo de operación ya se comunica con el toast.
     }
   };
 
@@ -159,7 +161,7 @@ export default function CajaOperativa() {
       [evento.target.name]: evento.target.value,
     }));
     setErrorFormulario(null);
-    setMensajeExito(null);
+
   };
 
   const guardarMovimiento = async (evento) => {
@@ -181,13 +183,15 @@ export default function CajaOperativa() {
       setErrorFormulario(null);
       await registrar({ tipo: movimiento.tipo, monto, motivo });
       setMovimiento(MOVIMIENTO_INICIAL);
-      setMensajeExito(
+      toast.success(
         movimiento.tipo === 'entrada'
           ? 'La entrada se registró correctamente.'
           : 'La salida se registró correctamente.',
       );
-    } catch {
-      // El hook expone el mensaje enviado por el backend.
+    } catch (errorOperacion) {
+      toast.error(errorOperacion.message);
+      limpiarError();
+      // El fallo de operación ya se comunica con el toast.
     }
   };
 
@@ -197,7 +201,7 @@ export default function CajaOperativa() {
       [evento.target.name]: evento.target.value,
     }));
     setErrorFormulario(null);
-    setMensajeExito(null);
+
   };
 
   const solicitarCierre = (evento) => {
@@ -232,8 +236,10 @@ export default function CajaOperativa() {
       setUltimoCierre(cierre);
       setDatosCierre(CIERRE_INICIAL);
       setConfirmandoCierre(false);
-      setMensajeExito('La sesión de caja se cerró correctamente.');
-    } catch {
+      toast.success('La sesión de caja se cerró correctamente.');
+    } catch (errorOperacion) {
+      toast.error(errorOperacion.message);
+      limpiarError();
       setConfirmandoCierre(false);
       // El hook expone el mensaje enviado por el backend.
     }
@@ -248,7 +254,6 @@ export default function CajaOperativa() {
 
       {!sucursalActivaId && <div className={ui.notice}><AlertCircle size={16} aria-hidden="true" />Debes tener una sucursal activa para operar una caja.</div>}
       {error && <div role="alert" className={`${ui.notice} ${ui.error}`}>{error}</div>}
-      {mensajeExito && <div role="status" className={ui.notice}><CheckCircle2 size={16} aria-hidden="true" />{mensajeExito}</div>}
 
       <section className={styles.selector} aria-labelledby="seleccionar-caja-titulo">
         <div><h2 id="seleccionar-caja-titulo" className={ui.sectionHeading}>Seleccionar caja</h2><p className={ui.description}>Trabaja con las cajas de tu sucursal activa.</p></div>
