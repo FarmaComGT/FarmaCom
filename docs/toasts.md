@@ -18,6 +18,7 @@ toast.info('La consulta está disponible.');
 - Cada llamada devuelve un identificador para `toast.cerrar(id)`. Los mensajes idénticos del mismo tipo se deduplican mientras están pendientes o visibles.
 - Hay tres mensajes visibles; los demás esperan en orden. Su temporizador empieza al aparecer.
 - El tiempo se pausa con el puntero, el foco o la pestaña oculta.
+- Los avisos con cierre automático muestran una barra inferior que se consume con su duración y se pausa junto con el temporizador. Los avisos persistentes no muestran barra. Con movimiento reducido, la barra avanza por pasos y la entrada no se anima.
 - F8 lleva al primer botón de cierre; Escape devuelve el foco al control anterior.
 - Los avisos se renderizan mediante portal fuera de `#root`, sin desplazar el contenido ni recibir foco automáticamente.
 

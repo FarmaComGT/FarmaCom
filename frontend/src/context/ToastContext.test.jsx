@@ -8,6 +8,20 @@ afterEach(() => { cleanup(); vi.useRealTimers(); });
 const wrapper = ({ children }) => <StrictMode><ToastProvider>{children}</ToastProvider></StrictMode>;
 
 describe('notificaciones globales', () => {
+  it('muestra la cuenta regresiva solo si hay cierre automático, incluso para un error con duración personalizada', () => {
+    const { result } = renderHook(useToast, { wrapper });
+    act(() => {
+      result.current.success('Guardado.');
+      result.current.error('Fallo persistente.');
+      result.current.error('Fallo temporal.', { duracion: 8000 });
+    });
+    const temporizador = (texto) => screen.getByText(texto).closest('li').querySelector('[data-toast-timer]');
+    expect(temporizador('Guardado.')).toHaveAttribute('aria-hidden', 'true');
+    expect(temporizador('Guardado.').firstChild).toHaveStyle({ animationDuration: '5000ms' });
+    expect(temporizador('Fallo persistente.')).toBeNull();
+    expect(temporizador('Fallo temporal.').firstChild).toHaveStyle({ animationDuration: '8000ms' });
+  });
+
   it('anuncia las cuatro variantes sin mover el foco', () => {
     const { result } = renderHook(useToast, { wrapper });
     const entrada = document.createElement('input');
@@ -39,15 +53,19 @@ describe('notificaciones globales', () => {
     const { result } = renderHook(useToast, { wrapper });
     act(() => result.current.success('Guardado.'));
     const item = screen.getByText('Guardado.').closest('li');
+    const barra = item.querySelector('[data-toast-timer] span');
     fireEvent.pointerEnter(item);
+    expect(barra).toHaveStyle({ animationPlayState: 'paused' });
     act(() => vi.advanceTimersByTime(10000));
     expect(screen.getByText('Guardado.')).toBeInTheDocument();
     const boton = screen.getByRole('button', { name: /Cerrar notificación/ });
     act(() => boton.focus());
     fireEvent.pointerLeave(item);
+    expect(barra).toHaveStyle({ animationPlayState: 'paused' });
     act(() => vi.advanceTimersByTime(10000));
     expect(screen.getByText('Guardado.')).toBeInTheDocument();
     act(() => boton.blur());
+    expect(barra).toHaveStyle({ animationPlayState: 'running' });
     act(() => vi.advanceTimersByTime(5000));
     expect(screen.queryByText('Guardado.')).not.toBeInTheDocument();
   });

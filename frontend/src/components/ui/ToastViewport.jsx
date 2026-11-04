@@ -16,6 +16,7 @@ function Toast({ mensaje, cerrar, devolverFoco }) {
   const [foco, setFoco] = useState(false);
   const [oculto, setOculto] = useState(() => document.hidden);
   const restante = useRef(mensaje.duracion);
+  const pausado = hover || foco || oculto;
 
   useEffect(() => {
     const actualizar = () => setOculto(document.hidden);
@@ -24,21 +25,21 @@ function Toast({ mensaje, cerrar, devolverFoco }) {
   }, []);
 
   useEffect(() => {
-    if (!mensaje.duracion || hover || foco || oculto) return undefined;
+    if (!mensaje.duracion || pausado) return undefined;
     const inicio = performance.now();
     const temporizador = setTimeout(() => cerrar(mensaje.id), restante.current);
     return () => {
       clearTimeout(temporizador);
       restante.current = Math.max(0, restante.current - (performance.now() - inicio));
     };
-  }, [mensaje.id, mensaje.duracion, cerrar, hover, foco, oculto]);
+  }, [mensaje.id, mensaje.duracion, cerrar, pausado]);
 
   return (
     <li className={`${styles.toast} ${styles[mensaje.tipo]}`}
       onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}
       onFocus={() => setFoco(true)}
       onBlur={(evento) => { if (!evento.currentTarget.contains(evento.relatedTarget)) setFoco(false); }}>
-      <Icono className={styles.icon} size={22} aria-hidden="true" />
+      <Icono className={styles.icon} size={20} strokeWidth={1.75} aria-hidden="true" />
       <div className={styles.content} role="status" aria-live="polite" aria-atomic="true">
         <strong>{titulo}</strong>
         <p>{mensaje.texto}</p>
@@ -49,6 +50,14 @@ function Toast({ mensaje, cerrar, devolverFoco }) {
           cerrar(mensaje.id);
           if (teniaFoco) devolverFoco();
         }}><X size={18} aria-hidden="true" /></button>
+      {mensaje.duracion > 0 && (
+        <div className={styles.progress} aria-hidden="true" data-toast-timer="">
+          <span className={styles.progressFill} style={{
+            animationDuration: `${mensaje.duracion}ms`,
+            animationPlayState: pausado ? 'paused' : 'running',
+          }} />
+        </div>
+      )}
     </li>
   );
 }
