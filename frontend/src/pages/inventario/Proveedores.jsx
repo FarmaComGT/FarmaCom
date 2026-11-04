@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import InventarioSubNav from '../../components/inventario/InventarioSubNav.jsx';
@@ -14,6 +15,7 @@ import styles from '../../styles/ManagementUI.module.css';
 const formularioInicial = { nombre: '' };
 
 export default function Proveedores() {
+  const toast = useToast();
   const { proveedores, cargando, error, refrescar, crear, actualizar, cambiarEstado, eliminar } = useProveedores();
   const [searchParams, setSearchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
@@ -30,8 +32,6 @@ export default function Proveedores() {
   const [proveedorACambiarEstado, setProveedorACambiarEstado] = useState(null);
   const [proveedorAEliminar, setProveedorAEliminar] = useState(null);
   const [procesandoId, setProcesandoId] = useState(null);
-  const [errorAccion, setErrorAccion] = useState(null);
-  const [mensajeAccion, setMensajeAccion] = useState(null);
   const hayCambios = formulario.nombre !== formularioBase.nombre;
 
   useEffect(() => {
@@ -103,52 +103,48 @@ export default function Proveedores() {
       setGuardando(true);
       if (modoEdicion && idEditando) await actualizar(idEditando, { nombre });
       else await crear({ nombre });
+      toast.success('Proveedor guardado correctamente.');
       setMostrarModal(false);
       setFormulario(formularioInicial);
       setFormularioBase(formularioInicial);
     } catch (err) {
-      setErrorFormulario(err.response?.data?.mensaje || 'No se pudo guardar el proveedor.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo guardar el proveedor.');
     } finally {
       setGuardando(false);
     }
   };
 
   const solicitarCambiarEstado = (proveedor) => {
-    setErrorAccion(null);
-    setMensajeAccion(null);
     setProveedorACambiarEstado(proveedor);
   };
 
   const confirmarCambiarEstado = async () => {
     if (!proveedorACambiarEstado) return;
     try {
-      setErrorAccion(null);
       setProcesandoId(proveedorACambiarEstado.id_proveedor);
       await cambiarEstado(proveedorACambiarEstado.id_proveedor, !proveedorACambiarEstado.activo);
+      toast.success('Estado actualizado correctamente.');
       setProveedorACambiarEstado(null);
     } catch (err) {
-      setErrorAccion(err.response?.data?.mensaje || 'No se pudo cambiar el estado.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo cambiar el estado.');
     } finally {
       setProcesandoId(null);
     }
   };
 
   const solicitarEliminar = (proveedor) => {
-    setErrorAccion(null);
-    setMensajeAccion(null);
     setProveedorAEliminar(proveedor);
   };
 
   const confirmarEliminar = async () => {
     if (!proveedorAEliminar) return;
     try {
-      setErrorAccion(null);
       setProcesandoId(proveedorAEliminar.id_proveedor);
       const resultado = await eliminar(proveedorAEliminar.id_proveedor);
-      setMensajeAccion(resultado?.mensaje || 'Proveedor procesado correctamente.');
+      toast.success(resultado?.mensaje || 'Proveedor procesado correctamente.');
       setProveedorAEliminar(null);
     } catch (err) {
-      setErrorAccion(err.response?.data?.mensaje || 'No se pudo procesar el proveedor.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo procesar el proveedor.');
     } finally {
       setProcesandoId(null);
     }
@@ -179,16 +175,14 @@ export default function Proveedores() {
       <ProveedorActionBar busqueda={busqueda} onBusquedaChange={(evento) => actualizarParametro('q', evento.target.value)} onCrear={abrirModalCrear} />
       <p className={styles.resultCount} aria-live="polite"><strong>{proveedoresFiltrados.length}</strong> de {proveedores.length} proveedores</p>
 
-      {errorAccion && !proveedorACambiarEstado && !proveedorAEliminar && <p role="alert" className={styles.alert}>{errorAccion}</p>}
       {error && proveedores.length > 0 && <p role="alert" className={styles.alert}>{error}</p>}
-      {mensajeAccion && <p role="status" className={styles.statusMessage}>{mensajeAccion}</p>}
 
       <ProveedorTable cargando={cargando} error={error} proveedores={proveedoresFiltrados} hayFiltros={Boolean(busqueda.trim()) || estadoSeleccionado !== 'todos'} onRetry={refrescar} onEditar={abrirModalEditar} onCambiarEstado={solicitarCambiarEstado} onContactos={setProveedorContactos} onEliminar={solicitarEliminar} procesandoId={procesandoId} />
 
       <ProveedorFormModal isOpen={mostrarModal} modoEdicion={modoEdicion} formulario={formulario} hayCambios={hayCambios} guardando={guardando} errorFormulario={errorFormulario} onClose={cerrarModal} onSubmit={manejarGuardar} onChange={manejarCambio} />
       <ProveedorContactosModal isOpen={Boolean(proveedorContactos)} proveedor={proveedorContactos} onClose={() => setProveedorContactos(null)} />
-      <ProveedorEstadoModal isOpen={Boolean(proveedorACambiarEstado)} proveedor={proveedorACambiarEstado} procesando={Boolean(procesandoId)} error={errorAccion} onClose={() => { if (!procesandoId) setProveedorACambiarEstado(null); }} onConfirm={confirmarCambiarEstado} />
-      <ProveedorDeleteModal isOpen={Boolean(proveedorAEliminar)} proveedor={proveedorAEliminar} eliminando={Boolean(procesandoId)} error={errorAccion} onClose={() => { if (!procesandoId) setProveedorAEliminar(null); }} onConfirm={confirmarEliminar} />
+      <ProveedorEstadoModal isOpen={Boolean(proveedorACambiarEstado)} proveedor={proveedorACambiarEstado} procesando={Boolean(procesandoId)} error={null} onClose={() => { if (!procesandoId) setProveedorACambiarEstado(null); }} onConfirm={confirmarCambiarEstado} />
+      <ProveedorDeleteModal isOpen={Boolean(proveedorAEliminar)} proveedor={proveedorAEliminar} eliminando={Boolean(procesandoId)} error={null} onClose={() => { if (!procesandoId) setProveedorAEliminar(null); }} onConfirm={confirmarEliminar} />
     </section>
   );
 }

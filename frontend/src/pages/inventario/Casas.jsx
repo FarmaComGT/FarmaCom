@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import InventarioSubNav from '../../components/inventario/InventarioSubNav.jsx';
@@ -14,6 +15,7 @@ import styles from '../../styles/ManagementUI.module.css';
 const formularioInicial = { nombre: '' };
 
 export default function Casas() {
+  const toast = useToast();
   const { casas, cargando, error, refrescar, crear, actualizar, cambiarEstado, eliminar } = useCasas();
   const [searchParams, setSearchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
@@ -29,8 +31,6 @@ export default function Casas() {
   const [casaAEliminar, setCasaAEliminar] = useState(null);
   const [casaACambiarEstado, setCasaACambiarEstado] = useState(null);
   const [procesandoId, setProcesandoId] = useState(null);
-  const [errorAccion, setErrorAccion] = useState(null);
-  const [mensajeAccion, setMensajeAccion] = useState(null);
   const [casaContactos, setCasaContactos] = useState(null);
   const hayCambios = formulario.nombre !== formularioBase.nombre;
 
@@ -103,11 +103,12 @@ export default function Casas() {
       setGuardando(true);
       if (modoEdicion && idEditando) await actualizar(idEditando, { nombre });
       else await crear({ nombre });
+      toast.success('Casa farmacéutica guardada correctamente.');
       setMostrarModal(false);
       setFormulario(formularioInicial);
       setFormularioBase(formularioInicial);
     } catch (err) {
-      setErrorFormulario(err.response?.data?.mensaje || 'No se pudo guardar la casa farmacéutica.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo guardar la casa farmacéutica.');
     } finally {
       setGuardando(false);
     }
@@ -116,43 +117,36 @@ export default function Casas() {
   const confirmarCambiarEstado = async () => {
     if (!casaACambiarEstado) return;
     try {
-      setErrorAccion(null);
-      setMensajeAccion(null);
       setProcesandoId(casaACambiarEstado.id_casa);
       await cambiarEstado(casaACambiarEstado.id_casa, !casaACambiarEstado.activo);
+      toast.success('Estado actualizado correctamente.');
       setCasaACambiarEstado(null);
     } catch (err) {
-      setErrorAccion(err.response?.data?.mensaje || 'No se pudo cambiar el estado.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo cambiar el estado.');
     } finally {
       setProcesandoId(null);
     }
   };
 
   const solicitarCambiarEstado = (casa) => {
-    setErrorAccion(null);
-    setMensajeAccion(null);
     setCasaACambiarEstado(casa);
   };
 
   const confirmarEliminar = async () => {
     if (!casaAEliminar) return;
     try {
-      setErrorAccion(null);
-      setMensajeAccion(null);
       setProcesandoId(casaAEliminar.id_casa);
       const resultado = await eliminar(casaAEliminar.id_casa);
-      setMensajeAccion(resultado?.mensaje || 'Casa farmacéutica procesada correctamente.');
+      toast.success(resultado?.mensaje || 'Casa farmacéutica procesada correctamente.');
       setCasaAEliminar(null);
     } catch (err) {
-      setErrorAccion(err.response?.data?.mensaje || 'No se pudo eliminar la casa farmacéutica.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo eliminar la casa farmacéutica.');
     } finally {
       setProcesandoId(null);
     }
   };
 
   const solicitarEliminar = (casa) => {
-    setErrorAccion(null);
-    setMensajeAccion(null);
     setCasaAEliminar(casa);
   };
 
@@ -181,9 +175,7 @@ export default function Casas() {
       <CasaActionBar busqueda={busqueda} onBusquedaChange={(evento) => actualizarParametro('q', evento.target.value)} onCrear={abrirModalCrear} />
       <p className={styles.resultCount} aria-live="polite"><strong>{casasFiltradas.length}</strong> de {casas.length} casas farmacéuticas</p>
 
-      {errorAccion && !casaACambiarEstado && !casaAEliminar && <p role="alert" className={styles.alert}>{errorAccion}</p>}
       {error && casas.length > 0 && <p role="alert" className={styles.alert}>{error}</p>}
-      {mensajeAccion && <p role="status" className={styles.statusMessage}>{mensajeAccion}</p>}
 
       <CasaTable
         cargando={cargando}
@@ -200,8 +192,8 @@ export default function Casas() {
 
       <CasaContactosModal isOpen={Boolean(casaContactos)} casa={casaContactos} onClose={() => setCasaContactos(null)} />
       <CasaFormModal isOpen={mostrarModal} modoEdicion={modoEdicion} formulario={formulario} hayCambios={hayCambios} guardando={guardando} errorFormulario={errorFormulario} onClose={cerrarModal} onSubmit={manejarGuardar} onChange={manejarCambio} />
-      <CasaEstadoModal isOpen={Boolean(casaACambiarEstado)} casa={casaACambiarEstado} procesando={Boolean(procesandoId)} error={errorAccion} onClose={() => { if (!procesandoId) setCasaACambiarEstado(null); }} onConfirm={confirmarCambiarEstado} />
-      <CasaDeleteModal isOpen={Boolean(casaAEliminar)} casa={casaAEliminar} eliminando={Boolean(procesandoId)} error={errorAccion} onClose={() => { if (!procesandoId) setCasaAEliminar(null); }} onConfirm={confirmarEliminar} />
+      <CasaEstadoModal isOpen={Boolean(casaACambiarEstado)} casa={casaACambiarEstado} procesando={Boolean(procesandoId)} error={null} onClose={() => { if (!procesandoId) setCasaACambiarEstado(null); }} onConfirm={confirmarCambiarEstado} />
+      <CasaDeleteModal isOpen={Boolean(casaAEliminar)} casa={casaAEliminar} eliminando={Boolean(procesandoId)} error={null} onClose={() => { if (!procesandoId) setCasaAEliminar(null); }} onConfirm={confirmarEliminar} />
     </section>
   );
 }

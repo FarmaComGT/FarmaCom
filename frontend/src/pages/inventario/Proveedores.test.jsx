@@ -1,3 +1,4 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -12,7 +13,7 @@ vi.mock('../../hooks/useProveedores', () => ({
   default: () => ({ ...estadoProveedores, ...acciones }),
 }));
 
-const renderizar = (ruta = '/') => render(<MemoryRouter initialEntries={[ruta]}><Proveedores /></MemoryRouter>);
+const renderizar = (ruta = '/') => render(<ToastProvider><MemoryRouter initialEntries={[ruta]}><Proveedores /></MemoryRouter></ToastProvider>);
 
 describe('pantalla de proveedores', () => {
   beforeEach(() => {

@@ -1,3 +1,4 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -72,9 +73,9 @@ const promocionVigente = {
 };
 
 const renderizar = (ruta = '/') => render(
-  <MemoryRouter initialEntries={[ruta]}>
+  <ToastProvider><MemoryRouter initialEntries={[ruta]}>
     <Promociones />
-  </MemoryRouter>,
+  </MemoryRouter></ToastProvider>,
 );
 
 const abrirNueva = async (user) => {
@@ -238,7 +239,7 @@ describe('pantalla de promociones', () => {
     await user.click(screen.getByRole('button', { name: 'Activar' }));
 
     expect(estado.cambiarEstado).toHaveBeenCalledWith(8, true);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Se solapa con otra promoción');
+    expect(await screen.findByRole('status')).toHaveTextContent('Se solapa con otra promoción');
   });
 
   it('muestra si la promoción está programada, vigente o finalizada', () => {

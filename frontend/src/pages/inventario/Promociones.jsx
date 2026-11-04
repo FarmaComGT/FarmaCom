@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
@@ -19,6 +20,7 @@ const fechaInput = (valor) => (valor ? String(valor).slice(0, 10) : '');
 const mensajeError = (error, predeterminado) => error.response?.data?.mensaje || error.message || predeterminado;
 
 export default function Promociones() {
+  const toast = useToast();
   const { sucursalActivaId } = useAuth();
   const { productos, cargando: cargandoProductos, error: errorProductos, refrescar: refrescarProductos } = useProductos();
   const { sucursales, cargando: cargandoSucursales, error: errorSucursales, refrescar: refrescarSucursales } = useSucursales();
@@ -35,8 +37,6 @@ export default function Promociones() {
   const [cambiandoId, setCambiandoId] = useState(null);
   const [errorFormulario, setErrorFormulario] = useState(null);
   const [campoError, setCampoError] = useState(null);
-  const [errorAccion, setErrorAccion] = useState(null);
-  const [mensaje, setMensaje] = useState(null);
   const hayCambios = Object.keys(formularioVacio).some((campo) => formulario[campo] !== formularioBase[campo]);
 
   useEffect(() => {
@@ -139,22 +139,20 @@ export default function Promociones() {
       setGuardando(true);
       if (promocionEditando) {
         await actualizar(promocionEditando.id_promocion, datos);
-        setMensaje('Promoción actualizada correctamente.');
+        toast.success('Promoción actualizada correctamente.');
       } else {
         await crear({ ...datos, id_sucursal: Number(formulario.id_sucursal) });
-        setMensaje('Promoción creada correctamente.');
+        toast.success('Promoción creada correctamente.');
       }
       setModalAbierto(false);
     } catch (error) {
-      setErrorFormulario(mensajeError(error, 'No se pudo guardar la promoción.'));
+      toast.error(mensajeError(error, 'No se pudo guardar la promoción.'));
     } finally {
       setGuardando(false);
     }
   };
 
   const solicitarCambiarEstado = (promocion) => {
-    setErrorAccion(null);
-    setMensaje(null);
     setPromocionACambiarEstado(promocion);
   };
 
@@ -162,13 +160,12 @@ export default function Promociones() {
     if (!promocionACambiarEstado) return;
     const nuevoEstado = !promocionACambiarEstado.activo;
     try {
-      setErrorAccion(null);
       setCambiandoId(promocionACambiarEstado.id_promocion);
       await cambiarEstado(promocionACambiarEstado.id_promocion, nuevoEstado);
-      setMensaje(`Promoción ${nuevoEstado ? 'activada' : 'desactivada'} correctamente.`);
+      toast.success(`Promoción ${nuevoEstado ? 'activada' : 'desactivada'} correctamente.`);
       setPromocionACambiarEstado(null);
     } catch (error) {
-      setErrorAccion(mensajeError(error, 'No se pudo cambiar el estado de la promoción.'));
+      toast.error(mensajeError(error, 'No se pudo cambiar el estado de la promoción.'));
     } finally {
       setCambiandoId(null);
     }
@@ -216,14 +213,12 @@ export default function Promociones() {
       {(errorProductos || errorSucursales) && <ContentState compact variant="error" title="No se pudieron cargar los catálogos" message={errorProductos || errorSucursales} onRetry={reintentarCatalogos} />}
       {errorLotes && <ContentState compact variant="error" title="No se pudieron consultar los precios de referencia" message={errorLotes} onRetry={refrescarLotes} />}
       {errorPromociones && promociones.length > 0 && <p role="alert" className={styles.alert}>{errorPromociones}</p>}
-      {errorAccion && !promocionACambiarEstado && <p role="alert" className={styles.alert}>{errorAccion}</p>}
-      {mensaje && <p role="status" className={styles.statusMessage}>{mensaje}</p>}
       <p className={styles.resultCount} aria-live="polite"><strong>{promocionesFiltradas.length}</strong> de {promociones.length} promociones</p>
 
       <PromocionesTable promociones={promocionesFiltradas} cargando={cargandoPromociones} error={errorPromociones} productoSeleccionado={Boolean(productoSeleccionado)} hayFiltroSucursal={Boolean(filtroSucursal)} cambiandoId={cambiandoId} onRetry={refrescarPromociones} onEditar={abrirEditar} onCambiarEstado={solicitarCambiarEstado} />
 
       <PromocionFormModal isOpen={modalAbierto} modoEdicion={Boolean(promocionEditando)} producto={productoSeleccionado} sucursales={sucursales} formulario={formulario} hayCambios={hayCambios} guardando={guardando} cargandoPrecioReferencia={cargandoLotes} precioReferencia={precioReferencia} error={errorFormulario} campoError={campoError} onChange={manejarCambio} onClose={cerrarModal} onSubmit={manejarGuardar} />
-      <PromocionEstadoModal isOpen={Boolean(promocionACambiarEstado)} promocion={promocionACambiarEstado} procesando={Boolean(cambiandoId)} error={errorAccion} onClose={() => { if (!cambiandoId) setPromocionACambiarEstado(null); }} onConfirm={confirmarCambiarEstado} />
+      <PromocionEstadoModal isOpen={Boolean(promocionACambiarEstado)} promocion={promocionACambiarEstado} procesando={Boolean(cambiandoId)} error={null} onClose={() => { if (!cambiandoId) setPromocionACambiarEstado(null); }} onConfirm={confirmarCambiarEstado} />
     </section>
   );
 }
