@@ -9,6 +9,8 @@ import useSucursales from '../../hooks/useSucursales';
 import { useAuth } from '../../context/AuthContext';
 import CajaSubNav from '../../components/caja/CajaSubNav';
 import ResumenDiarioCaja from '../../components/caja/ResumenDiarioCaja';
+import Paginacion from '../../components/ui/Paginacion';
+import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
 
 const FILTROS_INICIALES = {
   id_sucursal: '',
@@ -45,12 +47,13 @@ export default function HistorialCaja() {
     siguientes.delete('pagina');
     return siguientes;
   });
-  const cambiarPagina = (valor) => setParametros((actuales) => { const siguientes = new URLSearchParams(actuales); siguientes.set('pagina', valor); return siguientes; });
   const [cajas, setCajas] = useState([]);
   const [cargandoCajas, setCargandoCajas] = useState(false);
   const [errorCajas, setErrorCajas] = useState(null);
   const { sucursales, cargando: cargandoSucursales, error: errorSucursales } = useSucursales();
-  const { cierres, cargando, error, recargar } = useHistorialCaja(filtros);
+  const { pagina, limite } = leerPaginacionURL(parametros);
+  const { cierres, paginacion, cargando, error, recargar } = useHistorialCaja({ ...filtros, pagina, limite });
+  const { crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
 
   useEffect(() => {
     if (!borrador.id_sucursal) {
@@ -104,10 +107,6 @@ export default function HistorialCaja() {
     setFiltros(FILTROS_INICIALES);
   };
 
-  const porPagina = 20;
-  const paginas = Math.max(1, Math.ceil(cierres.length / porPagina));
-  const pagina = Math.min(Math.max(1, Math.floor(Number(parametros.get('pagina')) || 1)), paginas);
-  const visibles = cierres.slice((pagina - 1) * porPagina, pagina * porPagina);
   return (
     <div className={ui.page}>
       <header className={ui.heading}><div><h1>Historial de cierres</h1><p>Actividad diaria y conciliación de efectivo por sucursal.</p></div></header>
@@ -124,15 +123,15 @@ export default function HistorialCaja() {
         </form>
       </section>
       {(error || errorCajas || errorSucursales) && <div role="alert" className={`${ui.notice} ${ui.error}`}>{error || errorCajas || errorSucursales}{error && <button type="button" className={ui.button} onClick={recargar}>Reintentar</button>}</div>}
-      <section aria-labelledby="titulo-cierres" aria-busy={cargando}>
-        <div className={styles.resultsHeader}><h2 id="titulo-cierres" className={ui.sectionHeading}>Cierres registrados</h2>{!cargando && !error && <p className={ui.count} aria-live="polite">{cierres.length} resultados</p>}</div>
+      <section id="historial-cierres" aria-labelledby="titulo-cierres" aria-busy={cargando}>
+        <div className={styles.resultsHeader}><h2 id="titulo-cierres" className={ui.sectionHeading}>Cierres registrados</h2>{!cargando && !error && <p className={ui.count} aria-live="polite">{new Intl.NumberFormat('es-GT').format(paginacion?.total ?? 0)} resultados</p>}</div>
         {cargando ? <div role="status" className={ui.loading}>Cargando historial…{Array.from({length: 3}, (_,i) => <span key={i} className={ui.skeleton} />)}</div>
         : error ? null
         : cierres.length === 0 ? <div className={ui.empty}><p>No hay cierres que coincidan con los filtros seleccionados.</p><button type="button" onClick={limpiarFiltros} className={ui.button}>Limpiar filtros</button></div>
         : <>
           <table className={styles.table}>
             <thead><tr><th scope="col">Fecha / turno</th><th scope="col">Sucursal / caja</th><th scope="col">Ventas</th><th scope="col">Esperado</th><th scope="col">Contado</th><th scope="col">Diferencia</th></tr></thead>
-            <tbody>{visibles.map((cierre) => {
+            <tbody>{cierres.map((cierre) => {
               const diferencia = Number(cierre.diferencia_efectivo);
               return <tr key={cierre.id_sesion_caja}>
                 <td>{formatearFecha(cierre.fecha_hora_cierre)}<span className={`${styles.subline} ${styles.turno}`}>{cierre.turno}</span></td>
@@ -144,8 +143,9 @@ export default function HistorialCaja() {
               </tr>;
             })}</tbody>
           </table>
-          {paginas > 1 && <div className={styles.foot}><p className={ui.count}>Página {pagina} de {paginas}</p><div><button type="button" className={ui.button} onClick={() => cambiarPagina(pagina - 1)} disabled={pagina === 1}>Anterior</button><button type="button" className={ui.button} onClick={() => cambiarPagina(pagina + 1)} disabled={pagina === paginas}>Siguiente</button></div></div>}
         </>}
+        {!error && <Paginacion paginacion={paginacion} crearDestino={crearDestino} onLimiteChange={onLimiteChange}
+          cargando={cargando} sustantivo="cierres" controles="historial-cierres" />}
       </section>
     </div>
   );

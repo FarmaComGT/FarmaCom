@@ -2,6 +2,8 @@ import api from './axios';
 
 const CAMPOS_CAJAS = ['id_sucursal', 'activa'];
 const CAMPOS_CIERRES = [
+  'pagina',
+  'limite',
   'id_sucursal',
   'id_caja',
   'fecha_desde',

@@ -103,6 +103,10 @@ const validarCierre = [
 ];
 
 const validarFiltrosCierres = [
+  query('pagina').optional().isString().bail()
+    .isInt({ min: 1, max: 2147483647 }).withMessage('Página inválida').toInt(),
+  query('limite').optional().isString().bail()
+    .isInt({ min: 1, max: 100 }).withMessage('Límite inválido').toInt(),
   query('id_sucursal')
     .optional()
     .isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo')

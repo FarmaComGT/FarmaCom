@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Eye } from 'lucide-react';
 import { useVentas } from '../../hooks/useHistorialVentas';
 import { formatearMoneda } from '../../utils/reportes';
 import VentaDetalleModal from '../../components/ventas/historial/VentaDetalleModal';
+import Paginacion from '../../components/ui/Paginacion';
+import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
 
 const FORMATO_FECHA = new Intl.DateTimeFormat('es-GT', {
   dateStyle: 'short',
@@ -18,17 +20,25 @@ const formatearFecha = (valor) => {
 
 export default function HistorialVentas() {
   const { filtros } = useOutletContext();
-  const { datos, cargando, error, recargar } = useVentas(filtros);
+  const [params] = useSearchParams();
+  const { pagina, limite } = leerPaginacionURL(params);
+  const { datos, paginacion, cargando, error, recargar } = useVentas({ ...filtros, pagina, limite });
+  const { crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
+  useEffect(() => { document.title = 'Historial de ventas · FarmaCom'; }, []);
 
   if (cargando) return <div role="status" className="h-52 animate-pulse rounded-2xl bg-slate-100" aria-label="Cargando historial de ventas" />;
-  if (error) return <div role="alert" className="rounded-2xl border border-error/20 bg-error/5 p-6 text-center"><p className="text-sm font-semibold text-error">{error}</p><button type="button" onClick={recargar} className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white">Reintentar</button></div>;
-  if (datos.length === 0) return <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">No hay ventas en el período seleccionado.</div>;
+  if (error) return <div role="alert" className="rounded-2xl border border-error/20 bg-error/5 p-6 text-center"><p className="text-sm font-semibold text-error">{error}</p><button type="button" onClick={recargar} className="mt-3 cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white">Reintentar</button></div>;
+  if (datos.length === 0) return <>
+    <div id="historial-ventas" className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">No hay ventas en el período seleccionado.</div>
+    <Paginacion paginacion={paginacion} crearDestino={crearDestino} onLimiteChange={onLimiteChange}
+      sustantivo="ventas" controles="historial-ventas" />
+  </>;
 
   return (
     <>
       <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
-        <table className="min-w-[1050px] w-full text-left text-sm">
+        <table id="historial-ventas" className="min-w-[1050px] w-full text-left text-sm tabular-nums">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               {['Venta', 'Fecha', 'Sucursal', 'Cliente', 'Atendió', 'Artículos', 'Pago', 'Total', 'Estado', 'Detalle'].map((titulo) => <th key={titulo} className={`px-4 py-3 font-bold ${titulo === 'Detalle' ? 'text-center' : ''}`}>{titulo}</th>)}
@@ -56,6 +66,8 @@ export default function HistorialVentas() {
           </tbody>
         </table>
       </div>
+      <Paginacion paginacion={paginacion} crearDestino={crearDestino} onLimiteChange={onLimiteChange}
+        cargando={cargando} sustantivo="ventas" controles="historial-ventas" />
       <VentaDetalleModal
         idVenta={ventaSeleccionada}
         onClose={() => setVentaSeleccionada(null)}

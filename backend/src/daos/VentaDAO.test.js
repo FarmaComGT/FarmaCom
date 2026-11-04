@@ -4,6 +4,25 @@ const pool = require('../database/db');
 const VentaDAO = require('./VentaDAO');
 
 describe('VentaDAO', () => {
+  it('pagina en SQL con todos los filtros y ajusta una página fuera de rango', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ total: '26' }] })
+      .mockResolvedValueOnce({ rows: [{ id_venta: 9 }] });
+    const resultado = await VentaDAO.obtenerTodas({ pagina: 99, limite: 25, id_sucursal: 2,
+      id_cliente: 7, estado: 'completada', fecha_desde: '2026-10-01', fecha_hasta: '2026-10-31' });
+    expect(resultado).toEqual({ datos: [{ id_venta: 9 }],
+      paginacion: { pagina: 2, limite: 25, total: 26, total_paginas: 2 } });
+    const [sql, valores] = pool.query.mock.calls.at(-1);
+    expect(sql).toContain('JOIN (SELECT id_venta FROM venta v WHERE');
+    expect(sql).toContain('LIMIT $6 OFFSET $7');
+    expect(sql).toContain('ORDER BY v.fecha_venta DESC, v.id_venta DESC');
+    expect(valores).toEqual([2, 7, 'completada', '2026-10-01', '2026-10-31', 25, 25]);
+  });
+
+  it('devuelve una página vacía con metadatos si no hay ventas', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ total: '0' }] }).mockResolvedValueOnce({ rows: [] });
+    await expect(VentaDAO.obtenerTodas({ pagina: 5, limite: 10 })).resolves.toEqual({ datos: [],
+      paginacion: { pagina: 1, limite: 10, total: 0, total_paginas: 1 } });
+  });
   describe('ejecutarEnTransaccion', () => {
     it('confirma la transacción cuando toda la operación termina correctamente', async () => {
       const client = {

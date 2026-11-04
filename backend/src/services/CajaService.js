@@ -235,8 +235,14 @@ const cerrarSesion = async (
 });
 
 const obtenerCierres = async (filtros) => {
-  const cierres = await CajaDAO.obtenerCierres(filtros);
-  return cierres.map(agregarTotalVentas);
+  const consulta = { ...filtros };
+  if (consulta.pagina !== undefined || consulta.limite !== undefined) {
+    consulta.pagina ??= 1;
+    consulta.limite ??= 25;
+  }
+  const cierres = await CajaDAO.obtenerCierres(consulta);
+  return Array.isArray(cierres) ? cierres.map(agregarTotalVentas)
+    : { ...cierres, datos: cierres.datos.map(agregarTotalVentas) };
 };
 
 const obtenerResumenDiario = async (fecha, id_sucursal, id_caja) => {
