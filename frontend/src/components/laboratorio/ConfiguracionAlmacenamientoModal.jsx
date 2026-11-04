@@ -1,19 +1,23 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { FolderOpen, LoaderCircle, X } from 'lucide-react';
 import AccessibleDialog from '../ui/AccessibleDialog.jsx';
 import ContentState from '../ui/ContentState.jsx';
 import management from '../../styles/ManagementUI.module.css';
 import laboratory from '../../styles/LaboratoryUI.module.css';
+import { useToast } from '../../context/ToastContext.jsx';
 
 export default function ConfiguracionAlmacenamientoModal({
   isOpen, soportado, carpetaConfigurada, onElegir, onReconectar, onClose,
 }) {
+  const toast = useToast();
+  const avisoAcceso = useRef(null);
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState(null);
   const necesitaReconectar = carpetaConfigurada;
   const tituloId = 'almacenamiento-title';
 
   const manejarAccion = async () => {
+    toast.cerrar(avisoAcceso.current);
     setError(null);
     setProcesando(true);
     try {
@@ -24,7 +28,7 @@ export default function ConfiguracionAlmacenamientoModal({
         await onElegir();
       }
     } catch (err) {
-      if (err?.name !== 'AbortError') setError('No se pudo acceder a la carpeta seleccionada. Intenta de nuevo.');
+      if (err?.name !== 'AbortError') avisoAcceso.current = toast.error('No se pudo acceder a la carpeta seleccionada. Intenta de nuevo.');
     } finally {
       setProcesando(false);
     }

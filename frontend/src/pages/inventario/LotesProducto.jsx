@@ -1,5 +1,5 @@
 import { useToast } from '../../context/ToastContext.jsx';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { ArrowLeft, PackagePlus, RotateCcw } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import ContentState from '../../components/ui/ContentState.jsx';
@@ -28,7 +28,7 @@ export default function LotesProducto() {
   const { productos, cargando: cargandoProductos, error: errorProductos } = useProductos();
   const { proveedores, cargando: cargandoProveedores } = useProveedores();
   const { sucursales, cargando: cargandoSucursales } = useSucursales();
-  const { guardando, error: errorLote, crear, actualizar, eliminar, ajustarStock, limpiarError } = useLotes();
+  const { guardando, crear, actualizar, eliminar, ajustarStock, limpiarError } = useLotes();
   const producto = useMemo(
     () => productos.find((item) => String(item.id_producto) === String(productoId)),
     [productoId, productos],

@@ -1,3 +1,4 @@
+import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
@@ -15,6 +16,7 @@ export default function NuevoClienteModal({
   onClose,
   onCrear,
 }) {
+  const toast = useToast();
   const [formulario, setFormulario] = useState(formularioInicial);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
@@ -58,7 +60,7 @@ export default function NuevoClienteModal({
         observaciones: formulario.observaciones.trim() || null,
       });
     } catch (err) {
-      setError(err.response?.data?.mensaje || 'No se pudo agregar el cliente.');
+      toast.error(err.response?.data?.mensaje || 'No se pudo agregar el cliente.');
     } finally {
       setGuardando(false);
     }

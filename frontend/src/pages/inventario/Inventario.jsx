@@ -106,7 +106,6 @@ export default function Inventario() {
   } = usePresentaciones();
   const {
     guardando: guardandoLote,
-    error: errorLote,
     crear: crearLote,
     limpiarError: limpiarErrorLote,
   } = useLotes();

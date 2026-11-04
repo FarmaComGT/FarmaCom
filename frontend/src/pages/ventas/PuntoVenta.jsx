@@ -232,8 +232,8 @@ export default function PuntoVenta() {
     const nuevoCliente = await crearCliente(datosCliente);
     seleccionarCliente(nuevoCliente);
     setMostrandoNuevoCliente(false);
-    setAviso(`Cliente ${nuevoCliente.nombre_cliente} agregado y seleccionado.`);
-  }, [crearCliente, seleccionarCliente]);
+    toast.success(`Cliente ${nuevoCliente.nombre_cliente} agregado y seleccionado.`);
+  }, [crearCliente, seleccionarCliente, toast]);
 
   return (
     <div className="pos-page">

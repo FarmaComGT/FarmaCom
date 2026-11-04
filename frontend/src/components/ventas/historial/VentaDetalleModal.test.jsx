@@ -202,4 +202,4 @@ describe('VentaDetalleModal', () => {
   });
 });
 
-const render = (ui, options) => renderBase(<ToastProvider>{ui}</ToastProvider>, options);
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

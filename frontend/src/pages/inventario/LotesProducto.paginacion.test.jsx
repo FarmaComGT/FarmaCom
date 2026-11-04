@@ -97,4 +97,4 @@ it('corrige la página después de eliminar el último lote de la última págin
   expect(mocks.eliminar).toHaveBeenCalledWith(2);
 });
 
-const render = (ui, options) => renderBase(<ToastProvider>{ui}</ToastProvider>, options);
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

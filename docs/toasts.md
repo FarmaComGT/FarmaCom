@@ -22,3 +22,20 @@ toast.info('La consulta está disponible.');
 - Los avisos se renderizan mediante portal fuera de `#root`, sin desplazar el contenido ni recibir foco automáticamente.
 
 Usar toast para el resultado de una acción. Mantener las validaciones junto al campo y los fallos persistentes de carga en la pantalla con una acción de recuperación. Evitar emitir el mismo fallo desde el servicio y desde la pantalla. Confirmar éxito después de completar la operación; distinguir un fallo de actualización posterior de un fallo al guardar.
+
+## Alcance de la migración
+
+Los resultados de operaciones de administración, inventario, caja, pacientes y ventas se notifican mediante el proveedor global. Los contactos y la creación rápida de presentaciones y clientes también usan toast.
+
+Se conservan dentro de las vistas:
+
+- Validaciones locales de formularios y detalles de validación del backend asociados a contactos.
+- Errores persistentes de carga con su recuperación.
+- Credenciales incorrectas, permisos de almacenamiento local y restricciones de caja o existencias.
+- Estados de seguimiento del pago con tarjeta: pendiente, rechazado o no verificable.
+
+Si falla una actualización de inventario o catálogo después de guardar, el mensaje debe indicar que la operación se completó. El comprobante o el éxito de la operación no se revocan por ese fallo posterior.
+
+Los componentes `PacienteAlert`, `UsuarioAlert` y `SucursalAlert` siguen en uso para errores de carga; no deben eliminarse como parte de la limpieza.
+
+Los fallos al renombrar un carrito o al acceder a la carpeta de respaldo también usan toast. Al reintentar se retira el aviso anterior de esa operación. Un nombre vacío continúa validándose junto al campo y la denegación de permisos de la carpeta permanece en el modal. Cancelar el selector de carpeta (`AbortError`) no genera una notificación de error.

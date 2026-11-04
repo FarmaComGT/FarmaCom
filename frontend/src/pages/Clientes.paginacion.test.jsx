@@ -1,6 +1,7 @@
+import { ToastProvider } from '../context/ToastContext.jsx';
 import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render as renderBase, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import Clientes from './Clientes';
@@ -62,3 +63,5 @@ it('abre el historial desde la URL y pagina sin perder el resumen ni la página 
   await user.click(within(dialog).getAllByRole('button', { name: 'Cerrar', exact: true })[0]);
   expect(screen.getByLabelText('URL')).not.toHaveTextContent('historial_');
 });
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

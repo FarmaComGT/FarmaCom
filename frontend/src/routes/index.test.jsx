@@ -1,5 +1,6 @@
+import { ToastProvider } from '../context/ToastContext.jsx';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render as renderBase, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AppRoutes from './index';
@@ -332,3 +333,5 @@ describe('ruta de inventario unificado', () => {
     },
   );
 });
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

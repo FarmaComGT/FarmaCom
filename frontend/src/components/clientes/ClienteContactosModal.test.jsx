@@ -1,5 +1,6 @@
+import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as renderBase, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import useContactosCliente from '../../hooks/useContactosCliente';
@@ -115,7 +116,7 @@ describe('ClienteContactosModal', () => {
     await user.click(screen.getAllByRole('button', { name: 'Agregar' })[1]);
 
     expect(acciones.agregarCorreo).toHaveBeenCalledWith('ANA@farmacom.test');
-    expect(await screen.findByRole('alert')).toHaveTextContent('El cliente ya tiene registrado ese correo');
+    expect(await screen.findByRole('status')).toHaveTextContent('El cliente ya tiene registrado ese correo');
   });
 
   it('usa un mensaje genérico si el error no trae detalle', async () => {
@@ -126,7 +127,7 @@ describe('ClienteContactosModal', () => {
     await user.type(screen.getByRole('textbox', { name: 'Nuevo correo' }), 'otro@farmacom.test');
     await user.click(screen.getAllByRole('button', { name: 'Agregar' })[1]);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo agregar');
+    expect(await screen.findByRole('status')).toHaveTextContent('No se pudo agregar');
   });
 
   it('no envía un contacto vacío', async () => {
@@ -183,7 +184,7 @@ describe('ClienteContactosModal', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar correo' }));
 
     expect(acciones.actualizarCorreo).toHaveBeenCalledWith(7, 'repetido@farmacom.test');
-    expect(await screen.findByRole('alert')).toHaveTextContent('El cliente ya tiene registrado ese correo');
+    expect(await screen.findByRole('status')).toHaveTextContent('El cliente ya tiene registrado ese correo');
 
     await user.click(screen.getByRole('button', { name: 'Cancelar edición' }));
     expect(screen.getByText('ana@farmacom.test')).toBeInTheDocument();
@@ -226,7 +227,7 @@ describe('ClienteContactosModal', () => {
     const botonConfirmar = screen.getByRole('button', { name: 'Confirmar eliminar teléfono 5555-1234' });
     await user.click(botonConfirmar);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Teléfono no encontrado');
+    expect(await screen.findByRole('status')).toHaveTextContent('Teléfono no encontrado');
     expect(screen.getByRole('button', { name: 'Eliminar teléfono 5555-1234' })).toBeEnabled();
   });
 
@@ -253,3 +254,5 @@ describe('formatearTelefono', () => {
     expect(formatearTelefono(numero)).toBe(esperado);
   });
 });
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

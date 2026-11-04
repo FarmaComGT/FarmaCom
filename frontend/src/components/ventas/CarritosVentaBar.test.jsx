@@ -1,8 +1,11 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as renderBase, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import CarritosVentaBar from './CarritosVentaBar';
+import { ToastProvider } from '../../context/ToastContext.jsx';
+
+const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });
 
 const carritos = [
   {
@@ -107,5 +110,30 @@ describe('CarritosVentaBar', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(handlers.onCerrar).not.toHaveBeenCalled();
+  });
+
+  it.each(['rechazo', 'excepción'])('notifica el %s al renombrar y permite reintentar sin perder el nombre', async (caso) => {
+    const user = userEvent.setup();
+    const onRenombrar = vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true);
+    if (caso === 'excepción') onRenombrar.mockReset().mockImplementationOnce(() => { throw new Error('Fallo local'); }).mockReturnValueOnce(true);
+    renderizar({ onRenombrar });
+    await user.click(screen.getByRole('button', { name: 'Renombrar Mostrador' }));
+    const input = screen.getByRole('textbox', { name: 'Nombre del carrito' });
+    await user.clear(input);
+    await user.type(input, '  María Pérez  ');
+    await user.click(screen.getByRole('button', { name: 'Guardar nombre del carrito' }));
+
+    const aviso = screen.getByRole('status');
+    expect(aviso).toHaveTextContent('No se pudo cambiar el nombre del carrito.');
+    expect(aviso.closest('form')).toBeNull();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(input).toHaveValue('  María Pérez  ');
+    expect(input).not.toHaveAttribute('aria-invalid', 'true');
+    expect(onRenombrar).toHaveBeenLastCalledWith('carrito-1', 'María Pérez');
+
+    await user.click(screen.getByRole('button', { name: 'Guardar nombre del carrito' }));
+    expect(onRenombrar).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Nombre del carrito' })).not.toBeInTheDocument();
   });
 });
