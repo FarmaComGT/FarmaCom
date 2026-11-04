@@ -4,19 +4,46 @@ import { Eye } from 'lucide-react';
 import { useVentas } from '../../hooks/useHistorialVentas';
 import { formatearMoneda } from '../../utils/reportes';
 import VentaDetalleModal from '../../components/ventas/historial/VentaDetalleModal';
+import ContentState from '../../components/ui/ContentState';
 import Paginacion from '../../components/ui/Paginacion';
 import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
+import ui from '../../styles/ManagementUI.module.css';
+import styles from './HistorialVentas.module.css';
 
 const FORMATO_FECHA = new Intl.DateTimeFormat('es-GT', {
-  dateStyle: 'short',
+  dateStyle: 'medium',
   timeStyle: 'short',
   timeZone: 'America/Guatemala',
 });
+const FORMATO_NUMERO = new Intl.NumberFormat('es-GT');
 
 const formatearFecha = (valor) => {
   const fecha = new Date(valor);
   return Number.isNaN(fecha.getTime()) ? '—' : FORMATO_FECHA.format(fecha);
 };
+
+const capitalizar = (valor) => {
+  const texto = String(valor || 'No disponible').replaceAll('_', ' ');
+  return texto.charAt(0).toLocaleUpperCase('es') + texto.slice(1);
+};
+
+const encabezados = ['Venta / fecha', 'Sucursal / responsable', 'Cliente', 'Artículos', 'Pago', 'Total', 'Estado', 'Acciones'];
+
+function TablaCargando() {
+  return (
+    <div role="status" aria-label="Cargando historial de ventas" className={styles.loadingTable}>
+      <table className={`${ui.table} ${styles.salesTable}`} aria-hidden="true">
+        <thead><tr>{encabezados.map((titulo) => <th key={titulo}>{titulo}</th>)}</tr></thead>
+        <tbody>
+          {Array.from({ length: 4 }, (_, indice) => (
+            <tr key={indice}>{encabezados.map((titulo) => <td key={titulo}><span className={styles.skeleton} /></td>)}</tr>
+          ))}
+        </tbody>
+      </table>
+      <span className={ui.visuallyHidden}>Cargando historial de ventas…</span>
+    </div>
+  );
+}
 
 export default function HistorialVentas() {
   const { filtros } = useOutletContext();
@@ -25,49 +52,103 @@ export default function HistorialVentas() {
   const { datos, paginacion, cargando, error, recargar } = useVentas({ ...filtros, pagina, limite });
   const { crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
+
   useEffect(() => { document.title = 'Historial de ventas · FarmaCom'; }, []);
 
-  if (cargando) return <div role="status" className="h-52 animate-pulse rounded-2xl bg-slate-100" aria-label="Cargando historial de ventas" />;
-  if (error) return <div role="alert" className="rounded-2xl border border-error/20 bg-error/5 p-6 text-center"><p className="text-sm font-semibold text-error">{error}</p><button type="button" onClick={recargar} className="mt-3 cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white">Reintentar</button></div>;
-  if (datos.length === 0) return <>
-    <div id="historial-ventas" className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">No hay ventas en el período seleccionado.</div>
-    <Paginacion paginacion={paginacion} crearDestino={crearDestino} onLimiteChange={onLimiteChange}
-      sustantivo="ventas" controles="historial-ventas" />
-  </>;
+  const total = paginacion?.total ?? datos.length;
 
   return (
     <>
-      <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm">
-        <table id="historial-ventas" className="min-w-[1050px] w-full text-left text-sm tabular-nums">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              {['Venta', 'Fecha', 'Sucursal', 'Cliente', 'Atendió', 'Artículos', 'Pago', 'Total', 'Estado', 'Detalle'].map((titulo) => <th key={titulo} className={`px-4 py-3 font-bold ${titulo === 'Detalle' ? 'text-center' : ''}`}>{titulo}</th>)}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {datos.map((venta) => (
-              <tr key={venta.id_venta} className="hover:bg-primary/[0.02]">
-                <td className="px-4 py-3 font-bold text-primary">#{venta.id_venta}</td>
-                <td className="whitespace-nowrap px-4 py-3">{formatearFecha(venta.fecha_venta)}</td>
-                <td className="px-4 py-3">{venta.nombre_sucursal}</td>
-                <td className="px-4 py-3">{venta.nombre_cliente || 'Consumidor final'}</td>
-                <td className="px-4 py-3">{venta.nombre_usuario}</td>
-                <td className="px-4 py-3 text-center">{venta.cantidad_articulos}</td>
-                <td className="px-4 py-3 capitalize">{venta.metodo_pago}</td>
-                <td className="px-4 py-3 font-bold">{formatearMoneda(venta.total)}</td>
-                <td className="px-4 py-3 capitalize">{venta.estado}</td>
-                <td className="px-4 py-3 text-center">
-                  <button type="button" aria-label={`Ver detalle de venta ${venta.id_venta}`} onClick={() => setVentaSeleccionada(venta.id_venta)} className="inline-flex cursor-pointer items-center justify-center rounded-lg p-2 text-primary transition hover:bg-primary/10 active:scale-95">
-                    <Eye className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <Paginacion paginacion={paginacion} crearDestino={crearDestino} onLimiteChange={onLimiteChange}
-        cargando={cargando} sustantivo="ventas" controles="historial-ventas" />
+      <section id="historial-ventas" aria-labelledby="titulo-listado-ventas" aria-busy={cargando}>
+        <div className={styles.resultsHeader}>
+          <h2 id="titulo-listado-ventas" className={styles.sectionHeading}>Ventas registradas</h2>
+          {!cargando && !error && (
+            <p className={ui.resultCount} aria-live="polite">
+              <strong>{FORMATO_NUMERO.format(total)}</strong> {total === 1 ? 'venta' : 'ventas'}
+            </p>
+          )}
+        </div>
+
+        {cargando && <TablaCargando />}
+        {!cargando && error && (
+          <ContentState
+            compact
+            variant="error"
+            title="No se pudo cargar el historial"
+            message={error}
+            onRetry={recargar}
+          />
+        )}
+        {!cargando && !error && datos.length === 0 && (
+          <ContentState
+            compact
+            title="No hay ventas en el período seleccionado."
+            message="Prueba con otra sucursal o amplía el rango de fechas."
+          />
+        )}
+        {!cargando && !error && datos.length > 0 && (
+          <div className={ui.tablePanel}>
+            <table className={`${ui.table} ${styles.salesTable}`}>
+              <thead>
+                <tr>
+                  {encabezados.map((titulo) => <th key={titulo} scope="col">{titulo}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {datos.map((venta) => (
+                  <tr key={venta.id_venta}>
+                    <td data-label="Venta / fecha">
+                      <strong className={styles.saleId}>#{venta.id_venta}</strong>
+                      <span className={styles.secondaryLine}>{formatearFecha(venta.fecha_venta)}</span>
+                    </td>
+                    <td data-label="Sucursal / responsable">
+                      <strong className={styles.primaryLine}>{venta.nombre_sucursal || 'Sin sucursal'}</strong>
+                      <span className={styles.secondaryLine}>Atendió: {venta.nombre_usuario || 'No disponible'}</span>
+                    </td>
+                    <td data-label="Cliente">{venta.nombre_cliente || 'Consumidor final'}</td>
+                    <td data-label="Artículos" className={styles.numberCell}>
+                      {FORMATO_NUMERO.format(Number(venta.cantidad_articulos || 0))}
+                    </td>
+                    <td data-label="Pago">{capitalizar(venta.metodo_pago)}</td>
+                    <td data-label="Total" className={`${styles.numberCell} ${ui.price}`}>
+                      {formatearMoneda(venta.total)}
+                    </td>
+                    <td data-label="Estado">
+                      <span className={`${ui.badge} ${venta.estado === 'anulada' ? ui.badgeDanger : ui.badgeActive}`}>
+                        {capitalizar(venta.estado)}
+                      </span>
+                    </td>
+                    <td data-label="Acciones" className={ui.actionsCell}>
+                      <div className={ui.rowActions}>
+                        <button
+                          type="button"
+                          aria-label={`Ver detalle de venta ${venta.id_venta}`}
+                          onClick={() => setVentaSeleccionada(venta.id_venta)}
+                          className={ui.button}
+                        >
+                          <Eye size={16} aria-hidden="true" /> Ver detalle
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {!error && (
+          <Paginacion
+            paginacion={paginacion}
+            crearDestino={crearDestino}
+            onLimiteChange={onLimiteChange}
+            cargando={cargando}
+            sustantivo="ventas"
+            controles="historial-ventas"
+          />
+        )}
+      </section>
+
       <VentaDetalleModal
         idVenta={ventaSeleccionada}
         onClose={() => setVentaSeleccionada(null)}

@@ -32,6 +32,7 @@ const filtrosAplicados = () => JSON.parse(screen.getByTestId('filtros-aplicados'
 
 describe('layout del historial de ventas', () => {
   beforeEach(() => {
+    delete document.startViewTransition;
     sucursalesMock.valor = {
       sucursales: [
         { id_sucursal: 1, nombre_sucursal: 'Central' },
@@ -54,6 +55,14 @@ describe('layout del historial de ventas', () => {
 
   it('marca la pestaña activa y navega al resumen por producto', async () => {
     const user = userEvent.setup();
+    const iniciarTransicion = vi.fn((actualizar) => {
+      actualizar();
+      return { finished: Promise.resolve() };
+    });
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: iniciarTransicion,
+    });
     renderizar();
 
     const navegacion = screen.getByRole('navigation', { name: 'Vistas del historial de ventas' });
@@ -64,6 +73,7 @@ describe('layout del historial de ventas', () => {
 
     expect(screen.getByText('Vista de resumen por producto')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Resumen por producto' })).toHaveAttribute('aria-current', 'page');
+    expect(iniciarTransicion).toHaveBeenCalledOnce();
   });
 
   it('consulta con la sucursal y el rango elegidos', async () => {
