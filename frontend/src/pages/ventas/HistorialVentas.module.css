@@ -44,6 +44,17 @@
   margin: 0;
 }
 
+.sectionIntro {
+  min-width: 0;
+}
+
+.sectionIntro p {
+  margin-top: 3px;
+  color: var(--management-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 .salesTable {
   min-width: 980px;
 }
@@ -56,6 +67,37 @@
 .salesTable th:nth-child(6) { width: 10%; }
 .salesTable th:nth-child(7) { width: 9%; }
 .salesTable th:last-child { width: 16%; text-align: right; }
+
+.productSummary dt {
+  color: var(--management-muted);
+  font-size: 12px;
+}
+
+.productSummary dd {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+  color: var(--management-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+  font-variant-numeric: tabular-nums;
+}
+
+.productTable {
+  min-width: 620px;
+}
+
+.productTable th:first-child { width: 55%; }
+.productTable th:nth-child(2) { width: 20%; text-align: right; }
+.productTable th:last-child { width: 25%; text-align: right; }
+
+.productName {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--management-ink);
+  font-weight: 600;
+}
 
 .saleId,
 .primaryLine,
@@ -390,7 +432,12 @@
     min-width: 0;
   }
 
-  .salesTable .numberCell {
+  .productTable {
+    min-width: 0;
+  }
+
+  .salesTable .numberCell,
+  .productTable .numberCell {
     text-align: left !important;
   }
 
