@@ -8,14 +8,21 @@ const validateRequest = require('../middlewares/validateRequest');
 const router = Router();
 const ResumenDiarioService = require('../services/ResumenDiarioService');
 const asyncHandler = require('../middlewares/asyncHandler');
+const ResumenDiarioPdfService = require('../services/ResumenDiarioPdfService');
 
-router.get('/resumen-diario', verificarToken, verificarRol('dueno'), [
+router.get(['/resumen-diario', '/resumen-diario/pdf'], verificarToken, verificarRol('dueno'), [
   query('fecha').optional().isISO8601({ strict: true }).matches(/^\d{4}-\d{2}-\d{2}$/),
   query('sucursales').optional().isString().matches(/^\d+(,\d+)*$/),
 ], validateRequest, asyncHandler(async (req, res) => {
   const sucursales = req.query.sucursales?.split(',').map(Number);
   const resumen = await ResumenDiarioService.obtener({ fecha: req.query.fecha, sucursales });
   res.set('Cache-Control', 'no-store');
+  if (req.path.endsWith('/pdf')) {
+    const pdf = await ResumenDiarioPdfService.generar(resumen);
+    res.type('application/pdf');
+    res.set('Content-Disposition', `attachment; filename="resumen-ventas-${resumen.fecha}.pdf"`);
+    return res.send(pdf);
+  }
   res.json(resumen);
 }));
 const rolesReportes = verificarRol('dueno', 'administrador');
