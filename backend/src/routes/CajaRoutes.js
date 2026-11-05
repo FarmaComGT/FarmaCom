@@ -8,6 +8,7 @@ const CajaController = require('../controllers/CajaController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
+const { validarPaginacion, validarBusqueda } = require('../validators/paginacionValidators');
 
 const router = Router();
 const rolesOperacion = verificarRol('dueno', 'administrador', 'dependiente');
@@ -31,6 +32,8 @@ const validarFecha = (campo) => query(campo)
   .isISO8601({ strict: true }).withMessage(`${campo} debe ser una fecha válida`);
 
 const validarFiltrosCajas = [
+  ...validarPaginacion,
+  validarBusqueda(200),
   query('id_sucursal')
     .optional()
     .isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo')

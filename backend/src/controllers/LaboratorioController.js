@@ -1,8 +1,8 @@
 const LaboratorioService = require('../services/LaboratorioService');
 const asyncHandler = require('../middlewares/asyncHandler');
 
-const listar = asyncHandler(async (_req, res) => {
-  const laboratorios = await LaboratorioService.listarActivos();
+const listar = asyncHandler(async (req, res) => {
+  const laboratorios = await LaboratorioService.listarActivos(req.query);
   return res.status(200).json(laboratorios);
 });
 

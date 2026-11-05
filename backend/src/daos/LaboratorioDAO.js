@@ -1,12 +1,34 @@
 const pool = require('../database/db');
+const { ejecutarConsultaPaginada } = require('../utils/paginacion');
 
 class LaboratorioDAO {
-  async listarActivos() {
+  async listarActivos({ pagina, limite, busqueda } = {}) {
+    if (pagina === undefined && !busqueda) {
+      const { rows } = await pool.query(
+        `SELECT id_laboratorio, id_ciudad, nombre_laboratorio, direccion
+         FROM laboratorio
+         WHERE activo = TRUE
+         ORDER BY nombre_laboratorio ASC`,
+      );
+      return rows;
+    }
+    const valores = [];
+    let filtroBusqueda = '';
+    if (busqueda) {
+      valores.push(`%${busqueda.replace(/[\\%_]/g, '\\$&')}%`);
+      filtroBusqueda = ` AND (l.nombre_laboratorio ILIKE $1 ESCAPE '\\'
+        OR l.direccion ILIKE $1 ESCAPE '\\' OR c.nombre_ciudad ILIKE $1 ESCAPE '\\')`;
+    }
+    const base = `SELECT l.id_laboratorio, l.id_ciudad, l.nombre_laboratorio,
+        l.direccion, l.activo, c.nombre_ciudad
+      FROM laboratorio l JOIN ciudad c ON c.id_ciudad = l.id_ciudad
+      WHERE l.activo = TRUE${filtroBusqueda}`;
+    if (pagina !== undefined) {
+      return ejecutarConsultaPaginada({ cliente: pool, consultaBase: base, valores,
+        orden: 'ORDER BY l.nombre_laboratorio ASC, l.id_laboratorio ASC', pagina, limite });
+    }
     const { rows } = await pool.query(
-      `SELECT id_laboratorio, id_ciudad, nombre_laboratorio, direccion
-       FROM laboratorio
-       WHERE activo = TRUE
-       ORDER BY nombre_laboratorio ASC`,
+      `${base} ORDER BY l.nombre_laboratorio ASC, l.id_laboratorio ASC`, valores,
     );
     return rows;
   }

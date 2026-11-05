@@ -1,4 +1,5 @@
 const pool = require('../database/db');
+const { ejecutarConsultaPaginada } = require('../utils/paginacion');
 
 class PacienteDAO {
   async ejecutarEnTransaccion(operacion) {
@@ -114,23 +115,19 @@ class PacienteDAO {
       );
     }
 
-    valores.push(limite);
-    const indiceLimite = valores.length;
-    valores.push((pagina - 1) * limite);
-    const indiceOffset = valores.length;
-
-    const { rows } = await pool.query(
-      `SELECT p.*, COUNT(*) OVER()::INTEGER AS total_registros
-       FROM paciente p
-       WHERE ${condiciones.join(' AND ')}
-       ORDER BY p.nombre_paciente ASC, p.id_paciente ASC
-       LIMIT $${indiceLimite} OFFSET $${indiceOffset}`,
+    const resultado = await ejecutarConsultaPaginada({
+      cliente: pool,
+      consultaBase: `SELECT p.* FROM paciente p WHERE ${condiciones.join(' AND ')}`,
       valores,
-    );
-
-    const total = rows[0]?.total_registros ?? 0;
-    const datos = rows.map(({ total_registros, ...paciente }) => paciente);
-    return { datos, total };
+      orden: 'ORDER BY p.nombre_paciente ASC, p.id_paciente ASC',
+      pagina,
+      limite,
+    });
+    return {
+      datos: resultado.datos,
+      total: resultado.paginacion.total,
+      pagina: resultado.paginacion.pagina,
+    };
   }
 
   async actualizar(id_paciente, campos, client = pool) {

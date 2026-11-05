@@ -26,7 +26,7 @@ export default function UsuarioStatsGrid({
           aria-pressed={estadoSeleccionado === estado}
           onClick={() => onSeleccionarEstado(estado)}
         >
-          <strong>{totales[totalProp]}</strong>
+          {totales[totalProp] != null && <strong>{totales[totalProp]}</strong>}
           <span>{etiqueta}</span>
         </button>
       ))}

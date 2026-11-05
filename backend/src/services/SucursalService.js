@@ -1,5 +1,6 @@
 const SucursalDAO = require('../daos/SucursalDAO');
 const AppError = require('../errors/AppError');
+const { completarPaginacion } = require('../validators/paginacionValidators');
 
 const crearSucursal = async ({ id_ciudad, nombre_sucursal, direccion }) => {
   const existente = await SucursalDAO.obtenerPorNombre(nombre_sucursal);
@@ -10,8 +11,8 @@ const crearSucursal = async ({ id_ciudad, nombre_sucursal, direccion }) => {
   return await SucursalDAO.crear({ id_ciudad, nombre_sucursal, direccion });
 };
 
-const obtenerTodas = async () => {
-  return await SucursalDAO.obtenerTodos();
+const obtenerTodas = async (filtros = {}) => {
+  return await SucursalDAO.obtenerTodos(completarPaginacion(filtros));
 };
 
 const obtenerPorId = async (id_sucursal) => {

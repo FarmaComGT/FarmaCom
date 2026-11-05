@@ -1,4 +1,5 @@
 const pool = require('../database/db');
+const { ejecutarConsultaPaginada } = require('../utils/paginacion');
 
 class CajaDAO {
   async ejecutarEnTransaccion(operacion) {
@@ -51,7 +52,7 @@ class CajaDAO {
     return rows[0] || null;
   }
 
-  async obtenerCajas({ id_sucursal, activa } = {}) {
+  async obtenerCajas({ id_sucursal, activa, id_usuario_acceso, busqueda, pagina, limite } = {}) {
     const condiciones = [];
     const valores = [];
 
@@ -63,10 +64,18 @@ class CajaDAO {
       valores.push(activa);
       condiciones.push(`c.activa = $${valores.length}`);
     }
+    if (id_usuario_acceso !== undefined) {
+      valores.push(id_usuario_acceso);
+      condiciones.push(`(sc.id_sesion_caja IS NULL OR sc.id_usuario_apertura = $${valores.length})`);
+    }
+    if (busqueda) {
+      valores.push(`%${busqueda.replace(/[\\%_]/g, '\\$&')}%`);
+      condiciones.push(`(c.nombre ILIKE $${valores.length} ESCAPE '\\'
+        OR s.nombre_sucursal ILIKE $${valores.length} ESCAPE '\\')`);
+    }
 
     const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
-    const { rows } = await pool.query(
-      `SELECT
+    const base = `SELECT
          c.*,
          s.nombre_sucursal,
          sc.id_sesion_caja AS id_sesion_abierta,
@@ -78,9 +87,13 @@ class CajaDAO {
        LEFT JOIN sesion_caja sc
          ON sc.id_caja = c.id_caja
         AND sc.estado = 'abierta'
-       ${where}
-       ORDER BY s.nombre_sucursal, c.nombre`,
-      valores,
+       ${where}`;
+    if (pagina !== undefined) {
+      return ejecutarConsultaPaginada({ cliente: pool, consultaBase: base, valores,
+        orden: 'ORDER BY s.nombre_sucursal ASC, c.nombre ASC, c.id_caja ASC', pagina, limite });
+    }
+    const { rows } = await pool.query(
+      `${base} ORDER BY s.nombre_sucursal ASC, c.nombre ASC, c.id_caja ASC`, valores,
     );
     return rows;
   }

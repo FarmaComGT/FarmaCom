@@ -4,6 +4,7 @@ const SucursalController = require('../controllers/SucursalController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
+const { validarPaginacion, validarBusqueda } = require('../validators/paginacionValidators');
 
 const router = Router();
 
@@ -47,7 +48,8 @@ const validarActualizacion = [
 // Rutas
 
 // GET    /api/sucursales
-router.get('/', verificarToken, SucursalController.obtenerTodas);
+router.get('/', verificarToken, validarPaginacion, validarBusqueda(), validateRequest,
+    SucursalController.obtenerTodas);
 
 // GET    /api/sucursales/:id
 router.get('/:id', verificarToken, validarParamId, validateRequest, SucursalController.obtenerPorId);

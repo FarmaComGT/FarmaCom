@@ -9,6 +9,8 @@ import SucursalAlert from '../components/sucursales/SucursalAlert.jsx';
 import SucursalesSubNav from '../components/sucursales/SucursalesSubNav.jsx';
 import useCiudades from '../hooks/useCiudades';
 import useLaboratorios from '../hooks/useLaboratorios';
+import usePaginacionURL, { leerPaginacionURL } from '../hooks/usePaginacionURL';
+import Paginacion from '../components/ui/Paginacion.jsx';
 import styles from '../styles/ManagementUI.module.css';
 
 const formularioInicial = {
@@ -19,10 +21,12 @@ const formularioInicial = {
 
 export default function Laboratorios() {
   const toast = useToast();
-  const { laboratorios, cargando, error, crear, actualizar } = useLaboratorios();
   const { ciudades, cargandoCiudades, errorCiudades } = useCiudades();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
+  const { pagina, limite } = leerPaginacionURL(searchParams);
+  const { laboratorios, paginacion, cargando, error, crear, actualizar } = useLaboratorios({ pagina, limite, busqueda });
+  const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const [formulario, setFormulario] = useState(formularioInicial);
   const [laboratorioEditando, setLaboratorioEditando] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -34,12 +38,7 @@ export default function Laboratorios() {
   }, []);
 
   const actualizarBusqueda = (valor) => {
-    setSearchParams((actuales) => {
-      const siguientes = new URLSearchParams(actuales);
-      if (valor) siguientes.set('q', valor);
-      else siguientes.delete('q');
-      return siguientes;
-    }, { replace: true });
+    actualizarVista({ q: valor }, true);
   };
 
   const mapaCiudades = useMemo(() => ciudades.reduce((mapa, ciudad) => ({
@@ -53,7 +52,7 @@ export default function Laboratorios() {
     return laboratorios.filter((laboratorio) => [
       laboratorio.nombre_laboratorio,
       laboratorio.direccion,
-      mapaCiudades[laboratorio.id_ciudad],
+      laboratorio.nombre_ciudad || mapaCiudades[laboratorio.id_ciudad],
     ].some((valor) => valor?.toLocaleLowerCase('es').includes(termino)));
   }, [busqueda, laboratorios, mapaCiudades]);
 
@@ -139,7 +138,7 @@ export default function Laboratorios() {
 
       <LaboratorioStatsBanner
         totalFiltrados={laboratoriosFiltrados.length}
-        totalLaboratorios={laboratorios.length}
+        totalLaboratorios={paginacion?.total ?? 0}
       />
 
       <LaboratorioActionBar
@@ -149,7 +148,7 @@ export default function Laboratorios() {
       />
 
       <p className={styles.resultCount} aria-live="polite">
-        <strong>{laboratoriosFiltrados.length}</strong> de {laboratorios.length} laboratorios
+        <strong>{paginacion?.total ?? 0}</strong> laboratorios encontrados
       </p>
 
       <SucursalAlert mensaje={error || errorCiudades} />
@@ -160,6 +159,9 @@ export default function Laboratorios() {
         mapaCiudades={mapaCiudades}
         onEditar={abrirEdicion}
       />
+
+      {!error && <Paginacion paginacion={paginacion} crearDestino={crearDestino}
+        onLimiteChange={onLimiteChange} cargando={cargando} sustantivo="laboratorios" />}
 
       <LaboratorioFormModal
         isOpen={mostrarModal}

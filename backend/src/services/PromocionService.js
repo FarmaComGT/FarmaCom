@@ -1,6 +1,7 @@
 const PromocionDAO    = require('../daos/PromocionDAO');
 const ProductoDAO     = require('../daos/ProductoDAO');
 const AppError        = require('../errors/AppError');
+const { completarPaginacion } = require('../validators/paginacionValidators');
 
 // Helpers
 
@@ -74,10 +75,10 @@ const crearPromocion = async (id_producto, datos) => {
   return await PromocionDAO.crear({ id_producto, id_sucursal, cantidad_minima, precio_promocion, fecha_inicio, fecha_fin });
 };
 
-const obtenerPorProducto = async (id_producto) => {
+const obtenerPorProducto = async (id_producto, filtros = {}) => {
   const producto = await ProductoDAO.obtenerPorId(id_producto);
   if (!producto) lanzarError('Producto no encontrado', 404);
-  return await PromocionDAO.obtenerPorProducto(id_producto);
+  return await PromocionDAO.obtenerPorProducto(id_producto, completarPaginacion(filtros));
 };
 
 const obtenerPorId = async (id_promocion) => {

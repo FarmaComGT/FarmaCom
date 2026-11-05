@@ -6,6 +6,8 @@ import AccessibleDialog from '../components/ui/AccessibleDialog.jsx';
 import SucursalAlert from '../components/sucursales/SucursalAlert.jsx';
 import SucursalesSubNav from '../components/sucursales/SucursalesSubNav.jsx';
 import useCiudades from '../hooks/useCiudades';
+import usePaginacionURL, { leerPaginacionURL } from '../hooks/usePaginacionURL';
+import Paginacion from '../components/ui/Paginacion.jsx';
 import styles from '../styles/ManagementUI.module.css';
 
 const formularioInicial = { nombre_ciudad: '' };
@@ -101,9 +103,11 @@ function CiudadDeleteModal({ isOpen, ciudad, eliminando, onClose, onConfirm }) {
 
 export default function Ciudades() {
   const toast = useToast();
-  const { ciudades, cargandoCiudades, errorCiudades, crear, actualizar, eliminar } = useCiudades();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
+  const { pagina, limite } = leerPaginacionURL(searchParams);
+  const { ciudades, paginacion, cargandoCiudades, errorCiudades, crear, actualizar, eliminar } = useCiudades({ pagina, limite, busqueda });
+  const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando: cargandoCiudades });
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
@@ -118,18 +122,14 @@ export default function Ciudades() {
   }, []);
 
   const ciudadesFiltradas = useMemo(() => {
-    const termino = busqueda.trim().toLowerCase();
-    if (!termino) return ciudades;
-    return ciudades.filter((ciudad) => ciudad.nombre_ciudad.toLowerCase().includes(termino));
+    const termino = busqueda.trim().toLocaleLowerCase('es');
+    return termino ? ciudades.filter((ciudad) => (
+      ciudad.nombre_ciudad.toLocaleLowerCase('es').includes(termino)
+    )) : ciudades;
   }, [busqueda, ciudades]);
 
   const actualizarBusqueda = (valor) => {
-    setSearchParams((actuales) => {
-      const siguientes = new URLSearchParams(actuales);
-      if (valor) siguientes.set('q', valor);
-      else siguientes.delete('q');
-      return siguientes;
-    }, { replace: true });
+    actualizarVista({ q: valor }, true);
   };
 
   const abrirModalCrear = () => {
@@ -207,8 +207,8 @@ export default function Ciudades() {
       </header>
 
       <div className={styles.summary} aria-label="Resumen de ciudades">
-        <div className={styles.stat}><strong>{ciudades.length}</strong><span>Ciudades registradas</span></div>
-        <div className={styles.stat}><strong>{ciudadesFiltradas.length}</strong><span>Resultados visibles</span></div>
+        <div className={styles.stat}><strong>{paginacion?.total ?? 0}</strong><span>Ciudades encontradas</span></div>
+        <div className={styles.stat}><strong>{ciudadesFiltradas.length}</strong><span>Resultados en esta página</span></div>
       </div>
 
       <div className={styles.toolbar}>
@@ -229,7 +229,7 @@ export default function Ciudades() {
         </button>
       </div>
 
-      <p className={styles.resultCount} aria-live="polite"><strong>{ciudadesFiltradas.length}</strong> de {ciudades.length} ciudades</p>
+      <p className={styles.resultCount} aria-live="polite"><strong>{paginacion?.total ?? 0}</strong> ciudades encontradas</p>
       <SucursalAlert mensaje={errorCiudades} />
 
       <section className={styles.tablePanel} aria-label="Ciudades registradas">
@@ -255,6 +255,9 @@ export default function Ciudades() {
           </tbody>
         </table>
       </section>
+
+      {!errorCiudades && <Paginacion paginacion={paginacion} crearDestino={crearDestino}
+        onLimiteChange={onLimiteChange} cargando={cargandoCiudades} sustantivo="ciudades" />}
 
       <CiudadFormModal
         isOpen={mostrarModal}

@@ -1,7 +1,9 @@
 import api from './axios';
 
-export const listarLaboratorios = async () => {
-  const { data } = await api.get('/laboratorios');
+export const listarLaboratorios = async (filtros, opciones = {}) => {
+  const { data } = filtros?.pagina !== undefined
+    ? await api.get('/laboratorios', { params: filtros, ...(opciones.signal ? { signal: opciones.signal } : {}) })
+    : await api.get('/laboratorios');
   return data;
 };
 

@@ -1,5 +1,6 @@
 const CiudadDAO = require('../daos/CiudadDAO');
 const AppError = require('../errors/AppError');
+const { completarPaginacion } = require('../validators/paginacionValidators');
 
 const crearCiudad = async ({ nombre_ciudad }) => {
   const existente = await CiudadDAO.obtenerPorNombre(nombre_ciudad);
@@ -10,8 +11,8 @@ const crearCiudad = async ({ nombre_ciudad }) => {
   return CiudadDAO.crear({ nombre_ciudad });
 };
 
-const obtenerTodas = async () => {
-  return CiudadDAO.obtenerTodas();
+const obtenerTodas = async (filtros = {}) => {
+  return CiudadDAO.obtenerTodas(completarPaginacion(filtros));
 };
 
 const obtenerPorId = async (id_ciudad) => {

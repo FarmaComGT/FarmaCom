@@ -5,6 +5,7 @@ const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const subirPdfResultado = require('../middlewares/subirPdfResultado');
 const validateRequest = require('../middlewares/validateRequest');
+const { validarPaginacion } = require('../validators/paginacionValidators');
 
 const router = Router();
 const rolesResultado = verificarRol('dueno', 'administrador', 'laboratorista');
@@ -24,6 +25,7 @@ const validarSubida = [
 ];
 
 const validarListado = [
+  ...validarPaginacion,
   query('id_paciente')
     .isInt({ min: 1 }).withMessage('id_paciente debe ser un entero positivo')
     .toInt(),

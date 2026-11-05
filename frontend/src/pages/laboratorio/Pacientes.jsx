@@ -13,6 +13,8 @@ import PacienteFormModal from '../../components/laboratorio/pacientes/PacienteFo
 import PacienteAnularModal from '../../components/laboratorio/pacientes/PacienteAnularModal.jsx';
 import PacienteEliminarModal from '../../components/laboratorio/pacientes/PacienteEliminarModal.jsx';
 import ConfiguracionAlmacenamientoModal from '../../components/laboratorio/ConfiguracionAlmacenamientoModal.jsx';
+import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
+import Paginacion from '../../components/ui/Paginacion.jsx';
 import { ejecutarTransicionDeVista } from '../../utils/viewTransition';
 import management from '../../styles/ManagementUI.module.css';
 import laboratory from '../../styles/LaboratoryUI.module.css';
@@ -37,9 +39,9 @@ export default function Pacientes() {
     document.title = 'Pacientes de laboratorio · FarmaCom';
   }, []);
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
-  const pagina = Math.max(1, Number(searchParams.get('page')) || 1);
+  const { pagina, limite } = leerPaginacionURL(searchParams);
   const estadoParam = searchParams.get('estado');
   const estadoSeleccionado = ['activo', 'anulado'].includes(estadoParam) ? estadoParam : 'todos';
 
@@ -58,7 +60,9 @@ export default function Pacientes() {
     busqueda,
     estado: estadoSeleccionado === 'todos' ? undefined : estadoSeleccionado,
     pagina,
+    limite,
   });
+  const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
 
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
@@ -95,21 +99,14 @@ export default function Pacientes() {
   );
 
   const actualizarParametros = (cambios) => {
-    setSearchParams((actuales) => {
-      const siguientes = new URLSearchParams(actuales);
-      Object.entries(cambios).forEach(([clave, valor]) => {
-        if (valor === '' || valor === null || valor === undefined || valor === 'todos') {
-          siguientes.delete(clave);
-        } else {
-          siguientes.set(clave, String(valor));
-        }
-      });
-      return siguientes;
-    }, { replace: true });
+    const normalizados = Object.fromEntries(Object.entries(cambios).map(([clave, valor]) => (
+      [clave, valor === 'todos' ? '' : valor]
+    )));
+    actualizarVista(normalizados, true);
   };
 
   const seleccionarEstado = (estado) => {
-    ejecutarTransicionDeVista(() => actualizarParametros({ estado, page: 1 }));
+    ejecutarTransicionDeVista(() => actualizarParametros({ estado }));
   };
 
   const abrirCrear = () => {
@@ -235,7 +232,7 @@ export default function Pacientes() {
 
       <PacienteActionBar
         busqueda={busqueda}
-        onBusquedaChange={(e) => actualizarParametros({ q: e.target.value, page: 1 })}
+        onBusquedaChange={(e) => actualizarParametros({ q: e.target.value })}
         onCrear={abrirCrear}
       />
 
@@ -253,29 +250,8 @@ export default function Pacientes() {
         onEliminar={solicitarEliminar}
       />
 
-      {paginacion.total_paginas > 1 && (
-        <nav className={laboratory.pagination} aria-label="Paginación de pacientes">
-          <button
-            type="button"
-            disabled={pagina <= 1}
-            onClick={() => actualizarParametros({ page: Math.max(1, pagina - 1) })}
-            className={management.button}
-          >
-            Anterior
-          </button>
-          <span className={laboratory.paginationInfo}>
-            Página {paginacion.pagina} de {paginacion.total_paginas}
-          </span>
-          <button
-            type="button"
-            disabled={pagina >= paginacion.total_paginas}
-            onClick={() => actualizarParametros({ page: pagina + 1 })}
-            className={management.button}
-          >
-            Siguiente
-          </button>
-        </nav>
-      )}
+      <Paginacion paginacion={paginacion} crearDestino={crearDestino}
+        onLimiteChange={onLimiteChange} cargando={cargando} sustantivo="pacientes" />
 
       <PacienteFormModal
         isOpen={mostrarModal}

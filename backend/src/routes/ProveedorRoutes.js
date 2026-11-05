@@ -1,11 +1,12 @@
 const { Router } = require('express');
-const { body, param } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const ProveedorController = require('../controllers/ProveedorController');
 const ProveedorTelefonoController = require('../controllers/ProveedorTelefonoController');
 const ProveedorEmailController = require('../controllers/ProveedorEmailController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
+const { validarPaginacion, validarBusqueda } = require('../validators/paginacionValidators');
 
 const router = Router();
 
@@ -79,7 +80,9 @@ const validarEmailActualizacion = [
 // Rutas: Proveedor
 
 // GET    /api/proveedores
-router.get('/', verificarToken, ProveedorController.obtenerTodos);
+router.get('/', verificarToken, validarPaginacion, validarBusqueda(),
+  query('activo').optional().isString().bail().isIn(['true', 'false']).toBoolean(),
+  validateRequest, ProveedorController.obtenerTodos);
 
 // GET    /api/proveedores/:id
 router.get('/:id', verificarToken, validarParamId, validateRequest, ProveedorController.obtenerPorId);

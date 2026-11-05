@@ -4,6 +4,7 @@ const CategoriaController = require('../controllers/CategoriaController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
+const { validarPaginacion, validarBusqueda } = require('../validators/paginacionValidators');
 
 const router = Router();
 
@@ -37,7 +38,8 @@ const validarActualizacion = [
 ];
 
 // GET    /api/categorias
-router.get('/', verificarToken, CategoriaController.obtenerTodas);
+router.get('/', verificarToken, validarPaginacion, validarBusqueda(), validateRequest,
+    CategoriaController.obtenerTodas);
 
 // GET    /api/categorias/:id
 router.get(

@@ -1,62 +1,39 @@
-import { useState, useEffect, useCallback } from 'react';
 import api from '../api/axios';
+import useListadoPaginado from './useListadoPaginado';
 
-const useUsuarios = () => {
-  const [usuarios, setUsuarios] = useState([]);
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState(null);
+const useUsuarios = (filtros) => {
+  const listado = useListadoPaginado('/usuarios', filtros, 'Error al cargar usuarios');
+  const { datos: usuarios, actualizarDatos, cargar, paginado } = listado;
 
-  const obtenerTodos = useCallback(async () => {
-    setCargando(true);
-    setError(null);
-    try {
-      const { data } = await api.get('/usuarios');
-      setUsuarios(data);
-    } catch (err) {
-      setError(err.response?.data?.mensaje || 'Error al cargar usuarios');
-    } finally {
-      setCargando(false);
-    }
-  }, []);
-
-  const crear = async (datos) => {
-    try {
-      const { data } = await api.post('/usuarios', datos);
-      setUsuarios((prev) => [...prev, data]);
-      return data;
-    } catch (err) {
-      const mensaje = err.response?.data?.mensaje || 'Error al crear usuario';
-      throw new Error(mensaje);
+  const ejecutar = async (operacion, predeterminado) => {
+    try { return await operacion(); } catch (error) {
+      throw new Error(error.response?.data?.mensaje || predeterminado);
     }
   };
 
-  const actualizar = async (id, datos) => {
-    try {
-      const { data } = await api.put(`/usuarios/${id}`, datos);
-      setUsuarios((prev) => prev.map((u) => (u.id_usuario === id ? data : u)));
-      return data;
-    } catch (err) {
-      const mensaje = err.response?.data?.mensaje || 'Error al actualizar usuario';
-      throw new Error(mensaje);
-    }
-  };
+  const crear = async (datos) => ejecutar(async () => {
+    const { data } = await api.post('/usuarios', datos);
+    if (paginado) await cargar();
+    else actualizarDatos((prev) => [...prev, data]);
+    return data;
+  }, 'Error al crear usuario');
 
-  const cambiarEstado = async (id, estado) => {
-    try {
-      const { data } = await api.patch(`/usuarios/${id}/estado`, { estado });
-      setUsuarios((prev) => prev.map((u) => (u.id_usuario === id ? data : u)));
-      return data;
-    } catch (err) {
-      const mensaje = err.response?.data?.mensaje || 'Error al cambiar estado del usuario';
-      throw new Error(mensaje);
-    }
-  };
+  const actualizar = async (id, datos) => ejecutar(async () => {
+    const { data } = await api.put(`/usuarios/${id}`, datos);
+    if (paginado) await cargar();
+    else actualizarDatos((prev) => prev.map((u) => (u.id_usuario === id ? data : u)));
+    return data;
+  }, 'Error al actualizar usuario');
 
-  useEffect(() => {
-    obtenerTodos();
-  }, [obtenerTodos]);
+  const cambiarEstado = async (id, estado) => ejecutar(async () => {
+    const { data } = await api.patch(`/usuarios/${id}/estado`, { estado });
+    if (paginado) await cargar();
+    else actualizarDatos((prev) => prev.map((u) => (u.id_usuario === id ? data : u)));
+    return data;
+  }, 'Error al cambiar estado del usuario');
 
-  return { usuarios, cargando, error, crear, actualizar, cambiarEstado, refrescar: obtenerTodos };
+  return { usuarios, paginacion: listado.paginacion, cargando: listado.cargando,
+    error: listado.error, crear, actualizar, cambiarEstado, refrescar: cargar };
 };
 
 export default useUsuarios;

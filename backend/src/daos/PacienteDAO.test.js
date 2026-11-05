@@ -115,25 +115,30 @@ describe('PacienteDAO consultas', () => {
 
   describe('buscar', () => {
     it('filtra solo por laboratorio y calcula la paginación', async () => {
-      pool.query.mockResolvedValue({ rows: [
-        { id_paciente: 1, nombre_paciente: 'Ana', total_registros: 12 },
-        { id_paciente: 2, nombre_paciente: 'Luis', total_registros: 12 },
-      ] });
+      pool.query
+        .mockResolvedValueOnce({ rows: [{ total: '12' }] })
+        .mockResolvedValueOnce({ rows: [
+          { id_paciente: 1, nombre_paciente: 'Ana' },
+          { id_paciente: 2, nombre_paciente: 'Luis' },
+        ] });
 
-      const resultado = await PacienteDAO.buscar({ id_laboratorio: 1, pagina: 3, limite: 5 });
+      const resultado = await PacienteDAO.buscar({ id_laboratorio: 1, pagina: 99, limite: 5 });
 
       expect(resultado).toEqual({
         datos: [{ id_paciente: 1, nombre_paciente: 'Ana' }, { id_paciente: 2, nombre_paciente: 'Luis' }],
         total: 12,
+        pagina: 3,
       });
-      const [sql, valores] = pool.query.mock.calls[0];
+      const [sql, valores] = pool.query.mock.calls[1];
       expect(sql).toContain('WHERE p.id_laboratorio = $1');
       expect(sql).toContain('LIMIT $2 OFFSET $3');
       expect(valores).toEqual([1, 5, 10]);
     });
 
     it('agrega estado y búsqueda escapando comodines de LIKE', async () => {
-      pool.query.mockResolvedValue({ rows: [] });
+      pool.query
+        .mockResolvedValueOnce({ rows: [{ total: '0' }] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const resultado = await PacienteDAO.buscar({
         id_laboratorio: 2,
@@ -143,8 +148,8 @@ describe('PacienteDAO consultas', () => {
         limite: 10,
       });
 
-      expect(resultado).toEqual({ datos: [], total: 0 });
-      const [sql, valores] = pool.query.mock.calls[0];
+      expect(resultado).toEqual({ datos: [], total: 0, pagina: 1 });
+      const [sql, valores] = pool.query.mock.calls[1];
       expect(sql).toContain('p.estado = $2');
       expect(sql).toContain("p.nombre_paciente ILIKE $3 ESCAPE '\\'");
       expect(valores).toEqual([2, 'activo', '%50\\%\\_a\\\\b%', 10, 0]);

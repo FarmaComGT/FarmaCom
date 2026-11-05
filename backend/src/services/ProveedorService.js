@@ -1,5 +1,6 @@
 const ProveedorDAO = require('../daos/ProveedorDAO');
 const AppError = require('../errors/AppError');
+const { completarPaginacion } = require('../validators/paginacionValidators');
 
 const crearProveedor = async ({ nombre }) => {
   const existente = await ProveedorDAO.obtenerPorNombre(nombre);
@@ -10,8 +11,8 @@ const crearProveedor = async ({ nombre }) => {
   return await ProveedorDAO.crear({ nombre });
 };
 
-const obtenerTodos = async () => {
-  return await ProveedorDAO.obtenerTodos();
+const obtenerTodos = async (filtros = {}) => {
+  return await ProveedorDAO.obtenerTodos(completarPaginacion(filtros));
 };
 
 const obtenerPorId = async (id_proveedor) => {

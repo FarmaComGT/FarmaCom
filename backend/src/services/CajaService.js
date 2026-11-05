@@ -2,10 +2,10 @@ const CajaDAO = require('../daos/CajaDAO');
 const SucursalDAO = require('../daos/SucursalDAO');
 const {
   ROLES_ACCESO_GLOBAL,
-  tieneAccesoSesionCaja,
   validarPertenenciaSesionCaja,
 } = require('../utils/accesoCaja');
 const AppError = require('../errors/AppError');
+const { completarPaginacion } = require('../validators/paginacionValidators');
 
 const lanzarError = (mensaje, status) => {
   throw new AppError(mensaje, status);
@@ -62,15 +62,17 @@ const obtenerCajas = async (filtros, usuario) => {
       lanzarError('No tienes permiso para consultar cajas de otra sucursal', 403);
     }
     filtrosAplicados.id_sucursal = Number(usuario.id_sucursal);
+    if (filtrosAplicados.pagina !== undefined || filtrosAplicados.limite !== undefined) {
+      filtrosAplicados.id_usuario_acceso = Number(usuario.id_usuario);
+    }
   } else if (!ROLES_ACCESO_GLOBAL.has(usuario.rol)) {
     lanzarError('No tienes permiso para consultar cajas', 403);
   }
 
-  const cajas = await CajaDAO.obtenerCajas(filtrosAplicados);
-  if (usuario.rol !== 'dependiente') return cajas;
-
+  const cajas = await CajaDAO.obtenerCajas(completarPaginacion(filtrosAplicados));
+  if (usuario.rol !== 'dependiente' || !Array.isArray(cajas)) return cajas;
   return cajas.filter((caja) => (
-    caja.id_sesion_abierta == null || tieneAccesoSesionCaja(usuario, caja)
+    caja.id_sesion_abierta == null || Number(caja.id_usuario_apertura) === Number(usuario.id_usuario)
   ));
 };
 

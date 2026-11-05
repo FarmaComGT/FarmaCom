@@ -18,10 +18,12 @@ const subir = asyncHandler(async (req, res) => {
 });
 
 const listar = asyncHandler(async (req, res) => {
-  const resultados = await ResultadoLaboratorioService.listarPorPaciente(
-    Number(req.query.id_paciente),
-    req.usuario,
-  );
+  const filtros = { pagina: req.query.pagina, limite: req.query.limite };
+  const resultados = filtros.pagina === undefined && filtros.limite === undefined
+    ? await ResultadoLaboratorioService.listarPorPaciente(Number(req.query.id_paciente), req.usuario)
+    : await ResultadoLaboratorioService.listarPorPaciente(
+      Number(req.query.id_paciente), req.usuario, filtros,
+    );
   return res.status(200).json(resultados);
 });
 

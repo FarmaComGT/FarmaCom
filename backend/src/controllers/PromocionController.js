@@ -10,6 +10,7 @@ const crear = asyncHandler(async (req, res) => {
 const obtenerPorProducto = asyncHandler(async (req, res) => {
   const promociones = await PromocionService.obtenerPorProducto(
     Number(req.params.id_producto),
+    req.query,
   );
   return res.status(200).json(promociones);
 });

@@ -2,6 +2,7 @@ import api from './axios';
 
 export const obtenerPromocionesProducto = async (idProducto, opciones = {}) => {
   const { data } = await api.get(`/productos/${idProducto}/promociones`, {
+    ...(opciones.params ? { params: opciones.params } : {}),
     signal: opciones.signal,
   });
   return data;

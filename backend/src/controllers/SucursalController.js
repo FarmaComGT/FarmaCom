@@ -6,8 +6,8 @@ const crear = asyncHandler(async (req, res) => {
   return res.status(201).json(sucursal);
 });
 
-const obtenerTodas = asyncHandler(async (_req, res) => {
-  const sucursales = await sucursalService.obtenerTodas();
+const obtenerTodas = asyncHandler(async (req, res) => {
+  const sucursales = await sucursalService.obtenerTodas(req.query);
   return res.status(200).json(sucursales);
 });
 

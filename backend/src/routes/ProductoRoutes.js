@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const { query } = require('express-validator');
 const ProductoController = require('../controllers/ProductoController');
 const PromocionController = require('../controllers/PromocionController');
 const HistorialPrecioLoteController = require('../controllers/HistorialPrecioLoteController');
@@ -15,6 +16,7 @@ const {
   validarAutocompletado,
   validarCreacionPromocion,
 } = require('../validators/productoValidators');
+const { validarPaginacion } = require('../validators/paginacionValidators');
 
 const router = Router();
 const rolesConsultaPromociones = verificarRol('dueno', 'administrador', 'dependiente');
@@ -99,6 +101,9 @@ router.get('/:id_producto/promociones',
   verificarToken,
   rolesConsultaPromociones,
   validarParamIdProducto,
+  validarPaginacion,
+  query('id_sucursal').optional().isString().bail()
+    .isInt({ min: 1, max: 2147483647 }).withMessage('id_sucursal inválido').toInt(),
   validateRequest,
   PromocionController.obtenerPorProducto,
 );

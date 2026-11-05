@@ -11,6 +11,8 @@ import SucursalesSubNav from '../components/sucursales/SucursalesSubNav.jsx';
 import SucursalTable from '../components/sucursales/SucursalTable.jsx';
 import useCiudades from '../hooks/useCiudades';
 import useSucursales from '../hooks/useSucursales';
+import usePaginacionURL, { leerPaginacionURL } from '../hooks/usePaginacionURL';
+import Paginacion from '../components/ui/Paginacion.jsx';
 import styles from '../styles/ManagementUI.module.css';
 
 const estadoInicialFormulario = {
@@ -21,11 +23,13 @@ const estadoInicialFormulario = {
 
 export default function Sucursales() {
   const toast = useToast();
-  const { sucursales, cargando, error, crear, actualizar, eliminar } = useSucursales();
   const { ciudades, cargandoCiudades, errorCiudades } = useCiudades();
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
+  const { pagina, limite } = leerPaginacionURL(searchParams);
+  const { sucursales, paginacion, cargando, error, crear, actualizar, eliminar } = useSucursales({ pagina, limite, busqueda });
+  const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const [mostrarModal, setMostrarModal] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [eliminandoId, setEliminandoId] = useState(null);
@@ -41,12 +45,7 @@ export default function Sucursales() {
   }, []);
 
   const actualizarBusqueda = (valor) => {
-    setSearchParams((actuales) => {
-      const siguientes = new URLSearchParams(actuales);
-      if (valor) siguientes.set('q', valor);
-      else siguientes.delete('q');
-      return siguientes;
-    }, { replace: true });
+    actualizarVista({ q: valor }, true);
   };
 
   const mapaCiudades = useMemo(() => {
@@ -57,17 +56,13 @@ export default function Sucursales() {
   }, [ciudades]);
 
   const sucursalesFiltradas = useMemo(() => {
-    const termino = busqueda.trim().toLowerCase();
-    if (!termino) {
-      return sucursales;
-    }
-
-    return sucursales.filter((sucursal) => {
-      const nombre = sucursal.nombre_sucursal?.toLowerCase() || '';
-      const direccion = sucursal.direccion?.toLowerCase() || '';
-      const ciudad = mapaCiudades[sucursal.id_ciudad]?.toLowerCase() || '';
-      return nombre.includes(termino) || direccion.includes(termino) || ciudad.includes(termino);
-    });
+    const termino = busqueda.trim().toLocaleLowerCase('es');
+    if (!termino) return sucursales;
+    return sucursales.filter((sucursal) => [
+      sucursal.nombre_sucursal,
+      sucursal.direccion,
+      sucursal.nombre_ciudad || mapaCiudades[sucursal.id_ciudad],
+    ].some((valor) => valor?.toLocaleLowerCase('es').includes(termino)));
   }, [busqueda, mapaCiudades, sucursales]);
 
   const abrirModalCrear = () => {
@@ -195,7 +190,7 @@ export default function Sucursales() {
 
       <SucursalStatsBanner
         totalFiltradas={sucursalesFiltradas.length}
-        totalSucursales={sucursales.length}
+        totalSucursales={paginacion?.total ?? 0}
       />
 
       <SucursalActionBar
@@ -205,7 +200,7 @@ export default function Sucursales() {
       />
 
       <p className={styles.resultCount} aria-live="polite">
-        <strong>{sucursalesFiltradas.length}</strong> de {sucursales.length} sucursales
+        <strong>{paginacion?.total ?? 0}</strong> sucursales encontradas
       </p>
 
       <SucursalAlert mensaje={error || errorCiudades} />
@@ -219,6 +214,9 @@ export default function Sucursales() {
         onContactos={setSucursalContactos}
         eliminandoId={eliminandoId}
       />
+
+      {!error && <Paginacion paginacion={paginacion} crearDestino={crearDestino}
+        onLimiteChange={onLimiteChange} cargando={cargando} sustantivo="sucursales" />}
 
       <SucursalFormModal
         isOpen={mostrarModal}

@@ -1,4 +1,5 @@
 const pool = require('../database/db');
+const { ejecutarConsultaPaginada } = require('../utils/paginacion');
 
 class UsuarioDAO {
     async ejecutarEnTransaccion(operacion) {
@@ -33,9 +34,26 @@ class UsuarioDAO {
 
     // ─── OBTENER ────
 
-    async obtenerTodos(client = pool) {
-        const query = `SELECT * FROM usuario ORDER BY id_usuario`;
-        const { rows } = await client.query(query);
+    async obtenerTodos(filtros = {}, client = pool) {
+        const { pagina, limite, busqueda, estado_usuario } = filtros;
+        const condiciones = [];
+        const valores = [];
+        if (busqueda) {
+            valores.push(`%${busqueda.replace(/[\\%_]/g, '\\$&')}%`);
+            condiciones.push(`(nombre_usuario ILIKE $${valores.length} ESCAPE '\\'
+                OR correo_usuario ILIKE $${valores.length} ESCAPE '\\')`);
+        }
+        if (estado_usuario) {
+            valores.push(estado_usuario);
+            condiciones.push(`estado_usuario = $${valores.length}`);
+        }
+        const where = condiciones.length ? ` WHERE ${condiciones.join(' AND ')}` : '';
+        const base = `SELECT * FROM usuario${where}`;
+        if (pagina !== undefined) {
+            return ejecutarConsultaPaginada({ cliente: client, consultaBase: base, valores,
+                orden: 'ORDER BY nombre_usuario ASC, id_usuario ASC', pagina, limite });
+        }
+        const { rows } = await client.query(`${base} ORDER BY nombre_usuario ASC, id_usuario ASC`, valores);
         return rows;
     }
 
@@ -51,9 +69,25 @@ class UsuarioDAO {
         return rows[0] || null;
     }
 
-    async obtenerPorSucursal(id_sucursal, client = pool) {
-        const query = `SELECT * FROM usuario WHERE id_sucursal = $1 ORDER BY id_usuario`;
-        const { rows } = await client.query(query, [id_sucursal]);
+    async obtenerPorSucursal(id_sucursal, filtros = {}, client = pool) {
+        const { pagina, limite, busqueda, estado_usuario } = filtros;
+        const condiciones = ['id_sucursal = $1'];
+        const valores = [id_sucursal];
+        if (busqueda) {
+            valores.push(`%${busqueda.replace(/[\\%_]/g, '\\$&')}%`);
+            condiciones.push(`(nombre_usuario ILIKE $${valores.length} ESCAPE '\\'
+                OR correo_usuario ILIKE $${valores.length} ESCAPE '\\')`);
+        }
+        if (estado_usuario) {
+            valores.push(estado_usuario);
+            condiciones.push(`estado_usuario = $${valores.length}`);
+        }
+        const base = `SELECT * FROM usuario WHERE ${condiciones.join(' AND ')}`;
+        if (pagina !== undefined) {
+            return ejecutarConsultaPaginada({ cliente: client, consultaBase: base, valores,
+                orden: 'ORDER BY nombre_usuario ASC, id_usuario ASC', pagina, limite });
+        }
+        const { rows } = await client.query(`${base} ORDER BY nombre_usuario ASC, id_usuario ASC`, valores);
         return rows;
     }
 

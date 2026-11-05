@@ -1,6 +1,6 @@
 import api from './axios';
 
-const CAMPOS_CAJAS = ['id_sucursal', 'activa'];
+const CAMPOS_CAJAS = ['pagina', 'limite', 'id_sucursal', 'activa', 'busqueda'];
 const CAMPOS_CIERRES = [
   'pagina',
   'limite',

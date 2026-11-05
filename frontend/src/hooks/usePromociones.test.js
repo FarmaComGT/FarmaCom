@@ -45,6 +45,20 @@ describe('usePromociones', () => {
     expect(obtenerPromocionesProducto).toHaveBeenCalledWith(4, { signal: expect.any(AbortSignal) });
   });
 
+  it('envía filtros paginados al servidor', async () => {
+    const paginacion = { pagina: 2, limite: 10, total: 12, total_paginas: 2 };
+    obtenerPromocionesProducto.mockResolvedValue({ datos: [promocion], paginacion });
+
+    const { result } = renderHook(() => usePromociones(4, { pagina: 2, limite: 10, id_sucursal: '3' }));
+
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    expect(obtenerPromocionesProducto).toHaveBeenCalledWith(4, {
+      signal: expect.any(AbortSignal),
+      params: { pagina: 2, limite: 10, id_sucursal: '3' },
+    });
+    expect(result.current.paginacion).toEqual(paginacion);
+  });
+
   it('cancela la consulta anterior al cambiar de producto', async () => {
     const { rerender } = renderHook(({ id }) => usePromociones(id), { initialProps: { id: 4 } });
     const primeraSenal = obtenerPromocionesProducto.mock.calls[0][1].signal;

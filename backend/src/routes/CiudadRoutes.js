@@ -4,6 +4,7 @@ const CiudadController = require('../controllers/CiudadController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
+const { validarPaginacion, validarBusqueda } = require('../validators/paginacionValidators');
 
 const router = Router();
 
@@ -26,7 +27,8 @@ const validarActualizacion = [
     .isLength({ max: 100 }).withMessage('nombre_ciudad no puede superar los 100 caracteres'),
 ];
 
-router.get('/', verificarToken, CiudadController.obtenerTodas);
+router.get('/', verificarToken, validarPaginacion, validarBusqueda(), validateRequest,
+  CiudadController.obtenerTodas);
 router.get(
   '/:id',
   verificarToken,

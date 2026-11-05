@@ -9,6 +9,7 @@ const UsuarioDAO = require('../daos/UsuarioDAO');
 const { RUTA_UPLOADS_RESULTADOS, PUBLIC_API_BASE_URL } = require('../config/almacenamiento');
 const { obtenerIdUsuario, validarPertenenciaLaboratorio } = require('../utils/accesoLaboratorio');
 const AppError = require('../errors/AppError');
+const { completarPaginacion } = require('../validators/paginacionValidators');
 
 const MESES_VIGENCIA = 6;
 const TAMANO_QR_PUNTOS = 100;
@@ -95,12 +96,18 @@ const esVigente = (resultado) => (
   resultado.estado === 'vigente' && new Date(resultado.fecha_expiracion) > new Date()
 );
 
-const listarPorPaciente = async (id_paciente, usuario) => {
+const listarPorPaciente = async (id_paciente, usuario, filtros = {}) => {
   const expediente = await ResultadoLaboratorioDAO.obtenerExpedientePorPaciente(id_paciente);
   if (!expediente) lanzarError('El paciente no tiene expediente de laboratorio', 404);
   validarPertenenciaLaboratorio(usuario, expediente.id_laboratorio);
-  const resultados = await ResultadoLaboratorioDAO.listarPorPaciente(id_paciente);
-  return resultados.map((resultado) => ({ ...resultado, vigente: esVigente(resultado) }));
+  const resultados = await ResultadoLaboratorioDAO.listarPorPaciente(
+    id_paciente,
+    completarPaginacion(filtros),
+  );
+  const agregarVigencia = (resultado) => ({ ...resultado, vigente: esVigente(resultado) });
+  return Array.isArray(resultados)
+    ? resultados.map(agregarVigencia)
+    : { ...resultados, datos: resultados.datos.map(agregarVigencia) };
 };
 
 const anularResultado = async (id_resultado, motivo_anulacion, usuario) => ResultadoLaboratorioDAO.ejecutarEnTransaccion(async (client) => {
