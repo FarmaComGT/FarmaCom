@@ -25,6 +25,7 @@ router.get(['/resumen-diario', '/resumen-diario/pdf'], verificarToken, verificar
   }
   res.json(resumen);
 }));
+router.use('/resumen-diario', require('./ResumenDiarioGestionRoutes'));
 const rolesReportes = verificarRol('dueno', 'administrador');
 
 const validarFiltrosReporte = [
