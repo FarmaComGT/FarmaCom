@@ -55,9 +55,13 @@ const guardarReporte = async (idUsuario, datos) => {
 const listarReportes = async (idUsuario, pagina, limite) => {
   // El total y las filas corresponden a la misma vista de la base de datos.
   const { rows } = await pool.query(`WITH seleccion AS (
-    SELECT id_reporte, origen, fecha::text, corte, estado, creado_en
-    FROM resumen_diario_reporte WHERE id_usuario = $1
-    ORDER BY id_reporte DESC LIMIT $2 OFFSET $3
+    SELECT r.id_reporte, r.origen, r.fecha::text, r.corte, r.estado, r.creado_en,
+      (SELECT json_build_object('estado', e.estado, 'destinatario', e.destinatario,
+        'error', e.error, 'intentos', e.intentos, 'proximo_intento_en',
+        CASE WHEN e.estado = 'pendiente' THEN e.proximo_intento_en END)
+        FROM resumen_diario_envio e WHERE e.id_reporte = r.id_reporte AND e.canal = 'correo') AS envio
+    FROM resumen_diario_reporte r WHERE r.id_usuario = $1
+    ORDER BY r.id_reporte DESC LIMIT $2 OFFSET $3
   ) SELECT (SELECT COUNT(*)::integer FROM resumen_diario_reporte WHERE id_usuario = $1) AS total,
     COALESCE((SELECT json_agg(s ORDER BY s.id_reporte DESC) FROM seleccion s), '[]'::json) AS datos`,
   [idUsuario, limite, (pagina - 1) * limite]);

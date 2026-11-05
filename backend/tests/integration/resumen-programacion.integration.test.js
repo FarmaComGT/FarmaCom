@@ -11,6 +11,7 @@ jest.mock('../../src/database/db', () => ({
 }));
 const Programacion = require('../../src/daos/ResumenDiarioProgramacionDAO');
 const Envios = require('../../src/daos/ResumenDiarioEnvioDAO');
+const Gestion = require('../../src/daos/ResumenDiarioGestionDAO');
 const generar = async (config) => ({ fecha: config.fecha, corte: new Date().toISOString(), estado: 'provisional' });
 
 beforeAll(async () => {
@@ -98,4 +99,10 @@ test('un envío interrumpido pasa a incierto y no se reintenta', async () => {
   await Envios.marcarInterrumpidos();
   expect(await Envios.reclamar()).toBeNull();
   expect((await mockPool.query('SELECT estado FROM resumen_diario_envio')).rows[0].estado).toBe('incierto');
+});
+test('el historial muestra el estado del correo sin consultar cada envío por separado', async () => {
+  await Programacion.generarSiguiente(generar);
+  const historial = await Gestion.listarReportes(1, 1, 10);
+  expect(historial.datos[0]).toMatchObject({ origen: 'automatico', envio: { estado: 'pendiente', intentos: 0 } });
+  expect((await Gestion.listarReportes(2, 1, 10)).datos).toEqual([]);
 });

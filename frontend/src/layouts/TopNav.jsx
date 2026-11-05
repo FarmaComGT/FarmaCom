@@ -19,6 +19,7 @@ const CONTEXTOS = [
   ['/laboratorio/pacientes/', 'Laboratorio', 'Expediente', '/laboratorio/pacientes'],
   ['/laboratorio', 'Laboratorio', 'Pacientes', null],
   ['/reports/rentabilidad', 'Reportes', 'Rentabilidad', '/reports'],
+  ['/reports/resumen-diario', 'Reportes', 'Resumen diario', '/reports'],
   ['/reports', 'Reportes', 'Ventas', null],
   ['/patients', 'Clientes', null, null],
   ['/sucursales', 'Ubicaciones', 'Sucursales', null],
