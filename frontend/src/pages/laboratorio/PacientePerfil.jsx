@@ -1,6 +1,6 @@
 import { useToast } from '../../context/ToastContext.jsx';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, PlusCircle, User } from 'lucide-react';
 import { obtenerPaciente } from '../../api/pacientes';
 import { construirUrlPublica } from '../../api/resultadosLaboratorio';
@@ -15,6 +15,8 @@ import ResultadoAnularModal from '../../components/laboratorio/resultados/Result
 import ContentState from '../../components/ui/ContentState.jsx';
 import HistorialExpediente from '../../components/laboratorio/pacientes/HistorialExpediente.jsx';
 import ConfiguracionAlmacenamientoModal from '../../components/laboratorio/ConfiguracionAlmacenamientoModal.jsx';
+import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
+import Paginacion from '../../components/ui/Paginacion.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ejecutarTransicionDeVista } from '../../utils/viewTransition';
 import management from '../../styles/ManagementUI.module.css';
@@ -28,6 +30,8 @@ export default function PacientePerfil() {
   const toast = useToast();
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { pagina, limite } = leerPaginacionURL(searchParams);
   const { usuario } = useAuth();
   const [paciente, setPaciente] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -57,11 +61,16 @@ export default function PacientePerfil() {
 
   const {
     resultados,
+    paginacion,
     cargando: cargandoResultados,
     error: errorResultados,
     subir,
     anular: anularResultado,
-  } = useResultadosLaboratorio(id);
+  } = useResultadosLaboratorio(id, { pagina, limite });
+  const { crearDestino, onLimiteChange } = usePaginacionURL({
+    paginacion,
+    cargando: cargandoResultados,
+  });
   const categoriasSugeridas = useCategoriasSugeridas(paciente?.id_laboratorio);
   const puedeVerHistorial = ['dueno', 'administrador'].includes(usuario?.rol);
 
@@ -169,7 +178,7 @@ export default function PacientePerfil() {
       origen: idsLocales.has(resultado.id_resultado) ? 'servidor-local' : 'servidor',
     }));
 
-    const soloLocales = respaldosLocales
+    const soloLocales = (pagina === 1 ? respaldosLocales : [])
       .filter((respaldo) => !idsServidor.has(respaldo.id_resultado))
       .map((respaldo) => ({
         resultado: {
@@ -187,7 +196,7 @@ export default function PacientePerfil() {
     return [...delServidor, ...soloLocales].sort(
       (a, b) => new Date(b.resultado.fecha_subida) - new Date(a.resultado.fecha_subida),
     );
-  }, [resultados, respaldosLocales]);
+  }, [resultados, respaldosLocales, pagina]);
 
   if (cargando) {
     return <section className={management.page}><ContentState variant="loading" message="Cargando paciente…" /></section>;
@@ -270,6 +279,8 @@ export default function PacientePerfil() {
             ))}
           </div>
         )}
+        {!errorResultados && <Paginacion paginacion={paginacion} crearDestino={crearDestino}
+          onLimiteChange={onLimiteChange} cargando={cargandoResultados} sustantivo="resultados" />}
       </section>
 
       <ResultadoUploadModal

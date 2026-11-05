@@ -1,7 +1,9 @@
 import api from './axios';
 
-export const listarResultados = async (idPaciente) => {
-  const { data } = await api.get('/resultados-laboratorio', { params: { id_paciente: idPaciente } });
+export const listarResultados = async (idPaciente, filtros = {}) => {
+  const { data } = await api.get('/resultados-laboratorio', {
+    params: { id_paciente: idPaciente, ...filtros },
+  });
   return data;
 };
 

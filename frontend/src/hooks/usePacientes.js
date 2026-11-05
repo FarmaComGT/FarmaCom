@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   buscarPacientes,
   crearPaciente,
@@ -11,14 +11,18 @@ const PAGINACION_INICIAL = { pagina: 1, limite: 20, total: 0, total_paginas: 1 }
 const RESUMEN_INICIAL = { activos: 0, anulados: 0 };
 
 const usePacientes = ({ idLaboratorio, busqueda = '', estado, pagina = 1, limite = 20 }) => {
+  const clave = JSON.stringify([idLaboratorio, busqueda, estado, pagina, limite]);
+  const solicitud = useRef(0);
   const [pacientes, setPacientes] = useState([]);
   const [paginacion, setPaginacion] = useState(PAGINACION_INICIAL);
   const [resumenEstados, setResumenEstados] = useState(RESUMEN_INICIAL);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
+  const [resuelta, setResuelta] = useState(null);
 
   const obtener = useCallback(async () => {
     if (!idLaboratorio) return;
+    const numero = ++solicitud.current;
     setCargando(true);
     setError(null);
     try {
@@ -29,14 +33,20 @@ const usePacientes = ({ idLaboratorio, busqueda = '', estado, pagina = 1, limite
         pagina,
         limite,
       });
+      if (numero !== solicitud.current) return;
       setPacientes(datos);
       setPaginacion(paginacionRespuesta);
     } catch (err) {
+      if (numero !== solicitud.current) return;
+      setPacientes([]);
       setError(err.response?.data?.mensaje || 'Error al cargar pacientes');
     } finally {
-      setCargando(false);
+      if (numero === solicitud.current) {
+        setCargando(false);
+        setResuelta(clave);
+      }
     }
-  }, [idLaboratorio, busqueda, estado, pagina, limite]);
+  }, [idLaboratorio, busqueda, estado, pagina, limite, clave]);
 
   const obtenerResumenEstados = useCallback(async () => {
     if (!idLaboratorio) return;
@@ -95,6 +105,7 @@ const usePacientes = ({ idLaboratorio, busqueda = '', estado, pagina = 1, limite
 
   useEffect(() => {
     obtener();
+    return () => { solicitud.current += 1; };
   }, [obtener]);
 
   useEffect(() => {
@@ -103,10 +114,10 @@ const usePacientes = ({ idLaboratorio, busqueda = '', estado, pagina = 1, limite
 
   return {
     pacientes,
-    paginacion,
+    paginacion: resuelta === clave ? paginacion : null,
     resumenEstados,
-    cargando,
-    error,
+    cargando: Boolean(idLaboratorio) && (cargando || resuelta !== clave),
+    error: resuelta === clave ? error : null,
     crear,
     actualizar,
     anular,

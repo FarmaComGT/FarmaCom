@@ -29,6 +29,17 @@ describe('useResultadosLaboratorio', () => {
     expect(result.current.resultados).toEqual([{ id_resultado: 1 }]);
   });
 
+  it('envía la paginación y conserva los metadatos del servidor', async () => {
+    const paginacion = { pagina: 2, limite: 10, total: 11, total_paginas: 2 };
+    listarResultados.mockResolvedValue({ datos: [{ id_resultado: 11 }], paginacion });
+
+    const { result } = renderHook(() => useResultadosLaboratorio(5, { pagina: 2, limite: 10 }));
+
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    expect(listarResultados).toHaveBeenCalledWith(5, { pagina: 2, limite: 10 });
+    expect(result.current.paginacion).toEqual(paginacion);
+  });
+
   it('expone el error del backend si falla la carga', async () => {
     listarResultados.mockRejectedValue({ response: { data: { mensaje: 'Fallo' } } });
 
