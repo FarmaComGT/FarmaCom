@@ -79,3 +79,11 @@ test('si falla guardar la aceptación no se repite ni se reclasifica el envío',
   expect(DAO.finalizar).toHaveBeenCalledTimes(1);
   expect(Correo.enviar).toHaveBeenCalledTimes(1);
 });
+
+test.each([['ECONNECTION', undefined], ['EDNS', undefined], ['EMESSAGE', 451]])(
+  'solicita reintento solo para fallos temporales seguros: %s', async (code, responseCode) => {
+    Correo.enviar.mockRejectedValue(Object.assign(new Error('Falla temporal'), { code, responseCode }));
+    await Service.procesarUno();
+    expect(DAO.finalizar).toHaveBeenCalledWith('12', 'fallido', null, expect.any(String), true);
+  },
+);

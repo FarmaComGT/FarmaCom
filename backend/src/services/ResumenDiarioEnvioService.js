@@ -34,6 +34,10 @@ const construirMensaje = (envio, pdf) => {
       `Utilidad bruta: ${moneda(r.utilidad_bruta)}`, `Cajas pendientes de cierre: ${r.sesiones_abiertas}`,
       d.estado === 'provisional' ? 'Incluye ventas de cajas abiertas. Los resultados pueden cambiar.' : 'Sin cajas abiertas al corte.',
       'La utilidad bruta no descuenta salarios, alquiler ni otros gastos operativos.',
+      ...(d.programacion ? [`Envío previsto: ${new Intl.DateTimeFormat('es-GT', {
+        timeZone: 'America/Guatemala', dateStyle: 'medium', timeStyle: 'short',
+      }).format(new Date(d.programacion.previsto_para))}, hora de Guatemala.`,
+      'Si el sistema estuvo fuera de servicio, el corte corresponde al momento de generar este reporte.'] : []),
       'Se adjunta el reporte completo en PDF.'].join('\n'),
     adjuntos: [{ filename: `resumen-ventas-${d.fecha}.pdf`, content: pdf, contentType: 'application/pdf' }],
     messageId: `<resumen-diario-${envio.id_envio}@farmacom.local>`,
@@ -54,9 +58,12 @@ const procesarUno = async () => {
     const rechazoExplicito = ['EAUTH', 'EENVELOPE', 'ECONNECTION', 'EDNS'].includes(error.code)
       || (Number(error.responseCode) >= 400 && Number(error.responseCode) < 600);
     const incierto = enviado && !rechazoExplicito;
-    await DAO.finalizar(envio.id_envio, incierto ? 'incierto' : 'fallido', null,
-      incierto ? 'No se pudo confirmar la aceptación; verifica el buzón antes de reenviar.'
-        : 'No se pudo generar o enviar el reporte. Revisa la configuración del correo.');
+    const temporal = enviado && (['ECONNECTION', 'EDNS'].includes(error.code)
+      || (Number(error.responseCode) >= 400 && Number(error.responseCode) < 500));
+    const mensaje = incierto ? 'No se pudo confirmar la aceptación; verifica el buzón antes de reenviar.'
+      : 'No se pudo generar o enviar el reporte. Revisa la configuración del correo.';
+    if (temporal && !incierto) await DAO.finalizar(envio.id_envio, 'fallido', null, mensaje, true);
+    else await DAO.finalizar(envio.id_envio, incierto ? 'incierto' : 'fallido', null, mensaje);
     return true;
   }
   // Una falla al guardar esta confirmación no dispara un segundo envío.

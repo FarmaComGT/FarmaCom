@@ -5,7 +5,7 @@ const fechaGuatemala = (ahora) => new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Guatemala', year: 'numeric', month: '2-digit', day: '2-digit',
 }).format(ahora);
 
-const obtener = async ({ fecha, sucursales } = {}) => {
+const obtener = async ({ fecha, sucursales } = {}, conexion) => {
   const hoy = fechaGuatemala(new Date());
   const dia = fecha || hoy;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)
@@ -20,7 +20,8 @@ const obtener = async ({ fecha, sucursales } = {}) => {
     throw new AppError('Selecciona entre 1 y 100 sucursales válidas', 400);
   }
   const seleccion = sucursales ? [...new Set(sucursales)] : undefined;
-  const datos = await ResumenDiarioDAO.obtener({ fecha: dia, sucursales: seleccion });
+  const filtros = { fecha: dia, sucursales: seleccion };
+  const datos = await (conexion ? ResumenDiarioDAO.obtener(filtros, conexion) : ResumenDiarioDAO.obtener(filtros));
   if (seleccion && datos.sucursales.length !== seleccion.length) {
     throw new AppError('Una o más sucursales no existen', 404);
   }

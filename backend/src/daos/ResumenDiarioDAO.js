@@ -1,8 +1,8 @@
 const pool = require('../database/db');
 
 // Una sola sentencia conserva una vista consistente de ventas y cajas.
-const obtener = async ({ fecha, sucursales }) => {
-  const { rows } = await pool.query(`
+const obtener = async ({ fecha, sucursales }, conexion = pool) => {
+  const { rows } = await conexion.query(`
     WITH parametros AS (
       SELECT $1::date AS fecha, statement_timestamp() AS corte
     ), sucursales AS (
