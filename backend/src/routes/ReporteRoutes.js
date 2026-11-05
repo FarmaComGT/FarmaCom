@@ -6,6 +6,18 @@ const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
 
 const router = Router();
+const ResumenDiarioService = require('../services/ResumenDiarioService');
+const asyncHandler = require('../middlewares/asyncHandler');
+
+router.get('/resumen-diario', verificarToken, verificarRol('dueno'), [
+  query('fecha').optional().isISO8601({ strict: true }).matches(/^\d{4}-\d{2}-\d{2}$/),
+  query('sucursales').optional().isString().matches(/^\d+(,\d+)*$/),
+], validateRequest, asyncHandler(async (req, res) => {
+  const sucursales = req.query.sucursales?.split(',').map(Number);
+  const resumen = await ResumenDiarioService.obtener({ fecha: req.query.fecha, sucursales });
+  res.set('Cache-Control', 'no-store');
+  res.json(resumen);
+}));
 const rolesReportes = verificarRol('dueno', 'administrador');
 
 const validarFiltrosReporte = [
