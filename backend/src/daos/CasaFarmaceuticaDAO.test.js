@@ -4,6 +4,49 @@ const pool = require('../database/db');
 const CasaFarmaceuticaDAO = require('./CasaFarmaceuticaDAO');
 
 describe('CasaFarmaceuticaDAO', () => {
+  describe('obtenerTodos', () => {
+    it('pagina aplicando busqueda y estado', async () => {
+      pool.query
+        .mockResolvedValueOnce({ rows: [{ total: '1' }] })
+        .mockResolvedValueOnce({ rows: [{ id_casa: 1, nombre: 'Bayer', activo: true }] });
+
+      const resultado = await CasaFarmaceuticaDAO.obtenerTodos({
+        pagina: 1,
+        limite: 10,
+        busqueda: 'Bay_er%',
+        activo: true,
+      });
+
+      expect(resultado.paginacion).toEqual({ pagina: 1, limite: 10, total: 1, total_paginas: 1 });
+      expect(pool.query).toHaveBeenLastCalledWith(
+        expect.stringContaining('activo = $2'),
+        ['%Bay\\_er\\%%', true, 10, 0],
+      );
+    });
+
+    it('filtra por estado sin paginar', async () => {
+      pool.query.mockResolvedValue({ rows: [{ id_casa: 2, activo: false }] });
+
+      await expect(CasaFarmaceuticaDAO.obtenerTodos({ activo: false })).resolves.toEqual([
+        { id_casa: 2, activo: false },
+      ]);
+      expect(pool.query).toHaveBeenCalledWith(
+        expect.stringContaining('WHERE activo = $1'),
+        [false],
+      );
+    });
+
+    it('busca sin paginar', async () => {
+      pool.query.mockResolvedValue({ rows: [{ id_casa: 1, nombre: 'Bayer' }] });
+
+      await expect(CasaFarmaceuticaDAO.obtenerTodos({ busqueda: 'Bayer' })).resolves.toHaveLength(1);
+      expect(pool.query).toHaveBeenCalledWith(
+        expect.stringContaining('WHERE nombre ILIKE $1'),
+        ['%Bayer%'],
+      );
+    });
+  });
+
   it('confirma la transacción cuando la operación termina correctamente', async () => {
     const client = { query: jest.fn().mockResolvedValue({}), release: jest.fn() };
     pool.connect.mockResolvedValue(client);

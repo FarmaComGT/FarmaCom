@@ -4,6 +4,49 @@ const pool = require('../database/db');
 const ProveedorDAO = require('./ProveedorDAO');
 
 describe('ProveedorDAO', () => {
+  describe('obtenerTodos', () => {
+    it('pagina aplicando busqueda y estado', async () => {
+      pool.query
+        .mockResolvedValueOnce({ rows: [{ total: '1' }] })
+        .mockResolvedValueOnce({ rows: [{ id_proveedor: 1, nombre: 'Distribuidora', activo: true }] });
+
+      const resultado = await ProveedorDAO.obtenerTodos({
+        pagina: 2,
+        limite: 5,
+        busqueda: 'Dist_%',
+        activo: true,
+      });
+
+      expect(resultado.paginacion).toEqual({ pagina: 1, limite: 5, total: 1, total_paginas: 1 });
+      expect(pool.query).toHaveBeenLastCalledWith(
+        expect.stringContaining('activo = $2'),
+        ['%Dist\\_\\%%', true, 5, 0],
+      );
+    });
+
+    it('filtra por estado sin paginar', async () => {
+      pool.query.mockResolvedValue({ rows: [{ id_proveedor: 2, activo: false }] });
+
+      await expect(ProveedorDAO.obtenerTodos({ activo: false })).resolves.toEqual([
+        { id_proveedor: 2, activo: false },
+      ]);
+      expect(pool.query).toHaveBeenCalledWith(
+        expect.stringContaining('WHERE activo = $1'),
+        [false],
+      );
+    });
+
+    it('busca sin paginar', async () => {
+      pool.query.mockResolvedValue({ rows: [{ id_proveedor: 1, nombre: 'Distribuidora' }] });
+
+      await expect(ProveedorDAO.obtenerTodos({ busqueda: 'Distribuidora' })).resolves.toHaveLength(1);
+      expect(pool.query).toHaveBeenCalledWith(
+        expect.stringContaining('WHERE nombre ILIKE $1'),
+        ['%Distribuidora%'],
+      );
+    });
+  });
+
   it('revierte la transacción cuando la operación falla', async () => {
     const client = { query: jest.fn().mockResolvedValue({}), release: jest.fn() };
     pool.connect.mockResolvedValue(client);
