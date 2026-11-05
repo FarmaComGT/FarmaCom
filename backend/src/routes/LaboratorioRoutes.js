@@ -4,6 +4,7 @@ const LaboratorioController = require('../controllers/LaboratorioController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
+const { validarPaginacion, validarBusqueda } = require('../validators/paginacionValidators');
 
 const router = Router();
 const rolesLaboratorio = verificarRol('dueno', 'administrador', 'laboratorista');
@@ -26,7 +27,8 @@ const validarId = param('id')
   .toInt();
 
 // GET /api/laboratorios
-router.get('/', verificarToken, rolesLaboratorio, LaboratorioController.listar);
+router.get('/', verificarToken, rolesLaboratorio, validarPaginacion, validarBusqueda(),
+  validateRequest, LaboratorioController.listar);
 router.post('/', verificarToken, rolesAdministracion, validarDatos, validateRequest, LaboratorioController.crear);
 router.put('/:id', verificarToken, rolesAdministracion, validarId, validarDatos, validateRequest, LaboratorioController.actualizar);
 

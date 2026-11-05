@@ -10,7 +10,9 @@ const crear = asyncHandler(async(req, res) => {
 });
 
 const obtenerTodos = asyncHandler(async(req, res) => {
-    const usuarios = await usuarioService.obtenerTodos(req.usuario);
+    const usuarios = req.query
+        ? await usuarioService.obtenerTodos(req.usuario, req.query)
+        : await usuarioService.obtenerTodos(req.usuario);
     return res.status(200).json(usuarios);
 });
 
@@ -26,10 +28,9 @@ const obtenerPorId = asyncHandler(async(req, res) => {
 });
 
 const obtenerPorSucursal = asyncHandler(async(req, res) => {
-    const usuarios = await usuarioService.obtenerPorSucursal(
-        Number(req.params.id_sucursal),
-        req.usuario,
-    );
+    const usuarios = req.query
+        ? await usuarioService.obtenerPorSucursal(Number(req.params.id_sucursal), req.usuario, req.query)
+        : await usuarioService.obtenerPorSucursal(Number(req.params.id_sucursal), req.usuario);
     return res.status(200).json(usuarios);
 });
 

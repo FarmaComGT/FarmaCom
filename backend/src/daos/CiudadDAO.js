@@ -1,4 +1,5 @@
 const pool = require('../database/db');
+const { ejecutarConsultaPaginada } = require('../utils/paginacion');
 
 class CiudadDAO {
   async crear({ nombre_ciudad }) {
@@ -11,9 +12,23 @@ class CiudadDAO {
     return rows[0];
   }
 
-  async obtenerTodas() {
-    const query = 'SELECT * FROM ciudad ORDER BY nombre_ciudad';
-    const { rows } = await pool.query(query);
+  async obtenerTodas({ pagina, limite, busqueda } = {}) {
+    if (pagina === undefined && !busqueda) {
+      const { rows } = await pool.query('SELECT * FROM ciudad ORDER BY nombre_ciudad');
+      return rows;
+    }
+    const valores = [];
+    let where = '';
+    if (busqueda) {
+      valores.push(`%${busqueda.replace(/[\\%_]/g, '\\$&')}%`);
+      where = ` WHERE nombre_ciudad ILIKE $1 ESCAPE '\\'`;
+    }
+    const base = `SELECT * FROM ciudad${where}`;
+    if (pagina !== undefined) {
+      return ejecutarConsultaPaginada({ cliente: pool, consultaBase: base, valores,
+        orden: 'ORDER BY nombre_ciudad ASC, id_ciudad ASC', pagina, limite });
+    }
+    const { rows } = await pool.query(`${base} ORDER BY nombre_ciudad ASC, id_ciudad ASC`, valores);
     return rows;
   }
 

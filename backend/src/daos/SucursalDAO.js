@@ -1,4 +1,5 @@
 const pool = require('../database/db');
+const { ejecutarConsultaPaginada } = require('../utils/paginacion');
 
 class SucursalDAO {
 
@@ -16,9 +17,25 @@ class SucursalDAO {
 
   // OBTENER 
 
-  async obtenerTodos() {
-    const query = `SELECT * FROM sucursal ORDER BY id_sucursal`;
-    const { rows } = await pool.query(query);
+  async obtenerTodos({ pagina, limite, busqueda } = {}) {
+    if (pagina === undefined && !busqueda) {
+      const { rows } = await pool.query('SELECT * FROM sucursal ORDER BY id_sucursal');
+      return rows;
+    }
+    const valores = [];
+    let where = '';
+    if (busqueda) {
+      valores.push(`%${busqueda.replace(/[\\%_]/g, '\\$&')}%`);
+      where = ` WHERE (s.nombre_sucursal ILIKE $1 ESCAPE '\\'
+        OR s.direccion ILIKE $1 ESCAPE '\\' OR c.nombre_ciudad ILIKE $1 ESCAPE '\\')`;
+    }
+    const base = `SELECT s.*, c.nombre_ciudad FROM sucursal s
+      JOIN ciudad c ON c.id_ciudad = s.id_ciudad${where}`;
+    if (pagina !== undefined) {
+      return ejecutarConsultaPaginada({ cliente: pool, consultaBase: base, valores,
+        orden: 'ORDER BY s.nombre_sucursal ASC, s.id_sucursal ASC', pagina, limite });
+    }
+    const { rows } = await pool.query(`${base} ORDER BY s.nombre_sucursal ASC, s.id_sucursal ASC`, valores);
     return rows;
   }
 

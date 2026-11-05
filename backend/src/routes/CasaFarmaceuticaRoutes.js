@@ -1,11 +1,12 @@
 const { Router } = require('express');
-const { body, param } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const CasaFarmaceuticaController = require('../controllers/CasaFarmaceuticaController');
 const CasaTelefonoController = require('../controllers/CasaTelefonoController');
 const CasaEmailController = require('../controllers/CasaEmailController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
+const { validarPaginacion, validarBusqueda } = require('../validators/paginacionValidators');
 
 const router = Router();
 
@@ -77,7 +78,9 @@ const validarEmailActualizacion = [
 // Rutas: CasaFarmaceutica
 
 // GET    /api/casas
-router.get('/', verificarToken, CasaFarmaceuticaController.obtenerTodas);
+router.get('/', verificarToken, validarPaginacion, validarBusqueda(),
+  query('activo').optional().isString().bail().isIn(['true', 'false']).toBoolean(),
+  validateRequest, CasaFarmaceuticaController.obtenerTodas);
 
 // GET    /api/casas/:id
 router.get(

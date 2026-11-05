@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const UsuarioDAO = require('../daos/UsuarioDAO');
 const LaboratorioDAO = require('../daos/LaboratorioDAO');
 const AppError = require('../errors/AppError');
+const { completarPaginacion } = require('../validators/paginacionValidators');
 
 const SALT_ROUNDS = 10;
 const ROLES_GESTIONABLES_POR_ADMIN = new Set(['dependiente', 'laboratorista']);
@@ -118,12 +119,17 @@ const crearUsuario = async({ id_sucursal, id_laboratorio, nombre_usuario, correo
     return sinHash(usuario);
 };
 
-const obtenerTodos = async(actor) => {
+const sanitizarListado = (resultado) => (Array.isArray(resultado)
+    ? resultado.map(sinHash)
+    : { ...resultado, datos: resultado.datos.map(sinHash) });
+
+const obtenerTodos = async(actor, filtros = {}) => {
     if (!actor) throw new AppError('No autenticado', 401);
+    const consulta = completarPaginacion(filtros);
     const usuarios = actor.rol === 'administrador'
-        ? await UsuarioDAO.obtenerPorSucursal(actor.id_sucursal)
-        : await UsuarioDAO.obtenerTodos();
-    return usuarios.map(sinHash);
+        ? await UsuarioDAO.obtenerPorSucursal(actor.id_sucursal, consulta)
+        : await UsuarioDAO.obtenerTodos(consulta);
+    return sanitizarListado(usuarios);
 };
 
 const obtenerPorId = async(id_usuario, actor) => {
@@ -135,7 +141,7 @@ const obtenerPorId = async(id_usuario, actor) => {
     return sinHash(usuario);
 };
 
-const obtenerPorSucursal = async(id_sucursal, actor) => {
+const obtenerPorSucursal = async(id_sucursal, actor, filtros = {}) => {
     if (
         actor?.rol !== 'dueno'
         && !(
@@ -145,8 +151,11 @@ const obtenerPorSucursal = async(id_sucursal, actor) => {
     ) {
         throw new AppError('No puedes consultar cuentas de otra sucursal', 403);
     }
-    const usuarios = await UsuarioDAO.obtenerPorSucursal(id_sucursal);
-    return usuarios.map(sinHash);
+    const usuarios = await UsuarioDAO.obtenerPorSucursal(
+        id_sucursal,
+        completarPaginacion(filtros),
+    );
+    return sanitizarListado(usuarios);
 };
 
 const actualizarUsuario = async(id_usuario, campos, actor) => (

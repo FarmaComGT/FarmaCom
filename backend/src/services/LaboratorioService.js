@@ -1,7 +1,8 @@
 const LaboratorioDAO = require('../daos/LaboratorioDAO');
 const AppError = require('../errors/AppError');
+const { completarPaginacion } = require('../validators/paginacionValidators');
 
-const listarActivos = async () => LaboratorioDAO.listarActivos();
+const listarActivos = async (filtros = {}) => LaboratorioDAO.listarActivos(completarPaginacion(filtros));
 
 const crear = async (datos) => {
   const existente = await LaboratorioDAO.obtenerPorNombre(datos.nombre_laboratorio);

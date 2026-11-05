@@ -1,9 +1,10 @@
 const { Router } = require('express');
-const { body, param } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const UsuarioController = require('../controllers/UsuarioController');
 const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
+const { validarPaginacion, validarBusqueda } = require('../validators/paginacionValidators');
 
 const router = Router();
 
@@ -76,6 +77,11 @@ const validarCambioEstado = [
 router.get('/',
     verificarToken,
     verificarRol('dueno', 'administrador'),
+    validarPaginacion,
+    validarBusqueda(200),
+    query('estado_usuario').optional().isString().bail()
+        .isIn(['activo', 'inactivo']).withMessage('Estado no válido'),
+    validateRequest,
     UsuarioController.obtenerTodos,
 );
 
@@ -84,6 +90,10 @@ router.get('/sucursal/:id_sucursal',
     verificarToken,
     verificarRol('dueno', 'administrador'),
     validarParamIdSucursal,
+    validarPaginacion,
+    validarBusqueda(200),
+    query('estado_usuario').optional().isString().bail()
+        .isIn(['activo', 'inactivo']).withMessage('Estado no válido'),
     validateRequest,
     UsuarioController.obtenerPorSucursal,
 );

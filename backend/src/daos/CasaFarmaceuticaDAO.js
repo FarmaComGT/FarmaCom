@@ -1,4 +1,5 @@
 const pool = require('../database/db');
+const { ejecutarConsultaPaginada } = require('../utils/paginacion');
 
 class CasaFarmaceuticaDAO {
 
@@ -31,9 +32,28 @@ class CasaFarmaceuticaDAO {
 
   // ─── OBTENER ────
 
-  async obtenerTodos() {
-    const query = `SELECT * FROM casa_farmaceutica ORDER BY id_casa`;
-    const { rows } = await pool.query(query);
+  async obtenerTodos({ pagina, limite, busqueda, activo } = {}) {
+    if (pagina === undefined && !busqueda && activo === undefined) {
+      const { rows } = await pool.query('SELECT * FROM casa_farmaceutica ORDER BY id_casa');
+      return rows;
+    }
+    const condiciones = [];
+    const valores = [];
+    if (busqueda) {
+      valores.push(`%${busqueda.replace(/[\\%_]/g, '\\$&')}%`);
+      condiciones.push(`nombre ILIKE $${valores.length} ESCAPE '\\'`);
+    }
+    if (activo !== undefined) {
+      valores.push(activo);
+      condiciones.push(`activo = $${valores.length}`);
+    }
+    const where = condiciones.length ? ` WHERE ${condiciones.join(' AND ')}` : '';
+    const base = `SELECT * FROM casa_farmaceutica${where}`;
+    if (pagina !== undefined) {
+      return ejecutarConsultaPaginada({ cliente: pool, consultaBase: base, valores,
+        orden: 'ORDER BY nombre ASC, id_casa ASC', pagina, limite });
+    }
+    const { rows } = await pool.query(`${base} ORDER BY nombre ASC, id_casa ASC`, valores);
     return rows;
   }
 

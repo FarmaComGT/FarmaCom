@@ -1,5 +1,6 @@
 const CategoriaDAO = require('../daos/CategoriaDAO');
 const AppError = require('../errors/AppError');
+const { completarPaginacion } = require('../validators/paginacionValidators');
 
 const crearCategoria = async({ nombre }) => {
     const existente = await CategoriaDAO.obtenerPorNombre(nombre);
@@ -10,8 +11,8 @@ const crearCategoria = async({ nombre }) => {
     return await CategoriaDAO.crear({ nombre });
 };
 
-const obtenerTodas = async() => {
-    return await CategoriaDAO.obtenerTodos();
+const obtenerTodas = async(filtros = {}) => {
+    return await CategoriaDAO.obtenerTodos(completarPaginacion(filtros));
 };
 
 const obtenerPorId = async(id_categoria) => {
