@@ -1,4 +1,5 @@
 const pool = require('../database/db');
+const { ejecutarConsultaPaginada } = require('../utils/paginacion');
 
 class ResultadoLaboratorioDAO {
   async ejecutarEnTransaccion(operacion) {
@@ -85,14 +86,18 @@ class ResultadoLaboratorioDAO {
     return rows[0] || null;
   }
 
-  async listarPorPaciente(id_paciente, client = pool) {
-    const { rows } = await client.query(
-      `SELECT r.*
+  async listarPorPaciente(id_paciente, filtros = {}, client = pool) {
+    const base = `SELECT r.*
        FROM resultado_laboratorio r
        JOIN expediente_laboratorio e ON e.id_expediente = r.id_expediente
-       WHERE e.id_paciente = $1
-       ORDER BY r.fecha_subida DESC`,
-      [id_paciente],
+       WHERE e.id_paciente = $1`;
+    if (filtros.pagina !== undefined) {
+      return ejecutarConsultaPaginada({ cliente: client, consultaBase: base,
+        valores: [id_paciente], orden: 'ORDER BY r.fecha_subida DESC, r.id_resultado DESC',
+        pagina: filtros.pagina, limite: filtros.limite });
+    }
+    const { rows } = await client.query(
+      `${base} ORDER BY r.fecha_subida DESC, r.id_resultado DESC`, [id_paciente],
     );
     return rows;
   }

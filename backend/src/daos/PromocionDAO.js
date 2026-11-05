@@ -1,4 +1,5 @@
 const pool = require('../database/db');
+const { ejecutarConsultaPaginada } = require('../utils/paginacion');
 
 class PromocionDAO {
 
@@ -29,17 +30,29 @@ class PromocionDAO {
     return rows[0];
   }
 
-  async obtenerPorProducto(id_producto) {
-    const query = `
+  async obtenerPorProducto(id_producto, { pagina, limite, id_sucursal } = {}) {
+    const valores = [id_producto];
+    let filtroSucursal = '';
+    if (id_sucursal) {
+      valores.push(id_sucursal);
+      filtroSucursal = ` AND pr.id_sucursal = $${valores.length}`;
+    }
+    const base = `
       SELECT
         pr.*,
         s.nombre_sucursal
       FROM promocion pr
       JOIN sucursal s ON s.id_sucursal = pr.id_sucursal
       WHERE pr.id_producto = $1
-      ORDER BY pr.fecha_inicio DESC
+      ${filtroSucursal}
     `;
-    const { rows } = await pool.query(query, [id_producto]);
+    if (pagina !== undefined) {
+      return ejecutarConsultaPaginada({ cliente: pool, consultaBase: base, valores,
+        orden: 'ORDER BY pr.fecha_inicio DESC, pr.id_promocion DESC', pagina, limite });
+    }
+    const { rows } = await pool.query(
+      `${base} ORDER BY pr.fecha_inicio DESC, pr.id_promocion DESC`, valores,
+    );
     return rows;
   }
 

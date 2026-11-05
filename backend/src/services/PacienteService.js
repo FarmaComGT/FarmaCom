@@ -98,7 +98,7 @@ const buscarPacientes = async ({ id_laboratorio, busqueda, estado, pagina, limit
   const paginaAplicada = pagina ?? 1;
   const limiteAplicado = limite ?? 20;
 
-  const { datos, total } = await PacienteDAO.buscar({
+  const { datos, total, pagina: paginaEfectiva = paginaAplicada } = await PacienteDAO.buscar({
     id_laboratorio,
     busqueda: busqueda?.trim() || null,
     estado: estado || null,
@@ -109,7 +109,7 @@ const buscarPacientes = async ({ id_laboratorio, busqueda, estado, pagina, limit
   return {
     datos: datos.map(conEdad),
     paginacion: {
-      pagina: paginaAplicada,
+      pagina: paginaEfectiva,
       limite: limiteAplicado,
       total,
       total_paginas: Math.max(1, Math.ceil(total / limiteAplicado)),
@@ -193,7 +193,7 @@ const eliminarPaciente = async (id_paciente, usuario) => {
     if (!paciente) throw noEncontrado();
     validarPertenenciaLaboratorio(usuario, paciente.id_laboratorio);
 
-    const resultados = await ResultadoLaboratorioDAO.listarPorPaciente(id_paciente, client);
+    const resultados = await ResultadoLaboratorioDAO.listarPorPaciente(id_paciente, {}, client);
     await PacienteDAO.eliminar(id_paciente, client);
 
     await BitacoraLaboratorioService.registrarCambio({
