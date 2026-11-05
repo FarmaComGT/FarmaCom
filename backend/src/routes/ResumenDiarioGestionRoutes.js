@@ -5,6 +5,7 @@ const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
 const asyncHandler = require('../middlewares/asyncHandler');
 const Service = require('../services/ResumenDiarioGestionService');
+const EnvioService = require('../services/ResumenDiarioEnvioService');
 const router = Router();
 router.use(verificarToken, verificarRol('dueno'), (_req, res, next) => {
   res.set('Cache-Control', 'no-store'); next();
@@ -40,6 +41,18 @@ router.get('/historial', [
   query('limite').default(20).isInt({ min: 1, max: 50 }).toInt(),
 ], validateRequest, asyncHandler(async (req, res) => {
   res.json(await Service.listarReportes(req.usuario.id_usuario, req.query.pagina, req.query.limite));
+}));
+router.post('/historial/:id/enviar', [
+  param('id').isInt({ min: 1, max: Number.MAX_SAFE_INTEGER }),
+  checkExact([], { locations: ['body'] }),
+], validateRequest, asyncHandler(async (req, res) => {
+  const envio = await EnvioService.solicitar(req.usuario.id_usuario, req.params.id);
+  res.status(['pendiente', 'procesando'].includes(envio.estado) ? 202 : 200).json(envio);
+}));
+router.get('/historial/:id/envios', [
+  param('id').isInt({ min: 1, max: Number.MAX_SAFE_INTEGER }),
+], validateRequest, asyncHandler(async (req, res) => {
+  res.json(await EnvioService.listar(req.usuario.id_usuario, req.params.id));
 }));
 router.get(['/historial/:id', '/historial/:id/pdf'], [
   param('id').isInt({ min: 1, max: Number.MAX_SAFE_INTEGER }),

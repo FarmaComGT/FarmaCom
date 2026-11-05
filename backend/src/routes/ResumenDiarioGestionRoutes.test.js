@@ -4,9 +4,11 @@ jest.mock('../middlewares/verificarToken', () => (req, res, next) => {
   req.usuario = mockUsuario; next();
 });
 jest.mock('../services/ResumenDiarioGestionService');
+jest.mock('../services/ResumenDiarioEnvioService');
 const express = require('express');
 const request = require('supertest');
 const Service = require('../services/ResumenDiarioGestionService');
+const EnvioService = require('../services/ResumenDiarioEnvioService');
 const app = express();
 app.use(express.json());
 app.use('/api/reportes/resumen-diario', require('./ResumenDiarioGestionRoutes'));
@@ -74,4 +76,19 @@ test('descarga el PDF generado a partir de una copia histórica', async () => {
   expect(Service.obtenerReporte).toHaveBeenCalledWith(7, '12', true);
   expect(res.headers['content-type']).toContain('application/pdf');
   expect(res.body).toEqual(pdf);
+});
+
+test('registra el envío con el dueño de la sesión y responde 202', async () => {
+  EnvioService.solicitar.mockResolvedValue({ estado: 'pendiente', id_envio: '4' });
+  const res = await request(app).post(`${base}/historial/12/enviar`).send({});
+  expect(res.status).toBe(202);
+  expect(EnvioService.solicitar).toHaveBeenCalledWith(7, '12');
+});
+test('no permite enviar a un destinatario recibido en el cuerpo', async () => {
+  expect((await request(app).post(`${base}/historial/12/enviar`).send({ destinatario: 'otro@example.com' })).status).toBe(400);
+  expect(EnvioService.solicitar).not.toHaveBeenCalled();
+});
+test('un administrador no puede enviar reportes', async () => {
+  mockUsuario.rol = 'administrador';
+  expect((await request(app).post(`${base}/historial/12/enviar`).send({})).status).toBe(403);
 });
