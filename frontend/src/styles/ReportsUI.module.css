@@ -34,7 +34,7 @@
 }
 
 .nav a:hover { background: #eaf1ed; color: var(--report-accent); }
-.nav a[aria-current="page"] { view-transition-name: report-tab; border-color: #d5e1da; background: #fff; color: var(--report-ink); font-weight: 600; box-shadow: 0 1px 3px #17372b12; }
+.nav a[aria-current="page"] { view-transition-name: report-tab; border-color: #d5e1da; background: #fff; color: var(--report-ink); font-weight: 600; }
 
 .content { display: grid; gap: 24px; }
 

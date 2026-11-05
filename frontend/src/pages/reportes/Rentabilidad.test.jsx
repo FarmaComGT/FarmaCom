@@ -5,6 +5,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Rentabilidad from './Rentabilidad';
 import ReportesLayout from '../../layouts/ReportesLayout';
+vi.mock('../../context/AuthContext.jsx', () => ({ useAuth: () => ({ usuario: { rol: 'dueno' } }) }));
 import Reportes from './Reportes';
 import * as api from '../../api/reportes';
 

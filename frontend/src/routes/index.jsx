@@ -31,6 +31,7 @@ import Support from '../pages/Support.jsx';
 
 const Reportes = lazy(() => import('../pages/reportes/Reportes.jsx'));
 const Rentabilidad = lazy(() => import('../pages/reportes/Rentabilidad.jsx'));
+const ResumenDiario = lazy(() => import('../pages/reportes/ResumenDiario.jsx'));
 
 const ROLES_FARMACIA = ['dueno', 'administrador', 'dependiente'];
 
@@ -78,6 +79,9 @@ export default function AppRoutes() {
             <Route path="/reports" element={<ReportesLayout />}>
               <Route index element={<Reportes />} />
               <Route path="rentabilidad" element={<Rentabilidad />} />
+              <Route element={<RoleRoute allowedRoles={['dueno']} />}>
+                <Route path="resumen-diario" element={<ResumenDiario />} />
+              </Route>
             </Route>
           </Route>
 

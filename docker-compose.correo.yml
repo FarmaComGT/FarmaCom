@@ -1,0 +1,20 @@
+# Uso local: docker compose -f docker-compose.yml -f docker-compose.correo.yml up -d --build
+services:
+  mailpit:
+    image: axllent/mailpit:v1.27.4
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+    environment:
+      MP_MAX_MESSAGES: "100"
+
+  backend:
+    environment:
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURE: "false"
+      SMTP_REQUIRE_TLS: "false"
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      CORREO_REMITENTE: "FarmaCom <reportes@farmacom.test>"

@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import Reportes from './Reportes';
+vi.mock('../../context/AuthContext.jsx', () => ({ useAuth: () => ({ usuario: { rol: 'dueno' } }) }));
 import ReportesLayout from '../../layouts/ReportesLayout';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
