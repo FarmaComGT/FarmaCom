@@ -10,6 +10,8 @@ import UsuarioAlert from '../components/usuarios/UsuarioAlert.jsx';
 import useUsuarios from '../hooks/useUsuarios';
 import useSucursales from '../hooks/useSucursales';
 import useLaboratorios from '../hooks/useLaboratorios';
+import usePaginacionURL, { leerPaginacionURL } from '../hooks/usePaginacionURL';
+import Paginacion from '../components/ui/Paginacion.jsx';
 import { ejecutarTransicionDeVista } from '../utils/viewTransition';
 import styles from '../styles/ManagementUI.module.css';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -33,16 +35,19 @@ const estadoInicialFormulario = {
 export default function Usuarios() {
   const toast = useToast();
   const { usuario: usuarioSesion } = useAuth();
-  const { usuarios, cargando, error, crear, actualizar, cambiarEstado } = useUsuarios();
   const { sucursales, cargando: cargandoSucursales } = useSucursales();
   const { laboratorios, cargando: cargandoLaboratorios } = useLaboratorios();
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
   const estadoParam = searchParams.get('estado');
   const estadoSeleccionado = ['activo', 'inactivo'].includes(estadoParam)
     ? estadoParam
     : 'todos';
+  const { pagina, limite } = leerPaginacionURL(searchParams);
+  const estado_usuario = estadoSeleccionado === 'todos' ? undefined : estadoSeleccionado;
+  const { usuarios, paginacion, cargando, error, crear, actualizar, cambiarEstado } = useUsuarios({ pagina, limite, busqueda, estado_usuario });
+  const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const [mostrarModal, setMostrarModal] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [cambiandoEstadoId, setCambiandoEstadoId] = useState(null);
@@ -74,22 +79,12 @@ export default function Usuarios() {
   }, []);
 
   const actualizarBusqueda = (valor) => {
-    setSearchParams((actuales) => {
-      const siguientes = new URLSearchParams(actuales);
-      if (valor) siguientes.set('q', valor);
-      else siguientes.delete('q');
-      return siguientes;
-    }, { replace: true });
+    actualizarVista({ q: valor }, true);
   };
 
   const actualizarEstado = (estado) => {
     ejecutarTransicionDeVista(() => {
-      setSearchParams((actuales) => {
-        const siguientes = new URLSearchParams(actuales);
-        if (estado === 'todos') siguientes.delete('estado');
-        else siguientes.set('estado', estado);
-        return siguientes;
-      }, { replace: true });
+      actualizarVista({ estado: estado === 'todos' ? '' : estado }, true);
     });
   };
 
@@ -101,27 +96,13 @@ export default function Usuarios() {
   }, [sucursales]);
 
   const usuariosFiltrados = useMemo(() => {
-    const termino = busqueda.trim().toLowerCase();
-    return usuarios.filter((u) => {
-      if (estadoSeleccionado !== 'todos' && u.estado_usuario !== estadoSeleccionado) {
-        return false;
-      }
-      if (!termino) return true;
-      const nombre = u.nombre_usuario?.toLowerCase() || '';
-      const correo = u.correo_usuario?.toLowerCase() || '';
-      return nombre.includes(termino) || correo.includes(termino);
+    const termino = busqueda.trim().toLocaleLowerCase('es');
+    return usuarios.filter((item) => {
+      if (estadoSeleccionado !== 'todos' && item.estado_usuario !== estadoSeleccionado) return false;
+      return !termino || [item.nombre_usuario, item.correo_usuario]
+        .some((valor) => valor?.toLocaleLowerCase('es').includes(termino));
     });
   }, [busqueda, estadoSeleccionado, usuarios]);
-
-  const totalActivos = useMemo(
-    () => usuarios.filter((u) => u.estado_usuario === 'activo').length,
-    [usuarios],
-  );
-
-  const totalInactivos = useMemo(
-    () => usuarios.filter((u) => u.estado_usuario === 'inactivo').length,
-    [usuarios],
-  );
 
   const abrirModalCrear = () => {
     setModoEdicion(false);
@@ -265,9 +246,9 @@ export default function Usuarios() {
       </header>
 
       <UsuarioStatsGrid
-        totalUsuarios={usuarios.length}
-        totalActivos={totalActivos}
-        totalInactivos={totalInactivos}
+        totalUsuarios={estadoSeleccionado === 'todos' ? paginacion?.total : null}
+        totalActivos={estadoSeleccionado === 'activo' ? paginacion?.total : null}
+        totalInactivos={estadoSeleccionado === 'inactivo' ? paginacion?.total : null}
         estadoSeleccionado={estadoSeleccionado}
         onSeleccionarEstado={actualizarEstado}
       />
@@ -279,7 +260,7 @@ export default function Usuarios() {
       />
 
       <p className={styles.resultCount} aria-live="polite">
-        <strong>{usuariosFiltrados.length}</strong> de {usuarios.length} usuarios
+        <strong>{paginacion?.total ?? 0}</strong> usuarios encontrados
       </p>
 
       <UsuarioAlert mensaje={error} />
@@ -294,6 +275,9 @@ export default function Usuarios() {
         puedeEditar={puedeEditar}
         puedeCambiarEstado={esDueno}
       />
+
+      {!error && <Paginacion paginacion={paginacion} crearDestino={crearDestino}
+        onLimiteChange={onLimiteChange} cargando={cargando} sustantivo="usuarios" />}
 
       <UsuarioFormModal
         isOpen={mostrarModal}

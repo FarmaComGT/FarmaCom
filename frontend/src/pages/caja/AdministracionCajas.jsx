@@ -10,22 +10,20 @@ import CajaTable from '../../components/caja/CajaTable';
 import { useAuth } from '../../context/AuthContext';
 import useAdministracionCajas from '../../hooks/useAdministracionCajas';
 import useSucursales from '../../hooks/useSucursales';
+import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
+import Paginacion from '../../components/ui/Paginacion.jsx';
 
 const formularioInicial = { id_sucursal: '', nombre: '' };
 
 export default function AdministracionCajas() {
   const toast = useToast();
   const { usuario } = useAuth();
-  const { cajas, cargando, error, crear, actualizar, recargar } = useAdministracionCajas();
   const { sucursales, cargando: cargandoSucursales, error: errorSucursales } = useSucursales();
-  const [parametros, setParametros] = useSearchParams();
+  const [parametros] = useSearchParams();
   const busqueda = parametros.get('q') || '';
-  const pagina = Math.max(1, Math.floor(Number(parametros.get('pagina')) || 1));
-  const actualizarVista = (cambios) => setParametros((actuales) => {
-    const siguientes = new URLSearchParams(actuales);
-    Object.entries(cambios).forEach(([campo, valor]) => valor ? siguientes.set(campo, valor) : siguientes.delete(campo));
-    return siguientes;
-  }, {replace: true});
+  const { pagina, limite } = leerPaginacionURL(parametros);
+  const { cajas, paginacion, cargando, error, crear, actualizar, recargar } = useAdministracionCajas({ pagina, limite, busqueda });
+  const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const [formulario, setFormulario] = useState(formularioInicial);
   const [cajaEditando, setCajaEditando] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -40,9 +38,8 @@ export default function AdministracionCajas() {
 
   const cajasFiltradas = useMemo(() => {
     const termino = busqueda.trim().toLocaleLowerCase('es');
-    if (!termino) return cajas;
-    return cajas.filter((caja) => [caja.nombre, caja.nombre_sucursal]
-      .some((valor) => valor?.toLocaleLowerCase('es').includes(termino)));
+    return termino ? cajas.filter((caja) => [caja.nombre, caja.nombre_sucursal]
+      .some((valor) => valor?.toLocaleLowerCase('es').includes(termino))) : cajas;
   }, [busqueda, cajas]);
 
   const abrirCreacion = () => {
@@ -104,11 +101,13 @@ export default function AdministracionCajas() {
       </header>
       <CajaSubNav rol={usuario?.rol} />
       <div className={ui.toolbar}>
-        <label className={ui.search}><Search size={16} aria-hidden="true" /><input type="search" name="buscar_caja" autoComplete="off" aria-label="Buscar cajas" placeholder="Buscar por caja o sucursal…" value={busqueda} onChange={(evento) => actualizarVista({q: evento.target.value, pagina: ''})} /></label>
-        {!cargando && !error && <p className={ui.count} aria-live="polite">{cajasFiltradas.length} de {cajas.length} cajas</p>}
+        <label className={ui.search}><Search size={16} aria-hidden="true" /><input type="search" name="buscar_caja" autoComplete="off" aria-label="Buscar cajas" placeholder="Buscar por caja o sucursal…" value={busqueda} onChange={(evento) => actualizarVista({q: evento.target.value}, true)} /></label>
+        {!cargando && !error && <p className={ui.count} aria-live="polite">{paginacion?.total ?? 0} cajas encontradas</p>}
       </div>
       {(error || errorSucursales) && <div role="alert" className={`${ui.notice} ${ui.error}`}>{error || errorSucursales}{error && <button type="button" className={ui.button} onClick={recargar}>Reintentar</button>}</div>}
-      {!error && <CajaTable cargando={cargando} cajas={cajasFiltradas} onEditar={abrirEdicion} onCambiarEstado={cambiarEstado} cambiandoEstadoId={cambiandoEstadoId} onLimpiar={busqueda ? () => actualizarVista({q: '', pagina: ''}) : undefined} pagina={pagina} onPaginaChange={(valor) => actualizarVista({pagina: valor})} />}
+      {!error && <CajaTable cargando={cargando} cajas={cajasFiltradas} onEditar={abrirEdicion} onCambiarEstado={cambiarEstado} cambiandoEstadoId={cambiandoEstadoId} onLimpiar={busqueda ? () => actualizarVista({q: ''}, true) : undefined} />}
+      {!error && <Paginacion paginacion={paginacion} crearDestino={crearDestino}
+        onLimiteChange={onLimiteChange} cargando={cargando} sustantivo="cajas" />}
       <CajaFormModal abierta={mostrarModal} editando={Boolean(cajaEditando)} formulario={formulario} sucursales={sucursales} cargandoSucursales={cargandoSucursales} guardando={guardando} error={errorFormulario} onClose={cerrarModal} onChange={({ target: { name, value } }) => { setFormulario((actual) => ({ ...actual, [name]: value })); setErrorFormulario(null); }} onSubmit={manejarGuardar} />
     </div>
   );

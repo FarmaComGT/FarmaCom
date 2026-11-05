@@ -6,27 +6,19 @@ import CajaTable from './CajaTable';
 const cajas = Array.from({ length: 45 }, (_, i) => ({ id_caja: i + 1, nombre: `Caja ${i + 1}`, nombre_sucursal: 'Central', activa: i % 2 === 0 }));
 
 describe('CajaTable', () => {
-  it('limita las filas y permite recorrer las páginas sin perder acciones', () => {
-    const cambiarPagina = vi.fn();
+  it('renderiza la página recibida del servidor sin perder acciones', () => {
     const editar = vi.fn();
     const cambiarEstado = vi.fn();
-    const props = { cajas, onPaginaChange: cambiarPagina, onEditar: editar, onCambiarEstado: cambiarEstado };
-    const { rerender } = render(<CajaTable {...props} />);
+    const pagina = cajas.slice(20, 40);
+    const { rerender } = render(<CajaTable cajas={pagina} onEditar={editar} onCambiarEstado={cambiarEstado} />);
     expect(screen.getAllByRole('row')).toHaveLength(21);
-    expect(screen.getByRole('button', { name: 'Anterior' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
-    expect(cambiarPagina).toHaveBeenCalledWith(2);
-    rerender(<CajaTable {...props} pagina={2} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Anterior' }));
-    expect(cambiarPagina).toHaveBeenLastCalledWith(1);
+    expect(screen.queryByRole('button', { name: 'Anterior' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Editar Caja 21' }));
-    expect(editar).toHaveBeenCalledWith(cajas[20]);
+    expect(editar).toHaveBeenCalledWith(pagina[0]);
     fireEvent.click(screen.getByRole('button', { name: 'Activar Caja 22' }));
-    expect(cambiarEstado).toHaveBeenCalledWith(cajas[21]);
-    rerender(<CajaTable {...props} pagina={99} cambiandoEstadoId={45} />);
-    expect(screen.getByText('Página 3 de 3')).toBeInTheDocument();
+    expect(cambiarEstado).toHaveBeenCalledWith(pagina[1]);
+    rerender(<CajaTable cajas={cajas.slice(40)} onEditar={editar} onCambiarEstado={cambiarEstado} cambiandoEstadoId={45} />);
     expect(screen.getAllByRole('row')).toHaveLength(6);
-    expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Desactivar Caja 45' })).toBeDisabled();
   });
 

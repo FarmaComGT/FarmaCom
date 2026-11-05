@@ -9,6 +9,8 @@ import ProveedorContactosModal from '../../components/inventario/proveedores/Pro
 import ProveedorDeleteModal from '../../components/inventario/proveedores/ProveedorDeleteModal.jsx';
 import ProveedorEstadoModal from '../../components/inventario/proveedores/ProveedorEstadoModal.jsx';
 import useProveedores from '../../hooks/useProveedores';
+import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
+import Paginacion from '../../components/ui/Paginacion.jsx';
 import { ejecutarTransicionDeVista } from '../../utils/viewTransition';
 import styles from '../../styles/ManagementUI.module.css';
 
@@ -16,11 +18,14 @@ const formularioInicial = { nombre: '' };
 
 export default function Proveedores() {
   const toast = useToast();
-  const { proveedores, cargando, error, refrescar, crear, actualizar, cambiarEstado, eliminar } = useProveedores();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
   const estadoParam = searchParams.get('estado');
   const estadoSeleccionado = ['activo', 'inactivo'].includes(estadoParam) ? estadoParam : 'todos';
+  const { pagina, limite } = leerPaginacionURL(searchParams);
+  const activo = estadoSeleccionado === 'todos' ? undefined : estadoSeleccionado === 'activo';
+  const { proveedores, paginacion, cargando, error, refrescar, crear, actualizar, cambiarEstado, eliminar } = useProveedores({ pagina, limite, busqueda, activo });
+  const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
@@ -39,12 +44,7 @@ export default function Proveedores() {
   }, []);
 
   const actualizarParametro = (nombre, valor, valorInicial = '') => {
-    setSearchParams((actuales) => {
-      const siguientes = new URLSearchParams(actuales);
-      if (!valor || valor === valorInicial) siguientes.delete(nombre);
-      else siguientes.set(nombre, valor);
-      return siguientes;
-    }, { replace: true });
+    actualizarVista({ [nombre]: !valor || valor === valorInicial ? '' : valor }, true);
   };
 
   const actualizarEstado = (estado) => {
@@ -59,8 +59,6 @@ export default function Proveedores() {
       return !termino || proveedor.nombre.toLocaleLowerCase('es').includes(termino);
     });
   }, [busqueda, estadoSeleccionado, proveedores]);
-  const totalActivos = useMemo(() => proveedores.filter((proveedor) => proveedor.activo).length, [proveedores]);
-  const totalInactivos = proveedores.length - totalActivos;
 
   const abrirModalCrear = () => {
     setModoEdicion(false);
@@ -162,22 +160,25 @@ export default function Proveedores() {
 
       <div className={styles.quickFilters} aria-label="Filtrar proveedores por estado">
         {[
-          ['todos', 'Todos', proveedores.length],
-          ['activo', 'Activos', totalActivos],
-          ['inactivo', 'Inactivos', totalInactivos],
-        ].map(([valor, etiqueta, total]) => (
+          ['todos', 'Todos'],
+          ['activo', 'Activos'],
+          ['inactivo', 'Inactivos'],
+        ].map(([valor, etiqueta]) => (
           <button key={valor} type="button" className={styles.quickFilter} aria-pressed={estadoSeleccionado === valor} onClick={() => actualizarEstado(valor)}>
-            <strong>{total}</strong><span>{etiqueta}</span>
+            <span>{etiqueta}</span>
           </button>
         ))}
       </div>
 
       <ProveedorActionBar busqueda={busqueda} onBusquedaChange={(evento) => actualizarParametro('q', evento.target.value)} onCrear={abrirModalCrear} />
-      <p className={styles.resultCount} aria-live="polite"><strong>{proveedoresFiltrados.length}</strong> de {proveedores.length} proveedores</p>
+      <p className={styles.resultCount} aria-live="polite"><strong>{paginacion?.total ?? 0}</strong> proveedores encontrados</p>
 
       {error && proveedores.length > 0 && <p role="alert" className={styles.alert}>{error}</p>}
 
       <ProveedorTable cargando={cargando} error={error} proveedores={proveedoresFiltrados} hayFiltros={Boolean(busqueda.trim()) || estadoSeleccionado !== 'todos'} onRetry={refrescar} onEditar={abrirModalEditar} onCambiarEstado={solicitarCambiarEstado} onContactos={setProveedorContactos} onEliminar={solicitarEliminar} procesandoId={procesandoId} />
+
+      {!error && <Paginacion paginacion={paginacion} crearDestino={crearDestino}
+        onLimiteChange={onLimiteChange} cargando={cargando} sustantivo="proveedores" />}
 
       <ProveedorFormModal isOpen={mostrarModal} modoEdicion={modoEdicion} formulario={formulario} hayCambios={hayCambios} guardando={guardando} errorFormulario={errorFormulario} onClose={cerrarModal} onSubmit={manejarGuardar} onChange={manejarCambio} />
       <ProveedorContactosModal isOpen={Boolean(proveedorContactos)} proveedor={proveedorContactos} onClose={() => setProveedorContactos(null)} />

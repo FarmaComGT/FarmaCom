@@ -9,6 +9,8 @@ import CasaDeleteModal from '../../components/inventario/casas/CasaDeleteModal.j
 import CasaEstadoModal from '../../components/inventario/casas/CasaEstadoModal.jsx';
 import CasaContactosModal from '../../components/inventario/casas/CasaContactosModal.jsx';
 import useCasas from '../../hooks/useCasas';
+import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
+import Paginacion from '../../components/ui/Paginacion.jsx';
 import { ejecutarTransicionDeVista } from '../../utils/viewTransition';
 import styles from '../../styles/ManagementUI.module.css';
 
@@ -16,11 +18,14 @@ const formularioInicial = { nombre: '' };
 
 export default function Casas() {
   const toast = useToast();
-  const { casas, cargando, error, refrescar, crear, actualizar, cambiarEstado, eliminar } = useCasas();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
   const estadoParam = searchParams.get('estado');
   const estadoSeleccionado = ['activa', 'inactiva'].includes(estadoParam) ? estadoParam : 'todas';
+  const { pagina, limite } = leerPaginacionURL(searchParams);
+  const activo = estadoSeleccionado === 'todas' ? undefined : estadoSeleccionado === 'activa';
+  const { casas, paginacion, cargando, error, refrescar, crear, actualizar, cambiarEstado, eliminar } = useCasas({ pagina, limite, busqueda, activo });
+  const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
@@ -39,12 +44,7 @@ export default function Casas() {
   }, []);
 
   const actualizarParametro = (nombre, valor, valorInicial = '') => {
-    setSearchParams((actuales) => {
-      const siguientes = new URLSearchParams(actuales);
-      if (!valor || valor === valorInicial) siguientes.delete(nombre);
-      else siguientes.set(nombre, valor);
-      return siguientes;
-    }, { replace: true });
+    actualizarVista({ [nombre]: !valor || valor === valorInicial ? '' : valor }, true);
   };
 
   const actualizarEstado = (estado) => {
@@ -59,8 +59,6 @@ export default function Casas() {
       return !termino || casa.nombre.toLocaleLowerCase('es').includes(termino);
     });
   }, [busqueda, casas, estadoSeleccionado]);
-  const totalActivas = useMemo(() => casas.filter((casa) => casa.activo).length, [casas]);
-  const totalInactivas = casas.length - totalActivas;
 
   const abrirModalCrear = () => {
     setModoEdicion(false);
@@ -162,18 +160,18 @@ export default function Casas() {
 
       <div className={styles.quickFilters} aria-label="Filtrar casas por estado">
         {[
-          ['todas', 'Todas', casas.length],
-          ['activa', 'Activas', totalActivas],
-          ['inactiva', 'Inactivas', totalInactivas],
-        ].map(([valor, etiqueta, total]) => (
+          ['todas', 'Todas'],
+          ['activa', 'Activas'],
+          ['inactiva', 'Inactivas'],
+        ].map(([valor, etiqueta]) => (
           <button key={valor} type="button" className={styles.quickFilter} aria-pressed={estadoSeleccionado === valor} onClick={() => actualizarEstado(valor)}>
-            <strong>{total}</strong><span>{etiqueta}</span>
+            <span>{etiqueta}</span>
           </button>
         ))}
       </div>
 
       <CasaActionBar busqueda={busqueda} onBusquedaChange={(evento) => actualizarParametro('q', evento.target.value)} onCrear={abrirModalCrear} />
-      <p className={styles.resultCount} aria-live="polite"><strong>{casasFiltradas.length}</strong> de {casas.length} casas farmacéuticas</p>
+      <p className={styles.resultCount} aria-live="polite"><strong>{paginacion?.total ?? 0}</strong> casas farmacéuticas encontradas</p>
 
       {error && casas.length > 0 && <p role="alert" className={styles.alert}>{error}</p>}
 
@@ -189,6 +187,9 @@ export default function Casas() {
         onEliminar={solicitarEliminar}
         procesandoId={procesandoId}
       />
+
+      {!error && <Paginacion paginacion={paginacion} crearDestino={crearDestino}
+        onLimiteChange={onLimiteChange} cargando={cargando} sustantivo="casas" />}
 
       <CasaContactosModal isOpen={Boolean(casaContactos)} casa={casaContactos} onClose={() => setCasaContactos(null)} />
       <CasaFormModal isOpen={mostrarModal} modoEdicion={modoEdicion} formulario={formulario} hayCambios={hayCambios} guardando={guardando} errorFormulario={errorFormulario} onClose={cerrarModal} onSubmit={manejarGuardar} onChange={manejarCambio} />

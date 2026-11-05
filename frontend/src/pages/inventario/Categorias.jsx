@@ -7,15 +7,19 @@ import CategoriaTable from '../../components/inventario/categorias/CategoriaTabl
 import CategoriaFormModal from '../../components/inventario/categorias/CategoriaFormModal.jsx';
 import CategoriaDeleteModal from '../../components/inventario/categorias/CategoriaDeleteModal.jsx';
 import useCategorias from '../../hooks/useCategorias';
+import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
+import Paginacion from '../../components/ui/Paginacion.jsx';
 import styles from '../../styles/ManagementUI.module.css';
 
 const formularioInicial = { nombre: '' };
 
 export default function Categorias() {
   const toast = useToast();
-  const { categorias, cargando, error, refrescar, crear, actualizar, eliminar } = useCategorias();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
+  const { pagina, limite } = leerPaginacionURL(searchParams);
+  const { categorias, paginacion, cargando, error, refrescar, crear, actualizar, eliminar } = useCategorias({ pagina, limite, busqueda });
+  const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
@@ -32,18 +36,14 @@ export default function Categorias() {
   }, []);
 
   const actualizarBusqueda = (valor) => {
-    setSearchParams((actuales) => {
-      const siguientes = new URLSearchParams(actuales);
-      if (valor) siguientes.set('q', valor);
-      else siguientes.delete('q');
-      return siguientes;
-    }, { replace: true });
+    actualizarVista({ q: valor }, true);
   };
 
   const categoriasFiltradas = useMemo(() => {
     const termino = busqueda.trim().toLocaleLowerCase('es');
-    if (!termino) return categorias;
-    return categorias.filter((categoria) => categoria.nombre.toLocaleLowerCase('es').includes(termino));
+    return termino ? categorias.filter((categoria) => (
+      categoria.nombre.toLocaleLowerCase('es').includes(termino)
+    )) : categorias;
   }, [busqueda, categorias]);
 
   const abrirModalCrear = () => {
@@ -129,7 +129,7 @@ export default function Categorias() {
       <CategoriaActionBar busqueda={busqueda} onBusquedaChange={(evento) => actualizarBusqueda(evento.target.value)} onCrear={abrirModalCrear} />
 
       <p className={styles.resultCount} aria-live="polite">
-        <strong>{categoriasFiltradas.length}</strong> de {categorias.length} categorías
+        <strong>{paginacion?.total ?? 0}</strong> categorías encontradas
       </p>
 
       {error && categorias.length > 0 && <p role="alert" className={styles.alert}>{error}</p>}
@@ -144,6 +144,9 @@ export default function Categorias() {
         onEliminar={solicitarEliminar}
         eliminandoId={eliminandoId}
       />
+
+      {!error && <Paginacion paginacion={paginacion} crearDestino={crearDestino}
+        onLimiteChange={onLimiteChange} cargando={cargando} sustantivo="categorías" />}
 
       <CategoriaFormModal
         isOpen={mostrarModal}
