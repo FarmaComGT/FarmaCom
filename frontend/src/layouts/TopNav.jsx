@@ -2,40 +2,15 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import NavigationIcon from '../components/navigation/NavigationIcon.jsx';
 import { useAuth } from '../context/AuthContext';
+import { contextoNavegacion } from '../components/navigation/navigation.js';
 import { destinoExistencias } from '../utils/navegacionInventario.js';
 
-const CONTEXTOS = [
-  ['/inventario/productos/', 'Inventario', 'Lotes del producto', '/inventario'],
-  ['/inventario/categorias', 'Inventario', 'Categorías', '/inventario'],
-  ['/inventario/proveedores', 'Inventario', 'Proveedores', '/inventario'],
-  ['/inventario/casas', 'Inventario', 'Casas farmacéuticas', '/inventario'],
-  ['/inventario/promociones', 'Inventario', 'Promociones', '/inventario'],
-  ['/inventario', 'Inventario', 'Existencias', null],
-  ['/ventas/historial/productos', 'Ventas', 'Productos vendidos', '/ventas/historial'],
-  ['/ventas/historial', 'Ventas', 'Historial', null],
-  ['/caja/historial', 'Caja', 'Historial', '/caja'],
-  ['/caja/administracion', 'Caja', 'Administración', '/caja'],
-  ['/caja', 'Caja', 'Operación', null],
-  ['/pos', 'Ventas', 'Punto de venta', null],
-  ['/laboratorio/pacientes/', 'Laboratorio', 'Expediente', '/laboratorio/pacientes'],
-  ['/laboratorio', 'Laboratorio', 'Pacientes', null],
-  ['/reports/rentabilidad', 'Reportes', 'Rentabilidad', '/reports'],
-  ['/reports/resumen-diario', 'Reportes', 'Resumen diario', '/reports'],
-  ['/reports', 'Reportes', 'Ventas', null],
-  ['/patients', 'Clientes', null, null],
-  ['/sucursales', 'Ubicaciones', 'Sucursales', null],
-  ['/laboratorios', 'Ubicaciones', 'Laboratorios', null],
-  ['/ciudades', 'Ubicaciones', 'Ciudades', null],
-  ['/usuarios', 'Administración', 'Usuarios', null],
-  ['/support', 'Ayuda', null, null],
-  ['/dashboard', 'Inicio', null, null],
-];
 const roles = { dueno: 'Propietario', administrador: 'Administrador', dependiente: 'Dependiente', laboratorista: 'Laboratorista' };
 
 export default function TopNav({ sidebarAbierta, superpuesta = false, onAbrirSidebar }) {
   const { usuario } = useAuth();
   const { pathname, search, state } = useLocation();
-  const [, area, pagina, destino] = CONTEXTOS.find(([ruta]) => pathname.startsWith(ruta)) || ['', 'FarmaCom', null, null];
+  const { area, pagina, destino } = contextoNavegacion(pathname);
   const esDetalleLotes = /^\/inventario\/productos\/[^/]+\/lotes$/.test(pathname);
   const regreso = esDetalleLotes ? destinoExistencias(new URLSearchParams(search)) : destino;
   const nombre = usuario?.nombre_usuario || 'Usuario FarmaCom';

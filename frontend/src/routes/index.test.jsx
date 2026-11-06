@@ -281,7 +281,7 @@ describe('ruta de administración de laboratorios', () => {
     renderizar();
 
     expect(screen.getByRole('heading', { name: 'Administración de laboratorios' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Laboratorios' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sedes de laboratorio' })).toBeInTheDocument();
   });
 
   it('bloquea la pantalla y oculta el enlace al laboratorista', () => {

@@ -1,10 +1,11 @@
 import { ToastProvider } from '../context/ToastContext.jsx';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render as renderBase, screen } from '@testing-library/react';
+import { render as renderBase, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
+import TopNav from './TopNav.jsx';
 
 const mocks = vi.hoisted(() => ({ rol: 'administrador', logout: vi.fn(), dispatch: vi.fn() }));
 vi.mock('../context/AuthContext', () => ({ AUTH_ACTIONS: { LOGOUT: 'LOGOUT' }, useAuth: () => ({ usuario: { rol: mocks.rol }, dispatch: mocks.dispatch }) }));
@@ -15,6 +16,34 @@ function renderizar(ruta = '/inventario') { return render(<MemoryRouter initialE
 
 describe('Navegación por tareas de FarmaCom', () => {
   beforeEach(() => { vi.clearAllMocks(); mocks.rol = 'administrador'; });
+  it.each(['dueno', 'administrador', 'dependiente', 'laboratorista'])('mantiene orden y accesos por rol: %s', (rol) => {
+    mocks.rol = rol;
+    renderizar();
+    const nav = screen.getByRole('navigation', { name: 'Módulos de FarmaCom' });
+    const elementos = [...nav.querySelectorAll('a, button')].map(e => e.textContent);
+    if (rol !== 'laboratorista') {
+      expect(elementos.slice(0, 4)).toEqual(['Inicio', 'Punto de venta', 'Caja', 'Inventario']);
+    }
+    expect(Boolean(screen.queryByRole('link', { name: 'Envío de resumen' }))).toBe(rol === 'dueno');
+    expect(Boolean(screen.queryByText('Seguimiento'))).toBe(['dueno', 'administrador'].includes(rol));
+  });
+  it.each([
+    ['/laboratorios', 'Sedes de laboratorio', 'Ubicaciones'],
+    ['/reports/resumen-diario', 'Envío de resumen', 'Administración'],
+    ['/ventas/historial', 'Historial de ventas', 'Historial de ventas'],
+  ])('comparte nombres y ubicación en %s', (ruta, nombre, area) => {
+    mocks.rol = 'dueno';
+    render(<MemoryRouter initialEntries={[ruta]}>
+      <Sidebar abierta onCerrar={vi.fn()} onNavegar={vi.fn()} />
+      <TopNav sidebarAbierta onAbrirSidebar={vi.fn()} />
+    </MemoryRouter>);
+    const breadcrumb = screen.getByRole('navigation', { name: 'Ubicación actual' });
+    expect(breadcrumb).toHaveTextContent(area);
+    expect(breadcrumb).toHaveTextContent(nombre);
+    const nav = screen.getByRole('navigation', { name: 'Módulos de FarmaCom' });
+    expect(within(nav).getByRole('link', { name: nombre })).toHaveAttribute('aria-current', 'page');
+    expect(nav.querySelectorAll('a[aria-current]')).toHaveLength(1);
+  });
   it('identifica Existencias como sección actual dentro de los lotes de un producto', () => {
     renderizar('/inventario/productos/7/lotes');
     expect(screen.getByRole('link', { name: 'Existencias' })).toHaveAttribute('aria-current', 'location');
