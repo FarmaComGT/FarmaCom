@@ -15,6 +15,11 @@ function renderizar(ruta = '/inventario') { return render(<MemoryRouter initialE
 
 describe('Navegación por tareas de FarmaCom', () => {
   beforeEach(() => { vi.clearAllMocks(); mocks.rol = 'administrador'; });
+  it('identifica Existencias como sección actual dentro de los lotes de un producto', () => {
+    renderizar('/inventario/productos/7/lotes');
+    expect(screen.getByRole('link', { name: 'Existencias' })).toHaveAttribute('aria-current', 'location');
+    expect(screen.getByRole('link', { name: 'Categorías' })).not.toHaveAttribute('aria-current');
+  });
   it.each([
     ['/inventario', 'Existencias'],
     ['/inventario/categorias', 'Categorías'],

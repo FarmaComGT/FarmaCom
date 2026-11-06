@@ -138,6 +138,47 @@ describe('MainLayout y Sidebar', () => {
     expect(screen.getByRole('button', { name: 'Mostrar menú lateral' })).toHaveFocus();
   });
 
+  it.each([390, 768, 1024])('mantiene orientación y foco en el menú superpuesto a %s px', async (ancho) => {
+    establecerAncho(ancho);
+    const user = userEvent.setup();
+    renderizarLayout('/inventario/casas');
+    const ubicacion = screen.getByRole('navigation', { name: 'Ubicación actual' });
+    expect(ubicacion).toHaveTextContent('Casas farmacéuticas');
+    await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }));
+    expect(screen.getByRole('dialog', { name: 'Navegación principal' })).toHaveAttribute('aria-modal', 'true');
+    expect(screen.getByRole('link', { name: 'Casas farmacéuticas' })).toHaveFocus();
+    expect(document.getElementById('contenido-principal').inert).toBe(true);
+
+    const cerrar = screen.getAllByRole('button', { name: 'Cerrar menú lateral' })
+      .find(boton => boton.classList.contains('shell-close-sidebar'));
+    cerrar.focus();
+    fireEvent.keyDown(cerrar, { key: 'Tab', shiftKey: true });
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toHaveFocus();
+    fireEvent.keyDown(document.activeElement, { key: 'Tab' });
+    expect(cerrar).toHaveFocus();
+
+    await user.click(screen.getByRole('button', { name: 'Inventario' }));
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('button', { name: 'Mostrar menú lateral' })).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }));
+    expect(screen.getByRole('link', { name: 'Categorías' })).toBeVisible();
+    await user.click(screen.getByRole('link', { name: 'Categorías' }));
+    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
+    expect(document.getElementById('contenido-principal').inert).toBe(false);
+    expect(ubicacion).toHaveTextContent('Categorías');
+    expect(screen.getByRole('button', { name: 'Mostrar menú lateral' })).toHaveFocus();
+  });
+
+  it('conserva abierto el menú con Ctrl+clic en un enlace', async () => {
+    establecerAncho(390);
+    const user = userEvent.setup();
+    renderizarLayout('/inventario/casas');
+    await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Categorías' }), { ctrlKey: true });
+    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'false');
+    expect(screen.getByText('Contenido de casas farmacéuticas')).toBeInTheDocument();
+  });
+
   it('cierra el panel móvil al tocar el fondo o navegar', async () => {
     establecerAncho(390);
     const user = userEvent.setup();

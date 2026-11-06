@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import NavigationIcon from '../components/navigation/NavigationIcon.jsx';
 import { useAuth } from '../context/AuthContext';
+import { destinoExistencias } from '../utils/navegacionInventario.js';
 
 const CONTEXTOS = [
   ['/inventario/productos/', 'Inventario', 'Lotes del producto', '/inventario'],
@@ -31,10 +32,12 @@ const CONTEXTOS = [
 ];
 const roles = { dueno: 'Propietario', administrador: 'Administrador', dependiente: 'Dependiente', laboratorista: 'Laboratorista' };
 
-export default function TopNav({ sidebarAbierta, onAbrirSidebar }) {
+export default function TopNav({ sidebarAbierta, superpuesta = false, onAbrirSidebar }) {
   const { usuario } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, search, state } = useLocation();
   const [, area, pagina, destino] = CONTEXTOS.find(([ruta]) => pathname.startsWith(ruta)) || ['', 'FarmaCom', null, null];
+  const esDetalleLotes = /^\/inventario\/productos\/[^/]+\/lotes$/.test(pathname);
+  const regreso = esDetalleLotes ? destinoExistencias(new URLSearchParams(search)) : destino;
   const nombre = usuario?.nombre_usuario || 'Usuario FarmaCom';
   const iniciales = nombre.split(' ').filter(Boolean).slice(0,2).map(parte => parte[0]).join('').toLocaleUpperCase('es-GT');
   const fecha = new Date();
@@ -44,10 +47,10 @@ export default function TopNav({ sidebarAbierta, onAbrirSidebar }) {
 
   return <header className="shell-topbar">
     <div className="shell-topbar-location">
-      {!sidebarAbierta && <button type="button" className="shell-icon-button" onClick={onAbrirSidebar} aria-controls="sidebar-principal" aria-expanded="false" aria-label="Mostrar menú lateral"><NavigationIcon name="expand" /></button>}
+      {!sidebarAbierta && <button type="button" className="shell-icon-button" onClick={onAbrirSidebar} aria-controls="sidebar-principal" aria-expanded="false" aria-label="Mostrar menú lateral"><NavigationIcon name={superpuesta ? 'menu' : 'expand'} /></button>}
       <nav className="shell-breadcrumbs" aria-label="Ubicación actual">
-        <ol><li>{destino ? <Link to={destino}>{area}</Link> : <span>{area}</span>}</li>
-          {pagina && <li aria-current="page"><span className="shell-breadcrumb-separator" aria-hidden="true">/</span><span>{pagina}</span></li>}
+        <ol><li>{regreso ? <Link to={regreso} state={esDetalleLotes ? { entradaInventario: state?.entradaInventario } : undefined}>{area}</Link> : <span>{area}</span>}</li>
+          {pagina && <li aria-current="page"><span className="shell-breadcrumb-separator" aria-hidden="true">/</span><span title={pagina}>{pagina}</span></li>}
         </ol>
       </nav>
     </div>

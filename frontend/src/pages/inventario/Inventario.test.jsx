@@ -316,6 +316,15 @@ describe('Inventario unificado', () => {
     await usuario.click(screen.getByRole('link', { name: 'Ver lotes de Paracetamol' }));
     expect(screen.getByText('/inventario/productos/1/lotes')).toBeInTheDocument();
   });
+
+  it('ignora otra sucursal en la URL para dependientes y conserva su sucursal en el enlace a lotes', () => {
+    mocks.useAuth.mockReturnValue({ sucursalActivaId: 2, usuario: { rol: 'dependiente', id_sucursal: 1 } });
+    render(<MemoryRouter initialEntries={['/inventario?sucursal=2']}><Inventario /></MemoryRouter>);
+    expect(mocks.sucursalConsultada).toHaveBeenLastCalledWith(1);
+    const enlace = new URL(screen.getByRole('link', { name: 'Ver lotes de Paracetamol' }).href);
+    expect(enlace.searchParams.get('sucursal')).toBe('1');
+    expect(enlace.searchParams.get('volver')).toBe('/inventario?sucursal=1');
+  });
 });
 
 const render = (ui, options) => renderBase(ui, { wrapper: ToastProvider, ...options });

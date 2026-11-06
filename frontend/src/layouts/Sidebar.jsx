@@ -35,10 +35,12 @@ const administracion = [
 function NavigationLink({ icon, label, path, nested = false }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const esDetalleDeExistencias = path === '/inventario' && /^\/inventario\/productos\/[^/]+\/lotes$/.test(pathname);
 
   return <NavLink
     to={path}
-    end={path === '/inventario'}
+    end={path === '/inventario' && !esDetalleDeExistencias}
+    aria-current={esDetalleDeExistencias ? 'location' : 'page'}
     className={`shell-nav-link ${nested ? 'shell-nav-nested' : ''}`}
     onClick={(event) => navegarConTransicionDeVista({
       event,
@@ -61,7 +63,7 @@ function NavigationGroup({ label, icon, open, onToggle, children, id, active }) 
   </div>;
 }
 
-export default function Sidebar({ abierta, onCerrar, onNavegar }) {
+export default function Sidebar({ abierta, superpuesta = false, onCerrar, onNavegar }) {
   const toast = useToast();
   const avisoSesion = useRef(null);
   const navigate = useNavigate();
@@ -72,7 +74,7 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
   const [inventarioAbierto, setInventarioAbierto] = useState(inventarioActivo);
   const [ubicacionesAbiertas, setUbicacionesAbiertas] = useState(ubicacionesActivas);
   const [cerrando, setCerrando] = useState(false);
-  useEffect(() => { if (inventarioActivo) setInventarioAbierto(true); }, [inventarioActivo, pathname]);
+  useEffect(() => { if (inventarioActivo && abierta) setInventarioAbierto(true); }, [inventarioActivo, pathname, abierta]);
   useEffect(() => { if (ubicacionesActivas) setUbicacionesAbiertas(true); }, [ubicacionesActivas]);
   const visible = (item) => !item.roles || item.roles.includes(usuario?.rol);
   const handleLogout = async () => {
@@ -93,7 +95,10 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
   };
 
   return <aside id="sidebar-principal" className={`shell-sidebar ${abierta ? 'is-open' : ''}`} aria-label="Navegación principal" aria-hidden={!abierta}
-    onClick={(event) => { if (event.target.closest('a')) onNavegar(); }}>
+    role={superpuesta && abierta ? 'dialog' : undefined} aria-modal={superpuesta && abierta ? true : undefined}
+    onClick={(event) => {
+      if (event.target.closest('a') && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onNavegar();
+    }}>
     <div className="shell-sidebar-heading">
       <div className="shell-wordmark" translate="no"><div><strong>FarmaCom</strong><span>Farmacia San Gabriel</span></div></div>
       <button type="button" className="shell-icon-button shell-close-sidebar" onClick={onCerrar} aria-label="Cerrar menú lateral" aria-controls="sidebar-principal" aria-expanded="true"><NavigationIcon name="collapse" /></button>

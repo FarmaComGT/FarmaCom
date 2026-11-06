@@ -91,13 +91,13 @@ export default function MainLayout() {
     const panel = document.getElementById('sidebar-principal');
     const contenido = document.getElementById('contenido-principal');
     if (contenido) contenido.inert = true;
-    panel?.querySelector('button')?.focus();
+    (panel?.querySelector('a[aria-current]') || panel?.querySelector('button'))?.focus();
     const manejarEscape = (event) => {
       if (event.key === 'Escape') {
         setSidebarAbierta(false);
       }
       if (event.key === 'Tab' && panel) {
-        const controles = [...panel.querySelectorAll('a[href], button:not(:disabled)')];
+        const controles = [...panel.querySelectorAll(':is(a[href], button):not(:disabled)')];
         const primero = controles[0];
         const ultimo = controles[controles.length - 1];
         if (event.shiftKey && document.activeElement === primero) {
@@ -141,6 +141,7 @@ export default function MainLayout() {
       
       <Sidebar
         abierta={sidebarAbierta}
+        superpuesta={!esEscritorio}
         onCerrar={cerrarSidebar}
         onNavegar={cerrarSidebarAlNavegar}
       />
@@ -149,6 +150,7 @@ export default function MainLayout() {
         <button
           type="button"
           aria-label="Cerrar menú lateral"
+          tabIndex={-1}
           onClick={() => setSidebarAbierta(false)}
           className="shell-nav-backdrop fixed inset-0 z-30"
         />
@@ -160,7 +162,7 @@ export default function MainLayout() {
           sidebarAbierta ? 'md:ml-64' : 'md:ml-0'
         }`}
       >
-        <TopNav sidebarAbierta={sidebarAbierta} onAbrirSidebar={abrirSidebar} />
+        <TopNav sidebarAbierta={sidebarAbierta} superpuesta={!esEscritorio} onAbrirSidebar={abrirSidebar} />
         <div
           className={`shell-content shell-route-view mx-auto w-full min-w-0 p-4 sm:p-6 lg:p-8 ${esCaja ? cajaStyles.sheet : ''} ${esGestion ? 'management-content' : ''} ${
             sidebarAbierta && esEscritorio ? 'max-w-7xl' : 'max-w-none'

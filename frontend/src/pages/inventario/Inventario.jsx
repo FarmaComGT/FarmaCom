@@ -1,6 +1,7 @@
 import { useToast } from '../../context/ToastContext.jsx';
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { useSearchParams, useLocation, useNavigationType } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams, useLocation } from 'react-router-dom';
+import useScrollInventario from '../../hooks/useScrollInventario.js';
 import { Plus, PackagePlus } from 'lucide-react';
 import './Inventario.css';
 import Paginacion from '../../components/ui/Paginacion.jsx';
@@ -30,7 +31,8 @@ export default function Inventario() {
   const toast = useToast();
   const { sucursalActivaId, usuario } = useAuth();
   const [params, setParams] = useSearchParams();
-  const sucursalId = Number(params.get('sucursal')) || sucursalActivaId;
+  const sucursalId = usuario?.rol === 'dependiente'
+    ? usuario.id_sucursal : Number(params.get('sucursal')) || sucursalActivaId;
   const busqueda = params.get('q') || '';
   const filtros = useMemo(() => Object.fromEntries(
     Object.keys(FILTROS_INVENTARIO_INICIALES).map((campo) => [campo, params.get(campo) || '']),
@@ -39,7 +41,6 @@ export default function Inventario() {
   const pagina = Number.isSafeInteger(paginaURL) && paginaURL > 0 && paginaURL <= 2147483647 ? paginaURL : 1;
   const limite = [10, 25, 50].includes(Number(params.get('limite'))) ? Number(params.get('limite')) : 25;
   const location = useLocation();
-  const navigationType = useNavigationType();
   const actualizarVista = useCallback((cambios, replace = false) => {
     setParams((actuales) => {
       const siguientes = new URLSearchParams(actuales);
@@ -64,18 +65,7 @@ export default function Inventario() {
     error: errorInventario,
     refrescar: refrescarInventario,
   } = useInventarioSucursal(sucursalId, { pagina, limite, busqueda, ...filtros });
-  const scrollPorEntrada = useRef(new Map());
-  useEffect(() => {
-    const guardar = () => scrollPorEntrada.current.set(location.key, window.scrollY);
-    window.addEventListener('scroll', guardar, { passive: true });
-    return () => window.removeEventListener('scroll', guardar);
-  }, [location.key]);
-  useEffect(() => {
-    if (navigationType === 'POP' && !cargando && paginacion) {
-      const posicion = scrollPorEntrada.current.get(location.key);
-      if (posicion !== undefined) window.scrollTo(0, posicion);
-    }
-  }, [location.key, navigationType, cargando, paginacion]);
+  useScrollInventario(!cargando && Boolean(paginacion));
   useEffect(() => {
     if (!cargando && paginacion && paginacion.pagina !== pagina) {
       actualizarVista({ pagina: paginacion.pagina }, true);
@@ -202,6 +192,7 @@ export default function Inventario() {
 
       <div id="listado-inventario">
       <InventarioProductosTable
+        sucursalId={sucursalId}
         productos={productosInventario}
         cargando={cargando}
         onEditar={gestionProducto.abrirEdicion}

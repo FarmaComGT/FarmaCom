@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { destinoLotes } from '../../../utils/navegacionInventario.js';
 import { MoreHorizontal, LoaderCircle } from 'lucide-react';
 
 const numero = new Intl.NumberFormat('es-GT');
@@ -43,7 +44,8 @@ function AccionesProducto({ producto, onEditar, onCambiarEstado, onVerHistorial,
 
 export default function InventarioProductosTable({ productos, cargando, onEditar, onCambiarEstado,
   onVerHistorial, puedeVerHistorial, cambiandoEstadoId,
-  onLimpiar, error, onReintentar }) {
+  onLimpiar, error, onReintentar, sucursalId }) {
+  const location = useLocation();
   return (
     <section className="inventory-results" aria-label="Productos en inventario" aria-busy={cargando}>
       <div className="inventory-table-scroll">
@@ -54,7 +56,7 @@ export default function InventarioProductosTable({ productos, cargando, onEditar
               : error ? <tr><td colSpan={6}><div className="inventory-empty" role="alert"><strong>No se pudo cargar el inventario</strong><p>{error}</p><button className="inventory-button" type="button" onClick={onReintentar}>Reintentar</button></div></td></tr>
               : productos.length === 0 ? <tr><td colSpan={6}><div className="inventory-empty"><strong>No hay productos que coincidan con los filtros.</strong><p>Prueba con otro nombre o revisa los filtros aplicados.</p>{onLimpiar && <button className="inventory-button" type="button" onClick={onLimpiar}>Limpiar búsqueda y filtros</button>}</div></td></tr>
               : productos.map((producto) => <tr key={producto.id_producto}>
-                <td className="inventory-identity" data-label="Producto"><Link className="inventory-product-name" aria-label={`Ver lotes de ${producto.nombre_comercial}`} to={`/inventario/productos/${producto.id_producto}/lotes`}>{producto.nombre_comercial}</Link>
+                <td className="inventory-identity" data-label="Producto"><Link className="inventory-product-name" aria-label={`Ver lotes de ${producto.nombre_comercial}`} to={destinoLotes(producto.id_producto, location.search, sucursalId)} state={{ entradaInventario: location.key }}>{producto.nombre_comercial}</Link>
                   <span className="inventory-product-generic">{producto.nombre_generico || 'Sin nombre genérico'}{producto.concentracion ? ` · ${producto.concentracion}` : ''}</span>
                   <span className="inventory-product-meta"><span translate="no">{producto.codigo}</span>{producto.presentacion && <span>{producto.presentacion}</span>}{!producto.activo && <span>Inactivo</span>}</span>
                 </td>
