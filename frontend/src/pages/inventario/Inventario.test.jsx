@@ -148,7 +148,7 @@ describe('Inventario unificado', () => {
   it('muestra productos y estados independientes', () => {
     renderizar();
 
-    expect(screen.getByRole('heading', { name: 'Inventario' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Existencias' })).toBeInTheDocument();
     expect(screen.getAllByText('Paracetamol').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Poco stock').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Próximo a vencer').length).toBeGreaterThan(0);

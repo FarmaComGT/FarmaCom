@@ -3,7 +3,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render as renderBase, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar.jsx';
 
 const mocks = vi.hoisted(() => ({ rol: 'administrador', logout: vi.fn(), dispatch: vi.fn() }));
@@ -11,10 +11,36 @@ vi.mock('../context/AuthContext', () => ({ AUTH_ACTIONS: { LOGOUT: 'LOGOUT' }, u
 vi.mock('../api/auth', () => ({ logout: mocks.logout }));
 
 function Ruta() { return <span aria-label="Ruta actual">{useLocation().pathname}</span>; }
-function renderizar() { return render(<MemoryRouter initialEntries={['/inventario']}><Sidebar abierta onCerrar={vi.fn()} onNavegar={vi.fn()} /><Ruta /></MemoryRouter>); }
+function renderizar(ruta = '/inventario') { return render(<MemoryRouter initialEntries={[ruta]}><Sidebar abierta onCerrar={vi.fn()} onNavegar={vi.fn()} /><Ruta /></MemoryRouter>); }
 
 describe('Navegación por tareas de FarmaCom', () => {
   beforeEach(() => { vi.clearAllMocks(); mocks.rol = 'administrador'; });
+  it.each([
+    ['/inventario', 'Existencias'],
+    ['/inventario/categorias', 'Categorías'],
+    ['/inventario/proveedores', 'Proveedores'],
+    ['/inventario/casas', 'Casas farmacéuticas'],
+    ['/inventario/promociones', 'Promociones'],
+  ])('abre el grupo y marca la sección al entrar directamente a %s', (ruta, nombre) => {
+    renderizar(ruta);
+    expect(screen.getByRole('button', { name: 'Inventario' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: nombre })).toHaveAttribute('aria-current', 'page');
+    expect(document.querySelectorAll('a[aria-current="page"]')).toHaveLength(1);
+  });
+  it('reabre el grupo al cambiar de ruta con el grupo cerrado', async () => {
+    const user = userEvent.setup();
+    function CambiarRuta() {
+      const navigate = useNavigate();
+      return <button onClick={() => navigate('/inventario/proveedores')}>Cambiar sección</button>;
+    }
+    render(<MemoryRouter initialEntries={['/inventario/categorias']}>
+      <Sidebar abierta onCerrar={vi.fn()} onNavegar={vi.fn()} /><CambiarRuta />
+    </MemoryRouter>);
+    await user.click(screen.getByRole('button', { name: 'Inventario' }));
+    await user.click(screen.getByRole('button', { name: 'Cambiar sección' }));
+    expect(screen.getByRole('button', { name: 'Inventario' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: 'Proveedores' })).toHaveAttribute('aria-current', 'page');
+  });
   it('identifica la farmacia y conserva la ruta de existencias y los catálogos', async () => {
     const user = userEvent.setup();
     renderizar();

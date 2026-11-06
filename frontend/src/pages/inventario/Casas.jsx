@@ -1,7 +1,6 @@
 import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import InventarioSubNav from '../../components/inventario/InventarioSubNav.jsx';
 import CasaActionBar from '../../components/inventario/casas/CasaActionBar.jsx';
 import CasaTable from '../../components/inventario/casas/CasaTable.jsx';
 import CasaFormModal from '../../components/inventario/casas/CasaFormModal.jsx';
@@ -150,7 +149,6 @@ export default function Casas() {
 
   return (
     <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="casas-title">
-      <InventarioSubNav />
       <header className={styles.heading}>
         <div>
           <h1 id="casas-title">Casas farmacéuticas</h1>

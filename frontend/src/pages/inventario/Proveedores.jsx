@@ -1,7 +1,6 @@
 import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import InventarioSubNav from '../../components/inventario/InventarioSubNav.jsx';
 import ProveedorActionBar from '../../components/inventario/proveedores/ProveedorActionBar.jsx';
 import ProveedorTable from '../../components/inventario/proveedores/ProveedorTable.jsx';
 import ProveedorFormModal from '../../components/inventario/proveedores/ProveedorFormModal.jsx';
@@ -150,7 +149,6 @@ export default function Proveedores() {
 
   return (
     <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="proveedores-title">
-      <InventarioSubNav />
       <header className={styles.heading}>
         <div>
           <h1 id="proveedores-title">Proveedores</h1>

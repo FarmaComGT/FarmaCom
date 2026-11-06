@@ -72,7 +72,7 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
   const [inventarioAbierto, setInventarioAbierto] = useState(inventarioActivo);
   const [ubicacionesAbiertas, setUbicacionesAbiertas] = useState(ubicacionesActivas);
   const [cerrando, setCerrando] = useState(false);
-  useEffect(() => { if (inventarioActivo) setInventarioAbierto(true); }, [inventarioActivo]);
+  useEffect(() => { if (inventarioActivo) setInventarioAbierto(true); }, [inventarioActivo, pathname]);
   useEffect(() => { if (ubicacionesActivas) setUbicacionesAbiertas(true); }, [ubicacionesActivas]);
   const visible = (item) => !item.roles || item.roles.includes(usuario?.rol);
   const handleLogout = async () => {

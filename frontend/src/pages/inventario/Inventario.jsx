@@ -111,7 +111,7 @@ export default function Inventario() {
   } = useLotes();
 
   useEffect(() => {
-    document.title = 'Inventario · FarmaCom';
+    document.title = 'Existencias · FarmaCom';
   }, []);
 
   const codigoSugerido = useMemo(
@@ -156,7 +156,7 @@ export default function Inventario() {
   return (
     <div className="inventory-page">
       <header className="inventory-heading">
-        <div><h1>Inventario</h1><p>Existencias y lotes por sucursal</p></div>
+        <div><h1>Existencias</h1><p>Existencias y lotes por sucursal</p></div>
         <div className="inventory-heading-actions">
           <button type="button" className="inventory-button" onClick={gestionProducto.abrirNuevo}><Plus size={16} aria-hidden="true" />Nuevo producto</button>
           {puedeGestionarLotes && <button type="button" className="inventory-button inventory-primary" onClick={gestionLotes.abrirNuevo}><PackagePlus size={16} aria-hidden="true" />Ingresar lote</button>}

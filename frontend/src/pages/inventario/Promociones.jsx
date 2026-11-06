@@ -2,7 +2,6 @@ import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import InventarioSubNav from '../../components/inventario/InventarioSubNav.jsx';
 import PromocionEstadoModal from '../../components/inventario/promociones/PromocionEstadoModal.jsx';
 import PromocionFormModal from '../../components/inventario/promociones/PromocionFormModal.jsx';
 import PromocionesTable from '../../components/inventario/promociones/PromocionesTable.jsx';
@@ -179,7 +178,6 @@ export default function Promociones() {
 
   return (
     <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="promociones-title">
-      <InventarioSubNav />
       <header className={styles.heading}>
         <div>
           <h1 id="promociones-title">Promociones</h1>
