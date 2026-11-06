@@ -34,6 +34,9 @@ const renderizarLayout = (rutaInicial = '/inventario/productos') =>
             path="/inventario/productos"
             element={<div>Contenido del listado de productos</div>}
           />
+          <Route path="/inventario" element={<div>Existencias de prueba</div>} />
+          <Route path="/pos" element={<div>Venta de prueba</div>} />
+          <Route path="/support" element={<div>Ayuda de prueba</div>} />
           <Route path="/dashboard" element={<div>Contenido del dashboard</div>} />
           <Route path="/caja" element={<div>Contenido de caja</div>} />
           <Route path="/usuarios" element={<div>Contenido de usuarios</div>} />
@@ -55,6 +58,27 @@ describe('MainLayout y Sidebar', () => {
     document.body.style.overflow = '';
     window.localStorage.clear();
     delete document.startViewTransition;
+  });
+  it.each(['/dashboard', '/pos', '/inventario', '/caja', '/usuarios', '/support'])('inicia en modo superpuesto en tablet sin importar la ruta %s', (ruta) => {
+    establecerAncho(1024);
+    renderizarLayout(ruta);
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-layout', 'overlay');
+    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('conserva la preferencia cerrada al cruzar el umbral en ambas direcciones', async () => {
+    const user = userEvent.setup();
+    renderizarLayout('/dashboard');
+    await user.click(screen.getByRole('button', { name: 'Cerrar menú lateral' }));
+    establecerAncho(1099);
+    fireEvent(window, new Event('resize'));
+    await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }));
+    expect(document.getElementById('contenido-principal').inert).toBe(true);
+    establecerAncho(1100);
+    fireEvent(window, new Event('resize'));
+    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
+    expect(document.getElementById('contenido-principal').inert).toBe(false);
+    expect(window.localStorage.getItem(CLAVE_PREFERENCIA_SIDEBAR)).toBe('false');
   });
 
   it('anima la navegación iniciada desde la barra lateral', async () => {
@@ -217,6 +241,9 @@ describe('MainLayout y Sidebar', () => {
 
     establecerAncho(1024);
     fireEvent(window, new Event('resize'));
+    expect(sidebar).toHaveAttribute('aria-hidden', 'true');
+    establecerAncho(1100);
+    fireEvent(window, new Event('resize'));
     expect(sidebar).toHaveAttribute('aria-hidden', 'false');
   });
 
@@ -246,6 +273,7 @@ describe('MainLayout y Sidebar', () => {
   });
 
   it('restaura el menú al pasar de caja a una pantalla con otro punto de quiebre', async () => {
+    window.localStorage.setItem(CLAVE_PREFERENCIA_SIDEBAR, 'true');
     establecerAncho(1024);
     const user = userEvent.setup();
     renderizarLayout('/caja');
@@ -255,7 +283,7 @@ describe('MainLayout y Sidebar', () => {
     await user.click(screen.getByRole('link', { name: 'Inicio' }));
 
     expect(screen.getByText('Contenido del dashboard')).toBeVisible();
-    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'false');
+    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
     expect(window.localStorage.getItem(CLAVE_PREFERENCIA_SIDEBAR)).toBe('true');
   });
 });

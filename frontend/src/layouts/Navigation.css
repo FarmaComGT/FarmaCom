@@ -61,6 +61,9 @@
 .shell-topbar { position: sticky; top: 0; z-index: 20; display: flex; flex: none; align-items: center; justify-content: space-between; gap: 20px; height: var(--shell-topbar-height); padding: 10px 28px; background: var(--shell-frame); }
 .app-shell :is(a, button, input, select, summary, [tabindex]) { scroll-margin-top: calc(var(--shell-topbar-height) + 12px); }
 .shell-topbar-location { display: flex; flex: 1; min-width: 0; align-items: center; gap: 12px; }
+.shell-topbar-context { min-width: 0; }
+.shell-workspace { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 18px; color: var(--shell-ink); }
+.shell-workspace > span { color: var(--shell-muted); }
 .shell-breadcrumbs { min-width: 0; }
 .shell-breadcrumbs ol { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .shell-breadcrumbs li { display: flex; align-items: center; min-width: 0; gap: 12px; font-size: 13px; color: var(--shell-muted); }
@@ -77,6 +80,7 @@
 .shell-session-role { font-size: 11px; line-height: 16px; color: var(--shell-muted); }
 .shell-nav-backdrop { background: #182b2340; }
 .app-shell[data-layout="overlay"] > main { margin-left: 0; }
+.app-shell[data-layout="overlay"] { --shell-topbar-height: 76px; }
 .app-shell[data-layout="overlay"] .shell-sidebar.is-open { z-index: 50; box-shadow: 12px 0 32px #182b231a; }
 .app-shell[data-layout="overlay"] .shell-sidebar { width: 280px; }
 .app-shell[data-layout="overlay"] .shell-sidebar-heading { min-height: 88px; }
