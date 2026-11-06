@@ -1,6 +1,6 @@
 import { useToast } from '../../context/ToastContext.jsx';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, PlusCircle, User } from 'lucide-react';
 import { obtenerPaciente } from '../../api/pacientes';
 import { construirUrlPublica } from '../../api/resultadosLaboratorio';
@@ -18,7 +18,7 @@ import ConfiguracionAlmacenamientoModal from '../../components/laboratorio/Confi
 import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
 import Paginacion from '../../components/ui/Paginacion.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { ejecutarTransicionDeVista } from '../../utils/viewTransition';
+import { destinoPacientes } from '../../utils/navegacionPacientes';
 import management from '../../styles/ManagementUI.module.css';
 import laboratory from '../../styles/LaboratoryUI.module.css';
 
@@ -29,14 +29,14 @@ const formatearFecha = (fecha) => (fecha ? new Date(fecha).toLocaleDateString('e
 export default function PacientePerfil() {
   const toast = useToast();
   const { id } = useParams();
-  const navigate = useNavigate();
+  const { state } = useLocation();
   const [searchParams] = useSearchParams();
   const { pagina, limite } = leerPaginacionURL(searchParams);
   const { usuario } = useAuth();
   const [paciente, setPaciente] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
-  const volverAPacientes = () => ejecutarTransicionDeVista(() => navigate(-1));
+  const regreso = destinoPacientes(searchParams);
 
   const cargarPaciente = useCallback(async () => {
     setCargando(true);
@@ -205,13 +205,13 @@ export default function PacientePerfil() {
   if (error || !paciente) {
     return (
       <section className={management.page}>
-        <button
-          type="button"
-          onClick={volverAPacientes}
+        <Link
+          to={regreso}
+          state={{ entradaListado: state?.entradaListado }}
           className={laboratory.backLink}
         >
-          <ArrowLeft size={16} aria-hidden="true" /> Volver
-        </button>
+          <ArrowLeft size={16} aria-hidden="true" /> Volver a pacientes
+        </Link>
         <ContentState variant="error" message={error || 'Paciente no encontrado.'} />
       </section>
     );
@@ -227,13 +227,13 @@ export default function PacientePerfil() {
 
   return (
     <section className={`${management.page} ${management.locationPage}`} aria-labelledby="paciente-profile-title">
-      <button
-        type="button"
-        onClick={volverAPacientes}
+      <Link
+        to={regreso}
+        state={{ entradaListado: state?.entradaListado }}
         className={laboratory.backLink}
       >
         <ArrowLeft size={16} aria-hidden="true" /> Volver a pacientes
-      </button>
+      </Link>
 
       <header className={laboratory.profileHeader}>
         <span className={laboratory.avatar}><User size={25} aria-hidden="true" /></span>

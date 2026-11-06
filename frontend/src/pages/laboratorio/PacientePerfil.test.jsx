@@ -106,6 +106,13 @@ describe('PacientePerfil', () => {
 
     expect(await screen.findByText('Ana López')).toBeInTheDocument();
     expect(screen.getByText('Todavía no hay resultados')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Volver a pacientes' })).toHaveAttribute('href', '/laboratorio/pacientes');
+  });
+
+  it('mantiene un regreso válido si falla la apertura directa del expediente', async () => {
+    mockObtenerPaciente.mockRejectedValue(new Error('Sin conexión'));
+    renderizar();
+    expect(await screen.findByRole('link', { name: 'Volver a pacientes' })).toHaveAttribute('href', '/laboratorio/pacientes');
   });
 
   it('muestra las tarjetas de resultados existentes con su categoría y estado de vigencia', async () => {

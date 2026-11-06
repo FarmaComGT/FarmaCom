@@ -7,7 +7,11 @@ export const AYUDA = { icon: 'help', label: 'Ayuda', path: '/support' };
 export const NAVEGACION = [
   { label: 'Operación', items: [
     { icon: 'dispensing', label: 'Punto de venta', path: '/pos', roles: farmacia, area: 'Ventas' },
-    { icon: 'cash', label: 'Caja', path: '/caja', roles: farmacia, pagina: 'Operación' },
+    { id: 'caja', icon: 'cash', label: 'Caja', roles: farmacia, children: [
+      { label: 'Operación', path: '/caja' },
+      { label: 'Historial de cierres', path: '/caja/historial', roles: gestion },
+      { label: 'Administración de cajas', path: '/caja/administracion', roles: gestion },
+    ] },
     { id: 'inventario', icon: 'inventory', label: 'Inventario', roles: farmacia, children: [
       { label: 'Existencias', path: '/inventario' },
       { label: 'Categorías', path: '/inventario/categorias' },
@@ -44,8 +48,6 @@ const contextos = [INICIO, AYUDA, ...NAVEGACION.flatMap(seccion => seccion.items
 // Los detalles aportan su propio contexto; los nombres de los destinos salen del menú.
 const detalles = [
   { path: '/ventas/historial/productos', area: 'Historial de ventas', pagina: 'Resumen por producto', destino: '/ventas/historial' },
-  { path: '/caja/historial', area: 'Caja', pagina: 'Historial', destino: '/caja' },
-  { path: '/caja/administracion', area: 'Caja', pagina: 'Administración', destino: '/caja' },
   { path: '/reports/rentabilidad', area: 'Reportes', pagina: 'Rentabilidad', destino: '/reports' },
 ];
 const rutas = [...detalles, ...contextos].sort((a, b) => b.path.length - a.path.length);

@@ -7,7 +7,6 @@ import { obtenerCajas } from '../../api/cajas';
 import useHistorialCaja from '../../hooks/useHistorialCaja';
 import useSucursales from '../../hooks/useSucursales';
 import { useAuth } from '../../context/AuthContext';
-import CajaSubNav from '../../components/caja/CajaSubNav';
 import ResumenDiarioCaja from '../../components/caja/ResumenDiarioCaja';
 import Paginacion from '../../components/ui/Paginacion';
 import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
@@ -110,7 +109,6 @@ export default function HistorialCaja() {
   return (
     <div className={ui.page}>
       <header className={ui.heading}><div><h1>Historial de cierres</h1><p>Actividad diaria y conciliación de efectivo por sucursal.</p></div></header>
-      <CajaSubNav rol={usuario?.rol} />
       <ResumenDiarioCaja idSucursalInicial={usuario?.id_sucursal} />
       <section aria-labelledby="titulo-filtros-historial">
         <h2 id="titulo-filtros-historial" className={ui.sectionHeading}>Filtros para el historial</h2>

@@ -15,7 +15,7 @@ function NavigationLink({ icon, label, path, excluir = [], nested = false }) {
 
   return <NavLink
     to={path}
-    end={(path === '/inventario' && !esDetalleDeExistencias) || excluir.some(ruta => pathname === ruta || pathname.startsWith(`${ruta}/`))}
+    end={((path === '/inventario' && !esDetalleDeExistencias) || path === '/caja') || excluir.some(ruta => pathname === ruta || pathname.startsWith(`${ruta}/`))}
     aria-current={esDetalleDeExistencias ? 'location' : 'page'}
     className={`shell-nav-link ${nested ? 'shell-nav-nested' : ''}`}
     onClick={(event) => navegarConTransicionDeVista({

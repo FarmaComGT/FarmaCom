@@ -7,7 +7,6 @@ import SucursalDeleteModal from '../components/sucursales/SucursalDeleteModal.js
 import ContactosSucursalModal from '../components/sucursales/ContactosSucursalModal.jsx';
 import SucursalFormModal from '../components/sucursales/SucursalFormModal.jsx';
 import SucursalStatsBanner from '../components/sucursales/SucursalStatsBanner.jsx';
-import SucursalesSubNav from '../components/sucursales/SucursalesSubNav.jsx';
 import SucursalTable from '../components/sucursales/SucursalTable.jsx';
 import useCiudades from '../hooks/useCiudades';
 import useSucursales from '../hooks/useSucursales';
@@ -179,7 +178,6 @@ export default function Sucursales() {
 
   return (
     <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="sucursales-title">
-      <SucursalesSubNav />
 
       <header className={styles.heading}>
         <div>

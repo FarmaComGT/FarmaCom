@@ -1,3 +1,4 @@
+import useScrollListado from '../../hooks/useScrollListado';
 import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -25,21 +26,15 @@ export default function Pacientes() {
   const esLaboratorista = usuario?.rol === 'laboratorista';
   const { laboratorios } = useLaboratorios({ omitir: esLaboratorista });
 
-  const [idLaboratorioSeleccionado, setIdLaboratorioSeleccionado] = useState(null);
-
-  useEffect(() => {
-    if (esLaboratorista) {
-      setIdLaboratorioSeleccionado(usuario?.id_laboratorio ?? null);
-      return;
-    }
-    setIdLaboratorioSeleccionado((actual) => actual ?? laboratorios[0]?.id_laboratorio ?? null);
-  }, [esLaboratorista, usuario, laboratorios]);
-
+  const [searchParams] = useSearchParams();
+  const laboratorioURL = searchParams.get('laboratorio');
+  const idLaboratorioSeleccionado = esLaboratorista ? usuario?.id_laboratorio ?? null
+    : laboratorios.find(l => String(l.id_laboratorio) === laboratorioURL)?.id_laboratorio
+      ?? laboratorios[0]?.id_laboratorio ?? null;
   useEffect(() => {
     document.title = 'Pacientes de laboratorio · FarmaCom';
   }, []);
 
-  const [searchParams] = useSearchParams();
   const busqueda = searchParams.get('q') || '';
   const { pagina, limite } = leerPaginacionURL(searchParams);
   const estadoParam = searchParams.get('estado');
@@ -62,6 +57,7 @@ export default function Pacientes() {
     pagina,
     limite,
   });
+  useScrollListado(!cargando);
   const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
 
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -209,7 +205,7 @@ export default function Pacientes() {
         {!esLaboratorista && laboratorios.length > 1 && (
           <select
             value={idLaboratorioSeleccionado || ''}
-            onChange={(e) => setIdLaboratorioSeleccionado(Number(e.target.value))}
+            onChange={(e) => actualizarVista({ laboratorio: e.target.value })}
             className={laboratory.laboratorySelect}
             aria-label="Laboratorio"
           >
@@ -237,7 +233,7 @@ export default function Pacientes() {
       />
 
       <p className={management.resultCount} aria-live="polite">
-        <strong>{paginacion.total}</strong> pacientes encontrados
+        <strong>{paginacion?.total ?? 0}</strong> pacientes encontrados
       </p>
 
       <PacienteAlert mensaje={error} />

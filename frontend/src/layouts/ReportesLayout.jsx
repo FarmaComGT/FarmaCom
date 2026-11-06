@@ -9,11 +9,11 @@ export default function ReportesLayout() {
   return (
     <section aria-labelledby="titulo-reportes" className={styles.page}>
       <header className={styles.header}>
-        <h1 id="titulo-reportes">{esResumen ? 'Resumen diario' : 'Reportes'}</h1>
+        <h1 id="titulo-reportes">{esResumen ? 'Envío de resumen' : 'Reportes'}</h1>
         <p>{esResumen ? 'Configura tu resumen de ventas por correo, incluso cuando las cajas siguen abiertas.'
           : 'Consulta el rendimiento comercial y la rentabilidad por sucursal.'}</p>
       </header>
-      <ReportesNav />
+      {!esResumen && <ReportesNav />}
       <div className={styles.content}>
         <Suspense fallback={(
           <ContentState variant="loading" message="Cargando reporte…" compact className={styles.skeleton} />

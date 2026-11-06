@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import useScrollListado from '../../hooks/useScrollListado';
+import React, { useEffect } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Eye } from 'lucide-react';
 import { useVentas } from '../../hooks/useHistorialVentas';
@@ -47,11 +48,18 @@ function TablaCargando() {
 
 export default function HistorialVentas() {
   const { filtros } = useOutletContext();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const { pagina, limite } = leerPaginacionURL(params);
   const { datos, paginacion, cargando, error, recargar } = useVentas({ ...filtros, pagina, limite });
+  useScrollListado(!cargando);
   const { crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
-  const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
+  const ventaSeleccionada = /^[1-9]\d*$/.test(params.get('venta') || '') ? Number(params.get('venta')) : null;
+  const setVentaSeleccionada = (id) => setParams(actuales => {
+    const siguientes = new URLSearchParams(actuales);
+    if (id) siguientes.set('venta', String(id));
+    else siguientes.delete('venta');
+    return siguientes;
+  });
 
   useEffect(() => { document.title = 'Historial de ventas · FarmaCom'; }, []);
 

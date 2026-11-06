@@ -1,3 +1,4 @@
+import useScrollListado from '../hooks/useScrollListado';
 import { useToast } from '../context/ToastContext.jsx';
 import React, { useEffect, useState } from 'react';
 import {
@@ -31,6 +32,7 @@ export default function Clientes() {
   const pagina = Number.isSafeInteger(numero) && numero > 0 && numero <= 2147483647 ? numero : 1;
   const limite = [10, 25, 50].includes(Number(searchParams.get('limite'))) ? Number(searchParams.get('limite')) : 25;
   const { clientes, paginacion, cargando, error, crear, actualizar, eliminar } = useClientes({ pagina, limite, busqueda });
+  useScrollListado(!cargando);
   const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const [formulario, setFormulario] = useState(inicial);
   const [editando, setEditando] = useState(null);

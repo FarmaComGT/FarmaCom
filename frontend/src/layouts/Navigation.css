@@ -11,9 +11,6 @@
 }
 .app-shell > main { transition: none; }
 .shell-content.management-content { padding: 0 !important; }
-@supports (view-transition-name: none) {
-  .shell-route-view { view-transition-name: app-route; }
-}
 .shell-sidebar, .shell-topbar { font-family: var(--font-sans); color: var(--shell-ink); font-size: 14px; }
 .shell-sidebar :is(button, a):focus-visible, .shell-topbar :is(button, a):focus-visible {
   outline: 2px solid var(--shell-accent); outline-offset: 3px;
@@ -116,16 +113,12 @@
 
 ::view-transition-old(root) { animation: none; opacity: 0; }
 ::view-transition-new(root) { animation: none; }
-::view-transition-old(app-route) { animation: location-content-out 110ms ease both; }
-::view-transition-new(app-route) { animation: location-content-in 190ms cubic-bezier(.2, .8, .2, 1) both; }
 ::view-transition-group(location-tab),
 ::view-transition-group(user-filter-tab),
 ::view-transition-group(report-tab) { animation-duration: 180ms; }
 @keyframes location-content-out { to { opacity: 0; transform: translateY(-4px); } }
 @keyframes location-content-in { from { opacity: 0; transform: translateY(7px); } }
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(app-route),
-  ::view-transition-new(app-route),
   ::view-transition-group(location-tab),
   ::view-transition-group(user-filter-tab),
   ::view-transition-group(report-tab) { animation: none; }

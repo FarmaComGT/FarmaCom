@@ -81,7 +81,7 @@ describe('MainLayout y Sidebar', () => {
     expect(window.localStorage.getItem(CLAVE_PREFERENCIA_SIDEBAR)).toBe('false');
   });
 
-  it('anima la navegación iniciada desde la barra lateral', async () => {
+  it('navega de inmediato sin animar el marco de la aplicación', async () => {
     const user = userEvent.setup();
     const iniciarTransicion = vi.fn((actualizar) => {
       actualizar();
@@ -95,7 +95,7 @@ describe('MainLayout y Sidebar', () => {
 
     await user.click(screen.getByRole('link', { name: 'Usuarios' }));
 
-    expect(iniciarTransicion).toHaveBeenCalledOnce();
+    expect(iniciarTransicion).not.toHaveBeenCalled();
     expect(screen.getByText('Contenido de usuarios')).toBeVisible();
   });
 

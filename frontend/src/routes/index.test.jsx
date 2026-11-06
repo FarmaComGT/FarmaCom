@@ -84,7 +84,7 @@ describe('ruta de reportes', () => {
     estadoAuth.usuario = { rol: 'dependiente' };
     renderizarRutaReportes('/reports/rentabilidad');
     expect(screen.queryByRole('heading', { name: 'Rentabilidad por sucursal' })).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Hola,/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
   });
   beforeEach(() => {
     estadoAuth.usuario = {
@@ -111,7 +111,7 @@ describe('ruta de reportes', () => {
 
     renderizarRutaReportes();
 
-    expect(screen.getByRole('heading', { name: /Hola,/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Reportes' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Reportes' })).not.toBeInTheDocument();
   });
@@ -138,7 +138,7 @@ describe('ruta de promociones', () => {
     expect(screen.queryByRole('heading', { name: 'Administración de promociones' }))
       .not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Promociones' })).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Hola,/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
   });
 });
 
@@ -161,7 +161,7 @@ describe('ruta de caja', () => {
 
     expect(await screen.findByRole('heading', { name: 'Operación de caja' }))
       .toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Caja' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Operación' })).toBeInTheDocument();
   });
 
   it('oculta la operación de caja para un laboratorista', () => {
@@ -177,7 +177,7 @@ describe('ruta de caja', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: /Hola,/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Caja' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Operación de caja' }))
       .not.toBeInTheDocument();
@@ -195,7 +195,7 @@ describe('ruta de caja', () => {
 
     expect(screen.queryByRole('heading', { name: 'Historial de cierres' }))
       .not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Hola,/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
   });
 
   it('permite administrar cajas solamente a roles administrativos', () => {
@@ -225,7 +225,7 @@ describe('proteccion de farmacia para laboratorista', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: /Hola,/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Inventario' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Punto de venta' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Clientes' })).not.toBeInTheDocument();

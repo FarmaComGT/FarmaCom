@@ -36,7 +36,7 @@ export default function MainLayout() {
   ].includes(location.pathname);
   const esCaja = location.pathname === '/caja' || location.pathname.startsWith('/caja/');
   const esGestion = esDetalleLotes || esCatalogoInventario
-    || ['/usuarios', '/sucursales', '/laboratorios', '/ciudades', '/patients'].includes(location.pathname)
+    || ['/dashboard', '/usuarios', '/sucursales', '/laboratorios', '/ciudades', '/patients'].includes(location.pathname)
     || location.pathname.startsWith('/laboratorio/pacientes')
     || location.pathname.startsWith('/ventas/historial')
     || location.pathname.startsWith('/reports');

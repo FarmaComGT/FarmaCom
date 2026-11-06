@@ -7,6 +7,8 @@ import React, {
   useRef,
 } from 'react';
 
+import useAvisoCambiosSinGuardar from '../hooks/useAvisoCambiosSinGuardar';
+
 const CarritoContext = createContext(null);
 
 const ACCIONES = {
@@ -158,6 +160,7 @@ function reducer(estado, accion) {
 
 export function CarritoProvider({ children }) {
   const [estado, dispatch] = useReducer(reducer, ESTADO_INICIAL);
+  useAvisoCambiosSinGuardar(estado.carritos.some(carrito => carrito.items.length > 0));
   const siguienteCarrito = useRef(2);
   const carritoActivo = estado.carritos.find(
     (carrito) => carrito.id === estado.carritoActivoId,

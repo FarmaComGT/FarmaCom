@@ -1,8 +1,7 @@
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import PacienteEstadoBadge from './PacienteEstadoBadge.jsx';
 import PacienteAccionesMenu from './PacienteAccionesMenu.jsx';
-import { navegarConTransicionDeVista } from '../../../utils/viewTransition';
 import management from '../../../styles/ManagementUI.module.css';
 import laboratory from '../../../styles/LaboratoryUI.module.css';
 
@@ -10,21 +9,16 @@ const ETIQUETAS_SEXO = { M: 'M', F: 'F', Otro: 'Otro' };
 const formatearFecha = (fecha) => (fecha ? new Intl.DateTimeFormat('es-GT').format(new Date(fecha)) : '—');
 
 export default function PacienteTableRow({ paciente, onEditar, onAnular, onEliminar }) {
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const destino = `/laboratorio/pacientes/${paciente.id_paciente}`;
+  const { pathname, search, key } = useLocation();
+  const regreso = `${pathname}${search}`;
+  const destino = `/laboratorio/pacientes/${paciente.id_paciente}?regreso=${encodeURIComponent(regreso)}`;
 
   return (
     <tr>
       <td data-label="Paciente">
         <Link
           to={destino}
-          onClick={(event) => navegarConTransicionDeVista({
-            event,
-            navigate,
-            destino,
-            rutaActual: pathname,
-          })}
+          state={{ entradaListado: key }}
           className={laboratory.patientLink}
         >
           {paciente.nombre_paciente}

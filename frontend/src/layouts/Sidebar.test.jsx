@@ -28,6 +28,23 @@ describe('Navegación por tareas de FarmaCom', () => {
     expect(Boolean(screen.queryByText('Seguimiento'))).toBe(['dueno', 'administrador'].includes(rol));
   });
   it.each([
+    ['/caja', 'Operación'],
+    ['/caja/historial', 'Historial de cierres'],
+    ['/caja/administracion', 'Administración de cajas'],
+  ])('abre Caja al entrar directamente a %s sin marcar dos destinos', (ruta, nombre) => {
+    renderizar(ruta);
+    expect(screen.getByRole('button', { name: 'Caja' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: nombre })).toHaveAttribute('aria-current', 'page');
+    expect(document.querySelectorAll('a[aria-current]')).toHaveLength(1);
+  });
+  it('mantiene solo la operación de Caja para dependientes', () => {
+    mocks.rol = 'dependiente';
+    renderizar('/caja');
+    expect(screen.getByRole('link', { name: 'Operación' })).toHaveAttribute('href', '/caja');
+    expect(screen.queryByRole('link', { name: 'Historial de cierres' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Administración de cajas' })).not.toBeInTheDocument();
+  });
+  it.each([
     ['/laboratorios', 'Sedes de laboratorio', 'Ubicaciones'],
     ['/reports/resumen-diario', 'Envío de resumen', 'Administración'],
     ['/ventas/historial', 'Historial de ventas', 'Historial de ventas'],

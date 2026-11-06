@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import useCaja from '../../hooks/useCaja';
-import CajaSubNav from '../../components/caja/CajaSubNav';
 
 import CajaDialog from '../../components/caja/CajaDialog';
 import ui from '../../components/caja/CajaUI.module.css';
@@ -250,7 +249,6 @@ export default function CajaOperativa() {
       <header className={ui.heading}>
         <div><h1>Operación de caja</h1><p>Apertura, movimientos y cierre del turno.</p></div>
       </header>
-      <CajaSubNav rol={usuario?.rol} />
 
       {!sucursalActivaId && <div className={ui.notice}><AlertCircle size={16} aria-hidden="true" />Debes tener una sucursal activa para operar una caja.</div>}
       {error && <div role="alert" className={`${ui.notice} ${ui.error}`}>{error}</div>}
