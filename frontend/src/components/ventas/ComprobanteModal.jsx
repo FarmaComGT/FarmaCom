@@ -51,7 +51,6 @@ export default function ComprobanteModal({ isOpen, venta, onClose }) {
         <div>
           <span aria-hidden="true"><CheckCircle2 /></span>
           <div>
-            <p>Venta completada</p>
             <h2 id="titulo-venta-registrada">Venta registrada</h2>
             <span id="descripcion-venta-registrada">El inventario y el carrito ya fueron actualizados.</span>
           </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ReceiptText, ShoppingCart, Trash2 } from 'lucide-react';
+import { ReceiptText, Trash2 } from 'lucide-react';
 import CarritoVentaItem from './CarritoVentaItem';
 import ClienteVentaSection from './ClienteVentaSection';
 import CarritoAccionesCobro from './CarritoAccionesCobro';
@@ -49,19 +49,16 @@ export default function CarritoVenta({
     <section
       id={carritoId ? `panel-${carritoId}` : undefined}
       role={carritoId ? 'tabpanel' : undefined}
+      tabIndex={-1}
       aria-labelledby={carritoId ? `pestana-${carritoId}` : undefined}
       className="pos-panel"
     >
       <header className="pos-cart-panel-head">
         <div>
-          <span className="pos-section-kicker">Carrito activo</span>
           <h2>
-            <ShoppingCart aria-hidden="true" />
-            Detalle del carrito
+            Carrito
+            <span className="pos-cart-count" aria-live="polite">{cantidadTotal} {cantidadTotal === 1 ? 'artículo' : 'artículos'}</span>
           </h2>
-          <p aria-live="polite">
-            {cantidadTotal} {cantidadTotal === 1 ? 'artículo' : 'artículos'}
-          </p>
         </div>
 
         {items.length > 0 && (

@@ -174,6 +174,22 @@ La IA debe recibir el contexto de este documento y de los componentes existentes
 
 ## Pendiente de validar
 
+### Refinamiento del punto de venta
+
+- Resultados de búsqueda: genérico, concentración, presentación, existencias y código se muestran con etiquetas explícitas y valores oscuros sobre una superficie gris suave. El precio distingue promociones y rangos por lote. En móvil, los atributos usan dos columnas y el código ocupa una fila completa; los valores largos se ajustan sin truncarse.
+
+- Cabecera compacta: las pestañas y «Nuevo carrito» comparten fila, con el botón fuera del área desplazable. La lista usa el ancho restante y conserva desplazamiento horizontal y navegación por teclado.
+
+- Modales: «Nuevo cliente» y el aviso de vencimiento reutilizan `Modal` y los estilos compartidos de gestión (Usuarios e Inventario). Se conserva el foco, Escape, retorno al disparador y bloqueo durante procesamiento del componente accesible compartido.
+- Lotes, cobro, comprobante y confirmación mantienen sus flujos con títulos neutros y sin rótulos superiores redundantes. Ámbar identifica vencimientos y rojo las acciones destructivas. La sombra compartida se conserva por tratarse de diálogos flotantes.
+
+- Encabezados oscuros, sin rótulos superiores en mayúsculas ni descripciones redundantes.
+- Precios, existencias habituales, lotes y total en tonos neutros; el verde identifica selección, foco y estados.
+- «Cobrar…», «Nuevo carrito» y «Nuevo cliente» usan fondo oscuro y texto blanco por preferencia del equipo.
+- Al apilar los paneles, un enlace persistente muestra cantidad y total y permite saltar al carrito con foco de teclado. Los paneles dejan de exigir 620 px de altura en ese tamaño.
+- Texto secundario de al menos 12 px. Se mantienen Public Sans, la estructura y las reglas de venta.
+- Validación visual con componentes reales aislados y datos de muestra; pendiente comprobar la navegación completa con datos operativos.
+
 - Lectura de nombres largos, códigos, presentaciones y cantidades grandes.
 - Facilidad para reconocer filtros combinados y limpiar la selección.
 - Descubrimiento del menú de acciones por producto.

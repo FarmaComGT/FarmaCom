@@ -20,7 +20,7 @@ import useCaja from '../../hooks/useCaja';
 import useSeleccionCajaVenta from '../../hooks/useSeleccionCajaVenta';
 import useFlujoVenta from '../../hooks/useFlujoVenta';
 import { normalizarCantidadCarrito, validarProductoAgregable } from '../../utils/carritoVenta';
-import { crearItemLotePOS } from '../../utils/pos';
+import { crearItemLotePOS, formatearQuetzales } from '../../utils/pos';
 
 export default function PuntoVenta() {
   const toast = useToast();
@@ -240,7 +240,6 @@ export default function PuntoVenta() {
       <header className="pos-heading">
         <div>
           <h1>Punto de venta</h1>
-          <p>Vende productos y cobra en caja</p>
         </div>
         <CajaVentaContexto
           cajas={cajas}
@@ -265,6 +264,11 @@ export default function PuntoVenta() {
         onCerrar={cerrarCarritoVenta}
       />
 
+      <a className="pos-cart-jump" href={`#panel-${carritoActivoId}`} onClick={() => {
+        window.requestAnimationFrame(() => document.getElementById(`panel-${carritoActivoId}`)?.focus({ preventScroll: true }));
+      }}>
+        Ver carrito · {cantidadTotal} {cantidadTotal === 1 ? 'artículo' : 'artículos'} · {formatearQuetzales(total)}
+      </a>
       <div className="pos-grid">
         <AutocompletadoProductosPOS
           busqueda={busquedaProducto}

@@ -1,0 +1,17 @@
+/* Match the shared management dialogs; keep status colour on the relevant fact. */
+.pos-form-dialog { padding: 24px; overflow-y: auto; overscroll-behavior: contain; }
+.pos-form-dialog > p { line-height: 1.6; }
+.pos-form-dialog footer { justify-content: flex-end; flex-wrap: wrap; margin-top: 20px; }
+.pos-expiry-list { padding: 0; margin: 20px 0; list-style: none; }
+.pos-expiry-list li { padding: 12px 0; border-bottom: 1px solid var(--management-line); overflow-wrap: anywhere; }
+.pos-expiry-list strong { display: block; font-weight: 600; }
+.pos-expiry-list span { display: flex; align-items: flex-start; gap: 6px; margin-top: 5px; font-size: 13px; color: #945600; }
+.pos-expiry-list svg { flex: none; margin-top: 2px; }
+.pos-modal-spinner { animation: pos-modal-spin 1s linear infinite; }
+@keyframes pos-modal-spin { to { transform: rotate(360deg); } }
+@media (max-width: 767px) {
+  .pos-form-dialog { padding: 20px 16px; }
+  .pos-form-dialog input, .pos-form-dialog textarea { font-size: 16px; }
+  .pos-form-dialog button { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .pos-modal-spinner { animation: none; } }

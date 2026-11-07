@@ -11,7 +11,7 @@ describe('CarritoAccionesCobro', () => {
     expect(screen.getByText('Q 25.00')).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Método de pago' })).toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Tarjeta' }));
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Procesar venta' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Cobrar…' }));
     expect(onMetodoPagoChange).toHaveBeenCalledWith('tarjeta');
     expect(onProcesar).toHaveBeenCalledOnce();
   });

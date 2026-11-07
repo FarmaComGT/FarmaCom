@@ -52,18 +52,10 @@ export default function ProductoVentaCard({ producto, onSeleccionar, busqueda })
           <p className="pos-product-name">
             <TextoCoincidente texto={producto.nombre_comercial} busqueda={busqueda} />
           </p>
-          <p className="pos-product-generic">
-            <TextoCoincidente texto={producto.nombre_generico} busqueda={busqueda} />
-            {producto.concentracion && (
-              <>
-                {' · '}
-                <TextoCoincidente texto={producto.concentracion} busqueda={busqueda} />
-              </>
-            )}
-          </p>
         </div>
 
         <div className="pos-product-price">
+          <span className="pos-product-price-label">{promocion ? 'Precio promocional' : preciosDiferentes ? 'Precio según lote' : 'Precio'}</span>
           {promocion ? (
             <>
               <span className="was line-through">
@@ -87,27 +79,25 @@ export default function ProductoVentaCard({ producto, onSeleccionar, busqueda })
         </div>
       </div>
 
-      <div className="pos-product-tags">
+      <div className="pos-product-attributes">
+        <span className="pos-product-attribute"><span>Genérico</span><strong><TextoCoincidente texto={producto.nombre_generico || 'No registrado'} busqueda={busqueda} /></strong></span>
+        {producto.concentracion && <span className="pos-product-attribute"><span>Concentración</span><strong><TextoCoincidente texto={producto.concentracion} busqueda={busqueda} /></strong></span>}
+        <span className="pos-product-attribute"><span>Presentación</span><strong><TextoCoincidente texto={producto.presentacion || 'No registrada'} busqueda={busqueda} /></strong></span>
+        <span className="pos-product-attribute"><span>Existencias</span><strong>{producto.stock_disponible ?? 'Sin datos'}</strong></span>
+        <span className="pos-product-attribute"><span>Código</span><strong><TextoCoincidente texto={producto.codigo || 'No registrado'} busqueda={busqueda} /></strong></span>
+      </div>
+      {(promocion || esCoincidenciaAproximada) && <div className="pos-product-tags">
         {promocion && (
           <span className="pos-tag pos-tag--promo">
             Promo desde {promocion.cantidad_minima} unidades · hasta {formatearFecha(promocion.fecha_fin)}
           </span>
         )}
-        <span className="pos-tag pos-tag--accent">
-          Existencias: {producto.stock_disponible}
-        </span>
-        <span className="pos-tag pos-tag--neutral">
-          <TextoCoincidente texto={producto.presentacion} busqueda={busqueda} />
-        </span>
         {esCoincidenciaAproximada && (
           <span className="pos-tag pos-tag--warning">
             Coincidencia aproximada
           </span>
         )}
-        <span className="pos-product-code">
-          Código: <TextoCoincidente texto={producto.codigo} busqueda={busqueda} />
-        </span>
-      </div>
+      </div>}
 
       <div className="pos-product-foot">
         <span className="pos-product-instruction">
