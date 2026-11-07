@@ -40,7 +40,6 @@ export default function SeleccionLoteModal({ producto, onClose, onSeleccionar })
         <div className="pos-lot-title-wrap">
           <span className="pos-lot-title-icon" aria-hidden="true"><Layers3 /></span>
           <div className="pos-lot-title-copy">
-            <span>Producto seleccionado</span>
             <h2 id="titulo-seleccion-lote">Seleccionar lote</h2>
             <p>{producto?.nombre_comercial || 'Producto'}</p>
           </div>

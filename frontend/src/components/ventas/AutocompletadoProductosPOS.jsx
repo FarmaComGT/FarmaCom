@@ -59,9 +59,8 @@ export default function AutocompletadoProductosPOS({
     <section className="pos-panel" aria-label="Búsqueda y resultados del catálogo">
       <div className="pos-search-head">
         <div>
-          <span className="pos-section-kicker">Catálogo de la sucursal</span>
           <h2 id="titulo-busqueda-productos">Buscar productos</h2>
-          <p>Busca por nombre, presentación o código para consultar todos sus lotes.</p>
+          <p>Nombre, presentación o código</p>
         </div>
         <button
           type="button"

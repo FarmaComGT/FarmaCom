@@ -23,7 +23,6 @@ export default function ConfirmacionCarritoModal({
       <header className="pos-cart-dialog-head">
         <span aria-hidden="true"><AlertTriangle /></span>
         <div>
-          <p>Confirmación requerida</p>
           <h2 id="titulo-confirmacion-carrito">{titulo}</h2>
         </div>
         <button type="button" onClick={onCancelar} aria-label="Cerrar confirmación">

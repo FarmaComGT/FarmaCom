@@ -90,23 +90,6 @@ export default function CarritosVentaBar({
   return (
     <>
       <section aria-label="Carritos de venta" className="pos-carts">
-        <div className="pos-carts-head">
-          <div>
-            <span className="pos-section-kicker">Ventas simultáneas</span>
-            <h2>Carritos de venta</h2>
-            <p>{carritos.length} {carritos.length === 1 ? 'venta abierta' : 'ventas abiertas'}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onCrear}
-            disabled={bloqueado || Boolean(editandoId)}
-            className="pos-cart-add"
-          >
-            <Plus aria-hidden="true" />
-            Nuevo carrito
-          </button>
-        </div>
-
         <div className="pos-carts-row" role={editandoId ? undefined : 'tablist'} aria-label={editandoId ? undefined : 'Ventas en curso'}>
           {carritos.map((carrito, indice) => {
             const activo = carrito.id === carritoActivoId;
@@ -195,6 +178,15 @@ export default function CarritosVentaBar({
             );
           })}
         </div>
+        <button
+          type="button"
+          onClick={onCrear}
+          disabled={bloqueado || Boolean(editandoId)}
+          className="pos-cart-add"
+        >
+          <Plus aria-hidden="true" />
+          Nuevo carrito
+        </button>
       </section>
 
       <ConfirmacionCarritoModal

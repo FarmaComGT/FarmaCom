@@ -7,7 +7,7 @@ export default function CarritoAccionesCobro({ total, metodoPago, deshabilitado,
   return (
     <footer className="pos-checkout">
       <div className="pos-checkout-total">
-        <span>Monto total</span>
+        <span>Total</span>
         <strong>{formatearQuetzales(total)}</strong>
       </div>
 
@@ -26,7 +26,7 @@ export default function CarritoAccionesCobro({ total, metodoPago, deshabilitado,
         className="pos-submit"
       >
         <ShoppingCart className="h-5 w-5" aria-hidden="true" />
-        Procesar venta
+        Cobrar…
       </button>
     </footer>
   );

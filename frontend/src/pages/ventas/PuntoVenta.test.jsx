@@ -260,7 +260,7 @@ describe('PuntoVenta', () => {
     render(<PuntoVenta />);
 
     expect(screen.getByText('Buscar productos')).toBeInTheDocument();
-    expect(screen.getByText('Detalle del carrito')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Carrito/ })).toBeInTheDocument();
     expect(screen.getByText(/El carrito est. vac.o/)).toBeInTheDocument();
     expect(screen.getByText('Consumidor final')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Efectivo' })).toBeInTheDocument();
@@ -379,7 +379,7 @@ describe('PuntoVenta', () => {
     const user = userEvent.setup();
     render(<PuntoVenta />);
 
-    await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
+    await user.click(screen.getByRole('button', { name: 'Cobrar…' }));
 
     expect(screen.getByText(/Venta con productos pr.ximos a vencer/)).toBeInTheDocument();
 
@@ -403,7 +403,7 @@ describe('PuntoVenta', () => {
     const user = userEvent.setup();
     render(<PuntoVenta />);
 
-    await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
+    await user.click(screen.getByRole('button', { name: 'Cobrar…' }));
 
     expect(screen.getByText(
       'Selecciona una caja con un turno abierto antes de procesar la venta.',
@@ -416,7 +416,7 @@ describe('PuntoVenta', () => {
     const user = userEvent.setup();
     render(<PuntoVenta />);
 
-    await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
+    await user.click(screen.getByRole('button', { name: 'Cobrar…' }));
     await user.clear(screen.getByLabelText('Monto recibido'));
     await user.type(screen.getByLabelText('Monto recibido'), '20');
     await user.click(screen.getByRole('button', { name: 'Confirmar cobro' }));
@@ -456,7 +456,7 @@ describe('PuntoVenta', () => {
     const user = userEvent.setup();
     render(<PuntoVenta />);
 
-    await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
+    await user.click(screen.getByRole('button', { name: 'Cobrar…' }));
     await user.click(screen.getByRole('button', { name: 'Confirmar cobro' }));
 
     await waitFor(() => {
@@ -480,7 +480,7 @@ describe('PuntoVenta', () => {
     render(<PuntoVenta />);
 
     await user.click(screen.getByRole('button', { name: 'Tarjeta' }));
-    await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
+    await user.click(screen.getByRole('button', { name: 'Cobrar…' }));
     await user.click(screen.getByRole('button', { name: 'Cobrar con tarjeta' }));
 
     await waitFor(() => {
@@ -507,7 +507,7 @@ describe('PuntoVenta', () => {
     render(<PuntoVenta />);
 
     await user.click(screen.getByRole('button', { name: 'Tarjeta' }));
-    await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
+    await user.click(screen.getByRole('button', { name: 'Cobrar…' }));
     const botonPOS = screen.getByRole('button', { name: 'Cobrar con tarjeta' });
     await user.click(botonPOS);
 
@@ -560,7 +560,7 @@ describe('PuntoVenta', () => {
     render(<PuntoVenta />);
 
     await user.click(screen.getByRole('button', { name: 'Tarjeta' }));
-    await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
+    await user.click(screen.getByRole('button', { name: 'Cobrar…' }));
     await user.click(screen.getByRole('button', { name: 'Cobrar con tarjeta' }));
 
     await waitFor(() => {
@@ -585,7 +585,7 @@ describe('PuntoVenta', () => {
     render(<PuntoVenta />);
 
     await user.click(screen.getByRole('button', { name: 'Tarjeta' }));
-    await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
+    await user.click(screen.getByRole('button', { name: 'Cobrar…' }));
     await user.click(screen.getByRole('button', { name: 'Cobrar con tarjeta' }));
 
     expect(await screen.findByText(/El pago no se completó/)).toBeInTheDocument();
@@ -600,7 +600,7 @@ describe('PuntoVenta', () => {
     render(<PuntoVenta />);
 
     await user.click(screen.getByRole('button', { name: 'Tarjeta' }));
-    await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
+    await user.click(screen.getByRole('button', { name: 'Cobrar…' }));
     await user.click(screen.getByRole('button', { name: 'Cobrar con tarjeta' }));
 
     expect(await screen.findByText(/El dispositivo no está listo para cobrar/)).toBeInTheDocument();

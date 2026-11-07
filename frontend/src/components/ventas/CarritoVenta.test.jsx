@@ -51,7 +51,7 @@ describe('CarritoVenta', () => {
 
     expect(screen.getByText('El carrito está vacío')).toBeInTheDocument();
     expect(screen.getByText('0 artículos')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Procesar venta' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cobrar…' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Vaciar' })).not.toBeInTheDocument();
   });
 
@@ -65,7 +65,7 @@ describe('CarritoVenta', () => {
     expect(screen.getByText('3 artículos')).toBeInTheDocument();
     expect(screen.getByText('Paracetamol')).toBeInTheDocument();
     expect(screen.getByText('Amoxil')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Procesar venta' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Cobrar…' })).toBeEnabled();
   });
 
   it('usa el singular cuando hay un solo artículo', () => {
@@ -119,7 +119,7 @@ describe('CarritoVenta', () => {
     await user.click(screen.getByRole('button', { name: 'Eliminar Paracetamol' }));
     expect(callbacks.onEliminar).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Quitar producto' }));
-    await user.click(screen.getByRole('button', { name: 'Procesar venta' }));
+    await user.click(screen.getByRole('button', { name: 'Cobrar…' }));
 
     expect(callbacks.onIncrementar).toHaveBeenCalledWith(producto);
     expect(callbacks.onDisminuir).toHaveBeenCalledWith(producto);

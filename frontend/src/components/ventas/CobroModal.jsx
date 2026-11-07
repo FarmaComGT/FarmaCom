@@ -89,7 +89,6 @@ export default function CobroModal({
         <div className="pos-checkout-dialog-title">
           <span aria-hidden="true"><ReceiptText /></span>
           <div>
-            <p>Finalizar venta</p>
             <h2 id="titulo-cobro-venta">Cobro de venta</h2>
             <span id="descripcion-cobro-venta">
               {items.length} {items.length === 1 ? 'artículo' : 'artículos'} · Revisa los datos antes de confirmar
@@ -123,7 +122,6 @@ export default function CobroModal({
           <section className="pos-checkout-payment" aria-labelledby="titulo-datos-pago">
             <div className="pos-checkout-section-head">
               <div>
-                <span>Paso final</span>
                 <h3 id="titulo-datos-pago">Datos del pago</h3>
               </div>
               <p><User aria-hidden="true" />{clienteSeleccionado?.nombre_cliente || 'Consumidor final'}</p>
