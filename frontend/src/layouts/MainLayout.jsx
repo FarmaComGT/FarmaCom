@@ -5,7 +5,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import './Navigation.css';
 import cajaStyles from '../pages/caja/CajaShell.module.css';
 
-const ANCHO_ESCRITORIO = 768;
+const ANCHO_ESCRITORIO = 1100;
 const CLAVE_PREFERENCIA_SIDEBAR = 'farmacom:sidebar-abierta';
 
 const detectarEscritorio = () =>
@@ -36,36 +36,34 @@ export default function MainLayout() {
   ].includes(location.pathname);
   const esCaja = location.pathname === '/caja' || location.pathname.startsWith('/caja/');
   const esGestion = esDetalleLotes || esCatalogoInventario
-    || ['/usuarios', '/sucursales', '/laboratorios', '/ciudades', '/patients'].includes(location.pathname)
+    || ['/dashboard', '/usuarios', '/sucursales', '/laboratorios', '/ciudades', '/patients'].includes(location.pathname)
     || location.pathname.startsWith('/laboratorio/pacientes')
     || location.pathname.startsWith('/ventas/historial')
     || location.pathname.startsWith('/reports');
-  const anchoEscritorio = esInventario || esCaja || esGestion ? 1100 : ANCHO_ESCRITORIO;
-  const [esEscritorio, setEsEscritorio] = useState(() => detectarEscritorio() && window.innerWidth >= anchoEscritorio);
-  const [sidebarAbierta, setSidebarAbierta] = useState(() => window.innerWidth >= anchoEscritorio && obtenerPreferenciaSidebar());
+  const [navegacion, setNavegacion] = useState(() => ({
+    escritorio: detectarEscritorio(),
+    abierta: detectarEscritorio() && obtenerPreferenciaSidebar(),
+  }));
+  const { escritorio: esEscritorio, abierta: sidebarAbierta } = navegacion;
+  const setSidebarAbierta = (abierta) => setNavegacion(actual => ({ ...actual, abierta }));
 
   useEffect(() => {
     const manejarCambioDeTamano = () => {
-      const siguienteEsEscritorio = window.innerWidth >= anchoEscritorio;
-
-      if (siguienteEsEscritorio !== esEscritorio) {
-        setEsEscritorio(siguienteEsEscritorio);
-        setSidebarAbierta(
-          siguienteEsEscritorio ? obtenerPreferenciaSidebar() : false,
-        );
-      }
+      const escritorio = detectarEscritorio();
+      setNavegacion(actual => actual.escritorio === escritorio ? actual : {
+        escritorio,
+        abierta: escritorio && obtenerPreferenciaSidebar(),
+      });
     };
-
     window.addEventListener('resize', manejarCambioDeTamano);
     manejarCambioDeTamano();
     return () => window.removeEventListener('resize', manejarCambioDeTamano);
-  }, [esEscritorio, anchoEscritorio]);
+  }, []);
 
   useEffect(() => {
-    if (!esEscritorio && window.innerWidth < anchoEscritorio) {
-      setSidebarAbierta(false);
-    }
-  }, [esEscritorio, location.pathname, anchoEscritorio]);
+    setNavegacion(actual => actual.escritorio || !actual.abierta
+      ? actual : { ...actual, abierta: false });
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!esEscritorio) {
@@ -91,13 +89,13 @@ export default function MainLayout() {
     const panel = document.getElementById('sidebar-principal');
     const contenido = document.getElementById('contenido-principal');
     if (contenido) contenido.inert = true;
-    panel?.querySelector('button')?.focus();
+    (panel?.querySelector('a[aria-current]') || panel?.querySelector('button'))?.focus();
     const manejarEscape = (event) => {
       if (event.key === 'Escape') {
         setSidebarAbierta(false);
       }
       if (event.key === 'Tab' && panel) {
-        const controles = [...panel.querySelectorAll('a[href], button:not(:disabled)')];
+        const controles = [...panel.querySelectorAll(':is(a[href], button):not(:disabled)')];
         const primero = controles[0];
         const ultimo = controles[controles.length - 1];
         if (event.shiftKey && document.activeElement === primero) {
@@ -141,6 +139,7 @@ export default function MainLayout() {
       
       <Sidebar
         abierta={sidebarAbierta}
+        superpuesta={!esEscritorio}
         onCerrar={cerrarSidebar}
         onNavegar={cerrarSidebarAlNavegar}
       />
@@ -149,6 +148,7 @@ export default function MainLayout() {
         <button
           type="button"
           aria-label="Cerrar menú lateral"
+          tabIndex={-1}
           onClick={() => setSidebarAbierta(false)}
           className="shell-nav-backdrop fixed inset-0 z-30"
         />
@@ -156,11 +156,11 @@ export default function MainLayout() {
       
       <a href="#contenido-principal" className="inventory-skip-link">Saltar al contenido</a>
       <main id="contenido-principal"
-        className={`flex min-w-0 flex-1 flex-col relative z-10 transition-[margin] duration-300 ${
-          sidebarAbierta ? 'md:ml-64' : 'md:ml-0'
+        className={`flex min-w-0 flex-1 flex-col relative z-10 ${
+          sidebarAbierta && esEscritorio ? 'md:ml-64' : 'md:ml-0'
         }`}
       >
-        <TopNav sidebarAbierta={sidebarAbierta} onAbrirSidebar={abrirSidebar} />
+        <TopNav sidebarAbierta={sidebarAbierta} superpuesta={!esEscritorio} onAbrirSidebar={abrirSidebar} />
         <div
           className={`shell-content shell-route-view mx-auto w-full min-w-0 p-4 sm:p-6 lg:p-8 ${esCaja ? cajaStyles.sheet : ''} ${esGestion ? 'management-content' : ''} ${
             sidebarAbierta && esEscritorio ? 'max-w-7xl' : 'max-w-none'

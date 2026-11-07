@@ -1,7 +1,6 @@
 import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import InventarioSubNav from '../../components/inventario/InventarioSubNav.jsx';
 import CategoriaActionBar from '../../components/inventario/categorias/CategoriaActionBar.jsx';
 import CategoriaTable from '../../components/inventario/categorias/CategoriaTable.jsx';
 import CategoriaFormModal from '../../components/inventario/categorias/CategoriaFormModal.jsx';
@@ -118,7 +117,6 @@ export default function Categorias() {
 
   return (
     <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="categorias-title">
-      <InventarioSubNav />
       <header className={styles.heading}>
         <div>
           <h1 id="categorias-title">Categorías</h1>

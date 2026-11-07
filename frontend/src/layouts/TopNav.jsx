@@ -2,39 +2,19 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import NavigationIcon from '../components/navigation/NavigationIcon.jsx';
 import { useAuth } from '../context/AuthContext';
+import { contextoNavegacion } from '../components/navigation/navigation.js';
+import { destinoExistencias } from '../utils/navegacionInventario.js';
+import { destinoPacientes } from '../utils/navegacionPacientes';
+import SucursalTrabajo from '../components/navigation/SucursalTrabajo.jsx';
 
-const CONTEXTOS = [
-  ['/inventario/productos/', 'Inventario', 'Lotes del producto', '/inventario'],
-  ['/inventario/categorias', 'Inventario', 'Categorías', '/inventario'],
-  ['/inventario/proveedores', 'Inventario', 'Proveedores', '/inventario'],
-  ['/inventario/casas', 'Inventario', 'Casas farmacéuticas', '/inventario'],
-  ['/inventario/promociones', 'Inventario', 'Promociones', '/inventario'],
-  ['/inventario', 'Inventario', 'Existencias', null],
-  ['/ventas/historial/productos', 'Ventas', 'Productos vendidos', '/ventas/historial'],
-  ['/ventas/historial', 'Ventas', 'Historial', null],
-  ['/caja/historial', 'Caja', 'Historial', '/caja'],
-  ['/caja/administracion', 'Caja', 'Administración', '/caja'],
-  ['/caja', 'Caja', 'Operación', null],
-  ['/pos', 'Ventas', 'Punto de venta', null],
-  ['/laboratorio/pacientes/', 'Laboratorio', 'Expediente', '/laboratorio/pacientes'],
-  ['/laboratorio', 'Laboratorio', 'Pacientes', null],
-  ['/reports/rentabilidad', 'Reportes', 'Rentabilidad', '/reports'],
-  ['/reports/resumen-diario', 'Reportes', 'Resumen diario', '/reports'],
-  ['/reports', 'Reportes', 'Ventas', null],
-  ['/patients', 'Clientes', null, null],
-  ['/sucursales', 'Ubicaciones', 'Sucursales', null],
-  ['/laboratorios', 'Ubicaciones', 'Laboratorios', null],
-  ['/ciudades', 'Ubicaciones', 'Ciudades', null],
-  ['/usuarios', 'Administración', 'Usuarios', null],
-  ['/support', 'Ayuda', null, null],
-  ['/dashboard', 'Inicio', null, null],
-];
 const roles = { dueno: 'Propietario', administrador: 'Administrador', dependiente: 'Dependiente', laboratorista: 'Laboratorista' };
 
-export default function TopNav({ sidebarAbierta, onAbrirSidebar }) {
-  const { usuario } = useAuth();
-  const { pathname } = useLocation();
-  const [, area, pagina, destino] = CONTEXTOS.find(([ruta]) => pathname.startsWith(ruta)) || ['', 'FarmaCom', null, null];
+export default function TopNav({ sidebarAbierta, superpuesta = false, onAbrirSidebar }) {
+  const { usuario, sucursalActivaId } = useAuth();
+  const { pathname, search, state } = useLocation();
+  const { area, pagina, destino } = contextoNavegacion(pathname);
+  const esDetalleLotes = /^\/inventario\/productos\/[^/]+\/lotes$/.test(pathname);
+  const regreso = esDetalleLotes ? destinoExistencias(new URLSearchParams(search)) : /^\/laboratorio\/pacientes\/[^/]+\/?$/.test(pathname) ? destinoPacientes(new URLSearchParams(search)) : destino;
   const nombre = usuario?.nombre_usuario || 'Usuario FarmaCom';
   const iniciales = nombre.split(' ').filter(Boolean).slice(0,2).map(parte => parte[0]).join('').toLocaleUpperCase('es-GT');
   const fecha = new Date();
@@ -44,12 +24,17 @@ export default function TopNav({ sidebarAbierta, onAbrirSidebar }) {
 
   return <header className="shell-topbar">
     <div className="shell-topbar-location">
-      {!sidebarAbierta && <button type="button" className="shell-icon-button" onClick={onAbrirSidebar} aria-controls="sidebar-principal" aria-expanded="false" aria-label="Mostrar menú lateral"><NavigationIcon name="expand" /></button>}
+      {!sidebarAbierta && <button type="button" className="shell-icon-button" onClick={onAbrirSidebar} aria-controls="sidebar-principal" aria-expanded="false" aria-label="Mostrar menú lateral"><NavigationIcon name={superpuesta ? 'menu' : 'expand'} /></button>}
+      <div className="shell-topbar-context">
       <nav className="shell-breadcrumbs" aria-label="Ubicación actual">
-        <ol><li>{destino ? <Link to={destino}>{area}</Link> : <span>{area}</span>}</li>
-          {pagina && <li aria-current="page"><span className="shell-breadcrumb-separator" aria-hidden="true">/</span><span>{pagina}</span></li>}
+        <ol><li>{regreso ? <Link to={regreso} state={esDetalleLotes ? { entradaInventario: state?.entradaInventario } : { entradaListado: state?.entradaListado }}>{area}</Link> : <span>{area}</span>}</li>
+          {pagina && <li aria-current="page"><span className="shell-breadcrumb-separator" aria-hidden="true">/</span><span title={pagina}>{pagina}</span></li>}
         </ol>
       </nav>
+      {usuario?.rol === 'laboratorista'
+        ? <p className="shell-workspace">Trabajo: {usuario.id_laboratorio ? `Laboratorio ${usuario.id_laboratorio}` : 'Laboratorio'}</p>
+        : <SucursalTrabajo idSucursal={usuario?.rol === 'dependiente' ? usuario.id_sucursal : sucursalActivaId} />}
+      </div>
     </div>
     <div className="shell-topbar-session">
       <time dateTime={fechaISO} title={fechaCompleta}>{fechaCorta}</time>

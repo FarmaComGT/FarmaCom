@@ -26,7 +26,6 @@ export default function HistorialVentasLayout() {
 
   return (
     <section aria-labelledby="titulo-historial-ventas" className={`${ui.page} ${ui.locationPage}`}>
-      <HistorialVentasNav />
       <header className={ui.heading}>
         <div>
           <h1 id="titulo-historial-ventas">Historial de ventas</h1>
@@ -34,6 +33,7 @@ export default function HistorialVentasLayout() {
         </div>
       </header>
 
+      <HistorialVentasNav />
       <div className={styles.content}>
         <HistorialVentasFiltros
           filtros={filtros.filtrosEdicion}

@@ -1,4 +1,0 @@
-.nav { display: flex; gap: 24px; border-bottom: 1px solid var(--cash-line); overflow-x: auto; padding: 3px 2px 0; }
-.link { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 0 12px; border-bottom: 2px solid transparent; color: var(--cash-muted); font-size: 13px; }
-.link[aria-current="page"] { border-bottom-color: var(--cash-accent); color: var(--cash-ink); font-weight: 600; }
-.link:hover { color: var(--cash-accent); }

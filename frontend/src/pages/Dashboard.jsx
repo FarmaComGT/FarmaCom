@@ -1,35 +1,45 @@
-import React, { useEffect, useMemo } from 'react';
-import { ArrowRight, Boxes, Building2, CalendarDays, FlaskConical, HelpCircle, ReceiptText, ShoppingCart, Users } from 'lucide-react';
+﻿import React, { useEffect } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import styles from '../styles/HomeSupport.module.css';
+import styles from '../styles/Dashboard.module.css';
 
-const ACCESOS = [
-  { roles: ['dueno', 'administrador', 'dependiente'], to: '/pos', title: 'Punto de venta', text: 'Inicia una venta, selecciona lotes y registra el cobro.', icon: ShoppingCart },
-  { roles: ['dueno', 'administrador', 'dependiente'], to: '/inventario', title: 'Inventario', text: 'Consulta existencias, vencimientos y lotes por sucursal.', icon: Boxes },
-  { roles: ['dueno', 'administrador', 'dependiente'], to: '/patients', title: 'Clientes', text: 'Busca clientes y revisa su historial de compras.', icon: Users },
-  { roles: ['dueno', 'administrador'], to: '/ventas/historial', title: 'Historial de ventas', text: 'Revisa ventas, responsables, detalles y anulaciones.', icon: ReceiptText },
-  { roles: ['dueno', 'administrador'], to: '/sucursales', title: 'Sucursales', text: 'Administra ubicaciones y sus datos de contacto.', icon: Building2 },
-  { roles: ['dueno', 'administrador', 'laboratorista'], to: '/laboratorio/pacientes', title: 'Laboratorio', text: 'Gestiona pacientes, expedientes y resultados.', icon: FlaskConical },
+const farmacia = [
+  { to: '/pos', title: 'Punto de venta', text: 'Preparar una venta y registrar el cobro.' },
+  { to: '/caja', title: 'Caja', text: 'Abrir un turno, registrar movimientos o cerrar caja.' },
+  { to: '/inventario', title: 'Existencias', text: 'Consultar productos, lotes y vencimientos.' },
 ];
-const etiquetasRol = { dueno: 'Dueño', administrador: 'Administrador', dependiente: 'Dependiente', laboratorista: 'Laboratorista' };
+const laboratorio = { to: '/laboratorio/pacientes', title: 'Pacientes', text: 'Consultar expedientes y cargar resultados de laboratorio.' };
+const roles = { dueno: 'Propietario', administrador: 'Administrador', dependiente: 'Dependiente', laboratorista: 'Laboratorista' };
 
 export default function Dashboard() {
   const { usuario } = useAuth();
-  const accesos = useMemo(() => ACCESOS.filter(({ roles }) => roles.includes(usuario?.rol)), [usuario?.rol]);
   useEffect(() => { document.title = 'Inicio · FarmaCom'; }, []);
-  const hoy = new Intl.DateTimeFormat('es-GT', { dateStyle: 'full', timeZone: 'America/Guatemala' }).format(new Date());
+  const esLaboratorio = usuario?.rol === 'laboratorista';
+  const esFarmacia = ['dueno', 'administrador', 'dependiente'].includes(usuario?.rol);
+  const tareas = esLaboratorio ? [laboratorio] : esFarmacia ? farmacia : [];
+  const consultas = esFarmacia ? [
+    { to: '/patients', title: 'Clientes', text: 'Datos fiscales, contactos e historial de compras.' },
+    ...(['dueno', 'administrador'].includes(usuario?.rol) ? [
+      { to: '/ventas/historial', title: 'Historial de ventas', text: 'Revisar ventas y sus detalles.' }, laboratorio,
+    ] : []),
+  ] : [];
+  const fila = ({ to, title, text }) => <Link key={to} to={to} className={styles.row}>
+    <span><strong>{title}</strong><span>{text}</span></span><ArrowRight size={18} aria-hidden="true" />
+  </Link>;
   return <section className={styles.page} aria-labelledby="inicio-title">
-    <header className={styles.hero}>
-      <p className={styles.eyebrow}>Centro de trabajo</p><h1 id="inicio-title">Hola, {usuario?.nombre_usuario || 'equipo'}.</h1>
-      <p className={`${styles.heroText} ${styles.dashboardHeroText}`}>Accede a las tareas disponibles para tu rol y continúa la operación de la farmacia desde un solo lugar.</p>
-      <div className={styles.meta}><span className={styles.pill}><Users size={15} aria-hidden="true" />{etiquetasRol[usuario?.rol] || usuario?.rol}</span><span className={styles.pill}><CalendarDays size={15} aria-hidden="true" />{hoy}</span></div>
+    <header className={styles.heading}>
+      <h1 id="inicio-title">Inicio</h1>
+      <p><span className={styles.name}>{usuario?.nombre_usuario || 'Equipo FarmaCom'}</span> · {roles[usuario?.rol] || 'Usuario'}</p>
     </header>
-    <section className={styles.section} aria-labelledby="accesos-title">
-      <div className={styles.sectionHeading}><div><h2 id="accesos-title">Accesos rápidos</h2><p>Opciones habilitadas para tu cuenta.</p></div></div>
-      <div className={styles.grid}>{accesos.map(({ to, title, text, icon: Icon }) => <Link key={to} to={to} className={styles.card}><span className={styles.icon}><Icon size={20} aria-hidden="true" /></span><h3>{title}</h3><p>{text}</p><span className={styles.cardAction}>Abrir <ArrowRight size={15} aria-hidden="true" /></span></Link>)}
-        <Link to="/support" className={styles.card}><span className={styles.icon}><HelpCircle size={20} aria-hidden="true" /></span><h3>Ayuda</h3><p>Consulta guías breves de los procesos principales.</p><span className={styles.cardAction}>Consultar <ArrowRight size={15} aria-hidden="true" /></span></Link>
-      </div>
+    <section aria-labelledby="trabajo-title" className={styles.tasks}>
+      <h2 id="trabajo-title">{esLaboratorio ? 'Trabajo de laboratorio' : 'Trabajo de farmacia'}</h2>
+      {tareas.map(fila)}
+      {!tareas.length && <p>No hay tareas disponibles para esta cuenta. Consulta con tu administrador.</p>}
     </section>
+    {consultas.length > 0 && <section aria-labelledby="consultas-title" className={styles.secondary}>
+      <h2 id="consultas-title">Consultas frecuentes</h2>{consultas.map(fila)}
+    </section>}
+    <footer className={styles.footer}><Link to="/support">Consultar ayuda</Link><span>Guías de los procesos de FarmaCom.</span></footer>
   </section>;
 }

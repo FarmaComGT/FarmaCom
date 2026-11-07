@@ -1,7 +1,8 @@
 import { useToast } from '../../context/ToastContext.jsx';
 import React, { useEffect, useMemo } from 'react';
 import { ArrowLeft, PackagePlus, RotateCcw } from 'lucide-react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { destinoExistencias } from '../../utils/navegacionInventario.js';
 import ContentState from '../../components/ui/ContentState.jsx';
 import LoteDeleteModal from '../../components/inventario/stock/LoteDeleteModal.jsx';
 import LoteFormModal from '../../components/inventario/stock/LoteFormModal.jsx';
@@ -20,6 +21,9 @@ export default function LotesProducto() {
   const { productoId } = useParams();
   const { sucursalActivaId, usuario } = useAuth();
   const [params, setParams] = useSearchParams();
+  const location = useLocation();
+  const regreso = destinoExistencias(params);
+  const estadoRegreso = { entradaInventario: location.state?.entradaInventario };
   const sucursalId = usuario?.rol === 'dependiente'
     ? String(usuario.id_sucursal || '')
     : params.get('sucursal') || String(sucursalActivaId || '');
@@ -76,7 +80,7 @@ export default function LotesProducto() {
   if (!producto) {
     return (
       <section className={styles.page} aria-labelledby="lotes-no-encontrado-title">
-        <Link to="/inventario" className={styles.backLink}><ArrowLeft size={15} aria-hidden="true" /> Volver al inventario</Link>
+        <Link to={regreso} state={estadoRegreso} className={styles.backLink}><ArrowLeft size={15} aria-hidden="true" /> Volver a existencias</Link>
         <h1 id="lotes-no-encontrado-title" className={styles.visuallyHidden}>Lotes del producto</h1>
         <ContentState
           variant="error"
@@ -89,7 +93,7 @@ export default function LotesProducto() {
 
   return (
     <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="lotes-producto-title">
-      <Link to="/inventario" className={styles.backLink}><ArrowLeft size={15} aria-hidden="true" /> Volver al inventario</Link>
+      <Link to={regreso} state={estadoRegreso} className={styles.backLink}><ArrowLeft size={15} aria-hidden="true" /> Volver a existencias</Link>
 
       <header className={styles.heading}>
         <div className="min-w-0">
@@ -120,7 +124,7 @@ export default function LotesProducto() {
         <div className={styles.field}>
           <label htmlFor="filtro-stock-lotes">Stock</label>
           <select id="filtro-stock-lotes" aria-label="Estado de stock" value={filtroStock} onChange={(evento) => actualizarFiltro('stock', evento.target.value)} className={styles.input}>
-            <option value="">Todos</option><option value="normal">Con existencias</option><option value="agotado">Agotados</option>
+            <option value="">Todos</option><option value="normal">Con existencias</option><option value="poco_stock">Poco stock</option><option value="agotado">Agotados</option>
           </select>
         </div>
         <div className={styles.field}>

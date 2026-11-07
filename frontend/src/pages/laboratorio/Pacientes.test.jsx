@@ -6,7 +6,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Pacientes from './Pacientes';
 
-const { mockCrear, mockActualizar, mockAnular, mockEliminar } = vi.hoisted(() => ({
+const { mockCrear, mockActualizar, mockAnular, mockEliminar, contexto } = vi.hoisted(() => ({
+  contexto: { usuario: { rol: 'laboratorista', id_laboratorio: 1 }, paginacion: null, laboratorios: [] },
   mockCrear: vi.fn(),
   mockActualizar: vi.fn(),
   mockAnular: vi.fn(),
@@ -14,11 +15,11 @@ const { mockCrear, mockActualizar, mockAnular, mockEliminar } = vi.hoisted(() =>
 }));
 
 vi.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({ usuario: { id_usuario: 12, rol: 'laboratorista', id_laboratorio: 1 } }),
+  useAuth: () => ({ usuario: contexto.usuario }),
 }));
 
 vi.mock('../../hooks/useLaboratorios', () => ({
-  default: () => ({ laboratorios: [], cargando: false, error: null }),
+  default: () => ({ laboratorios: contexto.laboratorios, cargando: false, error: null }),
 }));
 
 vi.mock('../../hooks/usePacientes', () => ({
@@ -37,7 +38,7 @@ vi.mock('../../hooks/usePacientes', () => ({
         edad_manual: null,
       },
     ],
-    paginacion: { pagina: 1, limite: 20, total: 1, total_paginas: 1 },
+    paginacion: contexto.paginacion,
     resumenEstados: { activos: 1, anulados: 0 },
     cargando: false,
     error: null,
@@ -56,6 +57,9 @@ const renderizar = () => render(
 
 describe('Pacientes', () => {
   beforeEach(() => {
+    contexto.usuario = { id_usuario: 12, rol: 'laboratorista', id_laboratorio: 1 };
+    contexto.laboratorios = [];
+    contexto.paginacion = { pagina: 1, limite: 20, total: 1, total_paginas: 1 };
     mockCrear.mockReset();
     mockActualizar.mockReset();
     mockAnular.mockReset();
@@ -90,6 +94,21 @@ describe('Pacientes', () => {
 
     expect(iniciarTransicion).toHaveBeenCalledOnce();
     expect(screen.getByRole('button', { name: /Activos/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('permite la carga inicial sin paginación resuelta', () => {
+    contexto.paginacion = null;
+    renderizar();
+    expect(screen.getByRole('heading', { name: 'Pacientes' })).toBeVisible();
+  });
+
+  it('conserva consulta y laboratorio en el enlace al expediente', async () => {
+    contexto.usuario = { rol: 'administrador' };
+    contexto.laboratorios = [{ id_laboratorio: 1, nombre_laboratorio: 'Central' }, { id_laboratorio: 2, nombre_laboratorio: 'Norte' }];
+    render(<ToastProvider><MemoryRouter initialEntries={['/laboratorio/pacientes?q=Ana&laboratorio=2&estado=activo']}><Pacientes /></MemoryRouter></ToastProvider>);
+    expect(screen.getByRole('combobox', { name: 'Laboratorio' })).toHaveValue('2');
+    const enlace = new URL(screen.getByRole('link', { name: 'Ana López' }).href);
+    expect(enlace.searchParams.get('regreso')).toBe('/laboratorio/pacientes?q=Ana&laboratorio=2&estado=activo');
   });
 
   it('crea un paciente desde el formulario', async () => {

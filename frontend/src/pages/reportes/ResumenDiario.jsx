@@ -46,7 +46,7 @@ export default function ResumenDiario() {
     Object.entries(cambios).forEach(([k, v]) => v == null ? nuevos.delete(k) : nuevos.set(k, String(v)));
     return `?${nuevos}`;
   };
-  React.useEffect(() => { document.title = 'Resumen diario · FarmaCom'; }, []);
+  React.useEffect(() => { document.title = 'Envío de resumen · FarmaCom'; }, []);
   React.useEffect(() => {
     if (detalle) document.getElementById('titulo-detalle-envio')?.focus();
     else if (detalleAnterior.current) {

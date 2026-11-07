@@ -3,6 +3,7 @@ import React from 'react';
 // FarmaCom's navigation symbols: a shared 24-unit grid, open corners and 1.5-unit strokes.
 // They describe the pharmacy's objects rather than shopping or generic app categories.
 const dibujos = {
+  menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   overview: <><path d="M4 18V6h16M4 18h16V9" /><path d="M8 14V9m4 5v-3m4 3V7M8 18v2m8-2v2" /></>,
   inventory: <><path d="M4 4v16m16-16v16M4 11h16M4 19h16M7 11V6h4v5m3 0V4h3v7M7 19v-5h3v5m3 0v-4h4v4" /></>,
   dispensing: <><path d="M3 13h18M5 13v7h14v-7M8 17h8M6 10V5h5v5m3 0V3h4v7" /><path d="M8 7h1m7-2v3m-1-1h2" /></>,

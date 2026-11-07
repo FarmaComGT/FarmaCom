@@ -4,7 +4,6 @@ import { LoaderCircle, Pencil, PlusCircle, Search, Trash2, X } from 'lucide-reac
 import { useSearchParams } from 'react-router-dom';
 import AccessibleDialog from '../components/ui/AccessibleDialog.jsx';
 import SucursalAlert from '../components/sucursales/SucursalAlert.jsx';
-import SucursalesSubNav from '../components/sucursales/SucursalesSubNav.jsx';
 import useCiudades from '../hooks/useCiudades';
 import usePaginacionURL, { leerPaginacionURL } from '../hooks/usePaginacionURL';
 import Paginacion from '../components/ui/Paginacion.jsx';
@@ -197,7 +196,6 @@ export default function Ciudades() {
 
   return (
     <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="ciudades-title">
-      <SucursalesSubNav />
 
       <header className={styles.heading}>
         <div>

@@ -6,7 +6,6 @@ import LaboratorioFormModal from '../components/laboratorios/LaboratorioFormModa
 import LaboratorioStatsBanner from '../components/laboratorios/LaboratorioStatsBanner.jsx';
 import LaboratorioTable from '../components/laboratorios/LaboratorioTable.jsx';
 import SucursalAlert from '../components/sucursales/SucursalAlert.jsx';
-import SucursalesSubNav from '../components/sucursales/SucursalesSubNav.jsx';
 import useCiudades from '../hooks/useCiudades';
 import useLaboratorios from '../hooks/useLaboratorios';
 import usePaginacionURL, { leerPaginacionURL } from '../hooks/usePaginacionURL';
@@ -34,7 +33,7 @@ export default function Laboratorios() {
   const [errorFormulario, setErrorFormulario] = useState(null);
 
   useEffect(() => {
-    document.title = 'Laboratorios · FarmaCom';
+    document.title = 'Sedes de laboratorio · FarmaCom';
   }, []);
 
   const actualizarBusqueda = (valor) => {
@@ -127,11 +126,10 @@ export default function Laboratorios() {
 
   return (
     <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="laboratorios-title">
-      <SucursalesSubNav />
 
       <header className={styles.heading}>
         <div>
-          <h1 id="laboratorios-title">Laboratorios</h1>
+          <h1 id="laboratorios-title">Sedes de laboratorio</h1>
           <p>Administra las ubicaciones donde se atienden pacientes.</p>
         </div>
       </header>

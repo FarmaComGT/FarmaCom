@@ -6,39 +6,17 @@ import { logout } from '../api/auth';
 import { useAuth, AUTH_ACTIONS } from '../context/AuthContext';
 import { navegarConTransicionDeVista } from '../utils/viewTransition';
 
-const farmacia = ['dueno', 'administrador', 'dependiente'];
-const gestion = ['dueno', 'administrador'];
-const inventario = [
-  { label: 'Existencias', path: '/inventario' },
-  { label: 'Categorías', path: '/inventario/categorias' },
-  { label: 'Proveedores', path: '/inventario/proveedores' },
-  { label: 'Casas farmacéuticas', path: '/inventario/casas' },
-  { label: 'Promociones', path: '/inventario/promociones', roles: gestion },
-];
-const ubicaciones = [
-  { label: 'Sucursales', path: '/sucursales' },
-  { label: 'Laboratorios', path: '/laboratorios' },
-  { label: 'Ciudades', path: '/ciudades' },
-];
-const operaciones = [
-  { icon: 'dispensing', label: 'Punto de venta', path: '/pos', roles: farmacia },
-  { icon: 'cash', label: 'Caja', path: '/caja', roles: farmacia },
-  { icon: 'customer', label: 'Clientes', path: '/patients', roles: farmacia },
-  { icon: 'laboratory', label: 'Laboratorio', path: '/laboratorio/pacientes', roles: ['dueno', 'administrador', 'laboratorista'] },
-];
-const administracion = [
-  { icon: 'reports', label: 'Reportes', path: '/reports', roles: gestion },
-  { icon: 'history', label: 'Historial de ventas', path: '/ventas/historial', roles: gestion },
-  { icon: 'team', label: 'Usuarios', path: '/usuarios', roles: gestion },
-];
+import { NAVEGACION, INICIO, AYUDA, contextoNavegacion } from '../components/navigation/navigation.js';
 
-function NavigationLink({ icon, label, path, nested = false }) {
+function NavigationLink({ icon, label, path, excluir = [], nested = false }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const esDetalleDeExistencias = path === '/inventario' && /^\/inventario\/productos\/[^/]+\/lotes$/.test(pathname);
 
   return <NavLink
     to={path}
-    end={path === '/inventario'}
+    end={((path === '/inventario' && !esDetalleDeExistencias) || path === '/caja') || excluir.some(ruta => pathname === ruta || pathname.startsWith(`${ruta}/`))}
+    aria-current={esDetalleDeExistencias ? 'location' : 'page'}
     className={`shell-nav-link ${nested ? 'shell-nav-nested' : ''}`}
     onClick={(event) => navegarConTransicionDeVista({
       event,
@@ -61,20 +39,21 @@ function NavigationGroup({ label, icon, open, onToggle, children, id, active }) 
   </div>;
 }
 
-export default function Sidebar({ abierta, onCerrar, onNavegar }) {
+export default function Sidebar({ abierta, superpuesta = false, onCerrar, onNavegar }) {
   const toast = useToast();
   const avisoSesion = useRef(null);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { dispatch, usuario } = useAuth();
-  const inventarioActivo = pathname.startsWith('/inventario');
-  const ubicacionesActivas = ['/sucursales', '/laboratorios', '/ciudades'].some(ruta => pathname.startsWith(ruta));
-  const [inventarioAbierto, setInventarioAbierto] = useState(inventarioActivo);
-  const [ubicacionesAbiertas, setUbicacionesAbiertas] = useState(ubicacionesActivas);
+  const grupoActual = contextoNavegacion(pathname).grupo;
+  const [gruposAbiertos, setGruposAbiertos] = useState(() => ({ [grupoActual]: true }));
   const [cerrando, setCerrando] = useState(false);
-  useEffect(() => { if (inventarioActivo) setInventarioAbierto(true); }, [inventarioActivo]);
-  useEffect(() => { if (ubicacionesActivas) setUbicacionesAbiertas(true); }, [ubicacionesActivas]);
+  useEffect(() => {
+    if (grupoActual && abierta) setGruposAbiertos(actuales => ({ ...actuales, [grupoActual]: true }));
+  }, [grupoActual, pathname, abierta]);
   const visible = (item) => !item.roles || item.roles.includes(usuario?.rol);
+  const secciones = NAVEGACION.map(seccion => ({ ...seccion, items: seccion.items.filter(visible) }))
+    .filter(seccion => seccion.items.length > 0);
   const handleLogout = async () => {
     toast.cerrar(avisoSesion.current);
     setCerrando(true);
@@ -93,30 +72,30 @@ export default function Sidebar({ abierta, onCerrar, onNavegar }) {
   };
 
   return <aside id="sidebar-principal" className={`shell-sidebar ${abierta ? 'is-open' : ''}`} aria-label="Navegación principal" aria-hidden={!abierta}
-    onClick={(event) => { if (event.target.closest('a')) onNavegar(); }}>
+    role={superpuesta && abierta ? 'dialog' : undefined} aria-modal={superpuesta && abierta ? true : undefined}
+    onClick={(event) => {
+      if (event.target.closest('a') && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onNavegar();
+    }}>
     <div className="shell-sidebar-heading">
       <div className="shell-wordmark" translate="no"><div><strong>FarmaCom</strong><span>Farmacia San Gabriel</span></div></div>
       <button type="button" className="shell-icon-button shell-close-sidebar" onClick={onCerrar} aria-label="Cerrar menú lateral" aria-controls="sidebar-principal" aria-expanded="true"><NavigationIcon name="collapse" /></button>
     </div>
     <nav className="shell-navigation" aria-label="Módulos de FarmaCom">
-      <NavigationLink icon="overview" label="Inicio" path="/dashboard" />
-      <div className="shell-nav-section">
-        <p className="shell-nav-section-label">Operación</p>
-        {farmacia.includes(usuario?.rol) && <NavigationGroup label="Inventario" icon="inventory" open={inventarioAbierto} onToggle={() => setInventarioAbierto(v => !v)} id="navegacion-inventario" active={inventarioActivo}>
-          {inventario.filter(visible).map(item => <NavigationLink key={item.path} {...item} nested />)}
-        </NavigationGroup>}
-        {operaciones.filter(visible).map(item => <NavigationLink key={item.path} {...item} />)}
-      </div>
-      {gestion.includes(usuario?.rol) && <div className="shell-nav-section">
-        <p className="shell-nav-section-label">Administración</p>
-        {administracion.filter(visible).map(item => <NavigationLink key={item.path} {...item} />)}
-        <NavigationGroup label="Ubicaciones" icon="locations" open={ubicacionesAbiertas} onToggle={() => setUbicacionesAbiertas(v => !v)} id="navegacion-ubicaciones" active={ubicacionesActivas}>
-          {ubicaciones.map(item => <NavigationLink key={item.path} {...item} nested />)}
-        </NavigationGroup>
-      </div>}
+      <NavigationLink {...INICIO} />
+      {secciones.map(seccion => <div className="shell-nav-section" key={seccion.label}>
+        <p className="shell-nav-section-label">{seccion.label}</p>
+        {seccion.items.map(item => item.children
+          ? <NavigationGroup key={item.id} label={item.label} icon={item.icon}
+              open={Boolean(gruposAbiertos[item.id])}
+              onToggle={() => setGruposAbiertos(actuales => ({ ...actuales, [item.id]: !actuales[item.id] }))}
+              id={`navegacion-${item.id}`} active={grupoActual === item.id}>
+              {item.children.filter(visible).map(hijo => <NavigationLink key={hijo.path} {...hijo} nested />)}
+            </NavigationGroup>
+          : <NavigationLink key={item.path} {...item} />)}
+      </div>)}
     </nav>
     <div className="shell-sidebar-footer">
-      <NavigationLink icon="help" label="Ayuda" path="/support" />
+      <NavigationLink {...AYUDA} />
       <button type="button" className="shell-nav-link shell-logout" onClick={handleLogout} disabled={cerrando}>
         <NavigationIcon name={cerrando ? 'loading' : 'exit'} className={cerrando ? 'shell-loading' : ''} /><span>Cerrar sesión{cerrando ? '…' : ''}</span>
       </button>

@@ -5,7 +5,6 @@ import { useSearchParams } from 'react-router-dom';
 import ui from '../../components/caja/CajaUI.module.css';
 import useAvisoCambiosCaja, { confirmarDescartarCambiosCaja } from '../../hooks/useAvisoCambiosCaja';
 import CajaFormModal from '../../components/caja/CajaFormModal';
-import CajaSubNav from '../../components/caja/CajaSubNav';
 import CajaTable from '../../components/caja/CajaTable';
 import { useAuth } from '../../context/AuthContext';
 import useAdministracionCajas from '../../hooks/useAdministracionCajas';
@@ -99,7 +98,6 @@ export default function AdministracionCajas() {
         <div><h1>Administración de cajas</h1><p>Cajas y disponibilidad por sucursal.</p></div>
         <button type="button" onClick={abrirCreacion} className={`${ui.button} ${ui.primary}`}><Plus size={16} aria-hidden="true" />Nueva caja</button>
       </header>
-      <CajaSubNav rol={usuario?.rol} />
       <div className={ui.toolbar}>
         <label className={ui.search}><Search size={16} aria-hidden="true" /><input type="search" name="buscar_caja" autoComplete="off" aria-label="Buscar cajas" placeholder="Buscar por caja o sucursal…" value={busqueda} onChange={(evento) => actualizarVista({q: evento.target.value}, true)} /></label>
         {!cargando && !error && <p className={ui.count} aria-live="polite">{paginacion?.total ?? 0} cajas encontradas</p>}

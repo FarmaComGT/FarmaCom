@@ -73,7 +73,7 @@ describe('layout del historial de ventas', () => {
 
     expect(screen.getByText('Vista de resumen por producto')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Resumen por producto' })).toHaveAttribute('aria-current', 'page');
-    expect(iniciarTransicion).toHaveBeenCalledOnce();
+    expect(iniciarTransicion).not.toHaveBeenCalled();
   });
 
   it('consulta con la sucursal y el rango elegidos', async () => {

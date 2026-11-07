@@ -18,9 +18,7 @@ export const ejecutarTransicionDeVista = (actualizar) => {
     return null;
   }
 
-  return document.startViewTransition(() => {
-    flushSync(actualizar);
-  });
+  return document.startViewTransition(() => { flushSync(actualizar); });
 };
 
 export const navegarConTransicionDeVista = ({
@@ -29,20 +27,7 @@ export const navegarConTransicionDeVista = ({
   destino,
   rutaActual,
 }) => {
-  const esClicPrincipal = event.button === 0
-    && !event.metaKey
-    && !event.ctrlKey
-    && !event.shiftKey
-    && !event.altKey;
-
-  if (
-    event.defaultPrevented
-    || !esClicPrincipal
-    || rutaActual === destino
-    || !puedeUsarTransicionesDeVista()
-  ) return false;
-
-  event.preventDefault();
-  ejecutarTransicionDeVista(() => navigate(destino));
-  return true;
+  // Los cambios de destino son inmediatos; las transiciones se reservan
+  // para selecciones locales mediante ejecutarTransicionDeVista.
+  return false;
 };

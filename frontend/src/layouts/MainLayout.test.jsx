@@ -34,6 +34,9 @@ const renderizarLayout = (rutaInicial = '/inventario/productos') =>
             path="/inventario/productos"
             element={<div>Contenido del listado de productos</div>}
           />
+          <Route path="/inventario" element={<div>Existencias de prueba</div>} />
+          <Route path="/pos" element={<div>Venta de prueba</div>} />
+          <Route path="/support" element={<div>Ayuda de prueba</div>} />
           <Route path="/dashboard" element={<div>Contenido del dashboard</div>} />
           <Route path="/caja" element={<div>Contenido de caja</div>} />
           <Route path="/usuarios" element={<div>Contenido de usuarios</div>} />
@@ -56,8 +59,29 @@ describe('MainLayout y Sidebar', () => {
     window.localStorage.clear();
     delete document.startViewTransition;
   });
+  it.each(['/dashboard', '/pos', '/inventario', '/caja', '/usuarios', '/support'])('inicia en modo superpuesto en tablet sin importar la ruta %s', (ruta) => {
+    establecerAncho(1024);
+    renderizarLayout(ruta);
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-layout', 'overlay');
+    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
+  });
 
-  it('anima la navegación iniciada desde la barra lateral', async () => {
+  it('conserva la preferencia cerrada al cruzar el umbral en ambas direcciones', async () => {
+    const user = userEvent.setup();
+    renderizarLayout('/dashboard');
+    await user.click(screen.getByRole('button', { name: 'Cerrar menú lateral' }));
+    establecerAncho(1099);
+    fireEvent(window, new Event('resize'));
+    await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }));
+    expect(document.getElementById('contenido-principal').inert).toBe(true);
+    establecerAncho(1100);
+    fireEvent(window, new Event('resize'));
+    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
+    expect(document.getElementById('contenido-principal').inert).toBe(false);
+    expect(window.localStorage.getItem(CLAVE_PREFERENCIA_SIDEBAR)).toBe('false');
+  });
+
+  it('navega de inmediato sin animar el marco de la aplicación', async () => {
     const user = userEvent.setup();
     const iniciarTransicion = vi.fn((actualizar) => {
       actualizar();
@@ -71,7 +95,7 @@ describe('MainLayout y Sidebar', () => {
 
     await user.click(screen.getByRole('link', { name: 'Usuarios' }));
 
-    expect(iniciarTransicion).toHaveBeenCalledOnce();
+    expect(iniciarTransicion).not.toHaveBeenCalled();
     expect(screen.getByText('Contenido de usuarios')).toBeVisible();
   });
 
@@ -138,6 +162,47 @@ describe('MainLayout y Sidebar', () => {
     expect(screen.getByRole('button', { name: 'Mostrar menú lateral' })).toHaveFocus();
   });
 
+  it.each([390, 768, 1024])('mantiene orientación y foco en el menú superpuesto a %s px', async (ancho) => {
+    establecerAncho(ancho);
+    const user = userEvent.setup();
+    renderizarLayout('/inventario/casas');
+    const ubicacion = screen.getByRole('navigation', { name: 'Ubicación actual' });
+    expect(ubicacion).toHaveTextContent('Casas farmacéuticas');
+    await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }));
+    expect(screen.getByRole('dialog', { name: 'Navegación principal' })).toHaveAttribute('aria-modal', 'true');
+    expect(screen.getByRole('link', { name: 'Casas farmacéuticas' })).toHaveFocus();
+    expect(document.getElementById('contenido-principal').inert).toBe(true);
+
+    const cerrar = screen.getAllByRole('button', { name: 'Cerrar menú lateral' })
+      .find(boton => boton.classList.contains('shell-close-sidebar'));
+    cerrar.focus();
+    fireEvent.keyDown(cerrar, { key: 'Tab', shiftKey: true });
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toHaveFocus();
+    fireEvent.keyDown(document.activeElement, { key: 'Tab' });
+    expect(cerrar).toHaveFocus();
+
+    await user.click(screen.getByRole('button', { name: 'Inventario' }));
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('button', { name: 'Mostrar menú lateral' })).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }));
+    expect(screen.getByRole('link', { name: 'Categorías' })).toBeVisible();
+    await user.click(screen.getByRole('link', { name: 'Categorías' }));
+    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
+    expect(document.getElementById('contenido-principal').inert).toBe(false);
+    expect(ubicacion).toHaveTextContent('Categorías');
+    expect(screen.getByRole('button', { name: 'Mostrar menú lateral' })).toHaveFocus();
+  });
+
+  it('conserva abierto el menú con Ctrl+clic en un enlace', async () => {
+    establecerAncho(390);
+    const user = userEvent.setup();
+    renderizarLayout('/inventario/casas');
+    await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Categorías' }), { ctrlKey: true });
+    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'false');
+    expect(screen.getByText('Contenido de casas farmacéuticas')).toBeInTheDocument();
+  });
+
   it('cierra el panel móvil al tocar el fondo o navegar', async () => {
     establecerAncho(390);
     const user = userEvent.setup();
@@ -176,6 +241,9 @@ describe('MainLayout y Sidebar', () => {
 
     establecerAncho(1024);
     fireEvent(window, new Event('resize'));
+    expect(sidebar).toHaveAttribute('aria-hidden', 'true');
+    establecerAncho(1100);
+    fireEvent(window, new Event('resize'));
     expect(sidebar).toHaveAttribute('aria-hidden', 'false');
   });
 
@@ -205,6 +273,7 @@ describe('MainLayout y Sidebar', () => {
   });
 
   it('restaura el menú al pasar de caja a una pantalla con otro punto de quiebre', async () => {
+    window.localStorage.setItem(CLAVE_PREFERENCIA_SIDEBAR, 'true');
     establecerAncho(1024);
     const user = userEvent.setup();
     renderizarLayout('/caja');
@@ -214,7 +283,7 @@ describe('MainLayout y Sidebar', () => {
     await user.click(screen.getByRole('link', { name: 'Inicio' }));
 
     expect(screen.getByText('Contenido del dashboard')).toBeVisible();
-    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'false');
+    expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
     expect(window.localStorage.getItem(CLAVE_PREFERENCIA_SIDEBAR)).toBe('true');
   });
 });
