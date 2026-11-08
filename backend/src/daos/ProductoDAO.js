@@ -7,7 +7,22 @@ const UMBRAL_TRIGRAMAS_BUSQUEDA = '0.1';
 
 class ProductoDAO {
 
-  async crear({ codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion, id_categoria, id_casa, id_proveedor, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo }) {
+  async ejecutarEnTransaccion(operacion) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const resultado = await operacion(client);
+      await client.query('COMMIT');
+      return resultado;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async crear({ codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion, id_categoria, id_casa, id_proveedor, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo }, client = pool) {
     const query = `
       INSERT INTO producto (
         codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion,
@@ -32,7 +47,7 @@ class ProductoDAO {
       aplica_mayoreo               ?? false,
     ];
     
-    const { rows } = await pool.query(query, valores);
+    const { rows } = await client.query(query, valores);
     return rows[0];
   }
 
@@ -223,6 +238,16 @@ class ProductoDAO {
     return rows[0] || null;
   }
 
+  async obtenerFilaPorId(id_producto, client = pool, bloquear = false) {
+    const { rows } = await client.query(
+      `SELECT * FROM producto
+       WHERE id_producto = $1
+       ${bloquear ? 'FOR UPDATE' : ''}`,
+      [id_producto],
+    );
+    return rows[0] || null;
+  }
+
   async obtenerPorCodigo(codigo) {
     const { rows } = await pool.query(
       `SELECT * FROM producto WHERE LOWER(codigo) = LOWER($1)`,
@@ -245,13 +270,15 @@ class ProductoDAO {
     return rows[0] || null;
   }
 
-  async actualizar(id_producto, campos) {
+  async actualizar(id_producto, campos, client = pool) {
     const {
       codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion,
       id_categoria, id_casa, id_proveedor,
       stock_minimo, meses_alerta_vencimiento, aplica_mayoreo,
     } = campos;
     const actualizaConcentracion = Object.prototype.hasOwnProperty.call(campos, 'concentracion');
+    const actualizaDescripcion = Object.prototype.hasOwnProperty.call(campos, 'descripcion');
+    const actualizaProveedor = Object.prototype.hasOwnProperty.call(campos, 'id_proveedor');
 
     const query = `
       UPDATE producto SET
@@ -260,14 +287,14 @@ class ProductoDAO {
         nombre_generico          = COALESCE($3,  nombre_generico),
         concentracion            = CASE WHEN $13 THEN $4 ELSE concentracion END,
         id_presentacion          = COALESCE($5,  id_presentacion),
-        descripcion              = COALESCE($6,  descripcion),
+        descripcion              = CASE WHEN $14 THEN $6 ELSE descripcion END,
         id_categoria             = COALESCE($7,  id_categoria),
         id_casa                  = COALESCE($8,  id_casa),
-        id_proveedor             = COALESCE($9,  id_proveedor),
+        id_proveedor             = CASE WHEN $15 THEN $9 ELSE id_proveedor END,
         stock_minimo             = COALESCE($10, stock_minimo),
         meses_alerta_vencimiento = COALESCE($11, meses_alerta_vencimiento),
         aplica_mayoreo           = COALESCE($12, aplica_mayoreo)
-      WHERE id_producto = $14
+      WHERE id_producto = $16
       RETURNING *
     `;
     const valores = [
@@ -284,24 +311,26 @@ class ProductoDAO {
       meses_alerta_vencimiento ?? null,
       aplica_mayoreo           ?? null,
       actualizaConcentracion,
+      actualizaDescripcion,
+      actualizaProveedor,
       id_producto,
     ];
 
-    const { rows } = await pool.query(query, valores);
+    const { rows } = await client.query(query, valores);
     return rows[0] || null;
   }
 
   // Solo el dependiente puede togglear este campo
-  async cambiarAplicaMayoreo(id_producto, aplica_mayoreo) {
-    const { rows } = await pool.query(
+  async cambiarAplicaMayoreo(id_producto, aplica_mayoreo, client = pool) {
+    const { rows } = await client.query(
       `UPDATE producto SET aplica_mayoreo = $1 WHERE id_producto = $2 RETURNING *`,
       [aplica_mayoreo, id_producto],
     );
     return rows[0] || null;
   }
 
-  async cambiarActivo(id_producto, activo) {
-    const { rows } = await pool.query(
+  async cambiarActivo(id_producto, activo, client = pool) {
+    const { rows } = await client.query(
       `UPDATE producto SET activo = $1 WHERE id_producto = $2 RETURNING *`,
       [activo, id_producto],
     );

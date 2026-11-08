@@ -88,6 +88,7 @@ describe('LoteRoutes - precio por lote y vencimiento opcional', () => {
     expect(LoteService.actualizarLote).toHaveBeenCalledWith(
       7,
       { version: 1, fecha_vencimiento: null },
+      9,
     );
   });
 });
@@ -108,6 +109,7 @@ describe('LoteRoutes - historial de precios', () => {
     expect(LoteService.actualizarLote).toHaveBeenCalledWith(
       7,
       { version: 1, precio_compra: 11.5, precio_venta: 17.25 },
+      9,
     );
   });
 

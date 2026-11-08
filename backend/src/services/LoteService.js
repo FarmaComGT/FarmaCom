@@ -3,6 +3,7 @@ const ProductoDAO = require('../daos/ProductoDAO');
 const ProveedorDAO = require('../daos/ProveedorDAO');
 const HistorialPrecioLoteDAO = require('../daos/HistorialPrecioLoteDAO');
 const MovimientoInventarioDAO = require('../daos/MovimientoInventarioDAO');
+const BitacoraInventarioDAO = require('../daos/BitacoraInventarioDAO');
 const AppError = require('../errors/AppError');
 const { validarAccesoSucursal } = require('../utils/accesoSucursal');
 
@@ -142,6 +143,17 @@ const crearLoteEnTransaccion = async (datos, id_usuario, client) => {
     referencia: `lote:${lote.id_lote}`,
   }, client);
 
+  await BitacoraInventarioDAO.registrar({
+    entidad: 'lote',
+    id_entidad: lote.id_lote,
+    accion: 'alta',
+    id_producto: lote.id_producto,
+    id_lote: lote.id_lote,
+    id_sucursal: lote.id_sucursal,
+    id_usuario: Number(id_usuario),
+    nuevo: await LoteDAO.obtenerPorId(lote.id_lote, client),
+  }, client);
+
   return await LoteDAO.obtenerPorId(lote.id_lote, client);
 };
 
@@ -193,7 +205,7 @@ const obtenerPorId = async (id_lote, usuario) => {
  * Actualiza únicamente los metadatos enviados y comprueba su versión.
  * Las existencias se modifican exclusivamente mediante ajustarStock.
  */
-const actualizarLoteEnTransaccion = async (id_lote, campos, client) => {
+const actualizarLoteEnTransaccion = async (id_lote, campos, id_usuario, client) => {
   const lote = await LoteDAO.obtenerFilaPorId(id_lote, client, true);
   if (!lote) lanzarError('Lote no encontrado', 404);
 
@@ -329,12 +341,26 @@ const actualizarLoteEnTransaccion = async (id_lote, campos, client) => {
   }
   if (!actualizado) lanzarError('No se pudo actualizar el lote', 500);
 
-  return await LoteDAO.obtenerPorId(id_lote, client);
+  const loteActualizado = await LoteDAO.obtenerPorId(id_lote, client);
+  if (id_usuario) {
+    await BitacoraInventarioDAO.registrar({
+      entidad: 'lote',
+      id_entidad: id_lote,
+      accion: 'modificacion',
+      id_producto: loteActualizado.id_producto,
+      id_lote,
+      id_sucursal: loteActualizado.id_sucursal,
+      id_usuario: Number(id_usuario),
+      anterior: lote,
+      nuevo: loteActualizado,
+    }, client);
+  }
+  return loteActualizado;
 };
 
-const actualizarLote = async (id_lote, campos) => (
+const actualizarLote = async (id_lote, campos, id_usuario = null) => (
   LoteDAO.ejecutarEnTransaccion(
-    (client) => actualizarLoteEnTransaccion(id_lote, campos, client),
+    (client) => actualizarLoteEnTransaccion(id_lote, campos, id_usuario, client),
   )
 );
 
@@ -377,14 +403,29 @@ const obtenerMovimientos = async (id_lote, usuario) => {
   return MovimientoInventarioDAO.obtenerPorLote(id_lote);
 };
 
-const eliminarLote = async (id_lote) => {
-  const existente = await LoteDAO.obtenerPorId(id_lote);
-  if (!existente) lanzarError('Lote no encontrado', 404);
-
+const eliminarLote = async (id_lote, id_usuario = null) => {
   try {
-    const eliminado = await LoteDAO.eliminar(id_lote);
-    if (!eliminado) lanzarError('No se pudo eliminar el lote', 500);
-    return { mensaje: 'Lote eliminado correctamente' };
+    return await LoteDAO.ejecutarEnTransaccion(async (client) => {
+      const existente = await LoteDAO.obtenerPorId(id_lote, client);
+      if (!existente) lanzarError('Lote no encontrado', 404);
+
+      const eliminado = await LoteDAO.eliminar(id_lote, client);
+      if (!eliminado) lanzarError('No se pudo eliminar el lote', 500);
+      if (id_usuario) {
+        await BitacoraInventarioDAO.registrar({
+          entidad: 'lote',
+          id_entidad: id_lote,
+          accion: 'eliminacion',
+          id_producto: existente.id_producto,
+          id_lote,
+          id_sucursal: existente.id_sucursal,
+          id_usuario: Number(id_usuario),
+          anterior: existente,
+          nuevo: null,
+        }, client);
+      }
+      return { mensaje: 'Lote eliminado correctamente' };
+    });
   } catch (error) {
     if (error.code === '23503') {
       lanzarError('No se puede eliminar un lote asociado a ventas, movimientos o a un historial de precios', 409);

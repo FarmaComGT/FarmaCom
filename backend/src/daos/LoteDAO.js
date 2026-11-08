@@ -274,8 +274,8 @@ class LoteDAO {
 
   // DELETE
 
-  async eliminar(id_lote) {
-    const { rows } = await pool.query(
+  async eliminar(id_lote, client = pool) {
+    const { rows } = await client.query(
       'DELETE FROM lote WHERE id_lote = $1 RETURNING *',
       [id_lote],
     );
