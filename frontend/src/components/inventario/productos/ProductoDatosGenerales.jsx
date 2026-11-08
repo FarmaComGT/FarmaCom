@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera } from 'lucide-react';
 import EscanerCamaraModal from '../../ui/EscanerCamaraModal';
+import LectorMovilButton from '../../ui/LectorMovilButton';
 import styles from '../../../styles/ManagementUI.module.css';
 import local from './ProductoDatosGenerales.module.css';
 
@@ -25,7 +26,8 @@ export default function ProductoDatosGenerales({ formulario, codigoMostrado, onC
     if (bloqueado) return;
     onChange({ target: { name: 'codigo_barras', value: codigo, type: 'text' } });
     setAviso('Código leído. Revisa los datos y guarda el producto.');
-    enfocarCodigo.current = true;
+    if (camaraAbierta) enfocarCodigo.current = true;
+    else campoCodigo.current?.focus();
     setCamaraAbierta(false);
   };
   return (
@@ -68,6 +70,7 @@ export default function ProductoDatosGenerales({ formulario, codigoMostrado, onC
             onClick={() => setCamaraAbierta(true)} aria-label="Escanear código del producto con cámara">
             <Camera size={18} aria-hidden="true" />Cámara
           </button>
+          <LectorMovilButton destino="producto" contexto={codigoMostrado} bloqueado={bloqueado || camaraAbierta} onCodigo={recibirCodigo} />
         </div>
         <p id="codigo-barras-ayuda" className={styles.helpText}>Escribe, pega o escanea el código del empaque. Déjalo vacío si todavía no lo tienes.</p>
         <p className={styles.helpText} aria-live="polite">{aviso}</p>

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Camera, LoaderCircle, Search, X } from 'lucide-react';
 import { buscarProductoPorLectura } from '../../api/lecturaProductos';
 import EscanerCamaraModal from '../ui/EscanerCamaraModal';
+import LectorMovilButton from '../ui/LectorMovilButton';
 
 export default function LecturaCodigoPOS({
   onSeleccionar, bloqueado, contexto, busqueda, onBusquedaChange,
@@ -116,6 +117,8 @@ export default function LecturaCodigoPOS({
           onClick={() => setCamaraAbierta(true)} aria-label="Escanear con cámara">
           <Camera size={18} aria-hidden="true" /><span>Cámara</span>
         </button>
+        <LectorMovilButton destino="ventas" contexto={contexto} bloqueado={bloqueado || cargando || camaraAbierta}
+          className="pos-unified-mobile" onCodigo={(lectura) => { cambiarValor(lectura); return procesarLectura(lectura, true); }} />
       </div>
       <p id="lectura-error" className="pos-lectura-error" aria-live="polite">{error}</p>
       {aviso && <p aria-live="polite">{aviso}</p>}

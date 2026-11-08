@@ -28,6 +28,7 @@ import Pacientes from '../pages/laboratorio/Pacientes.jsx';
 import PacientePerfil from '../pages/laboratorio/PacientePerfil.jsx';
 import Dashboard from '../pages/Dashboard.jsx';
 import Support from '../pages/Support.jsx';
+import LectorMovil from '../pages/LectorMovil.jsx';
 
 const Reportes = lazy(() => import('../pages/reportes/Reportes.jsx'));
 const Rentabilidad = lazy(() => import('../pages/reportes/Rentabilidad.jsx'));
@@ -38,6 +39,7 @@ const ROLES_FARMACIA = ['dueno', 'administrador', 'dependiente'];
 export default function AppRoutes() {
   return (
     <Routes>
+      <Route path="/lector-movil" element={<LectorMovil />} />
       <Route element={<PublicRoute />}>
         <Route path="/login" element={<Login />} />
       </Route>

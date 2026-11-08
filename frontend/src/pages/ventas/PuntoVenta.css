@@ -101,8 +101,9 @@
 .pos-unified-input button:hover:not(:disabled) { background: #111b17; }
 .pos-unified-input .pos-unified-clear { width: 44px; padding: 8px; background: transparent; color: var(--pos-muted); }
 .pos-unified-input .pos-unified-clear:hover:not(:disabled) { background: var(--pos-selected); color: var(--pos-ink); }
-.pos-unified-input .pos-unified-camera { background: var(--pos-selected); color: var(--pos-ink); }
-.pos-unified-input .pos-unified-camera:hover:not(:disabled) { background: #dce9e2; }
+.pos-unified-input :is(.pos-unified-camera, .pos-unified-mobile) { min-height: 44px; border: 1px solid var(--pos-control); background: var(--pos-selected); color: var(--pos-ink); font-family: inherit; font-size: 14px; line-height: 1.4; touch-action: manipulation; }
+.pos-unified-input :is(.pos-unified-camera, .pos-unified-mobile):hover:not(:disabled) { background: #dce9e2; border-color: var(--pos-accent); }
+.pos-unified-input :is(.pos-unified-camera, .pos-unified-mobile):focus-visible { outline: 2px solid var(--pos-accent); outline-offset: 2px; }
 .pos-busqueda-unificada > p { margin-top: 8px; font-size: 13px; line-height: 1.5; color: var(--pos-muted); overflow-wrap: anywhere; }
 .pos-busqueda-unificada > .pos-lectura-error { color: var(--pos-danger); font-weight: 600; }
 .pos-lectura-error:empty { margin: 0; }
@@ -111,6 +112,7 @@
   .pos-unified-input { flex-wrap: wrap; gap: 6px; }
   .pos-unified-input input { flex-basis: calc(100% - 82px); }
   .pos-unified-input button[type="submit"], .pos-unified-input .pos-unified-camera { flex: 1 1 calc(50% - 3px); width: auto; }
+  .pos-unified-input .pos-unified-mobile { flex: 1 1 100%; width: 100%; }
 }
 .pos-search-results { flex: 1; overflow-y: auto; overscroll-behavior-y: auto; padding: 16px 24px 20px; display: flex; flex-direction: column; }
 .pos-search-empty { display: flex; min-height: 280px; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--pos-muted); padding: 0 24px; }

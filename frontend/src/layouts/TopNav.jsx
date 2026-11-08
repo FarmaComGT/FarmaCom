@@ -6,6 +6,7 @@ import { contextoNavegacion } from '../components/navigation/navigation.js';
 import { destinoExistencias } from '../utils/navegacionInventario.js';
 import { destinoPacientes } from '../utils/navegacionPacientes';
 import SucursalTrabajo from '../components/navigation/SucursalTrabajo.jsx';
+import { LectorMovilEstado } from '../components/ui/LectorMovilButton.jsx';
 
 const roles = { dueno: 'Propietario', administrador: 'Administrador', dependiente: 'Dependiente', laboratorista: 'Laboratorista' };
 
@@ -37,6 +38,7 @@ export default function TopNav({ sidebarAbierta, superpuesta = false, onAbrirSid
       </div>
     </div>
     <div className="shell-topbar-session">
+      <LectorMovilEstado />
       <time dateTime={fechaISO} title={fechaCompleta}>{fechaCorta}</time>
       <div className="shell-session" aria-label={`Sesión de ${nombre}, ${roles[usuario?.rol] || usuario?.rol || 'Operador'}`}>
         <span className="shell-session-initials" aria-hidden="true">{iniciales}</span>
