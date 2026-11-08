@@ -14,6 +14,7 @@ export const NAVEGACION = [
     ] },
     { id: 'inventario', icon: 'inventory', label: 'Inventario', roles: farmacia, children: [
       { label: 'Existencias', path: '/inventario' },
+      { label: 'Historial', path: '/inventario/historial' },
       { label: 'Categorías', path: '/inventario/categorias' },
       { label: 'Proveedores', path: '/inventario/proveedores' },
       { label: 'Casas farmacéuticas', path: '/inventario/casas' },

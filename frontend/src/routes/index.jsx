@@ -16,6 +16,7 @@ import Categorias from '../pages/inventario/Categorias.jsx';
 import Proveedores from '../pages/inventario/Proveedores.jsx';
 import Casas from '../pages/inventario/Casas.jsx';
 import Promociones from '../pages/inventario/Promociones.jsx';
+import HistorialInventario from '../pages/inventario/HistorialInventario.jsx';
 import Clientes from '../pages/Clientes.jsx';
 import PuntoVenta from '../pages/ventas/PuntoVenta.jsx';
 import CajaOperativa from '../pages/caja/CajaOperativa.jsx';
@@ -57,6 +58,7 @@ export default function AppRoutes() {
               <Route path="productos" element={<Navigate to="/inventario" replace />} />
               <Route path="stock" element={<Navigate to="/inventario" replace />} />
               <Route path="productos/:productoId/lotes" element={<LotesProducto />} />
+              <Route path="historial" element={<HistorialInventario />} />
               <Route path="categorias" element={<Categorias />} />
               <Route path="proveedores" element={<Proveedores />} />
               <Route path="casas" element={<Casas />} />

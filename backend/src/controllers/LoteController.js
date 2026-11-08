@@ -32,12 +32,15 @@ const actualizar = asyncHandler(async (req, res) => {
   const lote = await LoteService.actualizarLote(
     Number(req.params.id),
     req.body,
+    req.usuario.id_usuario,
   );
   return res.status(200).json(lote);
 });
 
 const eliminar = asyncHandler(async (req, res) => {
-  const resultado = await LoteService.eliminarLote(Number(req.params.id));
+  const resultado = req.usuario?.id_usuario
+    ? await LoteService.eliminarLote(Number(req.params.id), req.usuario.id_usuario)
+    : await LoteService.eliminarLote(Number(req.params.id));
   return res.status(200).json(resultado);
 });
 

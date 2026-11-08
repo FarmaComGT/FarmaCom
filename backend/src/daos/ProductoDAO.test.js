@@ -29,9 +29,9 @@ describe('ProductoDAO - códigos de barras', () => {
   it('distingue omitir el código comercial de borrarlo explícitamente', async () => {
     pool.query.mockResolvedValue({ rows: [{ id_producto: 7 }] });
     await ProductoDAO.actualizar(7, { codigo_barras: null });
-    expect(pool.query.mock.calls[0][1].slice(14)).toEqual([true, null]);
+    expect(pool.query.mock.calls[0][1].slice(16)).toEqual([true, null]);
     await ProductoDAO.actualizar(7, { nombre_comercial: 'Nombre' });
-    expect(pool.query.mock.calls[1][1].slice(14)).toEqual([false, null]);
+    expect(pool.query.mock.calls[1][1].slice(16)).toEqual([false, null]);
   });
 });
 
@@ -61,10 +61,12 @@ describe('ProductoDAO - concentración opcional', () => {
 
     const [consulta, valores] = pool.query.mock.calls[0];
     expect(consulta).toContain('concentracion            = CASE WHEN $13 THEN $4 ELSE concentracion END');
-    expect(consulta).toContain('WHERE id_producto = $14');
+    expect(consulta).toContain('WHERE id_producto = $16');
     expect(valores[3]).toBeNull();
     expect(valores[12]).toBe(true);
-    expect(valores[13]).toBe(7);
+    expect(valores[13]).toBe(false);
+    expect(valores[14]).toBe(false);
+    expect(valores[15]).toBe(7);
   });
 
   it('no modifica la concentración cuando el campo se omite', async () => {
@@ -74,6 +76,18 @@ describe('ProductoDAO - concentración opcional', () => {
 
     const valores = pool.query.mock.calls[0][1];
     expect(valores[12]).toBe(false);
+  });
+
+  it('permite limpiar la descripción y el proveedor opcionales', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_producto: 7 }] });
+
+    await ProductoDAO.actualizar(7, { descripcion: null, id_proveedor: null });
+
+    const [consulta, valores] = pool.query.mock.calls[0];
+    expect(consulta).toContain('descripcion              = CASE WHEN $14 THEN $6 ELSE descripcion END');
+    expect(consulta).toContain('id_proveedor             = CASE WHEN $15 THEN $9 ELSE id_proveedor END');
+    expect(valores[13]).toBe(true);
+    expect(valores[14]).toBe(true);
   });
 });
 

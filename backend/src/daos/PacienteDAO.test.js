@@ -4,6 +4,20 @@ const pool = require('../database/db');
 const PacienteDAO = require('./PacienteDAO');
 
 describe('PacienteDAO.actualizar', () => {
+  it('limpia explícitamente todos los campos opcionales', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_paciente: 3 }] });
+
+    await PacienteDAO.actualizar(3, {
+      dpi: null, telefono: null, direccion: null, observaciones: null,
+    });
+
+    const valores = pool.query.mock.calls[0][1];
+    expect(valores).toEqual([
+      null, true, null, false, null, false, null, null,
+      true, null, true, null, true, null, 3,
+    ]);
+  });
+
   it('distingue entre omitir fecha_nacimiento/edad_manual y limpiarlos explícitamente', async () => {
     pool.query.mockResolvedValue({ rows: [{ id_paciente: 3 }] });
 
@@ -18,8 +32,11 @@ describe('PacienteDAO.actualizar', () => {
       true, // incluyeEdadManual
       45, // edad_manual
       null, // sexo
+      false, // incluyeTelefono
       null, // telefono
+      false, // incluyeDireccion
       null, // direccion
+      false, // incluyeObservaciones
       null, // observaciones
       3,
     ]);
@@ -39,8 +56,11 @@ describe('PacienteDAO.actualizar', () => {
       false, // incluyeEdadManual
       null,
       null,
+      true, // incluyeTelefono
       '5555-1111',
+      false, // incluyeDireccion
       null,
+      false, // incluyeObservaciones
       null,
       3,
     ]);

@@ -2,6 +2,7 @@ const ProductoDAO = require('../daos/ProductoDAO');
 const PresentacionDAO = require('../daos/PresentacionDAO');
 const CasaFarmaceuticaDAO = require('../daos/CasaFarmaceuticaDAO');
 const ProveedorDAO = require('../daos/ProveedorDAO');
+const BitacoraInventarioDAO = require('../daos/BitacoraInventarioDAO');
 const AppError = require('../errors/AppError');
 const { normalizarCodigoBarras } = require('../utils/codigoBarras');
 
@@ -52,7 +53,7 @@ const validarProveedorActivo = async (id_proveedor) => {
 
 // Operaciones
 
-const crearProducto = async (datos) => {
+const crearProducto = async (datos, usuario = null) => {
   const {
     codigo, nombre_generico, concentracion, id_presentacion,
     meses_alerta_vencimiento,
@@ -85,8 +86,30 @@ const crearProducto = async (datos) => {
     );
   }
 
-  const creado = await guardarProducto(() => ProductoDAO.crear(datosNormalizados));
-  return await ProductoDAO.obtenerPorId(creado.id_producto);
+  const crearYAuditar = async (client = undefined) => {
+    const creado = await guardarProducto(() => (client
+      ? ProductoDAO.crear(datosNormalizados, client)
+      : ProductoDAO.crear(datosNormalizados)));
+    const producto = client
+      ? await ProductoDAO.obtenerPorId(creado.id_producto, client)
+      : await ProductoDAO.obtenerPorId(creado.id_producto);
+    if (usuario?.id_usuario) {
+      await BitacoraInventarioDAO.registrar({
+        entidad: 'producto',
+        id_entidad: producto.id_producto,
+        accion: 'alta',
+        id_producto: producto.id_producto,
+        id_sucursal: usuario.id_sucursal ? Number(usuario.id_sucursal) : null,
+        id_usuario: Number(usuario.id_usuario),
+        nuevo: producto,
+      }, client);
+    }
+    return producto;
+  };
+
+  return usuario?.id_usuario
+    ? ProductoDAO.ejecutarEnTransaccion(crearYAuditar)
+    : crearYAuditar();
 };
 
 const obtenerTodos = async () => {
@@ -135,7 +158,7 @@ const obtenerPorId = async (id_producto) => {
   return producto;
 };
 
-const actualizarProducto = async (id_producto, campos) => {
+const actualizarProducto = async (id_producto, campos, usuario = null) => {
   const existente = await ProductoDAO.obtenerPorId(id_producto);
   if (!existente) lanzarError('Producto no encontrado', 404);
 
@@ -193,49 +216,124 @@ const actualizarProducto = async (id_producto, campos) => {
     lanzarError('Ya existe otro producto con ese medicamento en esa misma presentación', 409);
   }
 
-  const actualizado = await guardarProducto(() => ProductoDAO.actualizar(id_producto, datosNormalizados));
-  if (!actualizado) lanzarError('No se pudo actualizar el producto', 500);
-  return await ProductoDAO.obtenerPorId(id_producto);
+  const actualizarYAuditar = async (client = undefined) => {
+    const anterior = client
+      ? (await ProductoDAO.obtenerFilaPorId(id_producto, client, true) || existente)
+      : existente;
+    const actualizado = await guardarProducto(() => (client
+      ? ProductoDAO.actualizar(id_producto, datosNormalizados, client)
+      : ProductoDAO.actualizar(id_producto, datosNormalizados)));
+    if (!actualizado) lanzarError('No se pudo actualizar el producto', 500);
+    const producto = client
+      ? await ProductoDAO.obtenerPorId(id_producto, client)
+      : await ProductoDAO.obtenerPorId(id_producto);
+    if (usuario?.id_usuario) {
+      await BitacoraInventarioDAO.registrar({
+        entidad: 'producto',
+        id_entidad: id_producto,
+        accion: 'modificacion',
+        id_producto,
+        id_sucursal: usuario.id_sucursal ? Number(usuario.id_sucursal) : null,
+        id_usuario: Number(usuario.id_usuario),
+        anterior,
+        nuevo: producto,
+      }, client);
+    }
+    return producto;
+  };
+
+  return usuario?.id_usuario
+    ? ProductoDAO.ejecutarEnTransaccion(actualizarYAuditar)
+    : actualizarYAuditar();
 };
 
 // Solo el dependiente puede usar este método 
-const cambiarAplicaMayoreo = async (id_producto, aplica_mayoreo) => {
+const cambiarAplicaMayoreo = async (id_producto, aplica_mayoreo, usuario = null) => {
   const existente = await ProductoDAO.obtenerPorId(id_producto);
   if (!existente) lanzarError('Producto no encontrado', 404);
 
-  const actualizado = await ProductoDAO.cambiarAplicaMayoreo(id_producto, aplica_mayoreo);
-  if (!actualizado) lanzarError('No se pudo actualizar el campo aplica_mayoreo', 500);
-  return {
-    mensaje: `Mayoreo ${aplica_mayoreo ? 'activado' : 'desactivado'} correctamente`,
-    producto: await ProductoDAO.obtenerPorId(id_producto),
+  const cambiarYAuditar = async (client = undefined) => {
+    const anterior = client
+      ? (await ProductoDAO.obtenerFilaPorId(id_producto, client, true) || existente)
+      : existente;
+    const actualizado = client
+      ? await ProductoDAO.cambiarAplicaMayoreo(id_producto, aplica_mayoreo, client)
+      : await ProductoDAO.cambiarAplicaMayoreo(id_producto, aplica_mayoreo);
+    if (!actualizado) lanzarError('No se pudo actualizar el campo aplica_mayoreo', 500);
+    const producto = client
+      ? await ProductoDAO.obtenerPorId(id_producto, client)
+      : await ProductoDAO.obtenerPorId(id_producto);
+    if (usuario?.id_usuario) {
+      await BitacoraInventarioDAO.registrar({
+        entidad: 'producto',
+        id_entidad: id_producto,
+        accion: 'modificacion',
+        id_producto,
+        id_sucursal: usuario.id_sucursal ? Number(usuario.id_sucursal) : null,
+        id_usuario: Number(usuario.id_usuario),
+        anterior,
+        nuevo: producto,
+      }, client);
+    }
+    return {
+      mensaje: `Mayoreo ${aplica_mayoreo ? 'activado' : 'desactivado'} correctamente`,
+      producto,
+    };
   };
+
+  return usuario?.id_usuario
+    ? ProductoDAO.ejecutarEnTransaccion(cambiarYAuditar)
+    : cambiarYAuditar();
 };
 
-const desactivarProducto = async (id_producto) => {
+const cambiarEstadoProducto = async (id_producto, activo, usuario = null) => {
   const existente = await ProductoDAO.obtenerPorId(id_producto);
-  if (!existente)        lanzarError('Producto no encontrado', 404);
-  if (!existente.activo) lanzarError('El producto ya está desactivado', 409);
+  if (!existente) lanzarError('Producto no encontrado', 404);
+  if (Boolean(existente.activo) === activo) {
+    lanzarError(`El producto ya está ${activo ? 'activo' : 'desactivado'}`, 409);
+  }
 
-  const resultado = await ProductoDAO.cambiarActivo(id_producto, false);
-  if (!resultado) lanzarError('No se pudo desactivar el producto', 500);
-  return {
-    mensaje: 'Producto desactivado correctamente',
-    producto: await ProductoDAO.obtenerPorId(id_producto),
+  const cambiarYAuditar = async (client = undefined) => {
+    const anterior = client
+      ? (await ProductoDAO.obtenerFilaPorId(id_producto, client, true) || existente)
+      : existente;
+    const resultado = client
+      ? await ProductoDAO.cambiarActivo(id_producto, activo, client)
+      : await ProductoDAO.cambiarActivo(id_producto, activo);
+    if (!resultado) lanzarError('No se pudo cambiar el estado del producto', 500);
+    const producto = client
+      ? await ProductoDAO.obtenerPorId(id_producto, client)
+      : await ProductoDAO.obtenerPorId(id_producto);
+    if (usuario?.id_usuario) {
+      await BitacoraInventarioDAO.registrar({
+        entidad: 'producto',
+        id_entidad: id_producto,
+        accion: 'cambio_estado',
+        id_producto,
+        id_sucursal: usuario.id_sucursal ? Number(usuario.id_sucursal) : null,
+        id_usuario: Number(usuario.id_usuario),
+        anterior,
+        nuevo: producto,
+      }, client);
+    }
+    return {
+      mensaje: `Producto ${activo ? 'reactivado' : 'desactivado'} correctamente`,
+      producto,
+    };
   };
+
+  return usuario?.id_usuario
+    ? ProductoDAO.ejecutarEnTransaccion(cambiarYAuditar)
+    : cambiarYAuditar();
 };
 
-const reactivarProducto = async (id_producto) => {
-  const existente = await ProductoDAO.obtenerPorId(id_producto);
-  if (!existente)       lanzarError('Producto no encontrado', 404);
-  if (existente.activo) lanzarError('El producto ya está activo', 409);
+const desactivarProducto = (id_producto, usuario = null) => (
+  cambiarEstadoProducto(id_producto, false, usuario)
+);
 
-  const resultado = await ProductoDAO.cambiarActivo(id_producto, true);
-  if (!resultado) lanzarError('No se pudo reactivar el producto', 500);
-  return {
-    mensaje: 'Producto reactivado correctamente',
-    producto: await ProductoDAO.obtenerPorId(id_producto),
-  };
-};
+const reactivarProducto = (id_producto, usuario = null) => (
+  cambiarEstadoProducto(id_producto, true, usuario)
+);
 
 module.exports = {
   buscarPorLectura,

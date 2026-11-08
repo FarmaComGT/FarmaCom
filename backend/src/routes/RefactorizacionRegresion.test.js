@@ -7,6 +7,7 @@ jest.mock('../daos/ProveedorDAO');
 jest.mock('../daos/LoteDAO');
 jest.mock('../daos/HistorialPrecioLoteDAO');
 jest.mock('../daos/MovimientoInventarioDAO');
+jest.mock('../daos/BitacoraInventarioDAO');
 jest.mock('../middlewares/verificarToken', () => (req, _res, next) => {
   req.usuario = { id_usuario: 9, id_sucursal: 3, rol: 'administrador' };
   next();
@@ -65,6 +66,7 @@ describe('regresión de errores centralizados y validaciones extraídas', () => 
     PresentacionDAO.obtenerPorId.mockResolvedValue({ id_presentacion: 1, nombre: 'Tableta' });
     CasaFarmaceuticaDAO.obtenerPorId.mockResolvedValue({ id_casa: 1, activo: true });
     ProveedorDAO.obtenerPorId.mockResolvedValue({ id_proveedor: 1, activo: true });
+    ProductoDAO.ejecutarEnTransaccion.mockImplementation((operacion) => operacion(client));
     LoteDAO.ejecutarEnTransaccion.mockImplementation((operacion) => operacion(client));
     LoteDAO.obtenerFilaPorId.mockResolvedValue(lote);
     LoteDAO.obtenerPorId.mockResolvedValue(lote);
@@ -85,7 +87,7 @@ describe('regresión de errores centralizados y validaciones extraídas', () => 
     expect(respuesta.status).toBe(201);
     expect(respuesta.headers['content-type']).toMatch(/application\/json/);
     expect(respuesta.body).toEqual(creado);
-    expect(ProductoDAO.crear).toHaveBeenCalledWith(normalizado);
+    expect(ProductoDAO.crear).toHaveBeenCalledWith(normalizado, client);
   });
 
   it.each([
@@ -118,7 +120,7 @@ describe('regresión de errores centralizados y validaciones extraídas', () => 
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body).toEqual(actualizado);
-    expect(ProductoDAO.actualizar).toHaveBeenCalledWith(2, cambios);
+    expect(ProductoDAO.actualizar).toHaveBeenCalledWith(2, cambios, client);
   });
 
   it('mantiene la conversión del booleano textual al desactivar un producto', async () => {
@@ -130,7 +132,7 @@ describe('regresión de errores centralizados y validaciones extraídas', () => 
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body).toEqual({ mensaje: 'Producto desactivado correctamente', producto: desactivado });
-    expect(ProductoDAO.cambiarActivo).toHaveBeenCalledWith(2, false);
+    expect(ProductoDAO.cambiarActivo).toHaveBeenCalledWith(2, false, client);
   });
 
   it('conserva los parámetros normalizados y la sucursal en el autocompletado', async () => {

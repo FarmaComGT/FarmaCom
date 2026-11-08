@@ -3,6 +3,7 @@ jest.mock('../daos/ProductoDAO');
 jest.mock('../daos/ProveedorDAO');
 jest.mock('../daos/HistorialPrecioLoteDAO');
 jest.mock('../daos/MovimientoInventarioDAO');
+jest.mock('../daos/BitacoraInventarioDAO');
 
 const LoteDAO = require('../daos/LoteDAO');
 const ProductoDAO = require('../daos/ProductoDAO');

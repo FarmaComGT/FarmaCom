@@ -120,7 +120,7 @@ describe('Pacientes', () => {
     await user.type(screen.getByLabelText(/Nombre completo/), 'Carlos Pérez');
     await user.click(screen.getByRole('button', { name: 'Masculino' }));
     await user.click(screen.getByRole('button', { name: 'Edad manual' }));
-    await user.type(screen.getByPlaceholderText('Ej. 45'), '40');
+    await user.type(screen.getByLabelText('Edad manual'), '40');
     await user.click(screen.getByRole('button', { name: 'Guardar paciente' }));
 
     expect(mockCrear).toHaveBeenCalledWith(

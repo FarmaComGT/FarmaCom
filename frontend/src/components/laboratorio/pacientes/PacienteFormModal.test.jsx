@@ -43,7 +43,7 @@ describe('PacienteFormModal', () => {
     await user.type(screen.getByLabelText(/Nombre completo/), 'Carlos Pérez');
     await user.click(screen.getByRole('button', { name: 'Masculino' }));
     await user.click(screen.getByRole('button', { name: 'Edad manual' }));
-    await user.type(screen.getByPlaceholderText('Ej. 45'), '52');
+    await user.type(screen.getByLabelText('Edad manual'), '52');
     await user.click(screen.getByRole('button', { name: 'Guardar paciente' }));
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -86,7 +86,7 @@ describe('PacienteFormModal', () => {
       />,
     );
 
-    expect(screen.getByPlaceholderText('Ej. 45')).toHaveValue(60);
+    expect(screen.getByLabelText('Edad manual')).toHaveValue(60);
     expect(screen.getByRole('button', { name: 'Masculino' })).toHaveClass('border-primary');
   });
 

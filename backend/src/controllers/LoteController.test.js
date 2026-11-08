@@ -60,7 +60,7 @@ describe('LoteController', () => {
 
     await LoteController.actualizar(req, res, jest.fn());
 
-    expect(LoteService.actualizarLote).toHaveBeenCalledWith(7, { precio_venta: 20 });
+    expect(LoteService.actualizarLote).toHaveBeenCalledWith(7, { precio_venta: 20 }, 9);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 

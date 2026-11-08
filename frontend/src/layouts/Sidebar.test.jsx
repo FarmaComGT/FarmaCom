@@ -68,6 +68,7 @@ describe('Navegación por tareas de FarmaCom', () => {
   });
   it.each([
     ['/inventario', 'Existencias'],
+    ['/inventario/historial', 'Historial'],
     ['/inventario/categorias', 'Categorías'],
     ['/inventario/proveedores', 'Proveedores'],
     ['/inventario/casas', 'Casas farmacéuticas'],

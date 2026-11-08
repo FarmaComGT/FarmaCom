@@ -61,7 +61,11 @@ describe('ProductoRoutes - lectura exacta', () => {
     ProductoService.actualizarProducto.mockResolvedValue({ id_producto: 7, codigo_barras: null });
     const respuesta = await request(crearApp()).put('/api/productos/7').send({ codigo_barras: '  ' });
     expect(respuesta.status).toBe(200);
-    expect(ProductoService.actualizarProducto).toHaveBeenCalledWith(7, { codigo_barras: null });
+    expect(ProductoService.actualizarProducto).toHaveBeenCalledWith(
+      7,
+      { codigo_barras: null },
+      { id_usuario: 8, id_sucursal: 3, rol: 'dependiente' },
+    );
   });
 });
 

@@ -49,6 +49,7 @@ const CasaFarmaceuticaRoutes = require('./routes/CasaFarmaceuticaRoutes');
 const proveedorRoutes = require('./routes/ProveedorRoutes');
 const LoteRoutes = require('./routes/LoteRoutes');
 const InventarioRoutes = require('./routes/InventarioRoutes');
+const HistorialInventarioRoutes = require('./routes/HistorialInventarioRoutes');
 const clienteRoutes = require('./routes/ClienteRoutes');
 const ventaRoutes = require('./routes/VentaRoutes');
 const presentacionRoutes = require('./routes/PresentacionRoutes');
@@ -85,6 +86,7 @@ app.use('/api/pacientes', pacienteRoutes);
 app.use('/api/resultados-laboratorio', resultadoLaboratorioRoutes);
 app.use('/api/laboratorios', laboratorioRoutes);
 app.use('/api/expedientes', expedienteRoutes);
+app.use('/api/inventario', HistorialInventarioRoutes);
 app.use('/api/sucursales/:id_sucursal/inventario', InventarioRoutes);
 // Rutas anidadas: GET y POST bajo /api/sucursales/:id_sucursal/telefonos|correos
 app.use('/api/sucursales/:id_sucursal/telefonos', telefonoSucursalRoutes);
