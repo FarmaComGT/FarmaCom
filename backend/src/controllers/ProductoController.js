@@ -1,6 +1,14 @@
 const ProductoService = require('../services/ProductoService');
 const asyncHandler = require('../middlewares/asyncHandler');
 
+const buscarPorLectura = asyncHandler(async (req, res) => {
+  const lotes = await ProductoService.buscarPorLectura({
+    codigo: req.query.codigo,
+    id_sucursal: req.usuario.id_sucursal,
+  });
+  return res.status(200).json(lotes);
+});
+
 const crear = asyncHandler(async (req, res) => {
   const producto = req.usuario
     ? await ProductoService.crearProducto(req.body, req.usuario)
@@ -57,6 +65,7 @@ const cambiarEstado = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  buscarPorLectura,
   crear,
   obtenerTodos,
   autocompletarParaPOS,

@@ -1,9 +1,12 @@
 import { ToastProvider } from '../../../context/ToastContext.jsx';
 import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render as renderBase, screen, waitFor, within } from '@testing-library/react';
+import { act, render as renderBase, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ProductoFormModal from './ProductoFormModal';
+import { iniciarEscanerCamara } from '../../../utils/escanerCamara';
+
+vi.mock('../../../utils/escanerCamara', async (importOriginal) => ({ ...await importOriginal(), iniciarEscanerCamara: vi.fn() }));
 
 const presentacionesIniciales = [
   { id_presentacion: 1, nombre: 'Caja', productos_asociados: 2 },
@@ -205,6 +208,56 @@ describe('regresión del formulario de producto dividido en secciones', () => {
   // Algunas etiquetas de las secciones no están asociadas al input.
   const campo = (nombre) => screen.getByRole('dialog').querySelector(`[name="${nombre}"]`);
 
+  it('escanea al editar, conserva los ceros y solo guarda tras confirmar el formulario', async () => {
+    let detectar;
+    const detener = vi.fn();
+    iniciarEscanerCamara.mockImplementation(({ onCodigo, onListo }) => {
+      detectar = onCodigo;
+      onListo([]);
+      return detener;
+    });
+    const onSubmit = vi.fn();
+    const usuario = userEvent.setup();
+    render(<ProductoFormModal {...propsBase} modoEdicion producto={{ ...producto, codigo_barras: 'ANTERIOR' }} proveedores={proveedores} onSubmit={onSubmit} />);
+    await usuario.click(screen.getByRole('button', { name: 'Escanear código del producto con cámara' }));
+    expect(screen.getAllByRole('dialog')).toHaveLength(2);
+    await act(async () => detectar('000123456789'));
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(campo('codigo_barras')).toHaveValue('000123456789');
+    expect(campo('codigo_barras')).toHaveFocus();
+    expect(detener).toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+    await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ codigo_barras: '000123456789', codigo: producto.codigo }));
+  });
+
+  it('Escape cierra solo la cámara y conserva el producto abierto y su código anterior', async () => {
+    const detener = vi.fn();
+    iniciarEscanerCamara.mockImplementation(() => detener);
+    const cerrar = vi.fn();
+    const usuario = userEvent.setup();
+    render(<ProductoFormModal {...propsBase} modoEdicion producto={{ ...producto, codigo_barras: '000123' }} onClose={cerrar} />);
+    const boton = screen.getByRole('button', { name: 'Escanear código del producto con cámara' });
+    await usuario.click(boton);
+    await usuario.keyboard('{Escape}');
+    expect(cerrar).not.toHaveBeenCalled();
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(campo('codigo_barras')).toHaveValue('000123');
+    expect(boton).toHaveFocus();
+    expect(detener).toHaveBeenCalled();
+  });
+
+  it('el Enter del lector USB no guarda un producto sin revisión', async () => {
+    const onSubmit = vi.fn();
+    const usuario = userEvent.setup();
+    render(<ProductoFormModal {...propsBase} modoEdicion producto={producto} onSubmit={onSubmit} />);
+    await usuario.type(campo('codigo_barras'), '000123{Enter}');
+    expect(campo('codigo_barras')).toHaveValue('000123');
+    expect(onSubmit).not.toHaveBeenCalled();
+    await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ codigo_barras: '000123' }));
+  });
+
   it('envía un único payload normalizado con los valores de todas las secciones', async () => {
     const usuario = userEvent.setup();
     const onSubmit = vi.fn();
@@ -226,7 +279,7 @@ describe('regresión del formulario de producto dividido en secciones', () => {
     await usuario.click(screen.getByRole('button', { name: 'Guardar producto' }));
 
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
-      codigo: 'MED004-CA', nombre_comercial: 'Aspirina Forte', nombre_generico: 'Ácido acetilsalicílico',
+      codigo: 'MED004-CA', codigo_barras: null, nombre_comercial: 'Aspirina Forte', nombre_generico: 'Ácido acetilsalicílico',
       concentracion: '500 mg', id_presentacion: 1, id_categoria: 1, id_casa: 1,
       id_proveedor: 3, precio_compra: 12.5, stock_minimo: 0,
       meses_alerta_vencimiento: 6, aplica_mayoreo: true,
@@ -253,7 +306,7 @@ describe('regresión del formulario de producto dividido en secciones', () => {
 
     expect(screen.getByDisplayValue('MED009-CA')).toBeDisabled();
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
-      codigo: 'MED009-CA', nombre_comercial: 'Aspirina', nombre_generico: 'Ácido acetilsalicílico',
+      codigo: 'MED009-CA', codigo_barras: null, nombre_comercial: 'Aspirina', nombre_generico: 'Ácido acetilsalicílico',
       concentracion: null, id_presentacion: 2, id_categoria: 1, id_casa: 1,
       id_proveedor: undefined, precio_compra: 10, stock_minimo: 0,
       meses_alerta_vencimiento: 6, aplica_mayoreo: false,

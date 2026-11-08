@@ -4,6 +4,18 @@ const CasaFarmaceuticaDAO = require('../daos/CasaFarmaceuticaDAO');
 const ProveedorDAO = require('../daos/ProveedorDAO');
 const BitacoraInventarioDAO = require('../daos/BitacoraInventarioDAO');
 const AppError = require('../errors/AppError');
+const { normalizarCodigoBarras } = require('../utils/codigoBarras');
+
+const guardarProducto = async (operacion) => {
+  try {
+    return await operacion();
+  } catch (error) {
+    if (error.code === '23505' && ['uq_producto_codigo_barras', 'producto_codigo_barras_key'].includes(error.constraint)) {
+      throw new AppError('El código de barras ya está asignado a otro producto.', 409);
+    }
+    throw error;
+  }
+};
 
 // Helpers
 
@@ -62,6 +74,7 @@ const crearProducto = async (datos, usuario = null) => {
 
   const datosNormalizados = {
     ...datos,
+    codigo_barras: normalizarCodigoBarras(datos.codigo_barras, { opcional: true }),
     concentracion: normalizarConcentracion(concentracion),
   };
 
@@ -74,9 +87,9 @@ const crearProducto = async (datos, usuario = null) => {
   }
 
   const crearYAuditar = async (client = undefined) => {
-    const creado = client
-      ? await ProductoDAO.crear(datosNormalizados, client)
-      : await ProductoDAO.crear(datosNormalizados);
+    const creado = await guardarProducto(() => (client
+      ? ProductoDAO.crear(datosNormalizados, client)
+      : ProductoDAO.crear(datosNormalizados)));
     const producto = client
       ? await ProductoDAO.obtenerPorId(creado.id_producto, client)
       : await ProductoDAO.obtenerPorId(creado.id_producto);
@@ -125,6 +138,20 @@ const autocompletarParaPOS = async ({ busqueda, id_sucursal, limite = 10 }) => {
   );
 };
 
+const buscarPorLectura = async ({ codigo, id_sucursal }) => {
+  const lectura = normalizarCodigoBarras(codigo);
+  if (!Number.isInteger(id_sucursal) || id_sucursal <= 0) {
+    lanzarError('El usuario no tiene una sucursal válida asignada.', 403);
+  }
+  const coincidencias = await ProductoDAO.obtenerPorCodigoLectura(lectura);
+  if (!coincidencias.length) lanzarError('Código no registrado. Busca el producto por nombre o registra su código de barras.', 404);
+  if (coincidencias.length !== 1) lanzarError('El código identifica más de un producto. Corrige los códigos del catálogo.', 409);
+  if (!coincidencias[0].activo) lanzarError('El producto está inactivo.', 409);
+  const lotes = await ProductoDAO.obtenerLotesParaLectura(coincidencias[0].id_producto, id_sucursal);
+  if (!lotes.length) lanzarError('El producto no tiene lotes vendibles en esta sucursal. Revisa existencias, precios y vencimientos.', 409);
+  return lotes;
+};
+
 const obtenerPorId = async (id_producto) => {
   const producto = await ProductoDAO.obtenerPorId(id_producto);
   if (!producto) lanzarError('Producto no encontrado', 404);
@@ -165,6 +192,9 @@ const actualizarProducto = async (id_producto, campos, usuario = null) => {
   }
 
   const datosNormalizados = { ...campos };
+  if (Object.prototype.hasOwnProperty.call(campos, 'codigo_barras')) {
+    datosNormalizados.codigo_barras = normalizarCodigoBarras(campos.codigo_barras, { opcional: true });
+  }
   const actualizaConcentracion = Object.prototype.hasOwnProperty.call(campos, 'concentracion');
   if (actualizaConcentracion) {
     datosNormalizados.concentracion = normalizarConcentracion(campos.concentracion);
@@ -190,9 +220,9 @@ const actualizarProducto = async (id_producto, campos, usuario = null) => {
     const anterior = client
       ? (await ProductoDAO.obtenerFilaPorId(id_producto, client, true) || existente)
       : existente;
-    const actualizado = client
-      ? await ProductoDAO.actualizar(id_producto, datosNormalizados, client)
-      : await ProductoDAO.actualizar(id_producto, datosNormalizados);
+    const actualizado = await guardarProducto(() => (client
+      ? ProductoDAO.actualizar(id_producto, datosNormalizados, client)
+      : ProductoDAO.actualizar(id_producto, datosNormalizados)));
     if (!actualizado) lanzarError('No se pudo actualizar el producto', 500);
     const producto = client
       ? await ProductoDAO.obtenerPorId(id_producto, client)
@@ -306,6 +336,7 @@ const reactivarProducto = (id_producto, usuario = null) => (
 );
 
 module.exports = {
+  buscarPorLectura,
   crearProducto,
   obtenerTodos,
   autocompletarParaPOS,

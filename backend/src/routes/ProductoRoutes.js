@@ -14,6 +14,7 @@ const {
   validarCambioEstado,
   validarCambioMayoreo,
   validarAutocompletado,
+  validarLectura,
   validarCreacionPromocion,
 } = require('../validators/productoValidators');
 const { validarPaginacion } = require('../validators/paginacionValidators');
@@ -21,6 +22,15 @@ const { validarPaginacion } = require('../validators/paginacionValidators');
 const router = Router();
 const rolesConsultaPromociones = verificarRol('dueno', 'administrador', 'dependiente');
 const rolesAdministracionPromociones = verificarRol('dueno', 'administrador');
+
+// Antes de /:id. La sucursal siempre procede de la sesión autenticada.
+router.get('/lectura',
+  verificarToken,
+  verificarRol('dueno', 'administrador', 'dependiente'),
+  validarLectura,
+  validateRequest,
+  ProductoController.buscarPorLectura,
+);
 
 router.get('/',
   verificarToken,

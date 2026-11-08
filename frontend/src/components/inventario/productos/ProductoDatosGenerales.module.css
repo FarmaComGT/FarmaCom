@@ -1,0 +1,8 @@
+.codigoRow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.codigoRow input { flex: 1; width: 100%; min-width: 0; }
+.camaraButton { flex: none; min-height: 44px; touch-action: manipulation; }
+@media (max-width: 600px) {
+  .codigoRow { flex-wrap: wrap; }
+  .codigoRow input { flex-basis: 100%; }
+  .codigoRow > button { flex: 1 1 calc(50% - 4px); width: auto; }
+}

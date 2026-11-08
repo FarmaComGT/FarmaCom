@@ -74,7 +74,7 @@ describe('regresión de errores centralizados y validaciones extraídas', () => 
 
   it('conserva el 201, el JSON y la normalización al crear un producto', async () => {
     const normalizado = {
-      codigo: 'MED003-TA', nombre_comercial: 'Paracetamol', nombre_generico: 'Acetaminofén',
+      codigo: 'MED003-TA', codigo_barras: null, nombre_comercial: 'Paracetamol', nombre_generico: 'Acetaminofén',
       concentracion: '500 mg', id_presentacion: 1, id_categoria: 1, id_casa: 1,
       id_proveedor: 1, stock_minimo: 0, meses_alerta_vencimiento: 6, aplica_mayoreo: false,
     };

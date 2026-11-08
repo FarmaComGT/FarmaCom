@@ -1,4 +1,20 @@
 const { body, param, query } = require('express-validator');
+const { normalizarCodigoBarras } = require('../utils/codigoBarras');
+
+const validarCodigoBarrasOpcional = () => body('codigo_barras')
+  .optional({ nullable: true })
+  .custom((valor) => {
+    normalizarCodigoBarras(valor, { opcional: true });
+    return true;
+  }).bail()
+  .customSanitizer((valor) => normalizarCodigoBarras(valor, { opcional: true }));
+
+const validarLectura = [
+  query('codigo').custom((valor) => {
+    normalizarCodigoBarras(valor);
+    return true;
+  }),
+];
 
 const normalizarConcentracion = (valor) => {
   if (valor === null || valor === undefined) return null;
@@ -27,6 +43,7 @@ const validarParamIdProducto = [
 ];
 
 const validarCreacionProducto = [
+  validarCodigoBarrasOpcional(),
   body('codigo').trim().notEmpty().withMessage('El código es requerido')
     .isLength({ max: 50 }).withMessage('El código no puede superar los 50 caracteres'),
   body('nombre_comercial').trim().notEmpty().withMessage('El nombre comercial es requerido')
@@ -49,6 +66,7 @@ const validarCreacionProducto = [
 ];
 
 const validarActualizacionProducto = [
+  validarCodigoBarrasOpcional(),
   body('codigo').optional().trim().notEmpty().withMessage('El código no puede estar vacío')
     .isLength({ max: 50 }).withMessage('El código no puede superar los 50 caracteres'),
   body('nombre_comercial').optional().trim().notEmpty().withMessage('El nombre comercial no puede estar vacío')
@@ -98,6 +116,7 @@ const validarCreacionPromocion = [
 ];
 
 module.exports = {
+  validarLectura,
   validarParamId,
   validarParamIdProducto,
   validarCreacionProducto,

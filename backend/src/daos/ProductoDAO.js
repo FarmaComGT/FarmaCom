@@ -22,14 +22,14 @@ class ProductoDAO {
     }
   }
 
-  async crear({ codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion, id_categoria, id_casa, id_proveedor, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo }, client = pool) {
+  async crear({ codigo, codigo_barras, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion, id_categoria, id_casa, id_proveedor, stock_minimo, meses_alerta_vencimiento, aplica_mayoreo }, client = pool) {
     const query = `
       INSERT INTO producto (
         codigo, nombre_comercial, nombre_generico, concentracion, id_presentacion, descripcion,
         id_categoria, id_casa, id_proveedor,
-        stock_minimo, meses_alerta_vencimiento, aplica_mayoreo
+        stock_minimo, meses_alerta_vencimiento, aplica_mayoreo, codigo_barras
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *
     `;
     const valores = [
@@ -45,10 +45,48 @@ class ProductoDAO {
       stock_minimo                 ?? 5,
       meses_alerta_vencimiento,
       aplica_mayoreo               ?? false,
+      codigo_barras                ?? null,
     ];
     
     const { rows } = await client.query(query, valores);
     return rows[0];
+  }
+
+  async obtenerPorCodigoLectura(codigo) {
+    // Comparación literal: una lectura nunca utiliza similitud ni prefijos.
+    const { rows } = await pool.query(
+      'SELECT id_producto, activo FROM producto WHERE codigo = $1 OR codigo_barras = $1',
+      [codigo],
+    );
+    return rows;
+  }
+
+  async obtenerLotesParaLectura(idProducto, idSucursal) {
+    const { rows } = await pool.query(`
+      SELECT p.id_producto, p.codigo, p.codigo_barras, p.nombre_comercial,
+        p.nombre_generico, p.concentracion, p.aplica_mayoreo,
+        pre.nombre AS presentacion, l.id_lote, l.numero_lote, l.fecha_vencimiento,
+        l.stock_actual AS stock_disponible, l.precio_venta, l.precio_mayoreo,
+        l.cantidad_mayoreo, l.estado_stock, l.estado_vencimiento,
+        promocion.id_promocion, promocion.cantidad_minima AS promocion_cantidad_minima,
+        promocion.precio_promocion, promocion.fecha_inicio AS promocion_fecha_inicio,
+        promocion.fecha_fin AS promocion_fecha_fin
+      FROM producto p
+      JOIN presentacion pre ON pre.id_presentacion = p.id_presentacion
+      JOIN v_lote_estado l ON l.id_producto = p.id_producto
+      LEFT JOIN LATERAL (
+        SELECT pr.* FROM promocion pr
+        WHERE pr.id_producto = p.id_producto AND pr.id_sucursal = $2
+          AND pr.activo = TRUE AND CURRENT_DATE BETWEEN pr.fecha_inicio AND pr.fecha_fin
+          AND pr.precio_promocion < l.precio_venta
+        ORDER BY pr.precio_promocion, pr.id_promocion LIMIT 1
+      ) promocion ON TRUE
+      WHERE p.id_producto = $1 AND p.activo = TRUE AND l.id_sucursal = $2
+        AND l.stock_actual > 0 AND l.precio_venta > 0
+        AND (l.fecha_vencimiento IS NULL OR l.fecha_vencimiento >= CURRENT_DATE)
+      ORDER BY l.numero_lote, l.id_lote
+    `, [idProducto, idSucursal]);
+    return rows;
   }
 
   async obtenerTodos() {
@@ -293,7 +331,8 @@ class ProductoDAO {
         id_proveedor             = CASE WHEN $15 THEN $9 ELSE id_proveedor END,
         stock_minimo             = COALESCE($10, stock_minimo),
         meses_alerta_vencimiento = COALESCE($11, meses_alerta_vencimiento),
-        aplica_mayoreo           = COALESCE($12, aplica_mayoreo)
+        aplica_mayoreo           = COALESCE($12, aplica_mayoreo),
+        codigo_barras            = CASE WHEN $17 THEN $18 ELSE codigo_barras END
       WHERE id_producto = $16
       RETURNING *
     `;
@@ -314,6 +353,8 @@ class ProductoDAO {
       actualizaDescripcion,
       actualizaProveedor,
       id_producto,
+      Object.prototype.hasOwnProperty.call(campos, 'codigo_barras'),
+      campos.codigo_barras ?? null,
     ];
 
     const { rows } = await client.query(query, valores);

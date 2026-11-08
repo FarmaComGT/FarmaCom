@@ -1,0 +1,29 @@
+.trigger, .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 12px; border: 1px solid #b5c3bc; border-radius: 6px; background: #fff; color: #202b28; font-size: 14px; font-weight: 600; touch-action: manipulation; }
+.trigger:hover:not(:disabled), .button:hover:not(:disabled) { background: #edf3f0; }
+.trigger:disabled, .button:disabled { opacity: .55; cursor: not-allowed; }
+.global { max-width: 240px; min-width: 44px; }
+.global span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 600px) { .global span { display: none; } }
+.trigger:focus-visible, .panel :is(button, input):focus-visible { outline: 2px solid #005147; outline-offset: 2px; }
+.panel { color: #202b28; font-family: var(--font-sans); }
+.header { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px 4px; }
+.header h2 { font-size: 20px; font-weight: 600; text-wrap: balance; }
+.header button { min-height: 44px; min-width: 44px; display: grid; place-items: center; border-radius: 6px; }
+.header button:hover { background: #edf3f0; }
+.content { display: flex; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; flex-direction: column; gap: 16px; padding: 16px 20px 20px; }
+.content > * { flex-shrink: 0; }
+.content p { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.content label { font-size: 14px; font-weight: 600; }
+.disclosure { min-height: 44px; padding: 10px 0; font-size: 14px; font-weight: 600; text-align: left; touch-action: manipulation; text-decoration: underline; text-underline-offset: 3px; }
+.disclosure:hover { color: #005147; }
+.alternative { display: flex; flex-direction: column; gap: 12px; }
+.alternative .button { width: 100%; }
+.content input { min-height: 44px; min-width: 0; width: 100%; padding: 8px 12px; border: 1px solid #b5c3bc; border-radius: 6px; font-size: 16px; background: #fff; color: #202b28; }
+.qr { align-self: center; max-width: 100%; height: auto; }
+.verificacion { text-align: center; font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .12em; }
+.primary { background: #202b28; color: #fff; }
+.primary:hover:not(:disabled) { background: #111b17; }
+.content .error { color: #b42332; }
+.spinner { animation: giro 1s linear infinite; }
+@keyframes giro { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
