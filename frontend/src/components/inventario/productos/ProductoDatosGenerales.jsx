@@ -25,6 +25,13 @@ export default function ProductoDatosGenerales({ formulario, codigoMostrado, onC
         </div>
       </div>
       <div className={styles.field}>
+        <label htmlFor="codigo_barras">Código de barras <span className={styles.optional}>(opcional)</span></label>
+        <input id="codigo_barras" type="text" name="codigo_barras" autoComplete="off" spellCheck={false}
+          value={formulario.codigo_barras || ''} onChange={onChange} maxLength={64}
+          placeholder="Ej.: 0012345678905…" aria-describedby="codigo-barras-ayuda" className={styles.input} />
+        <p id="codigo-barras-ayuda" className={styles.helpText}>Escribe, pega o escanea el código del empaque. Déjalo vacío si todavía no lo tienes.</p>
+      </div>
+      <div className={styles.field}>
         <label htmlFor="nombre_comercial">Nombre comercial</label>
         <input id="nombre_comercial" type="text" name="nombre_comercial" autoComplete="off" value={formulario.nombre_comercial} onChange={onChange} placeholder="Ej.: Aspirina Forte…" maxLength={150} required className={styles.input} />
       </div>

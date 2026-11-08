@@ -3,6 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AutocompletadoProductosPOS from './AutocompletadoProductosPOS';
+import { buscarProductoPorLectura } from '../../api/lecturaProductos';
+
+vi.mock('../../api/lecturaProductos', () => ({ buscarProductoPorLectura: vi.fn() }));
 
 const producto = {
   id_producto: 1,
@@ -52,6 +55,11 @@ function Escenario({
 }
 
 describe('AutocompletadoProductosPOS', () => {
+  it('comparte un único campo para nombre y código sin selector de modo', async () => {
+    render(<Escenario />);
+    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  });
   it('orienta al usuario antes de comenzar la búsqueda', () => {
     render(<Escenario />);
 
@@ -75,10 +83,11 @@ describe('AutocompletadoProductosPOS', () => {
     expect(screen.queryByText('Paracetamol')).not.toBeInTheDocument();
   });
 
-  it('busca inmediatamente y abre los lotes del primer resultado al presionar Enter', async () => {
+  it('identifica un código exacto al presionar Enter sin utilizar el primer resultado aproximado', async () => {
     const user = userEvent.setup();
     const onSeleccionar = vi.fn();
     const onBuscarAhora = vi.fn(async () => [producto]);
+    buscarProductoPorLectura.mockResolvedValueOnce(producto);
     render(
       <Escenario
         onSeleccionar={onSeleccionar}
@@ -90,8 +99,19 @@ describe('AutocompletadoProductosPOS', () => {
     await user.type(buscador, 'MED-001{Enter}');
 
     await waitFor(() => expect(onSeleccionar).toHaveBeenCalledWith(producto));
-    expect(onBuscarAhora).toHaveBeenCalledWith('MED-001');
-    expect(buscador).toHaveValue('MED-001');
+    expect(onBuscarAhora).not.toHaveBeenCalled();
+    expect(buscador).toHaveValue('');
+  });
+
+  it('un código desconocido puede mostrar sugerencias pero nunca abre automáticamente una aproximación', async () => {
+    buscarProductoPorLectura.mockRejectedValueOnce({ response: { status: 404 } });
+    const seleccionar = vi.fn();
+    const buscar = vi.fn(async () => [producto]);
+    render(<Escenario onSeleccionar={seleccionar} onBuscarAhora={buscar} />);
+    await userEvent.setup().type(screen.getByLabelText('Buscar productos'), 'MED-002{Enter}');
+    expect(await screen.findByText('Selecciona un producto de los resultados para ver sus lotes.')).toBeInTheDocument();
+    expect(buscar).toHaveBeenCalledWith('MED-002');
+    expect(seleccionar).not.toHaveBeenCalled();
   });
 
   it('presenta un estado vacío después de una búsqueda sin resultados', async () => {

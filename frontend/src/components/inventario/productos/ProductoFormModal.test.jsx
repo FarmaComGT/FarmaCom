@@ -226,7 +226,7 @@ describe('regresión del formulario de producto dividido en secciones', () => {
     await usuario.click(screen.getByRole('button', { name: 'Guardar producto' }));
 
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
-      codigo: 'MED004-CA', nombre_comercial: 'Aspirina Forte', nombre_generico: 'Ácido acetilsalicílico',
+      codigo: 'MED004-CA', codigo_barras: null, nombre_comercial: 'Aspirina Forte', nombre_generico: 'Ácido acetilsalicílico',
       concentracion: '500 mg', id_presentacion: 1, id_categoria: 1, id_casa: 1,
       id_proveedor: 3, precio_compra: 12.5, stock_minimo: 0,
       meses_alerta_vencimiento: 6, aplica_mayoreo: true,
@@ -253,7 +253,7 @@ describe('regresión del formulario de producto dividido en secciones', () => {
 
     expect(screen.getByDisplayValue('MED009-CA')).toBeDisabled();
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
-      codigo: 'MED009-CA', nombre_comercial: 'Aspirina', nombre_generico: 'Ácido acetilsalicílico',
+      codigo: 'MED009-CA', codigo_barras: null, nombre_comercial: 'Aspirina', nombre_generico: 'Ácido acetilsalicílico',
       concentracion: null, id_presentacion: 2, id_categoria: 1, id_casa: 1,
       id_proveedor: undefined, precio_compra: 10, stock_minimo: 0,
       meses_alerta_vencimiento: 6, aplica_mayoreo: false,

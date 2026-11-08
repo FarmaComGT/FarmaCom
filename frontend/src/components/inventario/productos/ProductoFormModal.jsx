@@ -11,6 +11,7 @@ import styles from '../../../styles/ManagementUI.module.css';
 
 const campoParaError = (error) => {
   const campos = [
+    ['código de barras', 'codigo_barras'],
     ['nombre comercial', 'nombre_comercial'],
     ['nombre genérico', 'nombre_generico'],
     ['presentación', 'id_presentacion'],

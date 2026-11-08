@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  Barcode,
   LoaderCircle,
   PackageSearch,
   RefreshCw,
-  Search,
-  X,
 } from 'lucide-react';
 import { obtenerTextoMasCoincidente } from '../../utils/resaltarCoincidencia';
 import ProductoVentaCard from './ProductoVentaCard';
+import LecturaCodigoPOS from './LecturaCodigoPOS';
 
 export default function AutocompletadoProductosPOS({
   busqueda,
@@ -19,8 +17,10 @@ export default function AutocompletadoProductosPOS({
   onSeleccionar,
   onBuscarAhora,
   onRefrescar,
+  onSeleccionarCodigo = onSeleccionar,
+  bloqueado,
+  contexto,
 }) {
-  const [procesandoEnter, setProcesandoEnter] = useState(false);
   const hayBusqueda = Boolean(busqueda.trim());
   const hayCoincidenciasAproximadas = productos.some(
     (producto) => producto.tipo_coincidencia === 'aproximada',
@@ -36,31 +36,14 @@ export default function AutocompletadoProductosPOS({
     ], busqueda)
     : null;
 
-  const manejarTecla = async (evento) => {
-    if (evento.key !== 'Enter' || !hayBusqueda || procesandoEnter) return;
-
-    evento.preventDefault();
-    setProcesandoEnter(true);
-    try {
-      const resultados = await onBuscarAhora(busqueda);
-      const primerProducto = resultados.find((producto) => producto.tiene_precio);
-
-      if (primerProducto) {
-        onSeleccionar(primerProducto);
-      }
-    } finally {
-      setProcesandoEnter(false);
-    }
-  };
-
-  const buscando = cargando || procesandoEnter;
+  const buscando = cargando;
 
   return (
     <section className="pos-panel" aria-label="Búsqueda y resultados del catálogo">
       <div className="pos-search-head">
         <div>
           <h2 id="titulo-busqueda-productos">Buscar productos</h2>
-          <p>Nombre, presentación o código</p>
+          <p>Nombre, presentación o código de barras</p>
         </div>
         <button
           type="button"
@@ -74,33 +57,9 @@ export default function AutocompletadoProductosPOS({
         </button>
       </div>
 
-      <div className="pos-search-box">
-        <Search className="pos-search-icon" aria-hidden="true" />
-        <input
-          autoFocus
-          type="search"
-          name="q"
-          autoComplete="off"
-          spellCheck="false"
-          value={busqueda}
-          onChange={(evento) => onBusquedaChange(evento.target.value)}
-          onKeyDown={manejarTecla}
-          placeholder="Ej. paracetamol, MED-001…"
-          aria-label="Buscar productos"
-        />
-        <div className="pos-search-box-actions">
-          {hayBusqueda && (
-            <button
-              type="button"
-              onClick={() => onBusquedaChange('')}
-              aria-label="Limpiar búsqueda"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
-          )}
-          <Barcode className="pos-barcode-icon" aria-hidden="true" />
-        </div>
-      </div>
+      <LecturaCodigoPOS busqueda={busqueda} onBusquedaChange={onBusquedaChange}
+        onSeleccionar={onSeleccionarCodigo}
+        onBuscarAhora={onBuscarAhora} contexto={contexto} bloqueado={bloqueado} />
 
       <div className="pos-search-results" aria-live="polite" aria-busy={buscando}>
         {!hayBusqueda && (
@@ -183,7 +142,7 @@ export default function AutocompletadoProductosPOS({
               ? 'Mostrando las opciones más cercanas'
               : hayCoincidenciasAproximadas
               ? 'Las coincidencias aproximadas aparecen después de las directas'
-              : 'Presiona Enter para ver los lotes de la primera opción'}
+              : 'Selecciona un producto o presiona Enter para buscar un código exacto'}
           </span>
           <span>{productos.length} {productos.length === 1 ? 'resultado' : 'resultados'}</span>
         </div>
