@@ -1,0 +1,94 @@
+.filters {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+}
+.filterActions {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.historyTable {
+  table-layout: auto;
+}
+
+.historyTable th:first-child {
+  width: 170px;
+}
+
+.historyTable th:last-child {
+  width: 230px;
+}
+
+.entity {
+  display: flex;
+  min-width: 180px;
+  flex-direction: column;
+}
+
+.entity small,
+.changeList small {
+  color: var(--management-muted);
+}
+
+.changeDetails summary {
+  min-height: 32px;
+  cursor: pointer;
+  color: var(--management-accent);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.changeDetails summary:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--management-accent);
+  outline-offset: 2px;
+}
+
+.changeList {
+  display: grid;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.changeRow {
+  display: grid;
+  grid-template-columns: minmax(92px, .8fr) minmax(0, 1.2fr);
+  gap: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.changeRow dt {
+  color: var(--management-muted);
+}
+
+.changeRow dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .filterActions,
+  .filterActions button {
+    width: 100%;
+  }
+
+  .filterActions button {
+    flex: 1;
+  }
+
+  .changeDetails summary {
+    min-height: 44px;
+    align-content: center;
+  }
+}
