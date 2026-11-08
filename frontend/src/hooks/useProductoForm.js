@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { sufijoPresentacion } from '../constants/presentaciones.js';
 
 export const PRODUCTO_FORM_INICIAL = {
+  codigo_barras: '',
   nombre_comercial: '',
   nombre_generico: '',
   concentracion: '',
@@ -19,6 +20,7 @@ export const PRODUCTO_FORM_INICIAL = {
 export const inicializarProductoForm = (producto) => {
   if (!producto) return { ...PRODUCTO_FORM_INICIAL };
   return {
+    codigo_barras: producto.codigo_barras || '',
     nombre_comercial: producto.nombre_comercial || '',
     nombre_generico: producto.nombre_generico || '',
     concentracion: producto.concentracion || '',
@@ -37,6 +39,10 @@ export const inicializarProductoForm = (producto) => {
 };
 
 export const validarProductoForm = (formulario) => {
+  const codigoBarras = (formulario.codigo_barras || '').trim();
+  if (codigoBarras && !/^[\x21-\x7E]{1,64}$/.test(codigoBarras)) {
+    return 'El código de barras debe contener de 1 a 64 caracteres visibles, sin espacios.';
+  }
   if (!formulario.nombre_comercial.trim()) return 'El nombre comercial es requerido.';
   if (!formulario.nombre_generico.trim()) return 'El nombre genérico es requerido.';
   if (!formulario.id_presentacion) return 'La presentación es requerida.';
@@ -70,6 +76,7 @@ export const construirPayloadProducto = ({
   const sufijo = sufijoPresentacion(presentacion?.nombre);
   return {
     codigo: producto?.codigo || `${codigoSugerido}-${sufijo}`,
+    codigo_barras: formulario.codigo_barras?.trim() || null,
     nombre_comercial: formulario.nombre_comercial.trim(),
     nombre_generico: formulario.nombre_generico.trim(),
     concentracion: formulario.concentracion.trim() || null,

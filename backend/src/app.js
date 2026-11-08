@@ -70,6 +70,7 @@ app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/categorias', categoriaRoutes);
 app.use('/api/ciudades', ciudadRoutes);
 app.use('/api/productos', productoRoutes);
+app.use('/api/lector-movil', require('./routes/LectorMovilRoutes'));
 app.use('/api/promociones', promocionRoutes);
 app.use('/api/sucursales', sucursalRoutes);
 app.use('/api/casas', CasaFarmaceuticaRoutes);

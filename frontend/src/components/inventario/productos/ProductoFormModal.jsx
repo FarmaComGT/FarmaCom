@@ -11,6 +11,7 @@ import styles from '../../../styles/ManagementUI.module.css';
 
 const campoParaError = (error) => {
   const campos = [
+    ['código de barras', 'codigo_barras'],
     ['nombre comercial', 'nombre_comercial'],
     ['nombre genérico', 'nombre_generico'],
     ['presentación', 'id_presentacion'],
@@ -70,7 +71,7 @@ export default function ProductoFormModal({
         </header>
 
         <form onSubmit={manejarEnvio} noValidate className={styles.form}>
-          <ProductoDatosGenerales formulario={formulario} codigoMostrado={codigoMostrado} onChange={manejarCambio} onToggleActivo={manejarToggleActivo} />
+          <ProductoDatosGenerales formulario={formulario} codigoMostrado={codigoMostrado} onChange={manejarCambio} onToggleActivo={manejarToggleActivo} bloqueado={guardando || cargandoDatos} />
           <ProductoPresentacionControl
             isOpen={isOpen}
             presentaciones={presentaciones}

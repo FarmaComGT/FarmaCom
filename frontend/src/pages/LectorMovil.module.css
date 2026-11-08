@@ -1,0 +1,21 @@
+.page { min-height: 100dvh; padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); background: #f0f4f2; color: #202b28; font-family: var(--font-sans); }
+.surface { width: min(100%, 480px); margin: 0 auto; padding: 24px; border-radius: 12px; background: #fff; display: flex; flex-direction: column; gap: 20px; }
+.surface header span { font-size: 18px; font-weight: 700; color: #005147; }
+.surface h1 { font-size: 26px; line-height: 1.2; margin-top: 20px; font-weight: 700; text-wrap: balance; }
+.surface p { font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.surface button { display: flex; gap: 8px; align-items: center; justify-content: center; min-height: 48px; padding: 10px 16px; background: #202b28; color: #fff; font-size: 16px; font-weight: 600; border-radius: 6px; touch-action: manipulation; }
+.surface button:hover:not(:disabled) { background: #111b17; }
+.surface button:disabled { opacity: .55; cursor: not-allowed; }
+.surface .secondary { background: #edf3f0; color: #202b28; }
+.surface .secondary:hover { background: #dce9e2; }
+.surface form { display: flex; flex-direction: column; gap: 10px; }
+.surface label { font-size: 16px; font-weight: 600; }
+.alternative summary { min-height: 44px; display: list-item; align-content: center; padding: 10px 0; font-size: 16px; font-weight: 600; cursor: pointer; touch-action: manipulation; }
+.alternative form { padding-top: 12px; }
+.surface input { min-width: 0; width: 100%; min-height: 48px; padding: 10px 12px; border: 1px solid #b5c3bc; border-radius: 6px; font-size: 16px; color: #202b28; background: #fff; }
+.surface :is(button, input, summary):focus-visible { outline: 2px solid #005147; outline-offset: 2px; }
+.surface .error { color: #b42332; }
+.verificacion { text-align: center; font-size: 36px; font-weight: 700; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
+.spinner { animation: giro 1s linear infinite; }
+@keyframes giro { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }

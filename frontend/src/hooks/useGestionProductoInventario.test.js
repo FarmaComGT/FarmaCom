@@ -70,6 +70,17 @@ describe('useGestionProductoInventario', () => {
 });
 
 
+it('muestra el error de código duplicado en el formulario aunque exista un toast', async () => {
+  const propiedades = { ...crearPropiedades(), onError: vi.fn() };
+  propiedades.crearProducto.mockRejectedValue(new Error('El código de barras ya está asignado a otro producto.'));
+  const { result } = renderHook(() => useGestionProductoInventario(propiedades));
+  act(() => result.current.abrirNuevo());
+  await act(() => result.current.guardar(formulario));
+  expect(result.current.errorFormulario).toBe('El código de barras ya está asignado a otro producto.');
+  expect(result.current.mostrarFormulario).toBe(true);
+  expect(propiedades.onError).toHaveBeenCalled();
+});
+
 it('conserva el éxito de guardar si falla la actualización posterior', async () => {
   const propiedades = { ...crearPropiedades(), onError: vi.fn() };
   propiedades.refrescarInventario.mockRejectedValue(new Error('Sin conexión'));

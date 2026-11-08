@@ -12,6 +12,9 @@ import {
   obtenerVentaPorId,
 } from '../../api/ventas';
 import useCaja from '../../hooks/useCaja';
+import { buscarProductoPorLectura } from '../../api/lecturaProductos';
+
+vi.mock('../../api/lecturaProductos', () => ({ buscarProductoPorLectura: vi.fn() }));
 
 function RutaActual() {
   const ubicacion = useLocation();
@@ -176,6 +179,7 @@ vi.mock('../../hooks/useCaja', () => ({
 
 describe('PuntoVenta', () => {
   beforeEach(() => {
+    buscarProductoPorLectura.mockReset();
     carritoItems = [];
     carritosAdicionales = [];
     clienteCarrito = null;
@@ -241,6 +245,23 @@ describe('PuntoVenta', () => {
         },
       ],
     });
+  });
+
+  it('abre lotes por lectura exacta, actualiza la URL y conserva la selección explícita', async () => {
+    buscarProductoPorLectura.mockResolvedValue({ ...productoNormal, codigo: 'MED-001' });
+    const user = userEvent.setup();
+    render(<PuntoVenta />);
+    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+    await user.type(screen.getByLabelText('Buscar productos'), '000123{Enter}');
+    expect(await screen.findByRole('dialog', { name: 'Seleccionar lote' })).toBeInTheDocument();
+    expect(screen.getByTestId('ruta-actual')).toHaveTextContent('q=MED-001');
+    expect(screen.getByTestId('ruta-actual')).toHaveTextContent('producto=1');
+    expect(agregarAlCarrito).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Seleccionar lote L-001' }));
+    expect(agregarAlCarrito).toHaveBeenCalledWith(expect.objectContaining({ id_lote: 1 }), expect.any(Object));
+    expect(screen.queryByRole('dialog', { name: 'Seleccionar lote' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Buscar productos')).toHaveValue('');
+    expect(screen.queryByLabelText('Buscar por')).not.toBeInTheDocument();
   });
 
   it('restaura la búsqueda desde la URL y conserva los cambios en ella', async () => {

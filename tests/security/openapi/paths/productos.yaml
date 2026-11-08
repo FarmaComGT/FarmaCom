@@ -27,6 +27,26 @@ autocompletar:
       '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
       '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
       '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+lectura:
+  get:
+    tags: [Productos]
+    operationId: buscarProductoPorLectura
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    description: Busca por código literal y devuelve lotes vendibles de la sucursal autenticada.
+    parameters:
+      - name: codigo
+        in: query
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 64, pattern: '^[!-~]+$' }
+        example: TEST-0001
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+      '404': { $ref: '../components/responses.yaml#/NoEncontrado' }
+      '409':
+        description: Código ambiguo, producto inactivo o sin lotes vendibles.
 porId:
   get:
     tags: [Productos]

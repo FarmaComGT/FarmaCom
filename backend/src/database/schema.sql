@@ -462,6 +462,9 @@ ON CONFLICT (nombre) DO NOTHING;
 CREATE TABLE IF NOT EXISTS producto (
     id_producto              SERIAL PRIMARY KEY,
     codigo                   VARCHAR(50)   NOT NULL UNIQUE,
+    codigo_barras            VARCHAR(64)
+        CONSTRAINT chk_producto_codigo_barras
+        CHECK (codigo_barras IS NULL OR codigo_barras ~ '^[!-~]{1,64}$'),
     nombre_comercial         VARCHAR(150)  NOT NULL,
     nombre_generico          VARCHAR(150),
     concentracion            VARCHAR(50),
@@ -500,6 +503,9 @@ CREATE TABLE IF NOT EXISTS producto (
 -- =========================
 -- ÍNDICES: producto
 -- =========================
+CREATE UNIQUE INDEX IF NOT EXISTS uq_producto_codigo_barras
+    ON producto (codigo_barras) WHERE codigo_barras IS NOT NULL;
+
 CREATE UNIQUE INDEX IF NOT EXISTS uq_producto_identidad
     ON producto (
         LOWER(TRIM(nombre_generico)),

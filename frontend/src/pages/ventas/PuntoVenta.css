@@ -91,17 +91,29 @@
 .pos-search-refresh { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex: none; border: 1px solid var(--pos-line); border-radius: 8px; color: var(--pos-muted); }
 .pos-search-refresh:hover:not(:disabled) { background: var(--pos-selected); color: var(--pos-accent); }
 
-.pos-search-box { position: relative; margin: 16px 24px 0; }
-.pos-search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; color: var(--pos-muted); pointer-events: none; }
-.pos-search-box input { width: 100%; height: 48px; border: 1px solid var(--pos-control); border-radius: 10px; padding: 0 76px 0 44px; font-size: 15px; font-weight: 500; color: var(--pos-ink); background: var(--pos-surface); }
-.pos-search-box input::placeholder { color: var(--pos-muted); }
-.pos-search-box input:focus-visible { outline: 2px solid var(--pos-accent); outline-offset: 2px; }
-.pos-search-box input[type="search"]::-webkit-search-cancel-button { appearance: none; }
-.pos-search-box-actions { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 8px; }
-.pos-search-box-actions button { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; color: var(--pos-muted); }
-.pos-search-box-actions button:hover { background: var(--pos-selected); }
-.pos-barcode-icon { width: 18px; height: 18px; color: var(--pos-accent); opacity: .7; }
-
+.pos-busqueda-unificada { margin: 16px 24px 0; min-width: 0; }
+.pos-unified-input { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.pos-unified-input > svg { flex: none; color: var(--pos-accent); }
+.pos-unified-input input { flex: 1; min-width: 0; width: 100%; height: 48px; padding: 0 12px; border: 1px solid var(--pos-control); border-radius: 8px; background: var(--pos-surface); color: var(--pos-ink); font-size: 16px; }
+.pos-unified-input input::placeholder { color: var(--pos-muted); }
+.pos-unified-input input[aria-invalid="true"] { border-color: var(--pos-danger); }
+.pos-unified-input button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; flex: none; background: var(--pos-ink); color: #fff; border-radius: 6px; font-weight: 600; }
+.pos-unified-input button:hover:not(:disabled) { background: #111b17; }
+.pos-unified-input .pos-unified-clear { width: 44px; padding: 8px; background: transparent; color: var(--pos-muted); }
+.pos-unified-input .pos-unified-clear:hover:not(:disabled) { background: var(--pos-selected); color: var(--pos-ink); }
+.pos-unified-input :is(.pos-unified-camera, .pos-unified-mobile) { min-height: 44px; border: 1px solid var(--pos-control); background: var(--pos-selected); color: var(--pos-ink); font-family: inherit; font-size: 14px; line-height: 1.4; touch-action: manipulation; }
+.pos-unified-input :is(.pos-unified-camera, .pos-unified-mobile):hover:not(:disabled) { background: #dce9e2; border-color: var(--pos-accent); }
+.pos-unified-input :is(.pos-unified-camera, .pos-unified-mobile):focus-visible { outline: 2px solid var(--pos-accent); outline-offset: 2px; }
+.pos-busqueda-unificada > p { margin-top: 8px; font-size: 13px; line-height: 1.5; color: var(--pos-muted); overflow-wrap: anywhere; }
+.pos-busqueda-unificada > .pos-lectura-error { color: var(--pos-danger); font-weight: 600; }
+.pos-lectura-error:empty { margin: 0; }
+@media (max-width: 600px) {
+  .pos-busqueda-unificada { margin-right: 16px; margin-left: 16px; }
+  .pos-unified-input { flex-wrap: wrap; gap: 6px; }
+  .pos-unified-input input { flex-basis: calc(100% - 82px); }
+  .pos-unified-input button[type="submit"], .pos-unified-input .pos-unified-camera { flex: 1 1 calc(50% - 3px); width: auto; }
+  .pos-unified-input .pos-unified-mobile { flex: 1 1 100%; width: 100%; }
+}
 .pos-search-results { flex: 1; overflow-y: auto; overscroll-behavior-y: auto; padding: 16px 24px 20px; display: flex; flex-direction: column; }
 .pos-search-empty { display: flex; min-height: 280px; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--pos-muted); padding: 0 24px; }
 .pos-search-empty-icon { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 14px; background: var(--pos-selected); color: var(--pos-accent); margin-bottom: 14px; }

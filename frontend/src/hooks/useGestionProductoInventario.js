@@ -50,7 +50,9 @@ export default function useGestionProductoInventario({
       setMostrarFormulario(false);
       setProductoEditando(null);
     } catch (error) {
-      (onError || setErrorFormulario)(error.message || 'No se pudo guardar el producto.');
+      const mensaje = error.message || 'No se pudo guardar el producto.';
+      setErrorFormulario(mensaje);
+      onError?.(mensaje);
     } finally {
       setGuardando(false);
     }

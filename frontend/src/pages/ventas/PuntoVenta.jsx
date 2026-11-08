@@ -73,6 +73,7 @@ export default function PuntoVenta() {
 
   const [aviso, setAviso] = useState(null);
   const [productoSeleccionandoLote, setProductoSeleccionandoLote] = useState(null);
+  const [seleccionDesdeLectura, setSeleccionDesdeLectura] = useState(false);
   const [productoPendiente, setProductoPendiente] = useState(null);
   const [mostrandoNuevoCliente, setMostrandoNuevoCliente] = useState(false);
 
@@ -89,11 +90,15 @@ export default function PuntoVenta() {
     }, { replace: true });
   }, [setParametros]);
 
-  const abrirSeleccionLote = useCallback((producto) => {
+  const abrirSeleccionLote = useCallback((producto, desdeLectura = false) => {
+    setSeleccionDesdeLectura(desdeLectura);
     setProductoSeleccionandoLote(producto);
     setParametros((actuales) => {
       const siguientes = new URLSearchParams(actuales);
       siguientes.set('producto', String(producto.id_producto));
+      if (desdeLectura) {
+        siguientes.set('q', producto.codigo);
+      }
       return siguientes;
     });
   }, [setParametros]);
@@ -103,9 +108,10 @@ export default function PuntoVenta() {
     setParametros((actuales) => {
       const siguientes = new URLSearchParams(actuales);
       siguientes.delete('producto');
+      if (seleccionDesdeLectura) siguientes.delete('q');
       return siguientes;
     }, { replace: true });
-  }, [setParametros]);
+  }, [setParametros, seleccionDesdeLectura]);
 
   const actualizarCarritoEnUrl = useCallback((idCarrito, reemplazar = false) => {
     setParametros((actuales) => {
@@ -279,6 +285,9 @@ export default function PuntoVenta() {
           onSeleccionar={abrirSeleccionLote}
           onBuscarAhora={buscarAhora}
           onRefrescar={refrescar}
+          contexto={`${sucursalActivaId}:${carritoActivoId}`}
+          bloqueado={Boolean(productoSeleccionandoLote || productoPendiente || flujoVenta.modalActivo || flujoVenta.procesandoCobro)}
+          onSeleccionarCodigo={(producto) => abrirSeleccionLote(producto, true)}
         />
 
         <CarritoVenta
