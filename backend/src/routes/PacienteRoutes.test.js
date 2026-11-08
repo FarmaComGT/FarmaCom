@@ -76,6 +76,38 @@ describe('PacienteRoutes - sexo y edad', () => {
     expect(respuesta.body.errores[0].msg).toContain('sexo debe ser M, F u Otro');
   });
 
+  it('rechaza fechas futuras y fechas de calendario inexistentes', async () => {
+    for (const fecha_nacimiento of ['2999-01-01', '2025-02-30']) {
+      PacienteService.registrarPaciente.mockClear();
+      const respuesta = await request(crearApp())
+        .post('/api/pacientes')
+        .send({ ...datosBase, fecha_nacimiento });
+
+      expect(respuesta.status).toBe(400);
+      expect(PacienteService.registrarPaciente).not.toHaveBeenCalled();
+    }
+  });
+
+  it('normaliza un DPI válido y permite borrar campos opcionales', async () => {
+    const respuesta = await request(crearApp())
+      .put('/api/pacientes/4')
+      .send({ dpi: '1234 56789 0101', telefono: '', direccion: '  ', observaciones: null });
+
+    expect(respuesta.status).toBe(200);
+    expect(PacienteService.actualizarPaciente).toHaveBeenCalledWith(4, {
+      dpi: '1234567890101', telefono: null, direccion: null, observaciones: null,
+    }, expect.any(Object));
+  });
+
+  it('rechaza un DPI que no tenga 13 dígitos', async () => {
+    const respuesta = await request(crearApp())
+      .post('/api/pacientes')
+      .send({ ...datosBase, edad_manual: 30, dpi: '1234' });
+
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body.errores[0].msg).toContain('13 dígitos');
+  });
+
   it('permite actualizar un paciente sin tocar fecha_nacimiento/edad_manual', async () => {
     const respuesta = await request(crearApp())
       .put('/api/pacientes/4')

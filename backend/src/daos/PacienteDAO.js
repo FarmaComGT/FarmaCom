@@ -141,6 +141,9 @@ class PacienteDAO {
     const incluyeDpi = Object.prototype.hasOwnProperty.call(campos, 'dpi');
     const incluyeFechaNacimiento = Object.prototype.hasOwnProperty.call(campos, 'fecha_nacimiento');
     const incluyeEdadManual = Object.prototype.hasOwnProperty.call(campos, 'edad_manual');
+    const incluyeTelefono = Object.prototype.hasOwnProperty.call(campos, 'telefono');
+    const incluyeDireccion = Object.prototype.hasOwnProperty.call(campos, 'direccion');
+    const incluyeObservaciones = Object.prototype.hasOwnProperty.call(campos, 'observaciones');
 
     const { rows } = await client.query(
       `UPDATE paciente SET
@@ -149,10 +152,10 @@ class PacienteDAO {
          fecha_nacimiento = CASE WHEN $4 THEN $5 ELSE fecha_nacimiento END,
          edad_manual      = CASE WHEN $6 THEN $7 ELSE edad_manual END,
          sexo             = COALESCE($8, sexo),
-         telefono         = COALESCE($9, telefono),
-         direccion        = COALESCE($10, direccion),
-         observaciones    = COALESCE($11, observaciones)
-       WHERE id_paciente = $12
+         telefono         = CASE WHEN $9 THEN $10 ELSE telefono END,
+         direccion        = CASE WHEN $11 THEN $12 ELSE direccion END,
+         observaciones    = CASE WHEN $13 THEN $14 ELSE observaciones END
+       WHERE id_paciente = $15
        RETURNING *`,
       [
         nombre_paciente ?? null,
@@ -163,8 +166,11 @@ class PacienteDAO {
         incluyeEdadManual,
         campos.edad_manual ?? null,
         sexo ?? null,
+        incluyeTelefono,
         telefono ?? null,
+        incluyeDireccion,
         direccion ?? null,
+        incluyeObservaciones,
         observaciones ?? null,
         id_paciente,
       ],

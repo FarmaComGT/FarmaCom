@@ -177,11 +177,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_paciente_dpi
     ON paciente (dpi)
     WHERE dpi IS NOT NULL;
 
--- Evita nombres duplicados: el nombre se usa para nombrar la carpeta de
--- respaldo local de cada paciente en el modulo de laboratorio.
-CREATE UNIQUE INDEX IF NOT EXISTS uq_paciente_nombre
-    ON paciente (LOWER(TRIM(nombre_paciente)));
-
 CREATE INDEX IF NOT EXISTS idx_paciente_laboratorio
     ON paciente (id_laboratorio, estado);
 

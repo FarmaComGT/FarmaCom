@@ -45,23 +45,25 @@ describe('PacienteService - edad calculada', () => {
   });
 });
 
-describe('PacienteService.registrarPaciente - nombre duplicado', () => {
-  it('lanza 409 si ya existe un paciente con ese nombre', async () => {
+describe('PacienteService.registrarPaciente - homónimos', () => {
+  it('permite registrar pacientes con el mismo nombre', async () => {
     PacienteDAO.obtenerPorNombre.mockResolvedValue({ id_paciente: 1, nombre_paciente: 'Juan Pérez' });
+    PacienteDAO.ejecutarEnTransaccion.mockImplementation((fn) => fn(mockClient));
+    PacienteDAO.crear.mockResolvedValue({ id_paciente: 2, nombre_paciente: 'Juan Pérez', edad_manual: 30 });
+    PacienteDAO.crearExpediente.mockResolvedValue({ id_expediente: 11 });
 
     await expect(
       PacienteService.registrarPaciente({ nombre_paciente: 'juan pérez', edad_manual: 30 }, usuarioAdministrador),
-    ).rejects.toMatchObject({ status: 409 });
+    ).resolves.toMatchObject({ id_paciente: 2, id_expediente: 11 });
 
-    expect(PacienteDAO.ejecutarEnTransaccion).not.toHaveBeenCalled();
+    expect(PacienteDAO.obtenerPorNombre).not.toHaveBeenCalled();
   });
 
-  it('distingue el mensaje de nombre duplicado del de DPI duplicado en condicion de carrera', async () => {
-    PacienteDAO.obtenerPorNombre.mockResolvedValue(null);
+  it('conserva la validación de DPI duplicado en una condición de carrera', async () => {
     PacienteDAO.obtenerPorDpi.mockResolvedValue(null);
     const errorConstraint = Object.assign(new Error('duplicate key'), {
       code: '23505',
-      constraint: 'uq_paciente_nombre',
+      constraint: 'uq_paciente_dpi',
     });
     PacienteDAO.ejecutarEnTransaccion.mockRejectedValue(errorConstraint);
 
@@ -70,7 +72,7 @@ describe('PacienteService.registrarPaciente - nombre duplicado', () => {
         { nombre_paciente: 'Juan Pérez', dpi: '123', edad_manual: 30 },
         usuarioAdministrador,
       ),
-    ).rejects.toMatchObject({ status: 409, message: expect.stringContaining('nombre') });
+    ).rejects.toMatchObject({ status: 409, message: expect.stringContaining('DPI') });
   });
 
   it('registra el paciente y su expediente dentro de la transacción', async () => {
@@ -142,13 +144,15 @@ describe('PacienteService.actualizarPaciente', () => {
     ).rejects.toMatchObject({ status: 409 });
   });
 
-  it('lanza 409 si el nuevo nombre ya pertenece a otro paciente', async () => {
+  it('permite actualizar a un nombre que ya pertenece a otro paciente', async () => {
     PacienteDAO.obtenerParaActualizar.mockResolvedValue(existente);
     PacienteDAO.obtenerPorNombre.mockResolvedValue({ id_paciente: 2 });
+    PacienteDAO.actualizar.mockResolvedValue({ ...existente, nombre_paciente: 'Ana López' });
 
     await expect(
       PacienteService.actualizarPaciente(1, { nombre_paciente: 'Ana López' }, usuarioAdministrador),
-    ).rejects.toMatchObject({ status: 409 });
+    ).resolves.toMatchObject({ nombre_paciente: 'Ana López' });
+    expect(PacienteDAO.obtenerPorNombre).not.toHaveBeenCalled();
   });
 
   it('actualiza correctamente y registra el cambio en bitácora', async () => {

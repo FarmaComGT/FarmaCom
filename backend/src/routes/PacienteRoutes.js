@@ -8,6 +8,43 @@ const validateRequest = require('../middlewares/validateRequest');
 const router = Router();
 const rolesPaciente = verificarRol('dueno', 'administrador', 'laboratorista');
 
+const aNuloSiVacio = (valor) => {
+  if (valor === null || valor === undefined) return null;
+  if (typeof valor !== 'string') return valor;
+  const limpio = valor.trim();
+  return limpio || null;
+};
+
+const validarFechaReal = (valor) => {
+  if (valor == null) return true;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return false;
+  const [anio, mes, dia] = valor.split('-').map(Number);
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
+  return fecha.getUTCFullYear() === anio
+    && fecha.getUTCMonth() === mes - 1
+    && fecha.getUTCDate() === dia;
+};
+
+const obtenerHoyGuatemala = () => {
+  const partes = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Guatemala', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const valor = (tipo) => Number(partes.find((parte) => parte.type === tipo)?.value);
+  return new Date(Date.UTC(valor('year'), valor('month') - 1, valor('day')));
+};
+
+const validarRangoFechaNacimiento = (valor) => {
+  if (valor == null) return true;
+  const fecha = new Date(`${valor}T00:00:00Z`);
+  const hoy = obtenerHoyGuatemala();
+  const fechaMinima = new Date(Date.UTC(
+    hoy.getUTCFullYear() - 121,
+    hoy.getUTCMonth(),
+    hoy.getUTCDate(),
+  ));
+  return fecha <= hoy && fecha > fechaMinima;
+};
+
 const validarId = [
   param('id').isInt({ min: 1 }).withMessage('El id debe ser un entero positivo').toInt(),
 ];
@@ -16,19 +53,29 @@ const validarDpi = body('dpi')
   .optional({ nullable: true })
   .customSanitizer((valor) => {
     if (typeof valor !== 'string') return valor;
-    const normalizado = valor.trim().replace(/\s+/g, '');
+    const normalizado = valor.trim().replace(/[\s-]+/g, '');
     return normalizado || null;
   })
-  .isLength({ max: 20 }).withMessage('dpi no puede superar los 20 caracteres');
+  .custom((valor) => valor == null || /^\d{13}$/.test(valor))
+  .withMessage('dpi debe contener exactamente 13 dígitos');
 
 const validarTelefono = body('telefono')
   .optional({ nullable: true })
-  .trim()
-  .isLength({ max: 20 }).withMessage('telefono no puede superar los 20 caracteres');
+  .customSanitizer(aNuloSiVacio)
+  .custom((valor) => valor == null || /^[\d\s()+-]+$/.test(valor))
+  .withMessage('telefono contiene caracteres no válidos')
+  .custom((valor) => {
+    if (valor == null) return true;
+    const digitos = valor.replace(/\D/g, '').length;
+    return digitos >= 8 && digitos <= 15;
+  }).withMessage('telefono debe contener entre 8 y 15 dígitos');
 
 const validarFechaNacimiento = body('fecha_nacimiento')
   .optional({ nullable: true })
-  .isISO8601({ strict: true }).withMessage('fecha_nacimiento debe tener formato YYYY-MM-DD');
+  .customSanitizer(aNuloSiVacio)
+  .custom(validarFechaReal).withMessage('fecha_nacimiento debe ser una fecha real con formato YYYY-MM-DD')
+  .custom(validarRangoFechaNacimiento)
+  .withMessage('fecha_nacimiento no puede ser futura ni corresponder a más de 120 años');
 
 const validarEdadManual = body('edad_manual')
   .optional({ nullable: true })
@@ -70,12 +117,12 @@ const validarExclusividadEdadActualizacion = body().custom((_valor, { req }) => 
 
 const validarDireccion = body('direccion')
   .optional({ nullable: true })
-  .trim()
+  .customSanitizer(aNuloSiVacio)
   .isLength({ max: 500 }).withMessage('direccion no puede superar los 500 caracteres');
 
 const validarObservaciones = body('observaciones')
   .optional({ nullable: true })
-  .trim()
+  .customSanitizer(aNuloSiVacio)
   .isLength({ max: 2000 }).withMessage('observaciones no puede superar los 2000 caracteres');
 
 const validarRegistro = [
@@ -85,6 +132,9 @@ const validarRegistro = [
   body('nombre_paciente')
     .trim()
     .notEmpty().withMessage('nombre_paciente es requerido')
+    .isLength({ min: 2 }).withMessage('nombre_paciente debe tener al menos 2 caracteres')
+    .matches(/^[\p{L}\p{M}][\p{L}\p{M}\s'.-]*$/u)
+    .withMessage('nombre_paciente contiene caracteres no válidos')
     .isLength({ max: 150 }).withMessage('nombre_paciente no puede superar los 150 caracteres'),
   validarDpi,
   validarFechaNacimiento,
@@ -101,6 +151,9 @@ const validarActualizacion = [
     .optional()
     .trim()
     .notEmpty().withMessage('nombre_paciente no puede estar vacío')
+    .isLength({ min: 2 }).withMessage('nombre_paciente debe tener al menos 2 caracteres')
+    .matches(/^[\p{L}\p{M}][\p{L}\p{M}\s'.-]*$/u)
+    .withMessage('nombre_paciente contiene caracteres no válidos')
     .isLength({ max: 150 }).withMessage('nombre_paciente no puede superar los 150 caracteres'),
   validarDpi,
   validarFechaNacimiento,
