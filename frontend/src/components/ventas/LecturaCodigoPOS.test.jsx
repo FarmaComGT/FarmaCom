@@ -4,11 +4,46 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LecturaCodigoPOS from './LecturaCodigoPOS';
 import { buscarProductoPorLectura } from '../../api/lecturaProductos';
+import { iniciarEscanerCamara } from '../../utils/escanerCamara';
 
 vi.mock('../../api/lecturaProductos', () => ({ buscarProductoPorLectura: vi.fn() }));
+vi.mock('../../utils/escanerCamara', async (importOriginal) => ({ ...await importOriginal(), iniciarEscanerCamara: vi.fn() }));
 
 describe('LecturaCodigoPOS', () => {
   beforeEach(() => vi.resetAllMocks());
+
+  it('envía el código de la cámara directamente a la búsqueda exacta sin requerir Enter', async () => {
+    let detectar;
+    const detener = vi.fn();
+    iniciarEscanerCamara.mockImplementation(({ onCodigo, onListo }) => {
+      detectar = onCodigo;
+      onListo([]);
+      return detener;
+    });
+    const producto = { id_producto: 7 };
+    buscarProductoPorLectura.mockResolvedValue(producto);
+    const seleccionar = vi.fn();
+    render(<LecturaCodigoPOS contexto="1:a" onSeleccionar={seleccionar} />);
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Escanear con cámara' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    await act(async () => detectar('000123'));
+    expect(buscarProductoPorLectura).toHaveBeenCalledWith('000123', { signal: expect.any(AbortSignal) });
+    expect(seleccionar).toHaveBeenCalledWith(producto);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(detener).toHaveBeenCalled();
+  });
+
+  it('no convierte una lectura desconocida de cámara en búsqueda aproximada', async () => {
+    let detectar;
+    iniciarEscanerCamara.mockImplementation(({ onCodigo }) => { detectar = onCodigo; return vi.fn(); });
+    buscarProductoPorLectura.mockRejectedValue({ response: { status: 404, data: { mensaje: 'Código no registrado.' } } });
+    const buscar = vi.fn();
+    render(<LecturaCodigoPOS contexto="1:a" onSeleccionar={vi.fn()} onBuscarAhora={buscar} />);
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Escanear con cámara' }));
+    await act(async () => detectar('NO-EXISTE'));
+    expect(await screen.findByText('Código no registrado.')).toBeInTheDocument();
+    expect(buscar).not.toHaveBeenCalled();
+  });
 
   it('un nombre con espacios o tildes actualiza sugerencias sin intentar decodificarlo como código', async () => {
     const seleccionar = vi.fn();

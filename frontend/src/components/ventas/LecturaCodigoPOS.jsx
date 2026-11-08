@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { LoaderCircle, Search, X } from 'lucide-react';
+import { Camera, LoaderCircle, Search, X } from 'lucide-react';
 import { buscarProductoPorLectura } from '../../api/lecturaProductos';
+import EscanerCamaraModal from '../ui/EscanerCamaraModal';
 
 export default function LecturaCodigoPOS({
   onSeleccionar, bloqueado, contexto, busqueda, onBusquedaChange,
@@ -10,6 +11,7 @@ export default function LecturaCodigoPOS({
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
   const [aviso, setAviso] = useState('');
+  const [camaraAbierta, setCamaraAbierta] = useState(false);
   const campo = useRef(null);
   const solicitud = useRef(null);
   const bloqueo = useRef(false);
@@ -29,6 +31,7 @@ export default function LecturaCodigoPOS({
     setCodigo('');
     setError('');
     setAviso('');
+    setCamaraAbierta(false);
     return () => solicitud.current?.abort();
   }, [contexto]);
 
@@ -37,12 +40,12 @@ export default function LecturaCodigoPOS({
     solicitud.current?.abort();
     bloqueo.current = false;
     setCargando(false);
+    setCamaraAbierta(false);
   }, [bloqueado]);
 
-  const leer = async (evento) => {
-    evento.preventDefault();
+  const procesarLectura = async (valorLeido, soloCodigo = false) => {
     if (bloqueado || bloqueo.current) return;
-    const lectura = valor.trim();
+    const lectura = valorLeido.trim();
     if (!lectura) {
       setError('Escribe o escanea un código, nombre o presentación.');
       campo.current?.focus();
@@ -72,10 +75,11 @@ export default function LecturaCodigoPOS({
       const producto = await buscarProductoPorLectura(lectura, { signal: control.signal });
       if (control.signal.aborted) return;
       cambiarValor('');
+      campo.current?.focus();
       onSeleccionar(producto);
     } catch (err) {
       if (control.signal.aborted) return;
-      if (err.response?.status === 404 && onBuscarAhora) {
+      if (!soloCodigo && err.response?.status === 404 && onBuscarAhora) {
         await mostrarSugerencias();
         return;
       }
@@ -91,7 +95,7 @@ export default function LecturaCodigoPOS({
   };
 
   return (
-    <form className="pos-busqueda-unificada" onSubmit={leer} noValidate aria-label="Búsqueda de productos">
+    <form className="pos-busqueda-unificada" onSubmit={(evento) => { evento.preventDefault(); void procesarLectura(valor); }} noValidate aria-label="Búsqueda de productos">
       <div className="pos-unified-input">
         <Search size={20} aria-hidden="true" />
         <input ref={campo} id="lectura-codigo" name="codigo_lectura" type="text"
@@ -108,9 +112,18 @@ export default function LecturaCodigoPOS({
           {cargando && <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />}
           Buscar
         </button>
+        <button className="pos-unified-camera" type="button" disabled={cargando || bloqueado}
+          onClick={() => setCamaraAbierta(true)} aria-label="Escanear con cámara">
+          <Camera size={18} aria-hidden="true" /><span>Cámara</span>
+        </button>
       </div>
       <p id="lectura-error" className="pos-lectura-error" aria-live="polite">{error}</p>
       {aviso && <p aria-live="polite">{aviso}</p>}
+      {camaraAbierta && <EscanerCamaraModal onClose={() => setCamaraAbierta(false)} onCodigo={(lectura) => {
+        setCamaraAbierta(false);
+        cambiarValor(lectura);
+        void procesarLectura(lectura, true);
+      }} />}
     </form>
   );
 }

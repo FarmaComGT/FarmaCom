@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@ericblade/quagga2": "1.13.0",
     "axios": "1.15.0",
     "lucide-react": "^0.511.0",
     "motion": "^12.23.24",

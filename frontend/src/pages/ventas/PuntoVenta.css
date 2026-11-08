@@ -101,6 +101,8 @@
 .pos-unified-input button:hover:not(:disabled) { background: #111b17; }
 .pos-unified-input .pos-unified-clear { width: 44px; padding: 8px; background: transparent; color: var(--pos-muted); }
 .pos-unified-input .pos-unified-clear:hover:not(:disabled) { background: var(--pos-selected); color: var(--pos-ink); }
+.pos-unified-input .pos-unified-camera { background: var(--pos-selected); color: var(--pos-ink); }
+.pos-unified-input .pos-unified-camera:hover:not(:disabled) { background: #dce9e2; }
 .pos-busqueda-unificada > p { margin-top: 8px; font-size: 13px; line-height: 1.5; color: var(--pos-muted); overflow-wrap: anywhere; }
 .pos-busqueda-unificada > .pos-lectura-error { color: var(--pos-danger); font-weight: 600; }
 .pos-lectura-error:empty { margin: 0; }
@@ -108,7 +110,7 @@
   .pos-busqueda-unificada { margin-right: 16px; margin-left: 16px; }
   .pos-unified-input { flex-wrap: wrap; gap: 6px; }
   .pos-unified-input input { flex-basis: calc(100% - 82px); }
-  .pos-unified-input button[type="submit"] { width: 100%; }
+  .pos-unified-input button[type="submit"], .pos-unified-input .pos-unified-camera { flex: 1 1 calc(50% - 3px); width: auto; }
 }
 .pos-search-results { flex: 1; overflow-y: auto; overscroll-behavior-y: auto; padding: 16px 24px 20px; display: flex; flex-direction: column; }
 .pos-search-empty { display: flex; min-height: 280px; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--pos-muted); padding: 0 24px; }

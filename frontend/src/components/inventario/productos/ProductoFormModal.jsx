@@ -71,7 +71,7 @@ export default function ProductoFormModal({
         </header>
 
         <form onSubmit={manejarEnvio} noValidate className={styles.form}>
-          <ProductoDatosGenerales formulario={formulario} codigoMostrado={codigoMostrado} onChange={manejarCambio} onToggleActivo={manejarToggleActivo} />
+          <ProductoDatosGenerales formulario={formulario} codigoMostrado={codigoMostrado} onChange={manejarCambio} onToggleActivo={manejarToggleActivo} bloqueado={guardando || cargandoDatos} />
           <ProductoPresentacionControl
             isOpen={isOpen}
             presentaciones={presentaciones}
