@@ -21,6 +21,19 @@ describe('BitacoraInventarioDAO', () => {
     );
   });
 
+  it('admite un cliente transaccional y completa los datos opcionales', async () => {
+    const client = { query: jest.fn().mockResolvedValue({ rows: [{ id_bitacora: 2 }] }) };
+
+    await expect(BitacoraInventarioDAO.registrar({
+      entidad: 'producto', id_entidad: 4, accion: 'alta', id_usuario: 9,
+    }, client)).resolves.toEqual({ id_bitacora: 2 });
+
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO bitacora_inventario'),
+      ['producto', 4, 'alta', null, null, null, 9, null, null],
+    );
+  });
+
   it('combina auditoría y movimientos con filtros y paginación', async () => {
     pool.query
       .mockResolvedValueOnce({ rows: [{ total: '26' }] })
@@ -52,5 +65,20 @@ describe('BitacoraInventarioDAO', () => {
       ],
       paginacion: { pagina: 2, limite: 25, total: 26, total_paginas: 2 },
     });
+  });
+
+  it('consulta sin filtros con la paginación predeterminada', async () => {
+    pool.query
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await expect(BitacoraInventarioDAO.obtenerHistorial({})).resolves.toEqual({
+      datos: [],
+      paginacion: { pagina: 1, limite: 25, total: 0, total_paginas: 1 },
+    });
+
+    expect(pool.query.mock.calls[1][1]).toEqual([
+      null, null, null, null, null, null, null, null, 25, 0,
+    ]);
   });
 });
