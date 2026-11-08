@@ -3,6 +3,38 @@ jest.mock('../database/db');
 const pool = require('../database/db');
 const ProductoDAO = require('./ProductoDAO');
 
+describe('ProductoDAO - códigos de barras', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('busca literalmente sin similitud ni interpolación del código', async () => {
+    pool.query.mockResolvedValue({ rows: [] });
+    await ProductoDAO.obtenerPorCodigoLectura("ABC'123");
+    const [sql, params] = pool.query.mock.calls[0];
+    expect(sql).toContain('codigo = $1 OR codigo_barras = $1');
+    expect(sql).not.toContain("ABC'123");
+    expect(params).toEqual(["ABC'123"]);
+  });
+
+  it('limita lotes y promociones a la sucursal sin incluir stock cero ni vencidos', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_lote: 9 }] });
+    await expect(ProductoDAO.obtenerLotesParaLectura(7, 3)).resolves.toEqual([{ id_lote: 9 }]);
+    const [sql, params] = pool.query.mock.calls[0];
+    expect(params).toEqual([7, 3]);
+    expect(sql).toContain('l.id_sucursal = $2');
+    expect(sql).toContain('pr.id_sucursal = $2');
+    expect(sql).toContain('l.stock_actual > 0 AND l.precio_venta > 0');
+    expect(sql).toContain('l.fecha_vencimiento >= CURRENT_DATE');
+  });
+
+  it('distingue omitir el código comercial de borrarlo explícitamente', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_producto: 7 }] });
+    await ProductoDAO.actualizar(7, { codigo_barras: null });
+    expect(pool.query.mock.calls[0][1].slice(14)).toEqual([true, null]);
+    await ProductoDAO.actualizar(7, { nombre_comercial: 'Nombre' });
+    expect(pool.query.mock.calls[1][1].slice(14)).toEqual([false, null]);
+  });
+});
+
 describe('ProductoDAO - concentración opcional', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -157,7 +189,7 @@ describe('ProductoDAO - catálogo', () => {
 
     expect(pool.query).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO producto'),
-      ['MED-010', 'Dolofin', 'Ibuprofeno', null, 2, null, 3, 4, null, 5, 6, false],
+      ['MED-010', 'Dolofin', 'Ibuprofeno', null, 2, null, 3, 4, null, 5, 6, false, null],
     );
   });
 
@@ -180,7 +212,7 @@ describe('ProductoDAO - catálogo', () => {
     });
 
     expect(pool.query.mock.calls[0][1]).toEqual([
-      'MED-011', 'Amoxil', 'Amoxicilina', '500 mg', 2, 'Cápsulas', 3, 4, 7, 10, 3, true,
+      'MED-011', 'Amoxil', 'Amoxicilina', '500 mg', 2, 'Cápsulas', 3, 4, 7, 10, 3, true, null,
     ]);
   });
 

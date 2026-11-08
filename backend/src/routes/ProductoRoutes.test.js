@@ -32,6 +32,39 @@ const payloadBase = {
   meses_alerta_vencimiento: 12,
 };
 
+describe('ProductoRoutes - lectura exacta', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('utiliza la sucursal de la sesión e ignora la enviada en la URL', async () => {
+    ProductoService.buscarPorLectura.mockResolvedValue([{ id_producto: 7, id_lote: 9 }]);
+    const respuesta = await request(crearApp()).get('/api/productos/lectura')
+      .query({ codigo: '000123', id_sucursal: 999 });
+    expect(respuesta.status).toBe(200);
+    expect(ProductoService.buscarPorLectura).toHaveBeenCalledWith({ codigo: '000123', id_sucursal: 3 });
+  });
+
+  it.each([{}, { codigo: '' }, { codigo: ['123', '456'] }, { codigo: 'A'.repeat(65) }])
+    ('rechaza lecturas inválidas sin consultar productos: %s', async (consulta) => {
+      const respuesta = await request(crearApp()).get('/api/productos/lectura').query(consulta);
+      expect(respuesta.status).toBe(400);
+      expect(ProductoService.buscarPorLectura).not.toHaveBeenCalled();
+    });
+
+  it('rechaza un código de barras numérico en JSON sin convertirlo silenciosamente', async () => {
+    const respuesta = await request(crearApp()).post('/api/productos')
+      .send({ ...payloadBase, codigo_barras: 123 });
+    expect(respuesta.status).toBe(400);
+    expect(ProductoService.crearProducto).not.toHaveBeenCalled();
+  });
+
+  it('permite vaciar el código comercial al editar', async () => {
+    ProductoService.actualizarProducto.mockResolvedValue({ id_producto: 7, codigo_barras: null });
+    const respuesta = await request(crearApp()).put('/api/productos/7').send({ codigo_barras: '  ' });
+    expect(respuesta.status).toBe(200);
+    expect(ProductoService.actualizarProducto).toHaveBeenCalledWith(7, { codigo_barras: null });
+  });
+});
+
 describe('ProductoRoutes - concentración opcional', () => {
   beforeEach(() => {
     ProductoService.crearProducto.mockImplementation(async (datos) => datos);

@@ -3,6 +3,18 @@ const PresentacionDAO = require('../daos/PresentacionDAO');
 const CasaFarmaceuticaDAO = require('../daos/CasaFarmaceuticaDAO');
 const ProveedorDAO = require('../daos/ProveedorDAO');
 const AppError = require('../errors/AppError');
+const { normalizarCodigoBarras } = require('../utils/codigoBarras');
+
+const guardarProducto = async (operacion) => {
+  try {
+    return await operacion();
+  } catch (error) {
+    if (error.code === '23505' && ['uq_producto_codigo_barras', 'producto_codigo_barras_key'].includes(error.constraint)) {
+      throw new AppError('El código de barras ya está asignado a otro producto.', 409);
+    }
+    throw error;
+  }
+};
 
 // Helpers
 
@@ -61,6 +73,7 @@ const crearProducto = async (datos) => {
 
   const datosNormalizados = {
     ...datos,
+    codigo_barras: normalizarCodigoBarras(datos.codigo_barras, { opcional: true }),
     concentracion: normalizarConcentracion(concentracion),
   };
 
@@ -72,7 +85,7 @@ const crearProducto = async (datos) => {
     );
   }
 
-  const creado = await ProductoDAO.crear(datosNormalizados);
+  const creado = await guardarProducto(() => ProductoDAO.crear(datosNormalizados));
   return await ProductoDAO.obtenerPorId(creado.id_producto);
 };
 
@@ -100,6 +113,20 @@ const autocompletarParaPOS = async ({ busqueda, id_sucursal, limite = 10 }) => {
     id_sucursal,
     limiteNormalizado,
   );
+};
+
+const buscarPorLectura = async ({ codigo, id_sucursal }) => {
+  const lectura = normalizarCodigoBarras(codigo);
+  if (!Number.isInteger(id_sucursal) || id_sucursal <= 0) {
+    lanzarError('El usuario no tiene una sucursal válida asignada.', 403);
+  }
+  const coincidencias = await ProductoDAO.obtenerPorCodigoLectura(lectura);
+  if (!coincidencias.length) lanzarError('Código no registrado. Busca el producto por nombre o registra su código de barras.', 404);
+  if (coincidencias.length !== 1) lanzarError('El código identifica más de un producto. Corrige los códigos del catálogo.', 409);
+  if (!coincidencias[0].activo) lanzarError('El producto está inactivo.', 409);
+  const lotes = await ProductoDAO.obtenerLotesParaLectura(coincidencias[0].id_producto, id_sucursal);
+  if (!lotes.length) lanzarError('El producto no tiene lotes vendibles en esta sucursal. Revisa existencias, precios y vencimientos.', 409);
+  return lotes;
 };
 
 const obtenerPorId = async (id_producto) => {
@@ -142,6 +169,9 @@ const actualizarProducto = async (id_producto, campos) => {
   }
 
   const datosNormalizados = { ...campos };
+  if (Object.prototype.hasOwnProperty.call(campos, 'codigo_barras')) {
+    datosNormalizados.codigo_barras = normalizarCodigoBarras(campos.codigo_barras, { opcional: true });
+  }
   const actualizaConcentracion = Object.prototype.hasOwnProperty.call(campos, 'concentracion');
   if (actualizaConcentracion) {
     datosNormalizados.concentracion = normalizarConcentracion(campos.concentracion);
@@ -163,7 +193,7 @@ const actualizarProducto = async (id_producto, campos) => {
     lanzarError('Ya existe otro producto con ese medicamento en esa misma presentación', 409);
   }
 
-  const actualizado = await ProductoDAO.actualizar(id_producto, datosNormalizados);
+  const actualizado = await guardarProducto(() => ProductoDAO.actualizar(id_producto, datosNormalizados));
   if (!actualizado) lanzarError('No se pudo actualizar el producto', 500);
   return await ProductoDAO.obtenerPorId(id_producto);
 };
@@ -208,6 +238,7 @@ const reactivarProducto = async (id_producto) => {
 };
 
 module.exports = {
+  buscarPorLectura,
   crearProducto,
   obtenerTodos,
   autocompletarParaPOS,

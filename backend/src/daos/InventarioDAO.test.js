@@ -17,6 +17,7 @@ describe('InventarioDAO', () => {
       await InventarioDAO.obtenerPorSucursal(3);
 
       const consulta = normalizarConsulta(pool.query.mock.calls[0][0]);
+      expect(consulta).toContain('p.codigo_barras');
       expect(consulta).toContain(
         'LEFT JOIN v_lote_estado v ON v.id_producto = p.id_producto',
       );
