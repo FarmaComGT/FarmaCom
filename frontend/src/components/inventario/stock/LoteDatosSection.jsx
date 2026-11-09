@@ -36,11 +36,13 @@ export default function LoteDatosSection({
       <div className={styles.formGrid}>
         <div className={styles.field}>
           <label htmlFor="numero_lote">Número de lote</label>
-          <input id="numero_lote" type="text" name="numero_lote" autoComplete="off" value={formulario.numero_lote} onChange={onChange} placeholder="Ej.: LT-2026-001…" maxLength={100} required className={styles.input} />
+          <input id="numero_lote" type="text" name="numero_lote" autoComplete="off" value={formulario.numero_lote} onChange={onChange} placeholder={modoEdicion ? 'Ej.: LT-2026-001…' : 'Se genera al guardar…'} maxLength={100} required={modoEdicion} className={styles.input} />
+          {!modoEdicion && <p className={styles.helpText}>Déjalo vacío para generar un número interno o escribe el lote del fabricante.</p>}
         </div>
         <div className={styles.field}>
-          <label htmlFor="fecha_vencimiento_lote">Vencimiento</label>
-          <input id="fecha_vencimiento_lote" type="date" name="fecha_vencimiento" value={formulario.fecha_vencimiento} onChange={onChange} min={fechaMinima} required className={styles.input} />
+          <label htmlFor="fecha_vencimiento_lote">Vencimiento <span className={styles.optional}>(opcional)</span></label>
+          <input id="fecha_vencimiento_lote" type="date" name="fecha_vencimiento" value={formulario.fecha_vencimiento} onChange={onChange} min={fechaMinima} className={styles.input} aria-describedby="vencimiento-ayuda" />
+          <p id="vencimiento-ayuda" className={styles.helpText}>Déjalo vacío cuando el producto no tenga fecha de vencimiento.</p>
         </div>
       </div>
 
@@ -67,7 +69,7 @@ export default function LoteDatosSection({
       <div className={styles.field}>
         <label htmlFor="precio_compra_lote">Precio de compra (Q)</label>
         <input id="precio_compra_lote" type="number" inputMode="decimal" name="precio_compra" value={formulario.precio_compra} onChange={(evento) => onPrecioChange('precio_compra', evento.target.value)} min="0" step="0.01" required placeholder="Ej.: 10.50…" className={styles.input} />
-        <p className={styles.helpText}>Se propone el valor del producto y se conserva específicamente para este lote.</p>
+        <p className={styles.helpText}>Costo unitario real de este ingreso; se conserva para este lote.</p>
       </div>
     </section>
   );

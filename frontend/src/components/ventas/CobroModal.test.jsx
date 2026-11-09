@@ -15,6 +15,7 @@ const producto = (cambios = {}) => ({
 const callbacks = {
   onClose: vi.fn(),
   onCrearPagoPOS: vi.fn(),
+  onConciliarPagoPOS: vi.fn(),
   onConfirm: vi.fn(),
 };
 
@@ -91,5 +92,27 @@ describe('CobroModal', () => {
 
     expect(screen.getByRole('button', { name: 'Confirmar cobro' })).toBeDisabled();
     expect(screen.getByRole('alert')).toHaveTextContent('No se pudo registrar la venta.');
+  });
+
+  it('muestra las referencias y permite conciliar sin ofrecer otro cobro', async () => {
+    const user = userEvent.setup();
+    renderizar({
+      metodoPago: 'tarjeta',
+      pagoPOS: {
+        external_id: 'farmacom-pos-1',
+        estado: 'incidencia',
+        referencia_pago: 'pay-123',
+      },
+    });
+
+    expect(screen.getByText('Cobro confirmado; venta pendiente')).toBeInTheDocument();
+    expect(screen.getByText('pay-123')).toBeInTheDocument();
+    expect(screen.getByText('farmacom-pos-1')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Conciliar venta' }));
+
+    expect(callbacks.onConciliarPagoPOS).toHaveBeenCalledOnce();
+    expect(callbacks.onCrearPagoPOS).not.toHaveBeenCalled();
   });
 });

@@ -18,6 +18,18 @@
 .confirmAmount { background: var(--cash-soft); border-radius: 6px; padding: 16px; margin-block: 20px; }
 .confirmAmount span { color: var(--cash-muted); font-size: 13px; }
 .confirmAmount strong { display: block; font-size: 26px; margin-top: 4px; font-weight: 500; }
+.paymentBlockers { display: grid; gap: 14px; border: 1px solid #efd99d; border-radius: 8px; padding: 16px 20px; background: #fffaf0; }
+.paymentBlockers h2 { color: #6f4b00; font-size: 16px; }
+.paymentBlockers p { margin-top: 3px; color: var(--cash-muted); font-size: 13px; }
+.paymentBlockers ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.paymentBlockers li { display: flex; min-width: 0; align-items: flex-start; justify-content: space-between; gap: 16px; border-top: 1px solid #eadfbf; padding-top: 8px; }
+.paymentBlockers li > div { min-width: 0; }
+.paymentBlockers li strong, .paymentBlockers li span { overflow-wrap: anywhere; }
+.paymentBlockers li strong { display: block; font-size: 13px; }
+.paymentBlockers li span { color: var(--cash-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.paymentBlockers li > span { flex: none; text-align: right; }
+.paymentBlockersLink { justify-self: start; min-height: 40px; border-radius: 6px; padding: 10px 12px; background: var(--cash-accent); color: #fff; font-size: 13px; font-weight: 700; touch-action: manipulation; }
+.paymentBlockersLink:focus-visible { outline: 2px solid var(--cash-accent); outline-offset: 3px; }
 @media (max-width: 1100px) { .workspace { grid-template-columns: 1fr 1fr; gap: 16px; } }
 @media (max-width: 767px) {
   .selector, .workspace { grid-template-columns: 1fr; gap: 16px; }

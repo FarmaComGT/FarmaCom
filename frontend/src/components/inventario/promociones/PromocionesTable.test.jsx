@@ -27,7 +27,7 @@ describe('PromocionesTable', () => {
     />);
 
     expect(screen.getByText('Sucursal Centro')).toBeInTheDocument();
-    expect(screen.getByText('Desde 3 unidades')).toBeInTheDocument();
+    expect(screen.getByText('Desde 3 unidades por venta')).toBeInTheDocument();
     expect(screen.getByText(/12\.00/)).toBeInTheDocument();
     expect(screen.getByText('Vigente')).toBeInTheDocument();
   });
@@ -45,13 +45,13 @@ describe('PromocionesTable', () => {
       onCambiarEstado={onCambiarEstado}
     />);
 
-    await user.click(screen.getByRole('button', { name: 'Desactivar promoción 7' }));
+    await user.click(screen.getByRole('button', { name: /Desactivar Producto/ }));
     expect(onCambiarEstado).toHaveBeenCalledWith(promocion);
   });
 
   it('explica que se debe seleccionar un producto', () => {
     render(<PromocionesTable promociones={[]} cargando={false} productoSeleccionado={false} hayFiltroSucursal={false} onEditar={vi.fn()} onCambiarEstado={vi.fn()} />);
-    expect(screen.getByText('Selecciona un producto')).toBeInTheDocument();
+    expect(screen.getByText('No hay promociones que coincidan')).toBeInTheDocument();
   });
 
   it('muestra carga, error recuperable y vacío filtrado', async () => {
@@ -65,6 +65,6 @@ describe('PromocionesTable', () => {
     expect(onRetry).toHaveBeenCalledOnce();
 
     rerender(<PromocionesTable promociones={[]} cargando={false} productoSeleccionado hayFiltroSucursal onRetry={onRetry} onEditar={vi.fn()} onCambiarEstado={vi.fn()} />);
-    expect(screen.getByText('Sin promociones en esta sucursal')).toBeInTheDocument();
+    expect(screen.getByText('No hay promociones que coincidan')).toBeInTheDocument();
   });
 });

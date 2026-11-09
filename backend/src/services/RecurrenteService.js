@@ -8,6 +8,7 @@ const {
 const API_URL = process.env.RECURRENTE_API_URL || 'https://app.recurrente.com/api';
 const MINIMO_GTQ_CENTAVOS = 500;
 const TOLERANCIA_FIRMA_SEGUNDOS = 300;
+const TIMEOUT_SOLICITUD_MS = 10000;
 
 const lanzarErrorInterno = (mensaje, status) => {
   const error = new Error(mensaje);
@@ -55,22 +56,59 @@ const formatearErrores = (errores) => {
   return detalles.length > 0 ? detalles.join('. ') : null;
 };
 
+const obtenerTimeoutSolicitud = () => {
+  const configurado = Number(process.env.RECURRENTE_TIMEOUT_MS);
+  return Number.isInteger(configurado) && configurado >= 1000 && configurado <= 60000
+    ? configurado
+    : TIMEOUT_SOLICITUD_MS;
+};
+
+const crearErrorProveedor = (mensaje, status, resultadoIncierto, causa) => {
+  const error = new Error(mensaje, causa ? { cause: causa } : undefined);
+  error.status = status;
+  error.resultadoIncierto = resultadoIncierto;
+  return error;
+};
+
 const solicitar = async (ruta, opciones = {}) => {
-  const respuesta = await obtenerFetch()(`${API_URL}${ruta}`, {
-    ...opciones,
-    headers: {
-      'X-SECRET-KEY': obtenerLlaveSecreta(),
-      'Content-Type': 'application/json',
-      ...(opciones.headers || {}),
-    },
-  });
-  const data = await leerRespuesta(respuesta);
+  const controller = new AbortController();
+  const timeoutMs = obtenerTimeoutSolicitud();
+  const temporizador = setTimeout(() => controller.abort(), timeoutMs);
+  temporizador.unref?.();
+  let respuesta;
+  let data;
+  try {
+    respuesta = await obtenerFetch()(`${API_URL}${ruta}`, {
+      ...opciones,
+      signal: controller.signal,
+      headers: {
+        'X-SECRET-KEY': obtenerLlaveSecreta(),
+        'Content-Type': 'application/json',
+        ...(opciones.headers || {}),
+      },
+    });
+    data = await leerRespuesta(respuesta);
+  } catch (error) {
+    const agotado = controller.signal.aborted || error?.name === 'AbortError';
+    throw crearErrorProveedor(
+      agotado
+        ? 'Recurrente no respondió dentro del tiempo esperado'
+        : 'No se pudo confirmar si Recurrente recibió el comando',
+      agotado ? 504 : 502,
+      true,
+      error,
+    );
+  } finally {
+    clearTimeout(temporizador);
+  }
 
   if (!respuesta.ok) {
     const detalle = formatearErrores(data.errors);
     const mensajeBase = data.error || data.message || 'Recurrente no pudo procesar la solicitud';
     const mensaje = detalle ? `${mensajeBase}: ${detalle}` : mensajeBase;
-    lanzarErrorInterno(mensaje, respuesta.status || 502);
+    const status = respuesta.status || 502;
+    const resultadoIncierto = status === 408 || status === 425 || status === 429 || status >= 500;
+    throw crearErrorProveedor(mensaje, status, resultadoIncierto);
   }
 
   return data;
@@ -215,6 +253,7 @@ const normalizarEventoWebhook = (body) => {
 
 module.exports = {
   crearComandoTerminal,
+  obtenerTimeoutSolicitud,
   verificarFirmaWebhook,
   normalizarEventoWebhook,
 };

@@ -1,6 +1,14 @@
 const PromocionService = require('../services/PromocionService');
 const asyncHandler = require('../middlewares/asyncHandler');
 
+const obtenerTodas = asyncHandler(async (req, res) => {
+  res.json(await PromocionService.obtenerTodas(req.query, req.usuario));
+});
+
+const obtenerReferencia = asyncHandler(async (req, res) => {
+  res.json({ precio_minimo: await PromocionService.obtenerReferencia(Number(req.params.id_producto), req.query.id_sucursal, req.usuario) });
+});
+
 const crear = asyncHandler(async (req, res) => {
   const id_producto = Number(req.params.id_producto);
   const promocion = await PromocionService.crearPromocion(id_producto, req.body);
@@ -11,12 +19,13 @@ const obtenerPorProducto = asyncHandler(async (req, res) => {
   const promociones = await PromocionService.obtenerPorProducto(
     Number(req.params.id_producto),
     req.query,
+    req.usuario,
   );
   return res.status(200).json(promociones);
 });
 
 const obtenerPorId = asyncHandler(async (req, res) => {
-  const promocion = await PromocionService.obtenerPorId(Number(req.params.id));
+  const promocion = await PromocionService.obtenerPorId(Number(req.params.id), req.usuario);
   return res.status(200).json(promocion);
 });
 
@@ -41,4 +50,4 @@ const eliminar = asyncHandler(async (req, res) => {
   return res.status(200).json(resultado);
 });
 
-module.exports = { crear, obtenerPorProducto, obtenerPorId, actualizar, cambiarEstado, eliminar };
+module.exports = { obtenerReferencia, obtenerTodas, crear, obtenerPorProducto, obtenerPorId, actualizar, cambiarEstado, eliminar };

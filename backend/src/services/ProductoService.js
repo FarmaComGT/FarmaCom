@@ -152,6 +152,18 @@ const buscarPorLectura = async ({ codigo, id_sucursal }) => {
   return lotes;
 };
 
+const seleccionarPorLectura = async (codigo) => {
+  const lectura = normalizarCodigoBarras(codigo);
+  const coincidencias = await ProductoDAO.obtenerPorCodigoLectura(lectura);
+  if (!coincidencias.length) lanzarError('Código no registrado. Busca el producto por nombre o registra su código de barras.', 404);
+  if (coincidencias.length !== 1) lanzarError('El código identifica más de un producto. Corrige los códigos del catálogo.', 409);
+  if (!coincidencias[0].activo) lanzarError('El producto está inactivo.', 409);
+  const producto = await ProductoDAO.obtenerPorId(coincidencias[0].id_producto);
+  if (!producto) lanzarError('Producto no encontrado.', 404);
+  if (!producto.activo) lanzarError('El producto está inactivo.', 409);
+  return Object.fromEntries(['id_producto', 'codigo', 'codigo_barras', 'nombre_comercial', 'nombre_generico', 'concentracion', 'presentacion'].map((campo) => [campo, producto[campo]]));
+};
+
 const obtenerPorId = async (id_producto) => {
   const producto = await ProductoDAO.obtenerPorId(id_producto);
   if (!producto) lanzarError('Producto no encontrado', 404);
@@ -336,6 +348,8 @@ const reactivarProducto = (id_producto, usuario = null) => (
 );
 
 module.exports = {
+  seleccionarPorLectura,
+  buscarParaSeleccion: (busqueda, limite) => ProductoDAO.buscarParaSeleccion(busqueda, limite),
   buscarPorLectura,
   crearProducto,
   obtenerTodos,

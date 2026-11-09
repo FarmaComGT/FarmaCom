@@ -1,10 +1,30 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { CarritoProvider, useCarrito } from './CarritoContext';
 
 const wrapper = ({ children }) => <CarritoProvider>{children}</CarritoProvider>;
+const wrapperPersistente = ({ children }) => (
+  <CarritoProvider usuarioId={7} sucursalId={2}>{children}</CarritoProvider>
+);
 
 describe('CarritoContext', () => {
+  beforeEach(() => window.localStorage.clear());
+
+  it('reparte un cupo compartido entre lotes sin excederlo y actualiza una cotización vencida', () => {
+    const { result } = renderHook(() => useCarrito(), { wrapper });
+    const promocion = { id_promocion: 7, cantidad_minima: 6, precio_promocion: 8.01, cantidad_disponible: 3 };
+    act(() => {
+      result.current.agregarAlCarrito({ id_lote: 9, id_producto: 5, precio_venta: 10.01, promocion }, { cantidad: 4 });
+      result.current.agregarAlCarrito({ id_lote: 2, id_producto: 5, precio_venta: 11, promocion }, { cantidad: 2 });
+    });
+    expect(result.current.total).toBe(54.06);
+    expect(result.current.items.map((i) => i.cantidadPromocion)).toEqual([1, 2]);
+    act(() => result.current.actualizarCotizacion([
+      { id_lote: 9, precio_venta: 10.01, promocion: null }, { id_lote: 2, precio_venta: 11, promocion: null },
+    ]));
+    expect(result.current.total).toBe(62.04);
+    expect(result.current.items.every((i) => !i.promocionAplicada)).toBe(true);
+  });
   it('lanza un error si se usa fuera del provider', () => {
     const { result } = renderHook(() => {
       try {
@@ -407,6 +427,63 @@ describe('CarritoContext', () => {
 
     expect(result.current.carritos).toHaveLength(1);
     expect(result.current.carritoActivoId).toBe('carrito-2');
+    expect(result.current.items).toEqual([]);
+    expect(result.current.clienteSeleccionado).toBeNull();
+  });
+
+  it('recupera productos, carritos y cliente al volver a cargar', () => {
+    const primeraVista = renderHook(() => useCarrito(), { wrapper: wrapperPersistente });
+
+    act(() => {
+      primeraVista.result.current.agregarAlCarrito({ id_producto: 1, precio_venta: 10 });
+      primeraVista.result.current.seleccionarCliente({
+        id_cliente: 4,
+        nombre_cliente: 'Ana Pérez',
+      });
+      primeraVista.result.current.renombrarCarrito('carrito-1', 'Pedido Ana');
+    });
+    primeraVista.unmount();
+
+    const segundaVista = renderHook(() => useCarrito(), { wrapper: wrapperPersistente });
+
+    expect(segundaVista.result.current.carritoActivo.nombre).toBe('Pedido Ana');
+    expect(segundaVista.result.current.items).toEqual([
+      expect.objectContaining({ clave: 'producto-1', cantidad: 1 }),
+    ]);
+    expect(segundaVista.result.current.clienteSeleccionado).toMatchObject({ id_cliente: 4 });
+  });
+
+  it('aísla los carritos por usuario y sucursal', () => {
+    const alcanceA = ({ children }) => (
+      <CarritoProvider usuarioId={7} sucursalId={2}>{children}</CarritoProvider>
+    );
+    const alcanceOtroUsuario = ({ children }) => (
+      <CarritoProvider usuarioId={8} sucursalId={2}>{children}</CarritoProvider>
+    );
+    const alcanceOtraSucursal = ({ children }) => (
+      <CarritoProvider usuarioId={7} sucursalId={3}>{children}</CarritoProvider>
+    );
+    const vistaA = renderHook(() => useCarrito(), { wrapper: alcanceA });
+    act(() => vistaA.result.current.agregarAlCarrito({ id_producto: 1, precio_venta: 10 }));
+    vistaA.unmount();
+
+    const otroUsuario = renderHook(() => useCarrito(), { wrapper: alcanceOtroUsuario });
+    const otraSucursal = renderHook(() => useCarrito(), { wrapper: alcanceOtraSucursal });
+
+    expect(otroUsuario.result.current.items).toEqual([]);
+    expect(otraSucursal.result.current.items).toEqual([]);
+    expect(window.localStorage.getItem('farmacom:carritos:v1:7:2')).toContain('producto-1');
+  });
+
+  it('reinicia productos y cliente al completar la venta', () => {
+    const { result } = renderHook(() => useCarrito(), { wrapper: wrapperPersistente });
+    act(() => {
+      result.current.agregarAlCarrito({ id_producto: 1, precio_venta: 10 });
+      result.current.seleccionarCliente({ id_cliente: 4, nombre_cliente: 'Ana Pérez' });
+    });
+
+    act(() => result.current.reiniciarCarrito());
+
     expect(result.current.items).toEqual([]);
     expect(result.current.clienteSeleccionado).toBeNull();
   });

@@ -1,3 +1,5 @@
+const { randomUUID } = require('node:crypto');
+
 const obtenerContextoVenta = async (pool) => {
   const datos = await pool.query(`
     SELECT l.id_lote, l.id_producto, l.stock_actual, l.id_sucursal, sc.id_sesion_caja
@@ -23,6 +25,7 @@ module.exports = ({ app, iniciarSesion, pool, request }) => {
       const venta = await request(app)
         .post('/api/ventas')
         .set('Cookie', cookie)
+        .set('Idempotency-Key', randomUUID())
         .send({
           id_sucursal: contexto.id_sucursal,
           id_sesion_caja: contexto.id_sesion_caja,
@@ -83,6 +86,7 @@ module.exports = ({ app, iniciarSesion, pool, request }) => {
       await request(app)
         .post('/api/ventas')
         .set('Cookie', cookie)
+        .set('Idempotency-Key', randomUUID())
         .send({
           id_sucursal: contexto.id_sucursal,
           id_sesion_caja: contexto.id_sesion_caja,
@@ -161,6 +165,7 @@ module.exports = ({ app, iniciarSesion, pool, request }) => {
       const venta = await request(app)
         .post('/api/ventas')
         .set('Cookie', cookie)
+        .set('Idempotency-Key', randomUUID())
         .send({
           id_sucursal: contexto.id_sucursal,
           id_sesion_caja: contexto.id_sesion_caja,
@@ -193,10 +198,30 @@ module.exports = ({ app, iniciarSesion, pool, request }) => {
         .send({ motivo_anulacion: 'Limpieza de promoción de integración' })
         .expect(200);
 
-      await request(app)
+      const borrado = await request(app)
         .delete(`/api/promociones/${promocion.body.id_promocion}`)
         .set('Cookie', cookie)
+        .expect(409);
+      expect(borrado.body.mensaje).toContain('historial de uso');
+
+      // Anular devuelve el cupo, pero conserva la trazabilidad de la promoción.
+      const usos = await pool.query(
+        'SELECT cantidad, estado FROM promocion_uso WHERE id_promocion = $1 AND id_venta = $2',
+        [promocion.body.id_promocion, venta.body.id_venta],
+      );
+      expect(usos.rows).toEqual([{ cantidad: 3, estado: 'liberada' }]);
+
+      await request(app)
+        .patch(`/api/promociones/${promocion.body.id_promocion}/estado`)
+        .set('Cookie', cookie)
+        .send({ activo: false })
         .expect(200);
+
+      const conservada = await request(app)
+        .get(`/api/promociones/${promocion.body.id_promocion}`)
+        .set('Cookie', cookie)
+        .expect(200);
+      expect(conservada.body).toMatchObject({ activo: false, cantidad_vendida: '0', cantidad_reservada: '0' });
     });
   });
 };

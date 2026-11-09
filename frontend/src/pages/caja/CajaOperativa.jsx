@@ -93,6 +93,8 @@ export default function CajaOperativa() {
   const [errorFormulario, setErrorFormulario] = useState(null);
 
   const [campoError, setCampoError] = useState(null);
+  const pagosPOSAbiertos = sesionActual?.pagos_pos_abiertos || [];
+  const hayPagosPOSAbiertos = pagosPOSAbiertos.length > 0;
   const hayCambios = Boolean(formulario.turno || formulario.fondo_inicial || movimiento.monto || movimiento.motivo || datosCierre.efectivo_contado || datosCierre.observaciones);
   useAvisoCambiosCaja(hayCambios);
   useEffect(() => { document.title = 'Operación de caja · FarmaCom'; }, []);
@@ -293,6 +295,28 @@ export default function CajaOperativa() {
           <div><h2 className={ui.sectionHeading}>Turno abierto en {cajaSeleccionada.nombre}</h2><p>Turno {sesionActual.turno}</p></div>
           <span><Clock3 size={16} aria-hidden="true" />En curso</span>
         </section>
+        {hayPagosPOSAbiertos && (
+          <section className={styles.paymentBlockers} aria-labelledby="pagos-pos-abiertos-titulo">
+            <div>
+              <h2 id="pagos-pos-abiertos-titulo">Operaciones POS por resolver</h2>
+              <p>
+                {pagosPOSAbiertos.length === 1 ? 'Esta operación impide' : 'Estas operaciones impiden'} cerrar el turno.
+              </p>
+            </div>
+            <ul>
+              {pagosPOSAbiertos.map((pago) => (
+                <li key={pago.external_id}>
+                  <div>
+                    <strong>{pago.estado === 'incidencia' ? 'Cobrado, venta pendiente' : 'Esperando respuesta del POS'}</strong>
+                    <span>{pago.referencia_pago || pago.external_id}</span>
+                  </div>
+                  <span>{formatearQuetzales(pago.total)} · {pago.estado}</span>
+                </li>
+              ))}
+            </ul>
+            <a href="/pos" className={styles.paymentBlockersLink}>Continuar seguimiento en punto de venta</a>
+          </section>
+        )}
         <div className={styles.workspace}>
           <section className={ui.panel}>
             <h2 className={ui.sectionHeading}>Registrar movimiento</h2><p className={ui.description}>Entradas adicionales y retiros de efectivo del turno.</p>
@@ -313,7 +337,7 @@ export default function CajaOperativa() {
               <div className={ui.field}><label htmlFor="efectivo-contado">Efectivo contado</label><div className={ui.moneyInput}><span aria-hidden="true">Q</span><input id="efectivo-contado" name="efectivo_contado" type="text" inputMode="decimal" autoComplete="off" value={datosCierre.efectivo_contado} onChange={actualizarCierre} disabled={procesando} placeholder="0.00…" className={ui.input} aria-invalid={campoError === 'efectivo-contado'} aria-describedby={campoError === 'efectivo-contado' ? 'error-cierre' : undefined} /></div></div>
               <div className={ui.field}><label htmlFor="observaciones-cierre">Nota de cierre <span className={ui.muted}>(requerida)</span></label><textarea id="observaciones-cierre" name="observaciones" value={datosCierre.observaciones} onChange={actualizarCierre} disabled={procesando} maxLength={500} rows={3} placeholder="Describe el conteo o cualquier incidencia…" className={ui.input} aria-invalid={campoError === 'observaciones-cierre'} aria-describedby={campoError === 'observaciones-cierre' ? 'error-cierre' : undefined} /></div>
               {errorFormulario && ['efectivo-contado', 'observaciones-cierre'].includes(campoError) && <p id="error-cierre" role="alert" className={ui.fieldError}>{errorFormulario}</p>}
-              <div className={ui.actions}><button type="submit" disabled={procesando} className={ui.button}>{procesando && <LoaderCircle size={16} className={ui.spinner} aria-hidden="true" />}Cerrar turno</button></div>
+              <div className={ui.actions}><button type="submit" disabled={procesando || hayPagosPOSAbiertos} className={ui.button}>{procesando && <LoaderCircle size={16} className={ui.spinner} aria-hidden="true" />}Cerrar turno</button></div>
             </form>
           </section>
         </div>
