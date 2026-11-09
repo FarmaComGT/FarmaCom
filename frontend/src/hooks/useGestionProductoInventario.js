@@ -72,8 +72,10 @@ export default function useGestionProductoInventario({
       await cambiarEstado(producto.id_producto, !producto.activo);
       onExito?.('Estado del producto actualizado correctamente.');
       await Promise.resolve().then(() => refrescarInventario()).catch(() => onError?.('La operación se completó, pero no se pudo actualizar el inventario. Actualiza la vista.'));
+      return true;
     } catch (error) {
       (onError || setErrorAccion)(error.message || 'No se pudo cambiar el estado del producto.');
+      return false;
     } finally {
       setCambiandoEstadoId(null);
     }

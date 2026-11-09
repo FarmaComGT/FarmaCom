@@ -50,6 +50,14 @@ describe('LoteRoutes - precio por lote y vencimiento opcional', () => {
   });
   beforeEach(() => jest.clearAllMocks());
 
+  it('acepta omitir el número para generarlo en el servicio', async () => {
+    const { numero_lote, ...datos } = payloadLote;
+    LoteService.crearLote.mockResolvedValue({ ...datos, id_lote: 7, numero_lote: 'LT-AUTO' });
+    const respuesta = await request(crearApp()).post('/api/lotes').send(datos);
+    expect(respuesta.status).toBe(201);
+    expect(respuesta.body.numero_lote).toBe('LT-AUTO');
+  });
+
   it('permite crear un lote con precio de compra y sin fecha de vencimiento', async () => {
     LoteService.crearLote.mockImplementation(async (datos) => ({ id_lote: 7, ...datos }));
 

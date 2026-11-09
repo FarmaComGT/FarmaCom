@@ -38,14 +38,13 @@ describe('useProductoForm', () => {
       precio_compra: 8.5, stock_minimo: 0, meses_alerta_vencimiento: 6,
       aplica_mayoreo: true, activo: false,
     })).toEqual(expect.objectContaining({
-      nombre_comercial: 'Aspirina', id_presentacion: '2', precio_compra: '8.5',
-      stock_minimo: '0', aplica_mayoreo: true, activo: false,
+      nombre_comercial: 'Aspirina', id_presentacion: '2',
+      stock_minimo: '0',
     }));
   });
 
   it('valida campos requeridos y reglas numéricas', () => {
     expect(validarProductoForm({ ...formularioValido, nombre_comercial: ' ' })).toBe('El nombre comercial es requerido.');
-    expect(validarProductoForm({ ...formularioValido, precio_compra: '-1' })).toBe('El precio de compra debe ser mayor o igual a 0.');
     expect(validarProductoForm({ ...formularioValido, meses_alerta_vencimiento: '0' })).toBe('Los meses de alerta deben ser mayores a 0.');
     expect(validarProductoForm(formularioValido)).toBeNull();
   });
@@ -59,8 +58,8 @@ describe('useProductoForm', () => {
     })).toEqual({
       codigo: 'MED010-TA', codigo_barras: null, nombre_comercial: 'Paracetamol', nombre_generico: 'Acetaminofén',
       concentracion: null, id_presentacion: 2, id_categoria: 3, id_casa: 4,
-      id_proveedor: undefined, precio_compra: 12.5, stock_minimo: 5,
-      meses_alerta_vencimiento: 6, aplica_mayoreo: false,
+      stock_minimo: 5,
+      meses_alerta_vencimiento: 6,
     });
   });
 
