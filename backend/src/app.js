@@ -58,7 +58,6 @@ const reporteRoutes = require('./routes/ReporteRoutes');
 const pacienteRoutes = require('./routes/PacienteRoutes');
 const resultadoLaboratorioRoutes = require('./routes/ResultadoLaboratorioRoutes');
 const laboratorioRoutes = require('./routes/LaboratorioRoutes');
-const expedienteRoutes = require('./routes/ExpedienteRoutes');
 const healthRoutes = require('./routes/HealthRoutes');
 
 app.get('/api/ping', (req, res) => {
@@ -85,7 +84,6 @@ app.use('/api/reportes', reporteRoutes);
 app.use('/api/pacientes', pacienteRoutes);
 app.use('/api/resultados-laboratorio', resultadoLaboratorioRoutes);
 app.use('/api/laboratorios', laboratorioRoutes);
-app.use('/api/expedientes', expedienteRoutes);
 app.use('/api/inventario', HistorialInventarioRoutes);
 app.use('/api/sucursales/:id_sucursal/inventario', InventarioRoutes);
 // Rutas anidadas: GET y POST bajo /api/sucursales/:id_sucursal/telefonos|correos

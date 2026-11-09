@@ -62,7 +62,6 @@ describe('permisos por rol en la aplicación', () => {
       ['get', '/api/resultados-laboratorio'],
       ['post', '/api/resultados-laboratorio'],
       ['get', '/api/laboratorios'],
-      ['get', '/api/expedientes/1/bitacora'],
       ['post', '/api/cajas'],
       ['patch', '/api/cajas/1'],
       ['get', '/api/cajas/cierres'],

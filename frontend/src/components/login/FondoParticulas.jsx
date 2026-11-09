@@ -6,10 +6,17 @@ const RADIO_BASE = 1.4;
 const RADIO_MAX = 3.6;
 const RADIO_INFLUENCIA = 150;
 
-// Fondo interactivo reutilizable: una grilla de puntos sobre un color sólido que,
-// al acercar el cursor, se vuelve visible y vibra levemente en esa zona, como si la
-// superficie se disolviera en partículas. `colorFondo`/`colorPunto` permiten invertirlo
-// (fondo blanco con puntos verdes en la página, fondo verde con puntos blancos en la tarjeta).
+// Posición del cursor compartida por todas las instancias, en coordenadas de viewport
+// (iguales para cualquier canvas). Así el cuadro verde y el fondo blanco reaccionan al
+// mismo cursor real en el mismo instante, sin que el radio de revelado se corte en el
+// borde de cada uno.
+const cursor = { x: -9999, y: -9999 };
+
+// Fondo decorativo reutilizable: una grilla de puntos sobre un color sólido que, al
+// acercar el cursor, se vuelve visible y vibra levemente en esa zona, como si la
+// superficie se disolviera en partículas. `colorFondo`/`colorPunto` permiten invertir
+// la paleta entre instancias (fondo blanco con puntos verdes en la página, fondo verde
+// con puntos blancos en la tarjeta).
 export default function FondoParticulas({ colorFondo = '#ffffff', colorPunto = '#005147' }) {
   const canvasRef = useRef(null);
 
@@ -21,14 +28,15 @@ export default function FondoParticulas({ colorFondo = '#ffffff', colorPunto = '
     const ctx = canvas.getContext('2d');
     if (!ctx) return undefined;
 
-    // El fondo solo vive en el panel de marca, oculto en móvil (ver FondoParticulas.module.css).
+    // El fondo solo vive en el panel de marca y la página, ocultos en móvil (ver .module.css).
     if (window.matchMedia?.('(max-width: 720px)').matches) return undefined;
 
     const prefiereMovimientoReducido = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const mouse = { x: -9999, y: -9999 };
     let puntos = [];
     let ancho = 0;
     let alto = 0;
+    let desplazamientoX = 0;
+    let desplazamientoY = 0;
     let idAnimacion = null;
     const inicio = performance.now();
 
@@ -36,6 +44,8 @@ export default function FondoParticulas({ colorFondo = '#ffffff', colorPunto = '
       const rect = contenedor.getBoundingClientRect();
       ancho = rect.width;
       alto = rect.height;
+      desplazamientoX = rect.left;
+      desplazamientoY = rect.top;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.round(ancho * dpr);
       canvas.height = Math.round(alto * dpr);
@@ -65,8 +75,8 @@ export default function FondoParticulas({ colorFondo = '#ffffff', colorPunto = '
       const t = (ahora - inicio) / 1000;
 
       for (const punto of puntos) {
-        const dx = punto.x - mouse.x;
-        const dy = punto.y - mouse.y;
+        const dx = (punto.x + desplazamientoX) - cursor.x;
+        const dy = (punto.y + desplazamientoY) - cursor.y;
         const cercania = Math.max(0, 1 - Math.hypot(dx, dy) / RADIO_INFLUENCIA);
         const respiracion = prefiereMovimientoReducido ? 0
           : ((Math.sin(t * punto.velocidad + punto.desfase) + 1) / 2) * 0.05;
@@ -96,15 +106,15 @@ export default function FondoParticulas({ colorFondo = '#ffffff', colorPunto = '
     };
 
     const manejarMovimiento = (evento) => {
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = evento.clientX - rect.left;
-      mouse.y = evento.clientY - rect.top;
+      cursor.x = evento.clientX;
+      cursor.y = evento.clientY;
       redibujarSiEstatico();
     };
 
-    const manejarSalida = () => {
-      mouse.x = -9999;
-      mouse.y = -9999;
+    const manejarSalida = (evento) => {
+      if (evento.relatedTarget !== null) return;
+      cursor.x = -9999;
+      cursor.y = -9999;
       redibujarSiEstatico();
     };
 
@@ -116,14 +126,14 @@ export default function FondoParticulas({ colorFondo = '#ffffff', colorPunto = '
     construirGrilla();
     dibujar(performance.now());
 
-    contenedor.addEventListener('pointermove', manejarMovimiento);
-    contenedor.addEventListener('pointerleave', manejarSalida);
+    window.addEventListener('pointermove', manejarMovimiento);
+    window.addEventListener('pointerout', manejarSalida);
     window.addEventListener('resize', manejarResize);
 
     return () => {
       if (idAnimacion) cancelAnimationFrame(idAnimacion);
-      contenedor.removeEventListener('pointermove', manejarMovimiento);
-      contenedor.removeEventListener('pointerleave', manejarSalida);
+      window.removeEventListener('pointermove', manejarMovimiento);
+      window.removeEventListener('pointerout', manejarSalida);
       window.removeEventListener('resize', manejarResize);
     };
   }, [colorFondo, colorPunto]);
