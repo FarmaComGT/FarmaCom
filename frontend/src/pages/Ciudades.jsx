@@ -204,11 +204,6 @@ export default function Ciudades() {
         </div>
       </header>
 
-      <div className={styles.summary} aria-label="Resumen de ciudades">
-        <div className={styles.stat}><strong>{paginacion?.total ?? 0}</strong><span>Ciudades encontradas</span></div>
-        <div className={styles.stat}><strong>{ciudadesFiltradas.length}</strong><span>Resultados en esta página</span></div>
-      </div>
-
       <div className={styles.toolbar}>
         <label className={styles.search}>
           <Search size={17} aria-hidden="true" />

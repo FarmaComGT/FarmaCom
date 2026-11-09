@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import LaboratorioActionBar from '../components/laboratorios/LaboratorioActionBar.jsx';
 import LaboratorioFormModal from '../components/laboratorios/LaboratorioFormModal.jsx';
-import LaboratorioStatsBanner from '../components/laboratorios/LaboratorioStatsBanner.jsx';
 import LaboratorioTable from '../components/laboratorios/LaboratorioTable.jsx';
 import SucursalAlert from '../components/sucursales/SucursalAlert.jsx';
 import useCiudades from '../hooks/useCiudades';
@@ -133,11 +132,6 @@ export default function Laboratorios() {
           <p>Administra las ubicaciones donde se atienden pacientes.</p>
         </div>
       </header>
-
-      <LaboratorioStatsBanner
-        totalFiltrados={laboratoriosFiltrados.length}
-        totalLaboratorios={paginacion?.total ?? 0}
-      />
 
       <LaboratorioActionBar
         busqueda={busqueda}

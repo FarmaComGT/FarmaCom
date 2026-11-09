@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { login } from '../api/auth';
 import { useAuth, AUTH_ACTIONS } from '../context/AuthContext';
 import { getDefaultRouteForRole } from '../utils/navigation';
+import FondoParticulas from '../components/login/FondoParticulas.jsx';
 import styles from './Login.module.css';
 
 export default function Login() {
@@ -64,8 +65,10 @@ export default function Login() {
 
   return (
     <main className={styles.page}>
+      <FondoParticulas />
       <div className={styles.shell}>
         <section className={styles.brandPanel} aria-labelledby="login-brand-title">
+          <FondoParticulas colorFondo="#005147" colorPunto="#ffffff" />
           <div>
             <p className={styles.eyebrow}>Farmacia San Gabriel</p>
             <h1 id="login-brand-title" translate="no">FarmaCom</h1>

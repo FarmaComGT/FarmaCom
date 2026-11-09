@@ -6,7 +6,6 @@ import SucursalAlert from '../components/sucursales/SucursalAlert.jsx';
 import SucursalDeleteModal from '../components/sucursales/SucursalDeleteModal.jsx';
 import ContactosSucursalModal from '../components/sucursales/ContactosSucursalModal.jsx';
 import SucursalFormModal from '../components/sucursales/SucursalFormModal.jsx';
-import SucursalStatsBanner from '../components/sucursales/SucursalStatsBanner.jsx';
 import SucursalTable from '../components/sucursales/SucursalTable.jsx';
 import useCiudades from '../hooks/useCiudades';
 import useSucursales from '../hooks/useSucursales';
@@ -185,11 +184,6 @@ export default function Sucursales() {
           <p>Gestiona ubicaciones, direcciones y datos de contacto.</p>
         </div>
       </header>
-
-      <SucursalStatsBanner
-        totalFiltradas={sucursalesFiltradas.length}
-        totalSucursales={paginacion?.total ?? 0}
-      />
 
       <SucursalActionBar
         busqueda={busqueda}

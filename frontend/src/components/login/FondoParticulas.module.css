@@ -1,0 +1,13 @@
+.lienzo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* El panel de marca (donde vive este fondo) se oculta en móvil; evita animar algo invisible. */
+@media (max-width: 720px) {
+  .lienzo { display: none; }
+}
