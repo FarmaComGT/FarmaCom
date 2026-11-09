@@ -1,3 +1,3 @@
 export function getDefaultRouteForRole(rol) {
-  return '/dashboard';
+  return ['dueno', 'administrador'].includes(rol) ? '/reports' : '/dashboard';
 }

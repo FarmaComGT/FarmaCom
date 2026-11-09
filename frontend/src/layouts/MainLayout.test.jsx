@@ -38,6 +38,7 @@ const renderizarLayout = (rutaInicial = '/inventario/productos') =>
           <Route path="/pos" element={<div>Venta de prueba</div>} />
           <Route path="/support" element={<div>Ayuda de prueba</div>} />
           <Route path="/dashboard" element={<div>Contenido del dashboard</div>} />
+          <Route path="/reports" element={<div>Contenido de reportes</div>} />
           <Route path="/caja" element={<div>Contenido de caja</div>} />
           <Route path="/usuarios" element={<div>Contenido de usuarios</div>} />
           <Route path="/inventario/categorias" element={<div>Contenido de categorías</div>} />
@@ -223,9 +224,9 @@ describe('MainLayout y Sidebar', () => {
     expect(sidebar).toHaveAttribute('aria-hidden', 'true');
 
     await abrirSidebar();
-    await user.click(screen.getByRole('link', { name: 'Inicio' }));
+    await user.click(screen.getByRole('link', { name: 'Dashboard' }));
 
-    expect(screen.getByText('Contenido del dashboard')).toBeVisible();
+    expect(screen.getByText('Contenido de reportes')).toBeVisible();
     expect(sidebar).toHaveAttribute('aria-hidden', 'true');
   });
 
@@ -280,9 +281,9 @@ describe('MainLayout y Sidebar', () => {
 
     expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
     await user.click(screen.getByRole('button', { name: 'Mostrar menú lateral' }));
-    await user.click(screen.getByRole('link', { name: 'Inicio' }));
+    await user.click(screen.getByRole('link', { name: 'Dashboard' }));
 
-    expect(screen.getByText('Contenido del dashboard')).toBeVisible();
+    expect(screen.getByText('Contenido de reportes')).toBeVisible();
     expect(obtenerSidebar()).toHaveAttribute('aria-hidden', 'true');
     expect(window.localStorage.getItem(CLAVE_PREFERENCIA_SIDEBAR)).toBe('true');
   });

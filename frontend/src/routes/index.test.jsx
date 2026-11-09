@@ -99,7 +99,13 @@ describe('ruta de reportes', () => {
     renderizarRutaReportes();
 
     expect(await screen.findByRole('heading', { name: 'Reportes' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Reportes' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
+  });
+
+  it('redirige /dashboard a los reportes para un administrador', async () => {
+    renderizarRutaReportes('/dashboard');
+
+    expect(await screen.findByRole('heading', { name: 'Reportes' })).toBeInTheDocument();
   });
 
   it('redirige a un dependiente y oculta el acceso del menú', () => {

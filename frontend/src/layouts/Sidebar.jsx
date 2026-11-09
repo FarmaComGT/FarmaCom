@@ -6,7 +6,9 @@ import { logout } from '../api/auth';
 import { useAuth, AUTH_ACTIONS } from '../context/AuthContext';
 import { navegarConTransicionDeVista } from '../utils/viewTransition';
 
-import { NAVEGACION, INICIO, AYUDA, contextoNavegacion } from '../components/navigation/navigation.js';
+import { NAVEGACION, INICIO, DASHBOARD, AYUDA, contextoNavegacion } from '../components/navigation/navigation.js';
+
+const ROLES_DASHBOARD_REPORTES = ['dueno', 'administrador'];
 
 function NavigationLink({ icon, label, path, excluir = [], nested = false }) {
   const navigate = useNavigate();
@@ -54,6 +56,7 @@ export default function Sidebar({ abierta, superpuesta = false, onCerrar, onNave
   const visible = (item) => !item.roles || item.roles.includes(usuario?.rol);
   const secciones = NAVEGACION.map(seccion => ({ ...seccion, items: seccion.items.filter(visible) }))
     .filter(seccion => seccion.items.length > 0);
+  const primeraPestana = ROLES_DASHBOARD_REPORTES.includes(usuario?.rol) ? DASHBOARD : INICIO;
   const handleLogout = async () => {
     toast.cerrar(avisoSesion.current);
     setCerrando(true);
@@ -81,7 +84,7 @@ export default function Sidebar({ abierta, superpuesta = false, onCerrar, onNave
       <button type="button" className="shell-icon-button shell-close-sidebar" onClick={onCerrar} aria-label="Cerrar menú lateral" aria-controls="sidebar-principal" aria-expanded="true"><NavigationIcon name="collapse" /></button>
     </div>
     <nav className="shell-navigation" aria-label="Módulos de FarmaCom">
-      <NavigationLink {...INICIO} />
+      <NavigationLink {...primeraPestana} />
       {secciones.map(seccion => <div className="shell-nav-section" key={seccion.label}>
         <p className="shell-nav-section-label">{seccion.label}</p>
         {seccion.items.map(item => item.children
