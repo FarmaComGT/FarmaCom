@@ -117,7 +117,7 @@ const prepararVenta = async (datos, usuario, client) => {
     if (lote.vencido) {
       lanzarError(`No se puede vender el lote ${id_lote} porque esta vencido`, 409);
     }
-    if (Number(lote.stock_actual) < cantidadSolicitada) {
+    if (Number(lote.stock_disponible ?? lote.stock_actual) < cantidadSolicitada) {
       lanzarError(`Stock insuficiente para el lote ${id_lote}`, 409);
     }
 

@@ -2,8 +2,14 @@ const VentaService = require('../services/VentaService');
 const asyncHandler = require('../middlewares/asyncHandler');
 
 const crear = asyncHandler(async (req, res) => {
-  const venta = await VentaService.crearVenta(req.body, req.usuario);
-  return res.status(201).json(venta);
+  const claveIdempotencia = req.get?.('Idempotency-Key')
+    || req.headers?.['idempotency-key'];
+  const venta = await VentaService.crearVenta(
+    req.body,
+    req.usuario,
+    claveIdempotencia,
+  );
+  return res.status(venta.recuperada ? 200 : 201).json(venta);
 });
 
 const crearPagoPOS = asyncHandler(async (req, res) => {
@@ -13,6 +19,14 @@ const crearPagoPOS = asyncHandler(async (req, res) => {
 
 const obtenerEstadoPagoPOS = asyncHandler(async (req, res) => {
   const pago = await VentaService.obtenerEstadoPagoPOS(
+    req.params.externalId,
+    req.usuario,
+  );
+  return res.status(200).json(pago);
+});
+
+const conciliarPagoPOS = asyncHandler(async (req, res) => {
+  const pago = await VentaService.conciliarPagoPOS(
     req.params.externalId,
     req.usuario,
   );
@@ -54,6 +68,7 @@ module.exports = {
   crear,
   crearPagoPOS,
   obtenerEstadoPagoPOS,
+  conciliarPagoPOS,
   obtenerTodas,
   obtenerPorId,
   asociarCliente,

@@ -10,6 +10,7 @@ const ESTADOS_PAGO_POS = Object.freeze({
   FALLIDO: 'fallido',
   CANCELADO: 'cancelado',
   RECHAZADO: 'rechazado',
+  INCIDENCIA: 'incidencia',
 });
 
 const ESTADOS_FINALES_PAGO_POS = Object.freeze([
@@ -17,6 +18,7 @@ const ESTADOS_FINALES_PAGO_POS = Object.freeze([
   ESTADOS_PAGO_POS.FALLIDO,
   ESTADOS_PAGO_POS.CANCELADO,
   ESTADOS_PAGO_POS.RECHAZADO,
+  ESTADOS_PAGO_POS.INCIDENCIA,
 ]);
 
 const ESTADOS_RECURRENTE = Object.freeze({
@@ -36,6 +38,8 @@ const CODIGOS_ESTADO_PAGO_POS = Object.freeze({
   MONTO_O_MONEDA_INVALIDA: 'monto_o_moneda_invalida',
   INVENTARIO_NO_DISPONIBLE: 'inventario_no_disponible',
   TOTAL_VENTA_INVALIDO: 'total_venta_invalido',
+  VENTA_INCOMPLETA: 'venta_incompleta',
+  RESPUESTA_INCIERTA: 'respuesta_incierta',
 });
 
 const MONEDA_PAGO_POS = 'GTQ';

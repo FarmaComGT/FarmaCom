@@ -15,6 +15,7 @@ const calcularDetalles = (detallesValidados, promocionesPorProducto = new Map())
       ? aCentavos(promocion.precio_promocion)
       : precioNormalCentavos;
     const precioCentavos = Math.min(precioNormalCentavos, precioPromocionalCentavos);
+    const promocionAplicada = Boolean(promocion && precioPromocionalCentavos < precioNormalCentavos);
     const costoCentavos = aCentavos(lote.precio_compra);
     const subtotalCentavos = precioCentavos * cantidad;
 
@@ -30,6 +31,10 @@ const calcularDetalles = (detallesValidados, promocionesPorProducto = new Map())
     return {
       id_lote,
       cantidad,
+      id_promocion: promocionAplicada && promocion.id_promocion != null
+        ? Number(promocion.id_promocion)
+        : null,
+      precio_regular: aMonto(precioNormalCentavos),
       precio_unitario: aMonto(precioCentavos),
       costo_unitario: aMonto(costoCentavos),
     };

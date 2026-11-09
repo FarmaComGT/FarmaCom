@@ -5,6 +5,7 @@ describe('RecurrenteService', () => {
   const fetchOriginal = global.fetch;
   const secretOriginal = process.env.RECURRENTE_SECRET_KEY;
   const webhookSecretOriginal = process.env.RECURRENTE_WEBHOOK_SECRET;
+  const timeoutOriginal = process.env.RECURRENTE_TIMEOUT_MS;
 
   beforeEach(() => {
     process.env.RECURRENTE_SECRET_KEY = 'rk_test_123';
@@ -16,6 +17,8 @@ describe('RecurrenteService', () => {
     global.fetch = fetchOriginal;
     process.env.RECURRENTE_SECRET_KEY = secretOriginal;
     process.env.RECURRENTE_WEBHOOK_SECRET = webhookSecretOriginal;
+    process.env.RECURRENTE_TIMEOUT_MS = timeoutOriginal;
+    jest.useRealTimers();
   });
 
   it('crea un comando de terminal con monto en centavos y external_id', async () => {
@@ -69,6 +72,63 @@ describe('RecurrenteService', () => {
       message: 'Recurrente requiere un monto mínimo de Q5.00 para pagos en GTQ',
     });
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('clasifica un rechazo 4xx como resultado definitivo', async () => {
+    global.fetch.mockResolvedValue({
+      ok: false,
+      status: 422,
+      text: jest.fn().mockResolvedValue(JSON.stringify({ error: 'Terminal no disponible' })),
+    });
+
+    await expect(RecurrenteService.crearComandoTerminal({
+      terminalId: 'trm_test_123',
+      totalCentavos: 2500,
+      externalId: 'farmacom-pos-test',
+    })).rejects.toMatchObject({
+      status: 422,
+      resultadoIncierto: false,
+    });
+  });
+
+  it('clasifica un error 5xx como resultado incierto', async () => {
+    global.fetch.mockResolvedValue({
+      ok: false,
+      status: 503,
+      text: jest.fn().mockResolvedValue(JSON.stringify({ error: 'Servicio no disponible' })),
+    });
+
+    await expect(RecurrenteService.crearComandoTerminal({
+      terminalId: 'trm_test_123',
+      totalCentavos: 2500,
+      externalId: 'farmacom-pos-test',
+    })).rejects.toMatchObject({
+      status: 503,
+      resultadoIncierto: true,
+    });
+  });
+
+  it('cancela la espera y marca incierto el resultado al superar el timeout', async () => {
+    jest.useFakeTimers();
+    process.env.RECURRENTE_TIMEOUT_MS = '1000';
+    global.fetch.mockImplementation((_url, { signal }) => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => {
+        const error = new Error('aborted');
+        error.name = 'AbortError';
+        reject(error);
+      });
+    }));
+
+    const verificacion = expect(RecurrenteService.crearComandoTerminal({
+      terminalId: 'trm_test_123',
+      totalCentavos: 2500,
+      externalId: 'farmacom-pos-test',
+    })).rejects.toMatchObject({
+      status: 504,
+      resultadoIncierto: true,
+    });
+    await jest.advanceTimersByTimeAsync(1000);
+    await verificacion;
   });
 
   it('verifica la firma Svix utilizando el body crudo', () => {

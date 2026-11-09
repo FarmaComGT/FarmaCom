@@ -16,11 +16,29 @@ describe('VentaController', () => {
     VentaService.crearVenta.mockResolvedValue({ id_venta: 1 });
     const body = { detalles: [] };
     const res = mockResponse();
+    const get = jest.fn().mockReturnValue('11111111-1111-4111-8111-111111111111');
 
-    await VentaController.crear({ body, usuario }, res, jest.fn());
+    await VentaController.crear({ body, usuario, get }, res, jest.fn());
 
-    expect(VentaService.crearVenta).toHaveBeenCalledWith(body, usuario);
+    expect(VentaService.crearVenta).toHaveBeenCalledWith(
+      body,
+      usuario,
+      '11111111-1111-4111-8111-111111111111',
+    );
     expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  it('responde 200 cuando recupera una venta de un intento repetido', async () => {
+    VentaService.crearVenta.mockResolvedValue({ id_venta: 1, recuperada: true });
+    const res = mockResponse();
+
+    await VentaController.crear({
+      body: {},
+      usuario,
+      get: () => '11111111-1111-4111-8111-111111111111',
+    }, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 
   it('crea un pago POS', async () => {
@@ -44,6 +62,20 @@ describe('VentaController', () => {
     );
 
     expect(VentaService.obtenerEstadoPagoPOS).toHaveBeenCalledWith('x1', usuario);
+    expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  it('concilia una venta pendiente sin iniciar otro cobro', async () => {
+    VentaService.conciliarPagoPOS.mockResolvedValue({ estado: 'pagado', id_venta: 22 });
+    const res = mockResponse();
+
+    await VentaController.conciliarPagoPOS(
+      { params: { externalId: 'x1' }, usuario },
+      res,
+      jest.fn(),
+    );
+
+    expect(VentaService.conciliarPagoPOS).toHaveBeenCalledWith('x1', usuario);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 

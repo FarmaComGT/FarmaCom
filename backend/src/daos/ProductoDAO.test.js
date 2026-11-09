@@ -22,7 +22,7 @@ describe('ProductoDAO - códigos de barras', () => {
     expect(params).toEqual([7, 3]);
     expect(sql).toContain('l.id_sucursal = $2');
     expect(sql).toContain('pr.id_sucursal = $2');
-    expect(sql).toContain('l.stock_actual > 0 AND l.precio_venta > 0');
+    expect(sql).toContain('(l.stock_actual - l.stock_reservado) > 0 AND l.precio_venta > 0');
     expect(sql).toContain('l.fecha_vencimiento >= CURRENT_DATE');
   });
 
@@ -111,7 +111,7 @@ describe('ProductoDAO - autocompletado para POS', () => {
     expect(consulta).toContain('char_length(termino_normalizado) >= 3');
     expect(consulta).not.toContain('relevancia >= 0.30');
     expect(consulta).toContain('l.id_sucursal = $2');
-    expect(consulta).toContain('l.stock_actual > 0');
+    expect(consulta).toContain('(l.stock_actual - l.stock_reservado) > 0');
     expect(consulta).toContain('l.precio_venta > 0');
     expect(consulta).toContain('l.fecha_vencimiento IS NULL');
     expect(consulta).toContain('l.fecha_vencimiento >= CURRENT_DATE');

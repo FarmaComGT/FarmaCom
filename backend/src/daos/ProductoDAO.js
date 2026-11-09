@@ -66,7 +66,8 @@ class ProductoDAO {
       SELECT p.id_producto, p.codigo, p.codigo_barras, p.nombre_comercial,
         p.nombre_generico, p.concentracion, p.aplica_mayoreo,
         pre.nombre AS presentacion, l.id_lote, l.numero_lote, l.fecha_vencimiento,
-        l.stock_actual AS stock_disponible, l.precio_venta, l.precio_mayoreo,
+        (l.stock_actual - l.stock_reservado) AS stock_disponible,
+        l.precio_venta, l.precio_mayoreo,
         l.cantidad_mayoreo, l.estado_stock, l.estado_vencimiento,
         promocion.id_promocion, promocion.cantidad_minima AS promocion_cantidad_minima,
         promocion.precio_promocion, promocion.fecha_inicio AS promocion_fecha_inicio,
@@ -82,7 +83,7 @@ class ProductoDAO {
         ORDER BY pr.precio_promocion, pr.id_promocion LIMIT 1
       ) promocion ON TRUE
       WHERE p.id_producto = $1 AND p.activo = TRUE AND l.id_sucursal = $2
-        AND l.stock_actual > 0 AND l.precio_venta > 0
+        AND (l.stock_actual - l.stock_reservado) > 0 AND l.precio_venta > 0
         AND (l.fecha_vencimiento IS NULL OR l.fecha_vencimiento >= CURRENT_DATE)
       ORDER BY l.numero_lote, l.id_lote
     `, [idProducto, idSucursal]);
@@ -167,7 +168,7 @@ class ProductoDAO {
             FROM lote l
             WHERE l.id_producto = p.id_producto
               AND l.id_sucursal = $2
-              AND l.stock_actual > 0
+              AND (l.stock_actual - l.stock_reservado) > 0
               AND l.precio_venta > 0
               AND (
                 l.fecha_vencimiento IS NULL
@@ -200,7 +201,7 @@ class ProductoDAO {
         p.presentacion,
         lote_pos.numero_lote,
         lote_pos.fecha_vencimiento,
-        lote_pos.stock_actual AS stock_disponible,
+        (lote_pos.stock_actual - lote_pos.stock_reservado) AS stock_disponible,
         lote_pos.precio_venta,
         lote_pos.estado_stock,
         lote_pos.estado_vencimiento,
@@ -218,7 +219,7 @@ class ProductoDAO {
       JOIN v_lote_estado lote_pos
         ON lote_pos.id_producto = p.id_producto
        AND lote_pos.id_sucursal = $2
-       AND lote_pos.stock_actual > 0
+       AND (lote_pos.stock_actual - lote_pos.stock_reservado) > 0
        AND lote_pos.precio_venta > 0
        AND (
          lote_pos.fecha_vencimiento IS NULL
