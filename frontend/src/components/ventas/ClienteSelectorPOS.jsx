@@ -1,116 +1,73 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useId, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Search, User, UserCheck, X } from 'lucide-react';
+import { normalizarNit } from '../../utils/nit';
+import styles from './ClienteSelectorPOS.module.css';
 
 export default function ClienteSelectorPOS({ clientes, cargando, clienteSeleccionado, onSeleccionar }) {
   const [abierto, setAbierto] = useState(false);
   const [busqueda, setBusqueda] = useState('');
-
+  const [consulta, setConsulta] = useState('');
+  const trigger = useRef(null);
+  const panelId = useId();
   const clientesFiltrados = useMemo(() => {
-    const termino = busqueda.trim().toLocaleLowerCase('es');
-    if (!termino) return clientes;
+    if (!consulta) return [];
+    const termino = consulta.toLocaleLowerCase('es');
+    const nit = normalizarNit(consulta).replace(/-/g, '');
     return clientes.filter((cliente) =>
-      cliente.nombre_cliente.toLocaleLowerCase('es').includes(termino));
-  }, [busqueda, clientes]);
+      (cliente.nombre_cliente ?? '').toLocaleLowerCase('es').includes(termino)
+      || (nit && normalizarNit(cliente.nit).replace(/-/g, '').includes(nit)));
+  }, [consulta, clientes]);
 
   const cerrar = () => {
     setAbierto(false);
     setBusqueda('');
+    setConsulta('');
+    trigger.current?.focus();
   };
-
-  const seleccionar = (cliente) => {
-    onSeleccionar(cliente);
-    cerrar();
-  };
+  const seleccionar = (cliente) => { onSeleccionar(cliente); cerrar(); };
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setAbierto((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-left text-sm font-semibold text-on-surface transition-colors hover:border-primary/40"
-      >
-        <span className="flex min-w-0 items-center gap-2">
-          {clienteSeleccionado ? (
-            <UserCheck className="h-4 w-4 shrink-0 text-primary" />
-          ) : (
-            <User className="h-4 w-4 shrink-0 text-slate-400" />
-          )}
-          <span className="truncate">
-            {clienteSeleccionado ? clienteSeleccionado.nombre_cliente : 'Consumidor final'}
+    <div className={styles.root} onKeyDown={(evento) => {
+      if (evento.key === 'Escape' && abierto) { evento.stopPropagation(); cerrar(); }
+    }} onBlur={(evento) => {
+      if (!evento.currentTarget.contains(evento.relatedTarget)) {
+        setAbierto(false); setBusqueda(''); setConsulta('');
+      }
+    }}>
+      <div className={styles.control}>
+        <button ref={trigger} type="button" aria-expanded={abierto} aria-controls={panelId}
+          className={styles.trigger} onClick={() => abierto ? cerrar() : setAbierto(true)}>
+          <User size={18} aria-hidden="true" />
+          <span className={styles.identity}>
+            <span className={styles.name}>{clienteSeleccionado?.nombre_cliente ?? 'Consumidor final'}</span>
+            {clienteSeleccionado && <span className={styles.nit}>{clienteSeleccionado.nit ? `NIT ${clienteSeleccionado.nit}` : 'Sin NIT'}</span>}
           </span>
-        </span>
-        <span className="flex items-center gap-1 shrink-0">
-          {clienteSeleccionado && (
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(evento) => {
-                evento.stopPropagation();
-                onSeleccionar(null);
-              }}
-              onKeyDown={(evento) => {
-                if (evento.key === 'Enter' || evento.key === ' ') {
-                  evento.stopPropagation();
-                  onSeleccionar(null);
-                }
-              }}
-              aria-label="Quitar cliente seleccionado"
-              className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-error"
-            >
-              <X className="h-3.5 w-3.5" />
-            </span>
-          )}
-          <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${abierto ? 'rotate-180' : ''}`} />
-        </span>
-      </button>
-
-      {abierto && (
-        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-          <div className="relative border-b border-slate-100 p-2">
-            <Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              autoFocus
-              type="search"
-              value={busqueda}
-              onChange={(evento) => setBusqueda(evento.target.value)}
-              placeholder="Buscar cliente..."
-              aria-label="Buscar cliente"
-              className="w-full rounded-lg border-none bg-slate-50 py-2 pl-9 pr-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
-            />
+          <ChevronDown size={16} aria-hidden="true" />
+        </button>
+        {clienteSeleccionado && <button type="button" className={styles.clear} aria-label="Quitar cliente seleccionado" onClick={() => seleccionar(null)}><X size={16} aria-hidden="true" /></button>}
+      </div>
+      {abierto && <div id={panelId} className={styles.panel}>
+        <form className={styles.form} onSubmit={(evento) => { evento.preventDefault(); setConsulta(busqueda.trim()); }}>
+          <label htmlFor={`${panelId}-buscar`}>Buscar cliente por nombre o NIT</label>
+          <div className={styles.search}>
+            <input id={`${panelId}-buscar`} type="search" name="busqueda_cliente" autoComplete="off"
+              autoFocus={typeof window !== 'undefined' && window.matchMedia?.('(min-width: 768px) and (pointer: fine)').matches}
+              value={busqueda} onChange={(evento) => { setBusqueda(evento.target.value); setConsulta(''); }}
+              placeholder="Nombre o NIT…" />
+            <button type="submit"><Search size={16} aria-hidden="true" /><span>Buscar</span></button>
           </div>
-
-          <div className="max-h-56 overflow-y-auto py-1">
-            <button
-              type="button"
-              onClick={() => seleccionar(null)}
-              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-slate-600 hover:bg-primary/5 hover:text-primary"
-            >
-              <User className="h-4 w-4 shrink-0" />
-              Consumidor final
-            </button>
-
-            {cargando && (
-              <p className="px-4 py-3 text-sm text-slate-400">Cargando clientes...</p>
-            )}
-
-            {!cargando && clientesFiltrados.length === 0 && (
-              <p className="px-4 py-3 text-sm text-slate-400">No se encontraron clientes.</p>
-            )}
-
-            {!cargando && clientesFiltrados.map((cliente) => (
-              <button
-                key={cliente.id_cliente}
-                type="button"
-                onClick={() => seleccionar(cliente)}
-                className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-on-surface hover:bg-primary/5 hover:text-primary"
-              >
-                <UserCheck className="h-4 w-4 shrink-0 text-primary/60" />
-                {cliente.nombre_cliente}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+        </form>
+        {consulta && <div className={styles.results}>
+          {cargando ? <p role="status">Cargando clientes…</p> : <>
+            <p role="status">{clientesFiltrados.length ? `${clientesFiltrados.length} ${clientesFiltrados.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}` : 'No se encontraron clientes. Prueba otro nombre o NIT.'}</p>
+            {clientesFiltrados.slice(0, 50).map((cliente) => <button key={cliente.id_cliente} type="button" className={styles.result} onClick={() => seleccionar(cliente)}>
+              <span className={styles.identity}><span className={styles.name}>{cliente.nombre_cliente}</span>{' '}<span className={styles.nit}>{cliente.nit ? `NIT ${cliente.nit}` : 'Sin NIT'}</span></span>
+              <UserCheck size={16} aria-hidden="true" />
+            </button>)}
+            {clientesFiltrados.length > 50 && <p>Se muestran los primeros 50. Precisa el nombre o NIT.</p>}
+          </>}
+        </div>}
+      </div>}
     </div>
   );
 }
