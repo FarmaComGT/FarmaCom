@@ -73,9 +73,26 @@ describe('VentaDetalleService', () => {
     await reservarDetallesPagoPOS(5, detalles, client);
 
     expect(VentaDAO.reservarStockPagoPOS.mock.calls).toEqual([
-      [5, detalles[0], client],
-      [5, detalles[1], client],
+      [5, { id_lote: 2, cantidad: 2 }, client],
+      [5, { id_lote: 1, cantidad: 1 }, client],
     ]);
+  });
+
+  it('agrupa en una sola reserva los segmentos de precio del mismo lote', async () => {
+    const detallesMixtos = [
+      { id_lote: 2, cantidad: 2, precio_unitario: '6.00', id_promocion: 4 },
+      { id_lote: 2, cantidad: 3, precio_unitario: '7.50', id_promocion: null },
+    ];
+    VentaDAO.reservarStockPagoPOS.mockResolvedValue({ id_reserva: 1 });
+
+    await reservarDetallesPagoPOS(5, detallesMixtos, client);
+
+    expect(VentaDAO.reservarStockPagoPOS).toHaveBeenCalledTimes(1);
+    expect(VentaDAO.reservarStockPagoPOS).toHaveBeenCalledWith(
+      5,
+      { id_lote: 2, cantidad: 5 },
+      client,
+    );
   });
 
   it('libera unicamente las reservas que continuan activas', async () => {
@@ -116,6 +133,39 @@ describe('VentaDetalleService', () => {
     expect(VentaDAO.crearDetalle).toHaveBeenCalledTimes(2);
     expect(VentaDAO.consumirReservaPagoPOS.mock.invocationCallOrder[0])
       .toBeLessThan(VentaDAO.crearDetalle.mock.invocationCallOrder[0]);
+  });
+
+  it('consume una reserva agrupada y conserva los segmentos de precio', async () => {
+    const detallesMixtos = [
+      { id_lote: 2, cantidad: 2, precio_unitario: '6.00', id_promocion: 4 },
+      { id_lote: 2, cantidad: 3, precio_unitario: '7.50', id_promocion: null },
+    ];
+    VentaDAO.obtenerReservasActivasPagoPOS.mockResolvedValue([
+      { id_reserva: 1, id_lote: 2, cantidad: 5 },
+    ]);
+    VentaDAO.consumirReservaPagoPOS.mockResolvedValue({ id_lote: 2, stock_actual: 5 });
+    VentaDAO.crearDetalle.mockResolvedValue({});
+
+    await registrarDetallesYConsumirReservas(
+      21,
+      { id_pago_pos: 5, detalles: detallesMixtos },
+      { id_usuario: 7, id_sucursal: 3, id_pago_pos: 5 },
+      client,
+    );
+
+    expect(VentaDAO.consumirReservaPagoPOS).toHaveBeenCalledTimes(1);
+    expect(VentaDAO.crearDetalle.mock.calls).toEqual([
+      [{ id_venta: 21, id_lote: 2, cantidad: 2, precio_unitario: '6.00' }, client],
+      [{ id_venta: 21, id_lote: 2, cantidad: 3, precio_unitario: '7.50' }, client],
+    ]);
+    expect(MovimientoInventarioDAO.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id_lote: 2,
+        cantidad_anterior: 10,
+        cantidad_nueva: 5,
+      }),
+      client,
+    );
   });
 
   it('restaura existencias al anular una venta', async () => {
