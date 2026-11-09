@@ -315,6 +315,7 @@ describe('PuntoVenta', () => {
     render(<PuntoVenta />);
 
     await user.click(screen.getByText('Consumidor final'));
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar cliente por nombre o NIT' }), 'Maria{Enter}');
     await user.click(screen.getByText('Maria Lopez'));
 
     expect(screen.getByText('Maria Lopez')).toBeInTheDocument();
