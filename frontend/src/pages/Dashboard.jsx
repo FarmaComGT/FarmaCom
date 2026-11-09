@@ -1,6 +1,6 @@
 ﻿import React, { useEffect } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import styles from '../styles/Dashboard.module.css';
 
@@ -10,19 +10,17 @@ const farmacia = [
   { to: '/inventario', title: 'Existencias', text: 'Consultar productos, lotes y vencimientos.' },
 ];
 const laboratorio = { to: '/laboratorio/pacientes', title: 'Pacientes', text: 'Consultar expedientes y cargar resultados de laboratorio.' };
-const roles = { dueno: 'Propietario', administrador: 'Administrador', dependiente: 'Dependiente', laboratorista: 'Laboratorista' };
+const roles = { dependiente: 'Dependiente', laboratorista: 'Laboratorista' };
 
 export default function Dashboard() {
   const { usuario } = useAuth();
   useEffect(() => { document.title = 'Inicio · FarmaCom'; }, []);
+  if (['dueno', 'administrador'].includes(usuario?.rol)) return <Navigate to="/reports" replace />;
   const esLaboratorio = usuario?.rol === 'laboratorista';
-  const esFarmacia = ['dueno', 'administrador', 'dependiente'].includes(usuario?.rol);
-  const tareas = esLaboratorio ? [laboratorio] : esFarmacia ? farmacia : [];
-  const consultas = esFarmacia ? [
+  const esDependiente = usuario?.rol === 'dependiente';
+  const tareas = esLaboratorio ? [laboratorio] : esDependiente ? farmacia : [];
+  const consultas = esDependiente ? [
     { to: '/patients', title: 'Clientes', text: 'Datos fiscales, contactos e historial de compras.' },
-    ...(['dueno', 'administrador'].includes(usuario?.rol) ? [
-      { to: '/ventas/historial', title: 'Historial de ventas', text: 'Revisar ventas y sus detalles.' }, laboratorio,
-    ] : []),
   ] : [];
   const fila = ({ to, title, text }) => <Link key={to} to={to} className={styles.row}>
     <span><strong>{title}</strong><span>{text}</span></span><ArrowRight size={18} aria-hidden="true" />

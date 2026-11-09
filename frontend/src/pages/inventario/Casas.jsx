@@ -10,6 +10,7 @@ import CasaContactosModal from '../../components/inventario/casas/CasaContactosM
 import useCasas from '../../hooks/useCasas';
 import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
 import Paginacion from '../../components/ui/Paginacion.jsx';
+import { TabsList, TabButton } from '../../components/ui/Tabs.jsx';
 import { ejecutarTransicionDeVista } from '../../utils/viewTransition';
 import styles from '../../styles/ManagementUI.module.css';
 
@@ -156,17 +157,15 @@ export default function Casas() {
         </div>
       </header>
 
-      <div className={styles.quickFilters} aria-label="Filtrar casas por estado">
+      <TabsList ariaLabel="Filtrar casas por estado">
         {[
           ['todas', 'Todas'],
           ['activa', 'Activas'],
           ['inactiva', 'Inactivas'],
         ].map(([valor, etiqueta]) => (
-          <button key={valor} type="button" className={styles.quickFilter} aria-pressed={estadoSeleccionado === valor} onClick={() => actualizarEstado(valor)}>
-            <span>{etiqueta}</span>
-          </button>
+          <TabButton key={valor} active={estadoSeleccionado === valor} onClick={() => actualizarEstado(valor)}>{etiqueta}</TabButton>
         ))}
-      </div>
+      </TabsList>
 
       <CasaActionBar busqueda={busqueda} onBusquedaChange={(evento) => actualizarParametro('q', evento.target.value)} onCrear={abrirModalCrear} />
       <p className={styles.resultCount} aria-live="polite"><strong>{paginacion?.total ?? 0}</strong> casas farmacéuticas encontradas</p>

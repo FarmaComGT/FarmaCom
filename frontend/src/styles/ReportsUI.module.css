@@ -6,36 +6,6 @@
 .header h1 { font-family: var(--font-headline); font-size: 24px; font-weight: 600; letter-spacing: -.025em; line-height: 32px; }
 .header p { margin-top: 4px; color: var(--report-muted); }
 
-.nav {
-  display: flex;
-  gap: 4px;
-  width: fit-content;
-  max-width: 100%;
-  overflow-x: auto;
-  margin-bottom: 24px;
-  padding: 4px;
-  border: 1px solid var(--report-line);
-  border-radius: 9px;
-  background: #f5f7f6;
-}
-
-.nav a {
-  display: inline-flex;
-  min-height: 44px;
-  flex: none;
-  align-items: center;
-  padding: 8px 14px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: var(--report-muted);
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.nav a:hover { background: #eaf1ed; color: var(--report-accent); }
-.nav a[aria-current="page"] { view-transition-name: report-tab; border-color: #d5e1da; background: #fff; color: var(--report-ink); font-weight: 600; }
-
 .content { display: grid; gap: 24px; }
 
 .filters { padding: 16px; border: 1px solid var(--report-line); border-radius: 8px; background: #fafcfb; }

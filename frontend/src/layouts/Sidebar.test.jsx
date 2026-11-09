@@ -19,13 +19,16 @@ describe('Navegación por tareas de FarmaCom', () => {
   it.each(['dueno', 'administrador', 'dependiente', 'laboratorista'])('mantiene orden y accesos por rol: %s', (rol) => {
     mocks.rol = rol;
     renderizar();
+    const esGestion = ['dueno', 'administrador'].includes(rol);
+    const primerTab = esGestion ? 'Dashboard' : 'Inicio';
     const nav = screen.getByRole('navigation', { name: 'Módulos de FarmaCom' });
     const elementos = [...nav.querySelectorAll('a, button')].map(e => e.textContent);
     if (rol !== 'laboratorista') {
-      expect(elementos.slice(0, 4)).toEqual(['Inicio', 'Punto de venta', 'Caja', 'Inventario']);
+      expect(elementos.slice(0, 4)).toEqual([primerTab, 'Punto de venta', 'Caja', 'Inventario']);
     }
+    expect(screen.getByRole('link', { name: primerTab })).toHaveAttribute('href', esGestion ? '/reports' : '/dashboard');
     expect(Boolean(screen.queryByRole('link', { name: 'Envío de resumen' }))).toBe(rol === 'dueno');
-    expect(Boolean(screen.queryByText('Seguimiento'))).toBe(['dueno', 'administrador'].includes(rol));
+    expect(Boolean(screen.queryByText('Seguimiento'))).toBe(esGestion);
   });
   it.each([
     ['/caja', 'Operación'],
@@ -60,6 +63,19 @@ describe('Navegación por tareas de FarmaCom', () => {
     const nav = screen.getByRole('navigation', { name: 'Módulos de FarmaCom' });
     expect(within(nav).getByRole('link', { name: nombre })).toHaveAttribute('aria-current', 'page');
     expect(nav.querySelectorAll('a[aria-current]')).toHaveLength(1);
+  });
+  it('el dueño ve Dashboard como reportes en la primera pestaña', () => {
+    mocks.rol = 'dueno';
+    render(<MemoryRouter initialEntries={['/reports']}>
+      <Sidebar abierta onCerrar={vi.fn()} onNavegar={vi.fn()} />
+      <TopNav sidebarAbierta onAbrirSidebar={vi.fn()} />
+    </MemoryRouter>);
+    const breadcrumb = screen.getByRole('navigation', { name: 'Ubicación actual' });
+    expect(breadcrumb).toHaveTextContent('Reportes');
+    expect(breadcrumb).toHaveTextContent('Ventas');
+    const nav = screen.getByRole('navigation', { name: 'Módulos de FarmaCom' });
+    expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByRole('link', { name: 'Reportes' })).not.toBeInTheDocument();
   });
   it('identifica Existencias como sección actual dentro de los lotes de un producto', () => {
     renderizar('/inventario/productos/7/lotes');

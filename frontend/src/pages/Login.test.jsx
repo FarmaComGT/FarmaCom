@@ -55,7 +55,7 @@ describe('pantalla de login', () => {
       type: 'LOGIN',
       payload: { usuario: { id_usuario: 1, rol: 'administrador', id_sucursal: 3 }, sucursalActivaId: 3 },
     });
-    expect(navigateMock).toHaveBeenCalledWith('/dashboard', { replace: true });
+    expect(navigateMock).toHaveBeenCalledWith('/reports', { replace: true });
   });
 
   it('redirige siempre a la ruta por defecto cuando el rol es laboratorista', async () => {

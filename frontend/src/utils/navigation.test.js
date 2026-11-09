@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { getDefaultRouteForRole } from './navigation';
 
 describe('getDefaultRouteForRole', () => {
-  it('envía a dueño y administrador al inicio', () => {
-    expect(getDefaultRouteForRole('dueno')).toBe('/dashboard');
-    expect(getDefaultRouteForRole('administrador')).toBe('/dashboard');
+  it('envía a dueño y administrador a los reportes', () => {
+    expect(getDefaultRouteForRole('dueno')).toBe('/reports');
+    expect(getDefaultRouteForRole('administrador')).toBe('/reports');
   });
 
   it('envía al laboratorista al inicio', () => {

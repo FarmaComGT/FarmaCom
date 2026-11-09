@@ -51,6 +51,7 @@
 .shell-nav-children { margin: 2px 0 6px 21px; padding-left: 11px; border-left: 1px solid var(--shell-line); }
 .shell-nav-nested { min-height: 32px; padding: 6px 10px; font-size: 12px; }
 .shell-sidebar-footer { flex: none; padding-top: 12px; margin-top: 14px; border-top: 1px solid var(--shell-line); }
+.shell-logout, .shell-logout:hover { color: #9C0000; }
 .shell-logout:disabled { cursor: wait; color: var(--shell-muted); }
 .shell-loading { animation: shell-spin 1s linear infinite; }
 @keyframes shell-spin { to { transform: rotate(360deg); } }
@@ -113,13 +114,5 @@
 
 ::view-transition-old(root) { animation: none; opacity: 0; }
 ::view-transition-new(root) { animation: none; }
-::view-transition-group(location-tab),
-::view-transition-group(user-filter-tab),
-::view-transition-group(report-tab) { animation-duration: 180ms; }
 @keyframes location-content-out { to { opacity: 0; transform: translateY(-4px); } }
 @keyframes location-content-in { from { opacity: 0; transform: translateY(7px); } }
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(location-tab),
-  ::view-transition-group(user-filter-tab),
-  ::view-transition-group(report-tab) { animation: none; }
-}

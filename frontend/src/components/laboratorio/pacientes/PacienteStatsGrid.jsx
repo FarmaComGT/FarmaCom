@@ -1,21 +1,20 @@
 import React from 'react';
-import styles from '../../../styles/ManagementUI.module.css';
+import { TabsList, TabButton } from '../../ui/Tabs.jsx';
 
 const filtros = [
-  { estado: 'todos', etiqueta: 'Todos', clave: 'totalPacientes' },
-  { estado: 'activo', etiqueta: 'Activos', clave: 'totalActivos' },
-  { estado: 'anulado', etiqueta: 'Anulados', clave: 'totalAnulados' },
+  { estado: 'todos', etiqueta: 'Todos' },
+  { estado: 'activo', etiqueta: 'Activos' },
+  { estado: 'anulado', etiqueta: 'Anulados' },
 ];
 
-export default function PacienteStatsGrid({ totalPacientes, totalActivos, totalAnulados, estadoSeleccionado, onSeleccionarEstado }) {
-  const totales = { totalPacientes, totalActivos, totalAnulados };
+export default function PacienteStatsGrid({ estadoSeleccionado, onSeleccionarEstado }) {
   return (
-    <div className={styles.quickFilters} role="group" aria-label="Filtrar pacientes por estado">
-      {filtros.map(({ estado, etiqueta, clave }) => (
-        <button key={estado} type="button" className={styles.quickFilter} aria-pressed={estadoSeleccionado === estado} onClick={() => onSeleccionarEstado(estado)}>
-          <strong>{totales[clave]}</strong><span>{etiqueta}</span>
-        </button>
+    <TabsList ariaLabel="Filtrar pacientes por estado">
+      {filtros.map(({ estado, etiqueta }) => (
+        <TabButton key={estado} active={estadoSeleccionado === estado} onClick={() => onSeleccionarEstado(estado)}>
+          {etiqueta}
+        </TabButton>
       ))}
-    </div>
+    </TabsList>
   );
 }
