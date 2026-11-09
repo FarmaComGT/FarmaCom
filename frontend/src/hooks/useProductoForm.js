@@ -9,12 +9,8 @@ export const PRODUCTO_FORM_INICIAL = {
   id_presentacion: '',
   id_categoria: '',
   id_casa: '',
-  id_proveedor: '',
-  precio_compra: '',
   stock_minimo: '',
   meses_alerta_vencimiento: '',
-  aplica_mayoreo: false,
-  activo: true,
 };
 
 export const inicializarProductoForm = (producto) => {
@@ -27,14 +23,10 @@ export const inicializarProductoForm = (producto) => {
     id_presentacion: String(producto.id_presentacion || ''),
     id_categoria: String(producto.id_categoria || ''),
     id_casa: String(producto.id_casa || ''),
-    id_proveedor: String(producto.id_proveedor || ''),
-    precio_compra: producto.precio_compra != null ? String(producto.precio_compra) : '',
     stock_minimo: producto.stock_minimo != null ? String(producto.stock_minimo) : '',
     meses_alerta_vencimiento: producto.meses_alerta_vencimiento != null
       ? String(producto.meses_alerta_vencimiento)
       : '',
-    aplica_mayoreo: producto.aplica_mayoreo ?? false,
-    activo: producto.activo ?? true,
   };
 };
 
@@ -48,10 +40,6 @@ export const validarProductoForm = (formulario) => {
   if (!formulario.id_presentacion) return 'La presentación es requerida.';
   if (!formulario.id_categoria) return 'La categoría es requerida.';
   if (!formulario.id_casa) return 'La casa farmacéutica es requerida.';
-  const precioCompra = Number(formulario.precio_compra);
-  if (formulario.precio_compra === '' || !Number.isFinite(precioCompra) || precioCompra < 0) {
-    return 'El precio de compra debe ser mayor o igual a 0.';
-  }
   const stockMinimo = Number(formulario.stock_minimo);
   if (formulario.stock_minimo !== ''
     && (!Number.isInteger(stockMinimo) || stockMinimo < 0)) {
@@ -83,11 +71,8 @@ export const construirPayloadProducto = ({
     id_presentacion: Number(formulario.id_presentacion),
     id_categoria: Number(formulario.id_categoria),
     id_casa: Number(formulario.id_casa),
-    id_proveedor: formulario.id_proveedor ? Number(formulario.id_proveedor) : undefined,
-    precio_compra: Number(formulario.precio_compra),
     stock_minimo: formulario.stock_minimo ? Number(formulario.stock_minimo) : undefined,
     meses_alerta_vencimiento: Number(formulario.meses_alerta_vencimiento),
-    aplica_mayoreo: formulario.aplica_mayoreo,
   };
 };
 
@@ -127,10 +112,6 @@ export default function useProductoForm({
     setErrorValidacion(null);
   };
 
-  const manejarToggleActivo = () => {
-    setFormulario((actual) => ({ ...actual, activo: !actual.activo }));
-  };
-
   const seleccionarPresentacion = (idPresentacion) => {
     setFormulario((actual) => ({
       ...actual,
@@ -159,7 +140,6 @@ export default function useProductoForm({
     presentacionSeleccionada,
     errorValidacion,
     manejarCambio,
-    manejarToggleActivo,
     manejarEnvio,
     seleccionarPresentacion,
   };

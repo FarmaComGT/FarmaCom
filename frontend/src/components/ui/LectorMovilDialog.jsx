@@ -3,7 +3,7 @@ import { LoaderCircle, X } from 'lucide-react';
 import { Modal } from './Modal';
 import styles from './LectorMovil.module.css';
 
-const nombresDestino = { ventas: 'Punto de venta', producto: 'Registro de producto', pausa: 'En pausa' };
+const nombresDestino = { ventas: 'Punto de venta', producto: 'Registro de producto', promocion: 'Producto de la promoción', pausa: 'En pausa' };
 
 export default function LectorMovilDialog({ abierto, sesion, cargando, error, abrir, cerrar, desconectar, confirmar, destino }) {
   const [aviso, setAviso] = useState('');

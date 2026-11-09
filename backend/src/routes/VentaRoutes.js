@@ -25,6 +25,8 @@ const validarId = [
 ];
 
 const validarDatosVenta = [
+  body('total_esperado').optional().custom(esMontoValido)
+    .withMessage('El total esperado debe ser un monto válido').toFloat(),
   body('id_sucursal')
     .isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo')
     .toInt(),

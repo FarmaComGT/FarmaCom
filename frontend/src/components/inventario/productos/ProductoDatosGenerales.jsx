@@ -5,7 +5,7 @@ import LectorMovilButton from '../../ui/LectorMovilButton';
 import styles from '../../../styles/ManagementUI.module.css';
 import local from './ProductoDatosGenerales.module.css';
 
-export default function ProductoDatosGenerales({ formulario, codigoMostrado, onChange, onToggleActivo, bloqueado = false }) {
+export default function ProductoDatosGenerales({ formulario, codigoMostrado, onChange, bloqueado = false }) {
   const [camaraAbierta, setCamaraAbierta] = useState(false);
   const [aviso, setAviso] = useState('');
   const campoCodigo = useRef(null);
@@ -33,24 +33,10 @@ export default function ProductoDatosGenerales({ formulario, codigoMostrado, onC
   return (
     <section className={styles.section} aria-labelledby="producto-datos-title">
       <h3 id="producto-datos-title" className={styles.sectionHeading}>Datos generales</h3>
-      <div className={styles.formGrid}>
-        <div className={styles.field}>
+      <div className={styles.field}>
           <label htmlFor="codigo_producto">Código</label>
           <input id="codigo_producto" type="text" value={codigoMostrado} disabled className={styles.input} />
           <p className={styles.helpText}>Se genera a partir de la presentación elegida.</p>
-        </div>
-        <div className={styles.field}>
-          <span className={styles.fieldLabel}>Estado</span>
-          <div className={styles.switchRow}>
-            <button type="button" role="switch" aria-checked={formulario.activo} aria-label="Producto activo" onClick={onToggleActivo} className={styles.switchButton}>
-              <span className={styles.switchThumb} aria-hidden="true" />
-            </button>
-            <div>
-              <strong>{formulario.activo ? 'Activo' : 'Inactivo'}</strong>
-              <span>{formulario.activo ? 'Disponible para operaciones nuevas.' : 'Oculto para operaciones nuevas.'}</span>
-            </div>
-          </div>
-        </div>
       </div>
       <div className={styles.field}>
         <label htmlFor="codigo_barras">Código de barras <span className={styles.optional}>(opcional)</span></label>

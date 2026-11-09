@@ -169,6 +169,8 @@ export const normalizarProductoPOS = (producto) => {
     precio_promocion: Number(producto.precio_promocion),
     fecha_inicio: producto.promocion_fecha_inicio,
     fecha_fin: producto.promocion_fecha_fin,
+    cantidad_maxima: producto.promocion_cantidad_maxima == null ? null : Number(producto.promocion_cantidad_maxima),
+    cantidad_disponible: producto.promocion_cantidad_disponible == null ? null : Number(producto.promocion_cantidad_disponible),
   } : null;
 
   return {

@@ -1,5 +1,6 @@
 const { body, param, query } = require('express-validator');
 const { normalizarCodigoBarras } = require('../utils/codigoBarras');
+const { nombrePromocion, cantidadMaximaPromocion } = require('./promocionValidators');
 
 const validarCodigoBarrasOpcional = () => body('codigo_barras')
   .optional({ nullable: true })
@@ -108,11 +109,13 @@ const validarAutocompletado = [
 ];
 
 const validarCreacionPromocion = [
+  nombrePromocion(),
+  cantidadMaximaPromocion(),
   body('id_sucursal').isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo').toInt(),
   body('cantidad_minima').isInt({ min: 1 }).withMessage('La cantidad mínima debe ser mayor a 0').toInt(),
   body('precio_promocion').isFloat({ min: 0.01 }).withMessage('El precio de promoción debe ser mayor a 0').toFloat(),
   body('fecha_inicio').isISO8601().withMessage('fecha_inicio debe ser una fecha válida (YYYY-MM-DD)').toDate(),
-  body('fecha_fin').isISO8601().withMessage('fecha_fin debe ser una fecha válida (YYYY-MM-DD)').toDate(),
+  body('fecha_fin').optional({ nullable: true }).isISO8601().withMessage('fecha_fin debe ser una fecha válida (YYYY-MM-DD)').toDate(),
 ];
 
 module.exports = {

@@ -16,7 +16,7 @@ const validarCreacion = [
   body('id_producto').isInt({ min: 1 }).withMessage('id_producto debe ser un entero positivo').toInt(),
   body('id_proveedor').isInt({ min: 1 }).withMessage('id_proveedor debe ser un entero positivo').toInt(),
   body('id_sucursal').isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo').toInt(),
-  body('numero_lote').trim().notEmpty().withMessage('numero_lote es requerido')
+  body('numero_lote').optional().trim().notEmpty().withMessage('numero_lote no puede estar vacío')
     .isLength({ max: 100 }).withMessage('numero_lote no puede superar los 100 caracteres'),
   body('fecha_vencimiento').optional({ nullable: true }).isISO8601()
     .withMessage('fecha_vencimiento debe ser una fecha válida (YYYY-MM-DD)').toDate(),

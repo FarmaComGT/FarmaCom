@@ -1,4 +1,5 @@
 const VentaDAO = require('../daos/VentaDAO');
+const PromocionDAO = require('../daos/PromocionDAO');
 const MovimientoInventarioDAO = require('../daos/MovimientoInventarioDAO');
 const { lanzarError } = require('./VentaErrores');
 
@@ -21,7 +22,8 @@ const registrarDetallesYDescontarStock = async (
       lanzarError(`Stock insuficiente para el lote ${detalle.id_lote}`, 409);
     }
 
-    await VentaDAO.crearDetalle({ id_venta, ...detalle }, client);
+    const { id_promocion, ...datosDetalle } = detalle;
+    await VentaDAO.crearDetalle({ id_venta, ...datosDetalle }, client);
     await MovimientoInventarioDAO.registrar({
       id_lote: detalle.id_lote,
       tipo: 'venta',
@@ -33,6 +35,8 @@ const registrarDetallesYDescontarStock = async (
       referencia: `venta:${id_venta}`,
     }, client);
   }
+  if (contexto.id_pago_pos) await PromocionDAO.liberarUso({ id_pago_pos: contexto.id_pago_pos }, client);
+  await PromocionDAO.registrarUso(detalles, { id_venta }, client);
 };
 
 const restaurarExistenciasDeDetalles = async (
@@ -63,6 +67,7 @@ const restaurarExistenciasDeDetalles = async (
       referencia: `venta:${id_venta}`,
     }, client);
   }
+  if (id_venta) await PromocionDAO.liberarUso({ id_venta }, client);
 };
 
 module.exports = {

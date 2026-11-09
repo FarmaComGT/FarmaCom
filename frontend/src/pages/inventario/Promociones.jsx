@@ -1,226 +1,158 @@
-import { useToast } from '../../context/ToastContext.jsx';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext.jsx';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../api/axios';
+import useSucursales from '../../hooks/useSucursales';
+import usePromociones from '../../hooks/usePromociones';
+import usePromocionReferencia from '../../hooks/usePromocionReferencia';
+import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
 import PromocionEstadoModal from '../../components/inventario/promociones/PromocionEstadoModal.jsx';
 import PromocionFormModal from '../../components/inventario/promociones/PromocionFormModal.jsx';
 import PromocionesTable from '../../components/inventario/promociones/PromocionesTable.jsx';
-import ContentState from '../../components/ui/ContentState.jsx';
-import { useAuth } from '../../context/AuthContext';
-import useProductos from '../../hooks/useProductos';
-import usePromociones from '../../hooks/usePromociones';
-import useSucursales from '../../hooks/useSucursales';
-import useLotesProducto from '../../hooks/useLotesProducto';
-import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
 import Paginacion from '../../components/ui/Paginacion.jsx';
-import { obtenerPrecioVentaMinimoDisponible } from '../../utils/promociones';
+import ContentState from '../../components/ui/ContentState.jsx';
 import styles from '../../styles/ManagementUI.module.css';
+import local from '../../components/inventario/promociones/Promociones.module.css';
 
-const formularioVacio = { id_sucursal: '', cantidad_minima: '1', precio_promocion: '', fecha_inicio: '', fecha_fin: '' };
-const fechaInput = (valor) => (valor ? String(valor).slice(0, 10) : '');
-const mensajeError = (error, predeterminado) => error.response?.data?.mensaje || error.message || predeterminado;
+const hoyLocal = () => { const fecha = new Date(); return new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+const vacio = (sucursal) => ({ nombre: '', id_sucursal: String(sucursal || ''), cantidad_minima: '1', cantidad_maxima: '', precio_promocion: '', fecha_inicio: hoyLocal(), fecha_fin: '', sin_fin: false });
+const mensaje = (error) => error.response?.data?.mensaje || error.message || 'No se pudo completar la operación.';
 
 export default function Promociones() {
   const toast = useToast();
-  const { sucursalActivaId } = useAuth();
-  const { productos, cargando: cargandoProductos, error: errorProductos, refrescar: refrescarProductos } = useProductos();
+  const { sucursalActivaId, usuario } = useAuth();
+  const puedeGestionar = ['dueno', 'administrador'].includes(usuario?.rol);
   const { sucursales, cargando: cargandoSucursales, error: errorSucursales, refrescar: refrescarSucursales } = useSucursales();
-  const [searchParams] = useSearchParams();
-  const busquedaProducto = searchParams.get('q') || '';
-  const idProducto = searchParams.get('producto') || '';
-  const filtroSucursal = searchParams.get('sucursal') || '';
-  const { pagina, limite } = leerPaginacionURL(searchParams);
-  const [modalAbierto, setModalAbierto] = useState(false);
-  const [promocionEditando, setPromocionEditando] = useState(null);
-  const [promocionACambiarEstado, setPromocionACambiarEstado] = useState(null);
-  const [formulario, setFormulario] = useState(formularioVacio);
-  const [formularioBase, setFormularioBase] = useState(formularioVacio);
+  const [params, setParams] = useSearchParams();
+  const busqueda = params.get('q') || '';
+  const estado = params.get('estado') || 'vigente';
+  const idProducto = params.get('producto') || '';
+  const sucursal = usuario?.rol === 'dependiente' ? String(usuario.id_sucursal)
+    : params.get('sucursal') ?? String(sucursalActivaId || 'todas');
+  const { pagina, limite } = leerPaginacionURL(params);
+  const [termino, setTermino] = useState(busqueda);
+  useEffect(() => { const timer = setTimeout(() => setTermino(busqueda), 250); return () => clearTimeout(timer); }, [busqueda]);
+  const listado = usePromociones(idProducto || null, { global: true, pagina, limite, estado, busqueda: termino.trim() || undefined, id_sucursal: sucursal === 'todas' ? undefined : sucursal || undefined });
+  const { actualizar, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion: listado.paginacion, cargando: listado.cargando });
+  const editarId = params.get('editar');
+  const creando = params.get('crear') === '1';
+  const abierto = puedeGestionar && Boolean(editarId || creando);
+  const [producto, setProducto] = useState(null);
+  const [contexto, setContexto] = useState(null);
+  const [formulario, setFormulario] = useState(vacio(sucursalActivaId));
+  const [base, setBase] = useState('');
+  const [cargandoFormulario, setCargandoFormulario] = useState(false);
+  const [falloCarga, setFalloCarga] = useState(false);
+  const [intento, setIntento] = useState(0);
   const [guardando, setGuardando] = useState(false);
-  const [cambiandoId, setCambiandoId] = useState(null);
-  const [errorFormulario, setErrorFormulario] = useState(null);
-  const [campoError, setCampoError] = useState(null);
-  const hayCambios = Object.keys(formularioVacio).some((campo) => formulario[campo] !== formularioBase[campo]);
+  const guardandoRef = useRef(false);
+  const [errores, setErrores] = useState({});
+  const [errorFormulario, setErrorFormulario] = useState('');
+  const [conflicto, setConflicto] = useState(null);
+  const [porCambiar, setPorCambiar] = useState(null);
+  const [cambiando, setCambiando] = useState(false);
+  const [errorEstado, setErrorEstado] = useState('');
+  const referencia = usePromocionReferencia(producto?.id_producto, formulario.id_sucursal, abierto);
+  const identidadFormulario = (datos, seleccionado) => JSON.stringify([datos, seleccionado?.id_producto || null]);
+  const hayCambios = abierto && !cargandoFormulario && identidadFormulario(formulario, producto) !== base;
 
+  useEffect(() => { document.title = 'Promociones · FarmaCom'; }, []);
   useEffect(() => {
-    document.title = 'Promociones · FarmaCom';
-  }, []);
-
-  const actualizarParametro = (nombre, valor) => {
-    actualizarVista({ [nombre]: valor }, true);
-  };
-
-  const productoSeleccionado = productos.find((producto) => Number(producto.id_producto) === Number(idProducto));
-
+    if (!idProducto) { setContexto(null); return; }
+    const controller = new AbortController();
+    setContexto(null);
+    api.get('/productos/' + idProducto, { signal: controller.signal }).then(({ data }) => { if (!controller.signal.aborted) setContexto(data); }).catch(() => {});
+    return () => controller.abort();
+  }, [idProducto]);
   useEffect(() => {
-    if (productos.length > 0 && !productoSeleccionado) actualizarParametro('producto', String(productos[0].id_producto));
-  }, [productos, productoSeleccionado]);
+    if (!abierto) return;
+    const controller = new AbortController();
+    const nuevos = vacio(sucursal === 'todas' ? sucursalActivaId : sucursal);
+    setErrores({}); setErrorFormulario(''); setConflicto(null); setFalloCarga(false);
+    setFormulario(nuevos); setProducto(null); setBase(identidadFormulario(nuevos, null));
+    const url = editarId ? '/promociones/' + editarId : idProducto ? '/productos/' + idProducto : null;
+    setCargandoFormulario(Boolean(url));
+    if (url) api.get(url, { signal: controller.signal }).then(({ data }) => {
+      if (controller.signal.aborted) return;
+      const valores = editarId ? { nombre: data.nombre || '', id_sucursal: String(data.id_sucursal), cantidad_minima: String(data.cantidad_minima), cantidad_maxima: data.cantidad_maxima == null ? '' : String(data.cantidad_maxima), precio_promocion: String(data.precio_promocion), fecha_inicio: String(data.fecha_inicio).slice(0, 10), fecha_fin: data.fecha_fin ? String(data.fecha_fin).slice(0, 10) : '', sin_fin: data.fecha_fin == null } : nuevos;
+      setFormulario(valores); setProducto(data); setBase(identidadFormulario(valores, data));
+    }).catch((error) => { if (!controller.signal.aborted) { setErrorFormulario(mensaje(error)); setFalloCarga(true); } })
+      .finally(() => { if (!controller.signal.aborted) setCargandoFormulario(false); });
+    return () => controller.abort();
+  }, [abierto, editarId, idProducto, intento]);
 
-  const productosFiltrados = useMemo(() => {
-    const termino = busquedaProducto.trim().toLocaleLowerCase('es');
-    if (!termino) return productos;
-    return productos.filter((producto) => [producto.codigo, producto.nombre_comercial, producto.nombre_generico].some((valor) => String(valor || '').toLocaleLowerCase('es').includes(termino)));
-  }, [busquedaProducto, productos]);
-
-  const { lotes, cargando: cargandoLotes, error: errorLotes, refrescar: refrescarLotes } = useLotesProducto(idProducto, { enabled: Boolean(idProducto) });
-  const { promociones, paginacion, cargando: cargandoPromociones, error: errorPromociones, refrescar: refrescarPromociones, crear, actualizar, cambiarEstado } = usePromociones(idProducto, { pagina, limite, id_sucursal: filtroSucursal || undefined });
-  const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando: cargandoPromociones });
-
-  const promocionesFiltradas = useMemo(() => (
-    filtroSucursal ? promociones.filter((promocion) => (
-      Number(promocion.id_sucursal) === Number(filtroSucursal)
-    )) : promociones
-  ), [filtroSucursal, promociones]);
-  const precioReferencia = useMemo(() => obtenerPrecioVentaMinimoDisponible(lotes, formulario.id_sucursal), [formulario.id_sucursal, lotes]);
-
-  const abrirCrear = () => {
-    if (!productoSeleccionado) return;
-    const valores = { ...formularioVacio, id_sucursal: String(sucursalActivaId || sucursales[0]?.id_sucursal || '') };
-    setPromocionEditando(null);
-    setFormulario(valores);
-    setFormularioBase(valores);
-    setErrorFormulario(null);
-    setCampoError(null);
-    setModalAbierto(true);
+  const modalURL = (cambios) => setParams((actuales) => {
+    const siguientes = new URLSearchParams(actuales);
+    Object.entries(cambios).forEach(([campo, valor]) => { if (valor == null) siguientes.delete(campo); else siguientes.set(campo, valor); });
+    return siguientes;
+  });
+  const cerrar = () => modalURL({ crear: null, editar: null });
+  const manejarCambio = ({ target: { name, value, type, checked } }) => {
+    setFormulario((actual) => ({ ...actual, [name]: type === 'checkbox' ? checked : value }));
+    setErrores((actual) => { const siguientes = { ...actual }; delete siguientes[name]; if (name === 'sin_fin') delete siguientes.fecha_fin; return siguientes; });
+    setErrorFormulario(''); setConflicto(null);
   };
-
-  const abrirEditar = (promocion) => {
-    const valores = {
-      id_sucursal: String(promocion.id_sucursal),
-      cantidad_minima: String(promocion.cantidad_minima),
-      precio_promocion: String(promocion.precio_promocion),
-      fecha_inicio: fechaInput(promocion.fecha_inicio),
-      fecha_fin: fechaInput(promocion.fecha_fin),
-    };
-    setPromocionEditando(promocion);
-    setFormulario(valores);
-    setFormularioBase(valores);
-    setErrorFormulario(null);
-    setCampoError(null);
-    setModalAbierto(true);
-  };
-
-  const cerrarModal = () => {
-    if (!guardando) setModalAbierto(false);
-  };
-
-  const manejarCambio = (evento) => {
-    const { name, value } = evento.target;
-    setFormulario((actual) => ({ ...actual, [name]: value }));
-    if (errorFormulario) setErrorFormulario(null);
-    if (campoError === name) setCampoError(null);
-  };
-
-  const mostrarErrorFormulario = (campo, mensaje) => {
-    setCampoError(campo);
-    setErrorFormulario(mensaje);
-  };
-
-  const manejarGuardar = async (evento) => {
-    evento.preventDefault();
-    setErrorFormulario(null);
-    setCampoError(null);
-    if (!formulario.id_sucursal) return mostrarErrorFormulario('id_sucursal', 'Selecciona una sucursal.');
-    if (!Number.isInteger(Number(formulario.cantidad_minima)) || Number(formulario.cantidad_minima) < 1) return mostrarErrorFormulario('cantidad_minima', 'La cantidad mínima debe ser un número entero mayor que cero.');
-    if (!formulario.precio_promocion || Number(formulario.precio_promocion) <= 0) return mostrarErrorFormulario('precio_promocion', 'Ingresa un precio promocional válido.');
-    if (!formulario.fecha_inicio) return mostrarErrorFormulario('fecha_inicio', 'Selecciona la fecha de inicio.');
-    if (!formulario.fecha_fin) return mostrarErrorFormulario('fecha_fin', 'Selecciona la fecha de finalización.');
-    if (formulario.fecha_fin <= formulario.fecha_inicio) return mostrarErrorFormulario('fecha_fin', 'La fecha de finalización debe ser posterior a la fecha de inicio.');
-    if (precioReferencia === null) return mostrarErrorFormulario('precio_promocion', 'No hay lotes vendibles con precio para validar la promoción en esta sucursal.');
-    if (Number(formulario.precio_promocion) >= precioReferencia) return mostrarErrorFormulario('precio_promocion', `El precio promocional debe ser menor que Q${precioReferencia.toFixed(2)}.`);
-
-    const datos = {
-      cantidad_minima: Number(formulario.cantidad_minima),
-      precio_promocion: Number(formulario.precio_promocion),
-      fecha_inicio: formulario.fecha_inicio,
-      fecha_fin: formulario.fecha_fin,
-    };
-
-    try {
-      setGuardando(true);
-      if (promocionEditando) {
-        await actualizar(promocionEditando.id_promocion, datos);
-        toast.success('Promoción actualizada correctamente.');
-      } else {
-        await crear({ ...datos, id_sucursal: Number(formulario.id_sucursal) });
-        toast.success('Promoción creada correctamente.');
-      }
-      setModalAbierto(false);
-    } catch (error) {
-      toast.error(mensajeError(error, 'No se pudo guardar la promoción.'));
-    } finally {
-      setGuardando(false);
+  const guardar = async (e) => {
+    e.preventDefault();
+    if (guardandoRef.current) return;
+    const problemas = {};
+    if (!producto) problemas.id_producto = 'Busca y selecciona un producto.';
+    if (!formulario.id_sucursal) problemas.id_sucursal = 'Selecciona una sucursal.';
+    if (formulario.nombre.trim().length > 120) problemas.nombre = 'Usa un nombre de hasta 120 caracteres.';
+    if (!Number.isInteger(Number(formulario.cantidad_minima)) || Number(formulario.cantidad_minima) < 1) problemas.cantidad_minima = 'La cantidad mínima debe ser un entero mayor que cero.';
+    if (formulario.cantidad_maxima !== '') {
+      const maxima = Number(formulario.cantidad_maxima);
+      if (!Number.isInteger(maxima) || maxima < 1 || maxima > 2147483647) problemas.cantidad_maxima = 'Ingresa un total entero mayor que cero.';
+      else if (maxima < Number(formulario.cantidad_minima)) problemas.cantidad_maxima = 'El total no puede ser menor que la cantidad mínima por venta.';
+      else if (maxima < Number(producto?.cantidad_vendida || 0) + Number(producto?.cantidad_reservada || 0)) problemas.cantidad_maxima = 'El total no puede ser menor que las unidades vendidas y reservadas.';
     }
-  };
-
-  const solicitarCambiarEstado = (promocion) => {
-    setPromocionACambiarEstado(promocion);
-  };
-
-  const confirmarCambiarEstado = async () => {
-    if (!promocionACambiarEstado) return;
-    const nuevoEstado = !promocionACambiarEstado.activo;
+    if (!Number.isFinite(Number(formulario.precio_promocion)) || Number(formulario.precio_promocion) <= 0) problemas.precio_promocion = 'Ingresa un precio por unidad mayor que cero.';
+    else if (referencia.cargando) problemas.precio_promocion = 'Espera a que termine la consulta del precio normal.';
+    else if (producto && formulario.id_sucursal && referencia.precio == null) problemas.precio_promocion = referencia.error || 'No hay lotes vendibles con precio en esta sucursal.';
+    else if (referencia.precio != null && Math.round(Number(formulario.precio_promocion) * 100) >= Math.round(referencia.precio * 100)) problemas.precio_promocion = 'El precio debe ser menor que el precio normal mínimo.';
+    if (!formulario.fecha_inicio) problemas.fecha_inicio = 'Selecciona la fecha de inicio.';
+    if (!formulario.sin_fin && !formulario.fecha_fin) problemas.fecha_fin = 'Selecciona la fecha de finalización o marca la opción sin fecha.';
+    else if (!formulario.sin_fin && formulario.fecha_fin <= formulario.fecha_inicio) problemas.fecha_fin = 'La fecha de finalización debe ser posterior al inicio.';
+    setErrores(problemas); setErrorFormulario(''); setConflicto(null);
+    if (Object.keys(problemas).length || falloCarga) return;
+    const datos = { nombre: formulario.nombre.trim() || null, cantidad_minima: Number(formulario.cantidad_minima), cantidad_maxima: formulario.cantidad_maxima === '' ? null : Number(formulario.cantidad_maxima), precio_promocion: Number(formulario.precio_promocion), fecha_inicio: formulario.fecha_inicio, fecha_fin: formulario.sin_fin ? null : formulario.fecha_fin };
     try {
-      setCambiandoId(promocionACambiarEstado.id_promocion);
-      await cambiarEstado(promocionACambiarEstado.id_promocion, nuevoEstado);
-      toast.success(`Promoción ${nuevoEstado ? 'activada' : 'desactivada'} correctamente.`);
-      setPromocionACambiarEstado(null);
+      guardandoRef.current = true; setGuardando(true);
+      if (editarId) await listado.actualizar(Number(editarId), datos);
+      else await listado.crear({ ...datos, id_producto: producto.id_producto, id_sucursal: Number(formulario.id_sucursal) });
+      toast.success(editarId ? 'Promoción actualizada correctamente.' : 'Promoción creada correctamente.');
+      cerrar();
     } catch (error) {
-      toast.error(mensajeError(error, 'No se pudo cambiar el estado de la promoción.'));
-    } finally {
-      setCambiandoId(null);
-    }
+      setErrorFormulario(mensaje(error));
+      const detalle = error.response?.data?.errores?.find((item) => item.id_promocion);
+      setConflicto(detalle || null);
+      if (detalle) setErrores({ fecha_inicio: mensaje(error) });
+      else if (/cupo|cantidad máxima/.test(mensaje(error))) setErrores({ cantidad_maxima: mensaje(error) });
+    } finally { guardandoRef.current = false; setGuardando(false); }
   };
-
-  const reintentarCatalogos = () => {
-    refrescarProductos();
-    refrescarSucursales();
+  const confirmarEstado = async () => {
+    if (!porCambiar || cambiando) return;
+    setCambiando(true); setErrorEstado('');
+    try { await listado.cambiarEstado(porCambiar.id_promocion, !porCambiar.activo); setPorCambiar(null); toast.success('Estado de la promoción actualizado.'); }
+    catch (error) { setErrorEstado(mensaje(error)); }
+    finally { setCambiando(false); }
   };
-
-  return (
-    <section className={`${styles.page} ${styles.locationPage}`} aria-labelledby="promociones-title">
-      <header className={styles.heading}>
-        <div>
-          <h1 id="promociones-title">Promociones</h1>
-          <p>Configura precios especiales por producto, sucursal, vigencia y cantidad mínima.</p>
-        </div>
-        <div className={styles.headingActions}>
-          <button type="button" onClick={abrirCrear} disabled={!productoSeleccionado || cargandoSucursales} className={`${styles.button} ${styles.primary}`}><PlusCircle size={16} aria-hidden="true" />Nueva promoción</button>
-        </div>
-      </header>
-
-      <div className={styles.filterGrid}>
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Buscar producto</span>
-          <input type="search" name="q" autoComplete="off" value={busquedaProducto} onChange={(evento) => actualizarParametro('q', evento.target.value)} placeholder="Código o nombre…" className={styles.input} />
-        </label>
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Producto</span>
-          <select name="producto" value={idProducto} onChange={(evento) => actualizarParametro('producto', evento.target.value)} disabled={cargandoProductos} className={styles.input}>
-            <option value="">Selecciona un producto</option>
-            {productosFiltrados.map((producto) => <option key={producto.id_producto} value={producto.id_producto}>{producto.codigo} · {producto.nombre_comercial}</option>)}
-          </select>
-        </label>
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Filtrar por sucursal</span>
-          <select name="sucursal" value={filtroSucursal} onChange={(evento) => actualizarParametro('sucursal', evento.target.value)} disabled={cargandoSucursales} className={styles.input}>
-            <option value="">Todas las sucursales</option>
-            {sucursales.map((sucursal) => <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>{sucursal.nombre_sucursal}</option>)}
-          </select>
-        </label>
-      </div>
-
-      {(errorProductos || errorSucursales) && <ContentState compact variant="error" title="No se pudieron cargar los catálogos" message={errorProductos || errorSucursales} onRetry={reintentarCatalogos} />}
-      {errorLotes && <ContentState compact variant="error" title="No se pudieron consultar los precios de referencia" message={errorLotes} onRetry={refrescarLotes} />}
-      {errorPromociones && promociones.length > 0 && <p role="alert" className={styles.alert}>{errorPromociones}</p>}
-      <p className={styles.resultCount} aria-live="polite"><strong>{paginacion?.total ?? 0}</strong> promociones encontradas</p>
-
-      <PromocionesTable promociones={promocionesFiltradas} cargando={cargandoPromociones} error={errorPromociones} productoSeleccionado={Boolean(productoSeleccionado)} hayFiltroSucursal={Boolean(filtroSucursal)} cambiandoId={cambiandoId} onRetry={refrescarPromociones} onEditar={abrirEditar} onCambiarEstado={solicitarCambiarEstado} />
-
-      {!errorPromociones && <Paginacion paginacion={paginacion} crearDestino={crearDestino}
-        onLimiteChange={onLimiteChange} cargando={cargandoPromociones} sustantivo="promociones" />}
-
-      <PromocionFormModal isOpen={modalAbierto} modoEdicion={Boolean(promocionEditando)} producto={productoSeleccionado} sucursales={sucursales} formulario={formulario} hayCambios={hayCambios} guardando={guardando} cargandoPrecioReferencia={cargandoLotes} precioReferencia={precioReferencia} error={errorFormulario} campoError={campoError} onChange={manejarCambio} onClose={cerrarModal} onSubmit={manejarGuardar} />
-      <PromocionEstadoModal isOpen={Boolean(promocionACambiarEstado)} promocion={promocionACambiarEstado} procesando={Boolean(cambiandoId)} error={null} onClose={() => { if (!cambiandoId) setPromocionACambiarEstado(null); }} onConfirm={confirmarCambiarEstado} />
-    </section>
-  );
+  const nueva = () => modalURL({ crear: '1', editar: null });
+  return <section className={styles.page} aria-labelledby="promociones-title">
+    <header className={styles.heading}><div><h1 id="promociones-title">Promociones</h1><p>Precios especiales por cantidad y sucursal.</p></div>{puedeGestionar && <button type="button" onClick={nueva} className={styles.button + ' ' + styles.primary}><PlusCircle size={16} aria-hidden="true"/>Nueva promoción</button>}</header>
+    <div className={local.filters}>
+      <label className={styles.field}><span>Buscar promociones</span><input type="search" name="q" autoComplete="off" value={busqueda} onChange={(e) => actualizar({ q: e.target.value }, true)} placeholder="Nombre de promoción, producto o código…" className={styles.input}/></label>
+      {usuario?.rol !== 'dependiente' && <label className={styles.field}><span>Sucursal</span><select name="sucursal" value={sucursal} onChange={(e) => actualizar({ sucursal: e.target.value })} disabled={cargandoSucursales} className={styles.input}><option value="todas">Todas las sucursales</option>{sucursales.map((s) => <option key={s.id_sucursal} value={s.id_sucursal}>{s.nombre_sucursal}</option>)}</select></label>}
+      <label className={styles.field}><span>Estado</span><select name="estado" value={estado} onChange={(e) => actualizar({ estado: e.target.value })} className={styles.input}><option value="vigente">Vigentes</option><option value="agotada">Cupo agotado</option><option value="programada">Programadas</option><option value="finalizada">Finalizadas</option><option value="desactivada">Desactivadas</option><option value="todas">Todos los estados</option></select></label>
+    </div>
+    {idProducto && <div className={local.context}><span>Producto: <strong>{contexto?.nombre_comercial || 'Producto seleccionado'}</strong></span><button type="button" className={styles.button} onClick={() => actualizar({ producto: null })}>Mostrar todos los productos</button></div>}
+    {errorSucursales && <ContentState compact variant="error" title="No se pudieron cargar las sucursales" message={errorSucursales} onRetry={refrescarSucursales}/>}
+    <p className={styles.resultCount} aria-live="polite">{listado.cargando ? 'Buscando promociones…' : new Intl.NumberFormat('es-GT').format(listado.paginacion?.total ?? listado.promociones.length) + ' promociones encontradas'}</p>
+    <div id="listado-promociones"><PromocionesTable promociones={listado.promociones} cargando={listado.cargando || termino !== busqueda} error={listado.error} cambiandoId={cambiando ? porCambiar?.id_promocion : null} onRetry={listado.refrescar} onEditar={(p) => modalURL({ editar: String(p.id_promocion), crear: null })} onCambiarEstado={(p) => { setErrorEstado(''); setPorCambiar(p); }} puedeGestionar={puedeGestionar} onCrear={nueva} onLimpiar={() => actualizar({ q: '', estado: 'todas', sucursal: 'todas', producto: null })}/></div>
+    {!listado.error && <Paginacion paginacion={listado.paginacion} crearDestino={crearDestino} onLimiteChange={onLimiteChange} cargando={listado.cargando} sustantivo="promociones" controles="listado-promociones"/>}
+    <PromocionFormModal isOpen={abierto} modoEdicion={Boolean(editarId)} producto={producto} onProducto={(p) => { setProducto(p); setErrores({}); }} sucursales={sucursales} formulario={formulario} hayCambios={hayCambios} guardando={guardando} cargando={cargandoFormulario} precioReferencia={referencia.precio} cargandoPrecioReferencia={referencia.cargando} errorReferencia={referencia.error} onReintentarReferencia={referencia.reintentar} errores={errores} error={errorFormulario} conflicto={conflicto} onChange={manejarCambio} onClose={cerrar} onSubmit={guardar} onReintentar={falloCarga ? () => setIntento((v) => v + 1) : undefined}/>
+    <PromocionEstadoModal isOpen={Boolean(porCambiar)} promocion={porCambiar} procesando={cambiando} error={errorEstado} onClose={() => { if (!cambiando) setPorCambiar(null); }} onConfirm={confirmarEstado}/>
+  </section>;
 }

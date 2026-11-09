@@ -6,6 +6,22 @@ const {
 } = require('./VentaMonetariaService');
 
 describe('VentaMonetariaService', () => {
+  it('reparte el último cupo entre lotes y conserva precios exactos sin prorratear', () => {
+    const resultado = calcularDetalles([
+      { id_lote: 9, cantidad: 4, lote: { id_producto: 5, precio_venta: '10.01', precio_compra: '5.00' } },
+      { id_lote: 2, cantidad: 2, lote: { id_producto: 5, precio_venta: '11.00', precio_compra: '5.00' } },
+    ], new Map([[5, { id_promocion: 7, precio_promocion: '8.01', cantidad_disponible: 3 }]]));
+    expect(resultado.totalCentavos).toBe(5406);
+    expect(resultado.detallesCalculados).toEqual([
+      { id_lote: 9, cantidad: 1, precio_unitario: '8.01', costo_unitario: '5.00', id_promocion: 7 },
+      { id_lote: 9, cantidad: 3, precio_unitario: '10.01', costo_unitario: '5.00' },
+      { id_lote: 2, cantidad: 2, precio_unitario: '8.01', costo_unitario: '5.00', id_promocion: 7 },
+    ]);
+  });
+  it('cobra normal cuando el cupo está agotado', () => {
+    expect(calcularDetalles([{ id_lote: 1, cantidad: 5, lote: { id_producto: 1, precio_venta: 10, precio_compra: 5 } }],
+      new Map([[1, { id_promocion: 1, precio_promocion: 8, cantidad_disponible: 0 }]])).totalCentavos).toBe(5000);
+  });
   it('calcula los importes históricos y el total en centavos', () => {
     const resultado = calcularDetalles([
       {
@@ -55,6 +71,7 @@ describe('VentaMonetariaService', () => {
         cantidad: 4,
         precio_unitario: '6.25',
         costo_unitario: '5.00',
+        id_promocion: 9,
       }],
     });
   });
