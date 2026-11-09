@@ -1136,7 +1136,7 @@ describe('VentaService', () => {
         detalles: [{ id_lote: 1, cantidad: 2 }, { id_lote: 3, cantidad: 1 }],
       }, usuarioDependiente);
 
-      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([5], 1, {});
+      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([5], 1, {}, null);
       expect(VentaDAO.crearVenta).toHaveBeenCalledWith(
         expect.objectContaining({ total: '25.00', monto_recibido: '30.00', cambio: '5.00' }),
         {},

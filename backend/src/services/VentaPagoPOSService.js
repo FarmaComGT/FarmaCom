@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const VentaDAO = require('../daos/VentaDAO');
+const PromocionDAO = require('../daos/PromocionDAO');
 const RecurrenteService = require('./RecurrenteService');
 const { lanzarError } = require('./VentaErrores');
 const { validarPertenenciaSesionCaja } = require('../utils/accesoCaja');
@@ -59,6 +60,7 @@ const registrarPagoRechazado = async (evento, codigoEstadoPago, client) => {
     referencia_pago: evento.referenciaPago,
   }, client);
 
+  if (actualizado.id_pago_pos) await PromocionDAO.liberarUso({ id_pago_pos: actualizado.id_pago_pos }, client);
   return { procesado: true, estado: actualizado.estado };
 };
 
@@ -67,7 +69,11 @@ const completarVentaPagada = async (evento, pago, client) => {
     id_sucursal: pago.id_sucursal,
     id_sesion_caja: pago.id_sesion_caja,
     id_cliente: pago.id_cliente,
-    detalles: pago.detalles,
+    detalles: [...pago.detalles.reduce((porLote, d) => {
+      const id = Number(d.id_lote);
+      porLote.set(id, { id_lote: id, cantidad: (porLote.get(id)?.cantidad || 0) + Number(d.cantidad) });
+      return porLote;
+    }, new Map()).values()],
   };
   const usuarioSistema = {
     id_usuario: pago.id_usuario,
@@ -76,7 +82,7 @@ const completarVentaPagada = async (evento, pago, client) => {
 
   let ventaPreparada;
   try {
-    ventaPreparada = await prepararVenta(datosVenta, usuarioSistema, client);
+    ventaPreparada = await prepararVenta(datosVenta, usuarioSistema, client, pago.id_pago_pos);
   } catch (error) {
     return registrarPagoRechazado(
       evento,
@@ -115,6 +121,7 @@ const completarVentaPagada = async (evento, pago, client) => {
     {
       id_usuario: pago.id_usuario,
       id_sucursal: ventaPreparada.id_sucursal,
+      id_pago_pos: pago.id_pago_pos,
     },
     client,
   );
@@ -150,7 +157,7 @@ const crearPagoPOS = async (datos, usuario) => {
   const pago = await VentaDAO.ejecutarEnTransaccion(async (client) => {
     const idSesionCaja = await validarSesionCaja(datos, usuario, client);
     const ventaPreparada = await prepararVenta(datos, usuario, client);
-    return VentaDAO.crearPagoPOS({
+    const creado = await VentaDAO.crearPagoPOS({
       external_id: externalId,
       id_sucursal: ventaPreparada.id_sucursal,
       id_usuario: Number(usuario.id_usuario),
@@ -160,6 +167,8 @@ const crearPagoPOS = async (datos, usuario) => {
       total: aMonto(ventaPreparada.totalCentavos),
       detalles: ventaPreparada.detallesCalculados,
     }, client);
+    await PromocionDAO.registrarUso(ventaPreparada.detallesCalculados, { id_pago_pos: creado.id_pago_pos }, client);
+    return creado;
   });
 
   let comando;
@@ -170,11 +179,16 @@ const crearPagoPOS = async (datos, usuario) => {
       externalId,
     });
   } catch (error) {
-    await VentaDAO.ejecutarEnTransaccion((client) => VentaDAO.actualizarPagoPOS({
+    await VentaDAO.ejecutarEnTransaccion(async (client) => {
+      const actual = await VentaDAO.obtenerPagoPOSPorExternalId(externalId, client, true);
+      if (actual && ESTADOS_FINALES_PAGO_POS.includes(actual.estado)) return;
+      const actualizado = await VentaDAO.actualizarPagoPOS({
       external_id: externalId,
       estado: ESTADOS_PAGO_POS.FALLIDO,
       estado_pago: CODIGOS_ESTADO_PAGO_POS.ERROR_AL_INICIAR,
-    }, client));
+      }, client);
+      await PromocionDAO.liberarUso({ id_pago_pos: actualizado.id_pago_pos }, client);
+    });
     throw error;
   }
 
@@ -183,13 +197,17 @@ const crearPagoPOS = async (datos, usuario) => {
     : comando.status === ESTADOS_COMANDO_TERMINAL.FALLIDO
       ? ESTADOS_PAGO_POS.FALLIDO
       : ESTADOS_PAGO_POS.PENDIENTE;
-  const pagoActualizado = await VentaDAO.ejecutarEnTransaccion((client) => (
-    VentaDAO.actualizarPagoPOS({
+  const pagoActualizado = await VentaDAO.ejecutarEnTransaccion(async (client) => {
+    const actual = await VentaDAO.obtenerPagoPOSPorExternalId(externalId, client, true);
+    if (actual && ESTADOS_FINALES_PAGO_POS.includes(actual.estado)) return actual;
+    const actualizado = await VentaDAO.actualizarPagoPOS({
       external_id: externalId,
       estado: estadoComando,
       comando_recurrente_id: comando.id || comando.command_id || null,
-    }, client)
-  ));
+    }, client);
+    if (estadoComando === ESTADOS_PAGO_POS.FALLIDO) await PromocionDAO.liberarUso({ id_pago_pos: actualizado.id_pago_pos }, client);
+    return actualizado;
+  });
 
   return {
     id_pago_pos: pagoActualizado.id_pago_pos,
@@ -236,6 +254,9 @@ const procesarWebhookRecurrente = async (body, headers) => {
         estado_pago: evento.estado,
         evento_recurrente_id: evento.idEvento,
       }, client);
+      if ([ESTADOS_PAGO_POS.FALLIDO, ESTADOS_PAGO_POS.CANCELADO].includes(estadoPago)) {
+        await PromocionDAO.liberarUso({ id_pago_pos: pago.id_pago_pos }, client);
+      }
       return { procesado: true, estado: actualizado.estado };
     }
 

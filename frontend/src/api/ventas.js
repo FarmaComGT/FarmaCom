@@ -29,7 +29,9 @@ export const crearVenta = async (payload) => {
     return data;
   } catch (err) {
     const mensaje = err.response?.data?.mensaje || 'No se pudo registrar la venta.';
-    throw new Error(mensaje);
+    const error = new Error(mensaje);
+    error.cotizacion = err.response?.data?.errores?.find((e) => e.codigo === 'COTIZACION_CAMBIO');
+    throw error;
   }
 };
 
@@ -39,6 +41,8 @@ export const crearPagoPOS = async (payload) => {
     return data;
   } catch (err) {
     const mensajeBackend = err.response?.data?.mensaje || '';
+    const cotizacion = err.response?.data?.errores?.find((e) => e.codigo === 'COTIZACION_CAMBIO');
+    if (cotizacion) { const error = new Error(mensajeBackend); error.cotizacion = cotizacion; throw error; }
     const mensaje = /modo espera|no est[aá] listo|terminal_not_in_standby/i.test(mensajeBackend)
       ? 'El dispositivo no está listo para cobrar. Verifica que esté abierto e inténtalo de nuevo.'
       : /m[ií]nimo.*Q?5|Q5\.00/i.test(mensajeBackend)

@@ -89,7 +89,7 @@ export default function ProductoVentaCard({ producto, onSeleccionar, busqueda })
       {(promocion || esCoincidenciaAproximada) && <div className="pos-product-tags">
         {promocion && (
           <span className="pos-tag pos-tag--promo">
-            Promo desde {promocion.cantidad_minima} unidades · hasta {formatearFecha(promocion.fecha_fin)}
+            Promo desde {promocion.cantidad_minima} unidades{promocion.fecha_fin ? ' · hasta ' + formatearFecha(promocion.fecha_fin) : ''}{promocion.cantidad_disponible != null ? ' · quedan ' + new Intl.NumberFormat('es-GT').format(promocion.cantidad_disponible) : ''}
           </span>
         )}
         {esCoincidenciaAproximada && (

@@ -170,7 +170,7 @@ describe('VentaPreparacionService', () => {
       expect(resultado.detallesCalculados).toEqual([
         { id_lote: 10, cantidad: 2, precio_unitario: '8.50', costo_unitario: '5.00' },
       ]);
-      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([1], 1, undefined);
+      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([1], 1, undefined, null);
     });
 
     it('acumula la cantidad del producto entre lotes y aplica la promoción vigente', async () => {
@@ -192,7 +192,7 @@ describe('VentaPreparacionService', () => {
         id_promocion: 5,
         precio_promocion: '6.50',
       });
-      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([1], 1, client);
+      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([1], 1, client, null);
     });
 
     it('mantiene el precio normal cuando no alcanza la cantidad mínima', async () => {
@@ -229,8 +229,8 @@ describe('VentaPreparacionService', () => {
 
       expect(resultado.totalCentavos).toBe(3250);
       expect(resultado.detallesCalculados).toEqual([
-        { id_lote: 10, cantidad: 2, precio_unitario: '6.50', costo_unitario: '5.00' },
-        { id_lote: 11, cantidad: 3, precio_unitario: '6.50', costo_unitario: '5.00' },
+        { id_lote: 10, cantidad: 2, precio_unitario: '6.50', costo_unitario: '5.00', id_promocion: 5 },
+        { id_lote: 11, cantidad: 3, precio_unitario: '6.50', costo_unitario: '5.00', id_promocion: 5 },
       ]);
     });
 
