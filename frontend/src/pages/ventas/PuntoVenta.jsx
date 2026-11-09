@@ -51,6 +51,7 @@ export default function PuntoVenta() {
     disminuirCantidad,
     eliminarDelCarrito,
     vaciarCarrito,
+    reiniciarCarrito,
     clienteSeleccionado,
     seleccionarCliente,
     crearCarrito,
@@ -166,9 +167,12 @@ export default function PuntoVenta() {
     actualizarCotizacion,
     sucursalId: sucursalActivaId,
     sesionCajaId: sesionActual?.id_sesion_caja,
+    pagosPOSAbiertos: sesionActual?.pagos_pos_abiertos,
     clienteId: clienteSeleccionado?.id_cliente,
-    vaciarCarrito,
+    carritoId: carritoActivoId,
+    vaciarCarrito: reiniciarCarrito || vaciarCarrito,
     refrescarCatalogo: refrescar,
+    onRecuperarCarrito: cambiarCarritoVenta,
     onAviso: setAviso,
     onExito: toast.success,
     onError: toast.error,
@@ -354,6 +358,7 @@ export default function PuntoVenta() {
         error={flujoVenta.errorCobro}
         onClose={flujoVenta.cerrarCobro}
         onCrearPagoPOS={flujoVenta.iniciarPagoPOS}
+        onConciliarPagoPOS={flujoVenta.conciliarVentaPOS}
         onConfirm={flujoVenta.confirmarCobro}
       />
 

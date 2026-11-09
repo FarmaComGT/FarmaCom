@@ -39,6 +39,83 @@ const registrarDetallesYDescontarStock = async (
   await PromocionDAO.registrarUso(detalles, { id_venta }, client);
 };
 
+const reservarDetallesPagoPOS = async (id_pago_pos, detalles, client) => {
+  const cantidadesPorLote = new Map();
+  for (const detalle of detalles) {
+    const idLote = Number(detalle.id_lote);
+    cantidadesPorLote.set(idLote, (cantidadesPorLote.get(idLote) || 0) + Number(detalle.cantidad));
+  }
+  for (const [id_lote, cantidad] of cantidadesPorLote) {
+    const detalle = { id_lote, cantidad };
+    const reserva = await VentaDAO.reservarStockPagoPOS(id_pago_pos, detalle, client);
+    if (!reserva) {
+      lanzarError(`Stock insuficiente para el lote ${detalle.id_lote}`, 409);
+    }
+  }
+};
+
+const liberarReservasPagoPOS = async (id_pago_pos, client) => {
+  const reservas = await VentaDAO.obtenerReservasActivasPagoPOS(id_pago_pos, client);
+  for (const reserva of reservas) {
+    const liberada = await VentaDAO.liberarReservaPagoPOS(reserva, client);
+    if (!liberada) {
+      lanzarError(`No se pudo liberar la reserva del lote ${reserva.id_lote}`, 500);
+    }
+  }
+};
+
+const registrarDetallesYConsumirReservas = async (
+  id_venta,
+  pago,
+  contexto,
+  client,
+) => {
+  const reservas = await VentaDAO.obtenerReservasActivasPagoPOS(pago.id_pago_pos, client);
+  const reservasPorLote = new Map(
+    reservas.map((reserva) => [Number(reserva.id_lote), reserva]),
+  );
+  const detallesPorLote = new Map();
+  for (const detalle of pago.detalles) {
+    const idLote = Number(detalle.id_lote);
+    const agrupado = detallesPorLote.get(idLote) || { cantidad: 0, detalles: [] };
+    agrupado.cantidad += Number(detalle.cantidad);
+    agrupado.detalles.push(detalle);
+    detallesPorLote.set(idLote, agrupado);
+  }
+  if (reservas.length !== detallesPorLote.size) {
+    lanzarError('Las reservas del pago no coinciden con el carrito cobrado', 409);
+  }
+
+  for (const [idLote, agrupado] of detallesPorLote) {
+    const reserva = reservasPorLote.get(idLote);
+    if (!reserva || Number(reserva.cantidad) !== agrupado.cantidad) {
+      lanzarError(`La reserva del lote ${idLote} no coincide con el cobro`, 409);
+    }
+    const lote = await VentaDAO.consumirReservaPagoPOS(reserva, client);
+    if (!lote) {
+      lanzarError(`No se pudo consumir la reserva del lote ${idLote}`, 409);
+    }
+    for (const detalle of agrupado.detalles) {
+      const { id_promocion, ...datosDetalle } = detalle;
+      await VentaDAO.crearDetalle({ id_venta, ...datosDetalle }, client);
+    }
+    await MovimientoInventarioDAO.registrar({
+      id_lote: idLote,
+      tipo: 'venta',
+      cantidad_anterior: Number(lote.stock_actual) + agrupado.cantidad,
+      cantidad_nueva: Number(lote.stock_actual),
+      id_usuario: Number(contexto.id_usuario),
+      id_sucursal: Number(contexto.id_sucursal),
+      motivo: 'Salida por venta',
+      referencia: `venta:${id_venta}`,
+    }, client);
+  }
+  if (contexto.id_pago_pos) {
+    await PromocionDAO.liberarUso({ id_pago_pos: contexto.id_pago_pos }, client);
+  }
+  await PromocionDAO.registrarUso(pago.detalles, { id_venta }, client);
+};
+
 const restaurarExistenciasDeDetalles = async (
   detalles,
   contextoOrClient,
@@ -72,5 +149,8 @@ const restaurarExistenciasDeDetalles = async (
 
 module.exports = {
   registrarDetallesYDescontarStock,
+  reservarDetallesPagoPOS,
+  liberarReservasPagoPOS,
+  registrarDetallesYConsumirReservas,
   restaurarExistenciasDeDetalles,
 };

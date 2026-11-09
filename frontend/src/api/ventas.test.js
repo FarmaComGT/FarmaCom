@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from './axios';
 import {
   anularVenta,
+  conciliarPagoPOS,
   crearPagoPOS,
   crearVenta,
   obtenerEstadoPagoPOS,
@@ -76,8 +77,11 @@ describe('API de ventas', () => {
       api.post.mockResolvedValue({ data: venta });
 
       const payload = { id_sucursal: 1, detalles: [] };
-      await expect(crearVenta(payload)).resolves.toEqual(venta);
-      expect(api.post).toHaveBeenCalledWith('/ventas', payload);
+      const clave = '11111111-1111-4111-8111-111111111111';
+      await expect(crearVenta(payload, clave)).resolves.toEqual(venta);
+      expect(api.post).toHaveBeenCalledWith('/ventas', payload, {
+        headers: { 'Idempotency-Key': clave },
+      });
     });
 
     it('traduce el error del backend a un mensaje legible', async () => {
@@ -137,6 +141,28 @@ describe('API de ventas', () => {
 
       await expect(obtenerEstadoPagoPOS('x')).rejects.toThrow(
         'No se pudo verificar el estado del pago.',
+      );
+    });
+  });
+
+  describe('conciliarPagoPOS', () => {
+    it('completa la venta local sin enviar un nuevo cobro', async () => {
+      api.post.mockResolvedValue({ data: { estado: 'pagado', id_venta: 22 } });
+
+      await expect(conciliarPagoPOS('a/b c')).resolves.toEqual({
+        estado: 'pagado',
+        id_venta: 22,
+      });
+      expect(api.post).toHaveBeenCalledWith('/ventas/tarjeta/pos/a%2Fb%20c/conciliar');
+    });
+
+    it('conserva el mensaje de conciliación del backend', async () => {
+      api.post.mockRejectedValue({
+        response: { data: { mensaje: 'La reserva ya no está disponible' } },
+      });
+
+      await expect(conciliarPagoPOS('x')).rejects.toThrow(
+        'La reserva ya no está disponible',
       );
     });
   });

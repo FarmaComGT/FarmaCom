@@ -1,3 +1,5 @@
+const { randomUUID } = require('node:crypto');
+
 const obtenerContextoVenta = async (pool) => {
   const datos = await pool.query(`
     SELECT l.id_lote, l.id_producto, l.stock_actual, l.id_sucursal, sc.id_sesion_caja
@@ -23,6 +25,7 @@ module.exports = ({ app, iniciarSesion, pool, request }) => {
       const venta = await request(app)
         .post('/api/ventas')
         .set('Cookie', cookie)
+        .set('Idempotency-Key', randomUUID())
         .send({
           id_sucursal: contexto.id_sucursal,
           id_sesion_caja: contexto.id_sesion_caja,
@@ -83,6 +86,7 @@ module.exports = ({ app, iniciarSesion, pool, request }) => {
       await request(app)
         .post('/api/ventas')
         .set('Cookie', cookie)
+        .set('Idempotency-Key', randomUUID())
         .send({
           id_sucursal: contexto.id_sucursal,
           id_sesion_caja: contexto.id_sesion_caja,
@@ -161,6 +165,7 @@ module.exports = ({ app, iniciarSesion, pool, request }) => {
       const venta = await request(app)
         .post('/api/ventas')
         .set('Cookie', cookie)
+        .set('Idempotency-Key', randomUUID())
         .send({
           id_sucursal: contexto.id_sucursal,
           id_sesion_caja: contexto.id_sesion_caja,

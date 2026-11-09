@@ -168,7 +168,8 @@ describe('VentaPreparacionService', () => {
       expect(resultado.id_cliente).toBeNull();
       expect(resultado.totalCentavos).toBe(1700);
       expect(resultado.detallesCalculados).toEqual([
-        { id_lote: 10, cantidad: 2, precio_unitario: '8.50', costo_unitario: '5.00' },
+        { id_lote: 10, cantidad: 2, id_promocion: null, precio_regular: '8.50',
+          precio_unitario: '8.50', costo_unitario: '5.00' },
       ]);
       expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([1], 1, undefined, null);
     });
@@ -229,8 +230,10 @@ describe('VentaPreparacionService', () => {
 
       expect(resultado.totalCentavos).toBe(3250);
       expect(resultado.detallesCalculados).toEqual([
-        { id_lote: 10, cantidad: 2, precio_unitario: '6.50', costo_unitario: '5.00', id_promocion: 5 },
-        { id_lote: 11, cantidad: 3, precio_unitario: '6.50', costo_unitario: '5.00', id_promocion: 5 },
+        { id_lote: 10, cantidad: 2, id_promocion: 5, precio_regular: '8.50',
+          precio_unitario: '6.50', costo_unitario: '5.00' },
+        { id_lote: 11, cantidad: 3, id_promocion: 5, precio_regular: '9.00',
+          precio_unitario: '6.50', costo_unitario: '5.00' },
       ]);
     });
 

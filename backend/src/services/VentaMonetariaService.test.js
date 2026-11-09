@@ -13,9 +13,9 @@ describe('VentaMonetariaService', () => {
     ], new Map([[5, { id_promocion: 7, precio_promocion: '8.01', cantidad_disponible: 3 }]]));
     expect(resultado.totalCentavos).toBe(5406);
     expect(resultado.detallesCalculados).toEqual([
-      { id_lote: 9, cantidad: 1, precio_unitario: '8.01', costo_unitario: '5.00', id_promocion: 7 },
-      { id_lote: 9, cantidad: 3, precio_unitario: '10.01', costo_unitario: '5.00' },
-      { id_lote: 2, cantidad: 2, precio_unitario: '8.01', costo_unitario: '5.00', id_promocion: 7 },
+      { id_lote: 9, cantidad: 1, id_promocion: 7, precio_regular: '10.01', precio_unitario: '8.01', costo_unitario: '5.00' },
+      { id_lote: 9, cantidad: 3, id_promocion: null, precio_regular: '10.01', precio_unitario: '10.01', costo_unitario: '5.00' },
+      { id_lote: 2, cantidad: 2, id_promocion: 7, precio_regular: '11.00', precio_unitario: '8.01', costo_unitario: '5.00' },
     ]);
   });
   it('cobra normal cuando el cupo está agotado', () => {
@@ -42,12 +42,16 @@ describe('VentaMonetariaService', () => {
         {
           id_lote: 2,
           cantidad: 2,
+          id_promocion: null,
+          precio_regular: '7.50',
           precio_unitario: '7.50',
           costo_unitario: '4.10',
         },
         {
           id_lote: 1,
           cantidad: 1,
+          id_promocion: null,
+          precio_regular: '10.00',
           precio_unitario: '10.00',
           costo_unitario: '6.25',
         },
@@ -69,6 +73,8 @@ describe('VentaMonetariaService', () => {
       detallesCalculados: [{
         id_lote: 3,
         cantidad: 4,
+        id_promocion: 9,
+        precio_regular: '8.50',
         precio_unitario: '6.25',
         costo_unitario: '5.00',
         id_promocion: 9,
@@ -90,6 +96,8 @@ describe('VentaMonetariaService', () => {
       detallesCalculados: [{
         id_lote: 4,
         cantidad: 2,
+        id_promocion: null,
+        precio_regular: '8.00',
         precio_unitario: '8.00',
         costo_unitario: '4.00',
       }],

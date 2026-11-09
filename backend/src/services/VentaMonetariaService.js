@@ -35,11 +35,22 @@ const calcularDetalles = (detallesValidados, promocionesPorProducto = new Map())
 
     totalCentavos += subtotalCentavos;
 
-    if (cantidadPromo) detallesCalculados.push({ id_lote, cantidad: cantidadPromo,
-      precio_unitario: aMonto(precioPromocionalCentavos), costo_unitario: aMonto(costoCentavos),
-      id_promocion: promocion.id_promocion });
-    if (cantidad > cantidadPromo) detallesCalculados.push({ id_lote, cantidad: cantidad - cantidadPromo,
-      precio_unitario: aMonto(precioNormalCentavos), costo_unitario: aMonto(costoCentavos) });
+    if (cantidadPromo) detallesCalculados.push({
+      id_lote,
+      cantidad: cantidadPromo,
+      id_promocion: Number(promocion.id_promocion),
+      precio_regular: aMonto(precioNormalCentavos),
+      precio_unitario: aMonto(precioPromocionalCentavos),
+      costo_unitario: aMonto(costoCentavos),
+    });
+    if (cantidad > cantidadPromo) detallesCalculados.push({
+      id_lote,
+      cantidad: cantidad - cantidadPromo,
+      id_promocion: null,
+      precio_regular: aMonto(precioNormalCentavos),
+      precio_unitario: aMonto(precioNormalCentavos),
+      costo_unitario: aMonto(costoCentavos),
+    });
   });
 
   if (totalCentavos <= 0) {

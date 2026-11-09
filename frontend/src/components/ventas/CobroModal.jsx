@@ -34,6 +34,7 @@ export default function CobroModal({
   error,
   onClose,
   onCrearPagoPOS,
+  onConciliarPagoPOS,
   onConfirm,
 }) {
   const [montoRecibido, setMontoRecibido] = useState('');
@@ -52,7 +53,8 @@ export default function CobroModal({
   const metodoSoportado = esEfectivo || esTarjeta;
   const montoInsuficiente = esEfectivo && montoNumerico < totalNumerico;
   const pagoEnviado = Boolean(pagoPOS?.external_id);
-  const puedeCerrar = !procesando && !pagoEnviado;
+  const esIncidencia = pagoPOS?.estado === 'incidencia';
+  const puedeCerrar = !procesando && (!pagoEnviado || esIncidencia);
   const puedeConfirmarEfectivo = esEfectivo
     && items.length > 0
     && !montoInsuficiente
@@ -61,14 +63,21 @@ export default function CobroModal({
     && items.length > 0
     && !procesando
     && !pagoEnviado;
+  const puedeConciliar = esTarjeta && esIncidencia && !procesando;
   const resumenItems = useMemo(() => items.slice(0, 4), [items]);
   const restantes = Math.max(0, items.length - resumenItems.length);
-  const etiquetaAccion = esTarjeta ? 'Cobrar con tarjeta' : 'Confirmar cobro';
+  const etiquetaAccion = esIncidencia
+    ? 'Conciliar venta'
+    : esTarjeta ? 'Cobrar con tarjeta' : 'Confirmar cobro';
 
   const manejarEnvio = (evento) => {
     evento.preventDefault();
     if (puedeConfirmarEfectivo) {
       onConfirm({ montoRecibido: Number(montoNumerico.toFixed(2)) });
+      return;
+    }
+    if (puedeConciliar) {
+      onConciliarPagoPOS();
       return;
     }
     if (puedeEnviarPagoPOS) onCrearPagoPOS();
@@ -163,17 +172,29 @@ export default function CobroModal({
             )}
 
             {esTarjeta && (
-              <div className="pos-checkout-card" aria-live="polite">
-                <span className={pagoEnviado ? 'is-pending' : ''} aria-hidden="true">
-                  {pagoEnviado ? <Loader2 /> : <CreditCard />}
+              <div className={`pos-checkout-card${esIncidencia ? ' is-incident' : ''}`} aria-live="polite">
+                <span className={pagoEnviado && !esIncidencia ? 'is-pending' : ''} aria-hidden="true">
+                  {esIncidencia ? <AlertCircle /> : pagoEnviado ? <Loader2 /> : <CreditCard />}
                 </span>
                 <div>
-                  <strong>{pagoEnviado ? 'Esperando confirmación del POS' : 'Dispositivo listo para cobrar'}</strong>
+                  <strong>
+                    {esIncidencia
+                      ? 'Cobro confirmado; venta pendiente'
+                      : pagoEnviado ? 'Esperando confirmación del POS' : 'Dispositivo listo para cobrar'}
+                  </strong>
                   <p>
-                    {pagoEnviado
+                    {esIncidencia
+                      ? 'No vuelvas a cobrar. Usa la conciliación para completar únicamente la venta en FarmaCom.'
+                      : pagoEnviado
                       ? 'La venta se registrará automáticamente cuando el POS confirme el pago. No cierres esta ventana.'
                       : 'Acerca o inserta la tarjeta. La venta se registrará únicamente cuando el POS confirme el pago.'}
                   </p>
+                  {esIncidencia && (
+                    <dl className="pos-checkout-incident-refs">
+                      <div><dt>Referencia</dt><dd>{pagoPOS.referencia_pago || 'No informada'}</dd></div>
+                      <div><dt>Operación</dt><dd>{pagoPOS.external_id}</dd></div>
+                    </dl>
+                  )}
                 </div>
               </div>
             )}
@@ -221,10 +242,10 @@ export default function CobroModal({
           </button>
           <button
             type="submit"
-            disabled={!puedeConfirmarEfectivo && !puedeEnviarPagoPOS}
+            disabled={!puedeConfirmarEfectivo && !puedeEnviarPagoPOS && !puedeConciliar}
             className="pos-checkout-confirm"
           >
-            {procesando ? <Loader2 className="pos-checkout-spinner" aria-hidden="true" /> : esTarjeta ? <CreditCard aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
+            {procesando ? <Loader2 className="pos-checkout-spinner" aria-hidden="true" /> : esIncidencia ? <ReceiptText aria-hidden="true" /> : esTarjeta ? <CreditCard aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
             <span>{etiquetaAccion}</span>
           </button>
         </footer>

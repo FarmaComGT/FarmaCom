@@ -173,6 +173,21 @@ describe('CajaDAO', () => {
     pool.query.mockResolvedValue({ rows: [{ cantidad: 3 }] });
 
     await expect(CajaDAO.contarPagosPOSPendientes(1)).resolves.toBe(3);
+    expect(pool.query.mock.calls[0][0]).toContain("'incidencia'");
+  });
+
+  it('lista las operaciones POS que bloquean el cierre de la sesión', async () => {
+    const pagos = [
+      { external_id: 'farmacom-pos-1', estado: 'incidencia' },
+      { external_id: 'farmacom-pos-2', estado: 'procesando' },
+    ];
+    pool.query.mockResolvedValue({ rows: pagos });
+
+    await expect(CajaDAO.obtenerPagosPOSAbiertosSesion(1)).resolves.toEqual(pagos);
+    expect(pool.query.mock.calls[0][0]).toContain(
+      "estado IN ('pendiente', 'procesando', 'incidencia')",
+    );
+    expect(pool.query.mock.calls[0][1]).toEqual([1]);
   });
 
   it('cierra una sesión de caja', async () => {

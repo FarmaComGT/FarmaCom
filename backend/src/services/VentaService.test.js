@@ -57,6 +57,30 @@ const lotesDisponibles = [
   },
 ];
 
+const detallesPagoGuardados = [
+  {
+    id_lote: 2,
+    cantidad: 2,
+    id_promocion: null,
+    precio_regular: '7.50',
+    precio_unitario: '7.50',
+    costo_unitario: '4.10',
+  },
+  {
+    id_lote: 1,
+    cantidad: 1,
+    id_promocion: null,
+    precio_regular: '10.00',
+    precio_unitario: '10.00',
+    costo_unitario: '6.25',
+  },
+];
+
+const reservasPago = [
+  { id_reserva: 12, id_pago_pos: 5, id_lote: 1, cantidad: 1 },
+  { id_reserva: 13, id_pago_pos: 5, id_lote: 2, cantidad: 2 },
+];
+
 describe('VentaService', () => {
   it('restringe también las ventas paginadas a la sucursal del dependiente', async () => {
     const respuesta = { datos: [], paginacion: { total: 0 } };
@@ -76,6 +100,12 @@ describe('VentaService', () => {
       estado: 'abierta',
     });
     PromocionDAO.obtenerVigentesParaVenta.mockResolvedValue([]);
+    VentaDAO.obtenerVentaPorClaveIdempotencia.mockResolvedValue(null);
+    VentaDAO.reservarStockPagoPOS.mockResolvedValue({ id_reserva: 1 });
+    VentaDAO.obtenerReservasActivasPagoPOS.mockResolvedValue([]);
+    VentaDAO.liberarReservaPagoPOS.mockResolvedValue({ id_lote: 1 });
+    VentaDAO.consumirReservaPagoPOS.mockResolvedValue({ id_lote: 1, stock_actual: 1 });
+    VentaDAO.obtenerPagoPOSPorExternalId.mockResolvedValue(null);
   });
 
   afterAll(() => {
@@ -104,6 +134,8 @@ describe('VentaService', () => {
         estado_pago: null,
         autorizacion_pago: null,
         tarjeta_ultimos4: null,
+        clave_idempotencia: expect.any(String),
+        huella_idempotencia: expect.stringMatching(/^[a-f0-9]{64}$/),
         total: '25.00',
         monto_recibido: '30.00',
         cambio: '5.00',
@@ -118,6 +150,7 @@ describe('VentaService', () => {
           id_venta: 21,
           id_lote: 2,
           cantidad: 2,
+          precio_regular: '7.50',
           precio_unitario: '7.50',
           costo_unitario: '4.10',
         }, {}],
@@ -125,6 +158,7 @@ describe('VentaService', () => {
           id_venta: 21,
           id_lote: 1,
           cantidad: 1,
+          precio_regular: '10.00',
           precio_unitario: '10.00',
           costo_unitario: '6.25',
         }, {}],
@@ -133,6 +167,7 @@ describe('VentaService', () => {
         id_venta: 21,
         id_lote: 2,
         cantidad: 2,
+        precio_regular: '7.50',
         precio_unitario: '7.50',
         costo_unitario: '4.10',
       }, {});
@@ -143,6 +178,44 @@ describe('VentaService', () => {
       expect(VentaDAO.descontarStock.mock.invocationCallOrder[1])
         .toBeLessThan(VentaDAO.crearDetalle.mock.invocationCallOrder[1]);
       expect(resultado).toEqual({ id_venta: 21, total: '25.00' });
+    });
+
+    it('recupera la venta existente al repetir la misma clave y solicitud', async () => {
+      const clave = '11111111-1111-4111-8111-111111111111';
+      const huella = VentaService.crearHuellaIntentoVenta(datosVenta, usuarioDependiente);
+      VentaDAO.obtenerVentaPorClaveIdempotencia.mockResolvedValueOnce({
+        id_venta: 21,
+        id_usuario: 7,
+        id_sucursal: 1,
+        huella_idempotencia: huella,
+      });
+      VentaDAO.obtenerPorId.mockResolvedValue({ id_venta: 21, total: '25.00' });
+
+      await expect(
+        VentaService.crearVenta(datosVenta, usuarioDependiente, clave),
+      ).resolves.toEqual({ id_venta: 21, total: '25.00', recuperada: true });
+
+      expect(VentaDAO.bloquearClaveIdempotencia).toHaveBeenCalledWith(clave, {});
+      expect(VentaDAO.obtenerLotesParaVenta).not.toHaveBeenCalled();
+      expect(VentaDAO.crearVenta).not.toHaveBeenCalled();
+      expect(VentaDAO.descontarStock).not.toHaveBeenCalled();
+    });
+
+    it('rechaza reutilizar una clave con una solicitud diferente', async () => {
+      const clave = '22222222-2222-4222-8222-222222222222';
+      VentaDAO.obtenerVentaPorClaveIdempotencia.mockResolvedValueOnce({
+        id_venta: 21,
+        huella_idempotencia: 'a'.repeat(64),
+      });
+
+      await expect(
+        VentaService.crearVenta(datosVenta, usuarioDependiente, clave),
+      ).rejects.toMatchObject({
+        status: 409,
+        message: 'La clave de idempotencia ya fue utilizada con otros datos',
+      });
+
+      expect(VentaDAO.crearVenta).not.toHaveBeenCalled();
     });
 
     it('guarda en el detalle el precio promocional realmente cobrado', async () => {
@@ -168,6 +241,7 @@ describe('VentaService', () => {
         id_venta: 21,
         id_lote: 2,
         cantidad: 2,
+        precio_regular: '7.50',
         precio_unitario: '6.00',
         costo_unitario: '4.10',
       }, {});
@@ -365,7 +439,7 @@ describe('VentaService', () => {
       });
 
       const resultado = await VentaService.crearPagoPOS(
-        datosVenta,
+        { ...datosVenta, carrito_origen_id: 'carrito-2' },
         usuarioDependiente,
       );
 
@@ -381,18 +455,23 @@ describe('VentaService', () => {
         id_usuario: 7,
         id_sesion_caja: 9,
         id_cliente: null,
+        carrito_origen_id: 'carrito-2',
         terminal_id: 'trm_test_123',
         total: '25.00',
         detalles: [
           {
             id_lote: 2,
             cantidad: 2,
+            id_promocion: null,
+            precio_regular: '7.50',
             precio_unitario: '7.50',
             costo_unitario: '4.10',
           },
           {
             id_lote: 1,
             cantidad: 1,
+            id_promocion: null,
+            precio_regular: '10.00',
             precio_unitario: '10.00',
             costo_unitario: '6.25',
           },
@@ -404,6 +483,7 @@ describe('VentaService', () => {
         external_id: pagoGuardado.external_id,
         estado: 'pendiente',
         comando_recurrente_id: 'tsc_test_123',
+        estados_permitidos: ['pendiente'],
       }, {});
       expect(resultado).toEqual({
         id_pago_pos: 5,
@@ -455,7 +535,12 @@ describe('VentaService', () => {
         expect.objectContaining({
           total: '22.00',
           detalles: expect.arrayContaining([
-            expect.objectContaining({ id_lote: 2, precio_unitario: '6.00' }),
+            expect.objectContaining({
+              id_lote: 2,
+              id_promocion: 4,
+              precio_regular: '7.50',
+              precio_unitario: '6.00',
+            }),
           ]),
         }),
         {},
@@ -479,9 +564,51 @@ describe('VentaService', () => {
         external_id: externalId,
         estado: 'fallido',
         estado_pago: 'error_al_iniciar',
+        estados_permitidos: ['pendiente', 'procesando'],
       }, {});
       expect(VentaDAO.crearVenta).not.toHaveBeenCalled();
       expect(VentaDAO.descontarStock).not.toHaveBeenCalled();
+    });
+
+    it('mantiene el seguimiento y la reserva cuando la respuesta del proveedor es incierta', async () => {
+      process.env.RECURRENTE_TERMINAL_ID = 'trm_test_123';
+      VentaDAO.obtenerLotesParaVenta.mockResolvedValue(lotesDisponibles);
+      VentaDAO.crearPagoPOS.mockResolvedValue({
+        id_pago_pos: 5,
+        external_id: 'farmacom-pos-test',
+        terminal_id: 'trm_test_123',
+        total: '25.00',
+        estado: 'pendiente',
+      });
+      const errorRecurrente = new Error('No se pudo confirmar la respuesta');
+      errorRecurrente.resultadoIncierto = true;
+      RecurrenteService.crearComandoTerminal.mockRejectedValue(errorRecurrente);
+      VentaDAO.actualizarPagoPOS.mockResolvedValue({
+        id_pago_pos: 5,
+        external_id: 'farmacom-pos-test',
+        terminal_id: 'trm_test_123',
+        total: '25.00',
+        estado: 'procesando',
+        estado_pago: 'respuesta_incierta',
+      });
+
+      await expect(
+        VentaService.crearPagoPOS(datosVenta, usuarioDependiente),
+      ).resolves.toMatchObject({
+        external_id: 'farmacom-pos-test',
+        estado: 'procesando',
+        estado_pago: 'respuesta_incierta',
+        seguimiento_requerido: true,
+      });
+
+      expect(VentaDAO.actualizarPagoPOS).toHaveBeenCalledWith({
+        external_id: expect.stringMatching(/^farmacom-pos-/),
+        estado: 'procesando',
+        estado_pago: 'respuesta_incierta',
+        estados_permitidos: ['pendiente', 'procesando'],
+      }, {});
+      expect(VentaDAO.liberarReservaPagoPOS).not.toHaveBeenCalled();
+      expect(RecurrenteService.crearComandoTerminal).toHaveBeenCalledTimes(1);
     });
 
     it.each([
@@ -511,6 +638,36 @@ describe('VentaService', () => {
       }), {});
       expect(VentaDAO.descontarStock).not.toHaveBeenCalled();
     });
+
+    it('no sobrescribe un pago finalizado por un webhook mientras respondia el terminal', async () => {
+      process.env.RECURRENTE_TERMINAL_ID = 'trm_test_123';
+      VentaDAO.obtenerLotesParaVenta.mockResolvedValue(lotesDisponibles);
+      VentaDAO.crearPagoPOS.mockResolvedValue({
+        id_pago_pos: 5,
+        external_id: 'farmacom-pos-test',
+        terminal_id: 'trm_test_123',
+        total: '25.00',
+        estado: 'pendiente',
+      });
+      RecurrenteService.crearComandoTerminal.mockResolvedValue({
+        command_id: 'cmd_test_123',
+        status: 'dispatched',
+      });
+      VentaDAO.obtenerPagoPOSPorExternalId.mockResolvedValue({
+        id_pago_pos: 5,
+        external_id: 'farmacom-pos-test',
+        terminal_id: 'trm_test_123',
+        total: '25.00',
+        estado: 'pagado',
+      });
+
+      await expect(
+        VentaService.crearPagoPOS(datosVenta, usuarioDependiente),
+      ).resolves.toMatchObject({ estado: 'pagado' });
+
+      expect(VentaDAO.actualizarPagoPOS).not.toHaveBeenCalled();
+      expect(VentaDAO.liberarReservaPagoPOS).not.toHaveBeenCalled();
+    });
   });
 
   describe('procesarWebhookRecurrente', () => {
@@ -538,10 +695,7 @@ describe('VentaService', () => {
         id_sesion_caja: 9,
         id_cliente: null,
         total: '25.00',
-        detalles: [
-          { id_lote: 2, cantidad: 2 },
-          { id_lote: 1, cantidad: 1 },
-        ],
+        detalles: detallesPagoGuardados,
         estado: 'pendiente',
       });
       RecurrenteService.verificarFirmaWebhook.mockReturnValue(true);
@@ -558,7 +712,8 @@ describe('VentaService', () => {
       });
       VentaDAO.obtenerLotesParaVenta.mockResolvedValue(lotesDisponibles);
       VentaDAO.crearVenta.mockResolvedValue({ id_venta: 22 });
-      VentaDAO.descontarStock.mockResolvedValue({ id_lote: 1 });
+      VentaDAO.obtenerReservasActivasPagoPOS.mockResolvedValue(reservasPago);
+      VentaDAO.consumirReservaPagoPOS.mockResolvedValue({ id_lote: 1, stock_actual: 1 });
       VentaDAO.crearDetalle.mockResolvedValue({});
       VentaDAO.actualizarPagoPOS.mockResolvedValue({ estado: 'pagado' });
 
@@ -576,18 +731,19 @@ describe('VentaService', () => {
         total: '25.00',
         cambio: '0.00',
       }), {});
-      expect(VentaDAO.descontarStock).toHaveBeenCalledTimes(2);
-      expect(VentaDAO.descontarStock.mock.calls).toEqual([
-        [2, 2, {}],
-        [1, 1, {}],
-      ]);
-      expect(VentaDAO.crearDetalle).toHaveBeenCalledWith({
-        id_venta: 22,
-        id_lote: 2,
-        cantidad: 2,
-        precio_unitario: '7.50',
-        costo_unitario: '4.10',
-      }, {});
+      expect(VentaDAO.consumirReservaPagoPOS).toHaveBeenCalledTimes(2);
+      expect(VentaDAO.descontarStock).not.toHaveBeenCalled();
+      expect(VentaDAO.crearDetalle).toHaveBeenCalledWith(
+        {
+          id_venta: 22,
+          id_lote: detallesPagoGuardados[0].id_lote,
+          cantidad: detallesPagoGuardados[0].cantidad,
+          precio_regular: detallesPagoGuardados[0].precio_regular,
+          precio_unitario: detallesPagoGuardados[0].precio_unitario,
+          costo_unitario: detallesPagoGuardados[0].costo_unitario,
+        },
+        {},
+      );
       expect(VentaDAO.actualizarPagoPOS).toHaveBeenCalledWith({
         external_id: 'farmacom-pos-test',
         estado: 'pagado',
@@ -597,8 +753,9 @@ describe('VentaService', () => {
         autorizacion_pago: 'auth_123',
         tarjeta_ultimos4: '4242',
         id_venta: 22,
+        estados_permitidos: ['pendiente', 'procesando'],
       }, {});
-      expect(VentaDAO.descontarStock.mock.invocationCallOrder[0])
+      expect(VentaDAO.consumirReservaPagoPOS.mock.invocationCallOrder[0])
         .toBeLessThan(VentaDAO.crearDetalle.mock.invocationCallOrder[0]);
     });
 
@@ -695,7 +852,7 @@ describe('VentaService', () => {
       expect(VentaDAO.descontarStock).not.toHaveBeenCalled();
     });
 
-    it('rechaza el cobro confirmado si el inventario dejó de estar disponible', async () => {
+    it('consume la reserva sin recalcular el inventario al confirmar el cobro', async () => {
       RecurrenteService.verificarFirmaWebhook.mockReturnValue(true);
       RecurrenteService.normalizarEventoWebhook.mockReturnValue({
         idEvento: 'evt_test_123',
@@ -712,27 +869,26 @@ describe('VentaService', () => {
         id_sucursal: 1,
         id_usuario: 7,
         id_cliente: null,
-        detalles: datosVenta.detalles,
+        id_pago_pos: 5,
+        detalles: detallesPagoGuardados,
       });
-      VentaDAO.obtenerLotesParaVenta.mockResolvedValue([
-        lotesDisponibles[0],
-        { ...lotesDisponibles[1], stock_actual: 0 },
-      ]);
-      VentaDAO.actualizarPagoPOS.mockResolvedValue({ estado: 'rechazado' });
+      VentaDAO.obtenerReservasActivasPagoPOS.mockResolvedValue(reservasPago);
+      VentaDAO.crearVenta.mockResolvedValue({ id_venta: 22 });
+      VentaDAO.consumirReservaPagoPOS.mockResolvedValue({ id_lote: 1, stock_actual: 1 });
+      VentaDAO.crearDetalle.mockResolvedValue({});
+      VentaDAO.actualizarPagoPOS.mockResolvedValue({ estado: 'pagado' });
 
       await expect(VentaService.procesarWebhookRecurrente('{}', {})).resolves.toEqual({
         procesado: true,
-        estado: 'rechazado',
+        estado: 'pagado',
+        id_venta: 22,
       });
-      expect(VentaDAO.actualizarPagoPOS).toHaveBeenCalledWith(expect.objectContaining({
-        estado: 'rechazado',
-        estado_pago: 'inventario_no_disponible',
-      }), {});
-      expect(VentaDAO.crearVenta).not.toHaveBeenCalled();
+      expect(VentaDAO.obtenerLotesParaVenta).not.toHaveBeenCalled();
+      expect(VentaDAO.consumirReservaPagoPOS).toHaveBeenCalledTimes(2);
       expect(VentaDAO.descontarStock).not.toHaveBeenCalled();
     });
 
-    it('rechaza el cobro si los precios actuales cambian el total preparado', async () => {
+    it('rechaza una fotografia de cobro cuyo detalle no coincide con el total guardado', async () => {
       RecurrenteService.verificarFirmaWebhook.mockReturnValue(true);
       RecurrenteService.normalizarEventoWebhook.mockReturnValue({
         idEvento: 'evt_test_123',
@@ -749,12 +905,12 @@ describe('VentaService', () => {
         id_sucursal: 1,
         id_usuario: 7,
         id_cliente: null,
-        detalles: datosVenta.detalles,
+        id_pago_pos: 5,
+        detalles: [
+          { ...detallesPagoGuardados[0], precio_unitario: '8.00' },
+          detallesPagoGuardados[1],
+        ],
       });
-      VentaDAO.obtenerLotesParaVenta.mockResolvedValue([
-        lotesDisponibles[0],
-        { ...lotesDisponibles[1], precio_venta: '8.00' },
-      ]);
       VentaDAO.actualizarPagoPOS.mockResolvedValue({ estado: 'rechazado' });
 
       await expect(VentaService.procesarWebhookRecurrente('{}', {})).resolves.toEqual({
@@ -769,7 +925,7 @@ describe('VentaService', () => {
       expect(VentaDAO.descontarStock).not.toHaveBeenCalled();
     });
 
-    it('falla la transacción si el descuento atómico pierde una carrera de stock', async () => {
+    it('registra una incidencia si el cobro fue confirmado pero la venta local falla', async () => {
       RecurrenteService.verificarFirmaWebhook.mockReturnValue(true);
       RecurrenteService.normalizarEventoWebhook.mockReturnValue({
         idEvento: 'evt_test_123',
@@ -786,18 +942,37 @@ describe('VentaService', () => {
         id_sucursal: 1,
         id_usuario: 7,
         id_cliente: null,
-        detalles: datosVenta.detalles,
+        id_pago_pos: 5,
+        detalles: detallesPagoGuardados,
       });
-      VentaDAO.obtenerLotesParaVenta.mockResolvedValue(lotesDisponibles);
+      VentaDAO.obtenerReservasActivasPagoPOS.mockResolvedValue(reservasPago);
       VentaDAO.crearVenta.mockResolvedValue({ id_venta: 22 });
-      VentaDAO.descontarStock.mockResolvedValueOnce(null);
+      VentaDAO.consumirReservaPagoPOS.mockResolvedValueOnce(null);
+      VentaDAO.registrarIncidenciaPagoPOS.mockResolvedValue({
+        external_id: 'farmacom-pos-test',
+        referencia_pago: 'pi_test_123',
+        estado: 'incidencia',
+      });
 
       await expect(
         VentaService.procesarWebhookRecurrente('{}', {}),
-      ).rejects.toMatchObject({
-        status: 409,
-        message: 'Stock insuficiente para el lote 2',
+      ).resolves.toEqual({
+        procesado: true,
+        estado: 'incidencia',
+        incidencia: true,
+        external_id: 'farmacom-pos-test',
+        referencia_pago: 'pi_test_123',
       });
+      expect(VentaDAO.crearPuntoRestauracionVentaPOS).toHaveBeenCalledWith({});
+      expect(VentaDAO.restaurarPuntoVentaPOS).toHaveBeenCalledWith({});
+      expect(VentaDAO.registrarIncidenciaPagoPOS).toHaveBeenCalledWith(
+        expect.objectContaining({
+          external_id: 'farmacom-pos-test',
+          codigo_incidencia: 'venta_incompleta',
+          detalle_incidencia: 'No se pudo consumir la reserva del lote 2',
+        }),
+        {},
+      );
       expect(VentaDAO.crearDetalle).not.toHaveBeenCalled();
       expect(VentaDAO.actualizarPagoPOS).not.toHaveBeenCalled();
     });
