@@ -17,7 +17,6 @@ const campoParaError = (error) => {
     ['presentación', 'id_presentacion'],
     ['categoría', 'id_categoria'],
     ['casa farmacéutica', 'id_casa'],
-    ['precio de compra', 'precio_compra'],
     ['stock mínimo', 'stock_minimo'],
     ['meses de alerta', 'meses_alerta_vencimiento'],
   ];
@@ -25,14 +24,14 @@ const campoParaError = (error) => {
 };
 
 export default function ProductoFormModal({
-  isOpen, modoEdicion, producto, codigoSugerido, categorias, casas, proveedores,
+  isOpen, modoEdicion, producto, codigoSugerido, categorias, casas,
   presentaciones, cargandoDatos, guardando, errorFormulario, onClose, onSubmit,
   onCrearPresentacion, onActualizarPresentacion, onEliminarPresentacion,
   puedeGestionarPresentaciones = true, puedeEliminarPresentaciones = true,
 }) {
   const {
     formulario, codigoMostrado, presentacionSeleccionada, errorValidacion,
-    manejarCambio, manejarToggleActivo, manejarEnvio, seleccionarPresentacion,
+    manejarCambio, manejarEnvio, seleccionarPresentacion,
   } = useProductoForm({ isOpen, modoEdicion, producto, codigoSugerido, presentaciones, onSubmit });
   const errorRef = useRef(null);
   const formularioInicial = useMemo(
@@ -71,7 +70,7 @@ export default function ProductoFormModal({
         </header>
 
         <form onSubmit={manejarEnvio} noValidate className={styles.form}>
-          <ProductoDatosGenerales formulario={formulario} codigoMostrado={codigoMostrado} onChange={manejarCambio} onToggleActivo={manejarToggleActivo} bloqueado={guardando || cargandoDatos} />
+          <ProductoDatosGenerales formulario={formulario} codigoMostrado={codigoMostrado} onChange={manejarCambio} bloqueado={guardando || cargandoDatos} />
           <ProductoPresentacionControl
             isOpen={isOpen}
             presentaciones={presentaciones}
@@ -85,7 +84,7 @@ export default function ProductoFormModal({
             onActualizar={onActualizarPresentacion}
             onEliminar={onEliminarPresentacion}
           />
-          <ProductoClasificacion formulario={formulario} categorias={categorias} casas={casas} proveedores={proveedores} cargandoDatos={cargandoDatos} onChange={manejarCambio} />
+          <ProductoClasificacion formulario={formulario} categorias={categorias} casas={casas} cargandoDatos={cargandoDatos} onChange={manejarCambio} />
           <ProductoInventarioConfig formulario={formulario} onChange={manejarCambio} />
 
           {(errorValidacion || errorFormulario) && (

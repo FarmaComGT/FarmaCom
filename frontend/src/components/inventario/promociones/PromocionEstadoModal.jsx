@@ -2,6 +2,7 @@ import React from 'react';
 import { LoaderCircle, X } from 'lucide-react';
 import AccessibleDialog from '../../ui/AccessibleDialog.jsx';
 import styles from '../../../styles/ManagementUI.module.css';
+import { nombrePromocion } from '../../../utils/promociones';
 
 export default function PromocionEstadoModal({ isOpen, promocion, procesando, error, onClose, onConfirm }) {
   if (!promocion) return null;
@@ -19,7 +20,7 @@ export default function PromocionEstadoModal({ isOpen, promocion, procesando, er
           <button type="button" onClick={onClose} disabled={procesando} className={`${styles.button} ${styles.iconButton}`} aria-label="Cerrar"><X size={17} aria-hidden="true" /></button>
         </header>
         <div className={styles.form}>
-          <p>¿Deseas {seDesactiva ? 'desactivar' : 'activar'} la promoción de <strong>{promocion.nombre_sucursal}</strong>?</p>
+          <p>¿Deseas {seDesactiva ? 'desactivar' : 'activar'} <strong>{nombrePromocion(promocion)}</strong> en {promocion.nombre_sucursal}?</p>
           {seDesactiva && <p className={styles.warning}>Los datos y el historial de la promoción se conservarán.</p>}
           {error && <p role="alert" className={styles.fieldError}>{error}</p>}
           <div className={styles.dialogActions}>

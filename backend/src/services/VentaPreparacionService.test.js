@@ -171,7 +171,7 @@ describe('VentaPreparacionService', () => {
         { id_lote: 10, cantidad: 2, id_promocion: null, precio_regular: '8.50',
           precio_unitario: '8.50', costo_unitario: '5.00' },
       ]);
-      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([1], 1, undefined);
+      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([1], 1, undefined, null);
     });
 
     it('acumula la cantidad del producto entre lotes y aplica la promoción vigente', async () => {
@@ -193,7 +193,7 @@ describe('VentaPreparacionService', () => {
         id_promocion: 5,
         precio_promocion: '6.50',
       });
-      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([1], 1, client);
+      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([1], 1, client, null);
     });
 
     it('mantiene el precio normal cuando no alcanza la cantidad mínima', async () => {

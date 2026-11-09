@@ -125,7 +125,7 @@ export default function LectorMovil() {
         <output className={styles.verificacion}>{estado?.verificacion}</output>
         <p role="status">La cámara se abrirá al confirmar. Permite su uso cuando el teléfono lo solicite.</p>
       </> : <>
-        <p role="status">Destino: {({ ventas: 'Punto de venta', producto: 'Registro de producto', pausa: 'En pausa' })[estado.destino] || 'En pausa'}</p>
+        <p role="status">Destino: {({ ventas: 'Punto de venta', producto: 'Registro de producto', promocion: 'Producto de la promoción', pausa: 'En pausa' })[estado.destino] || 'En pausa'}</p>
         <p role="status">{disponible ? 'Listo para escanear.' : 'Espera a que la computadora esté disponible.'}</p>
         <button type="button" disabled={!disponible} onClick={() => setCamara(true)}><Camera size={20} aria-hidden="true" />Escanear código</button>
         <details className={styles.alternative}>

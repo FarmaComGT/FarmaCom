@@ -1,4 +1,5 @@
 jest.mock('../daos/VentaDAO');
+jest.mock('../daos/PromocionDAO');
 jest.mock('../daos/MovimientoInventarioDAO');
 
 const VentaDAO = require('../daos/VentaDAO');

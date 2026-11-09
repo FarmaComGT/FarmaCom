@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const VentaDAO = require('../daos/VentaDAO');
+const PromocionDAO = require('../daos/PromocionDAO');
 const RecurrenteService = require('./RecurrenteService');
 const { lanzarError } = require('./VentaErrores');
 const { validarPertenenciaSesionCaja } = require('../utils/accesoCaja');
@@ -74,6 +75,7 @@ const registrarPagoRechazado = async (evento, codigoEstadoPago, client) => {
     referencia_pago: evento.referenciaPago,
   }, client);
 
+  if (actualizado.id_pago_pos) await PromocionDAO.liberarUso({ id_pago_pos: actualizado.id_pago_pos }, client);
   return { procesado: true, estado: actualizado.estado };
 };
 
@@ -112,6 +114,7 @@ const completarVentaPagada = async (evento, pago, client, opciones = {}) => {
     {
       id_usuario: pago.id_usuario,
       id_sucursal: pago.id_sucursal,
+      id_pago_pos: pago.id_pago_pos,
     },
     client,
   );
@@ -204,6 +207,11 @@ const crearPagoPOS = async (datos, usuario) => {
       ventaPreparada.detallesCalculados,
       client,
     );
+    await PromocionDAO.registrarUso(
+      ventaPreparada.detallesCalculados,
+      { id_pago_pos: pagoCreado.id_pago_pos },
+      client,
+    );
     return pagoCreado;
   });
 
@@ -251,7 +259,10 @@ const crearPagoPOS = async (datos, usuario) => {
         estado_pago: CODIGOS_ESTADO_PAGO_POS.ERROR_AL_INICIAR,
         estados_permitidos: [ESTADOS_PAGO_POS.PENDIENTE, ESTADOS_PAGO_POS.PROCESANDO],
       }, client);
-      if (actualizado) await liberarReservasPagoPOS(pago.id_pago_pos, client);
+      if (actualizado) {
+        await liberarReservasPagoPOS(pago.id_pago_pos, client);
+        await PromocionDAO.liberarUso({ id_pago_pos: pago.id_pago_pos }, client);
+      }
       return { pago: actualizado || pagoActual, yaFinalizado: false };
     });
     if (resultadoError.yaFinalizado) {
@@ -285,6 +296,7 @@ const crearPagoPOS = async (datos, usuario) => {
     }, client);
     if (actualizado && estadoComando === ESTADOS_PAGO_POS.FALLIDO) {
       await liberarReservasPagoPOS(pago.id_pago_pos, client);
+      await PromocionDAO.liberarUso({ id_pago_pos: pago.id_pago_pos }, client);
     }
     return actualizado || pagoActual;
   });
@@ -339,6 +351,7 @@ const procesarWebhookRecurrente = async (body, headers) => {
       }, client);
       if ([ESTADOS_PAGO_POS.FALLIDO, ESTADOS_PAGO_POS.CANCELADO].includes(estadoPago)) {
         await liberarReservasPagoPOS(pago.id_pago_pos, client);
+        await PromocionDAO.liberarUso({ id_pago_pos: pago.id_pago_pos }, client);
       }
       return { procesado: true, estado: actualizado.estado };
     }

@@ -70,6 +70,11 @@ describe('ProductoFormModal', () => {
   it('lista las presentaciones que vienen del catálogo dinámico, no una lista fija', () => {
     render(<ProductoFormModal {...propsBase} />);
 
+    expect(screen.queryByLabelText(/Proveedor/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Precio sugerido de compra/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /mayoreo/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+
     const select = screen.getByRole('combobox', { name: /Presentación/ });
     expect(within(select).getByText('Caja')).toBeInTheDocument();
     expect(within(select).getByText('Blíster')).toBeInTheDocument();
@@ -87,7 +92,6 @@ describe('ProductoFormModal', () => {
     await user.type(screen.getByPlaceholderText('Ej.: Aspirina Forte…'), 'Ibuprofeno Forte');
     await user.type(screen.getByPlaceholderText('Ej.: Ácido acetilsalicílico…'), 'Ibuprofeno');
     await user.type(screen.getByPlaceholderText('Ej.: 500 mg…'), '400 mg');
-    await user.type(screen.getByPlaceholderText('0.00'), '10');
     await user.type(screen.getByPlaceholderText('Ej.: 6…'), '6');
     await user.click(screen.getByRole('button', { name: 'Guardar producto' }));
 
@@ -110,7 +114,6 @@ describe('ProductoFormModal', () => {
     await user.selectOptions(selectCasa, '1');
     await user.type(screen.getByPlaceholderText('Ej.: Aspirina Forte…'), 'Alcohol en gel');
     await user.type(screen.getByPlaceholderText('Ej.: Ácido acetilsalicílico…'), 'Alcohol');
-    await user.type(screen.getByPlaceholderText('0.00'), '15');
     await user.type(screen.getByPlaceholderText('Ej.: 6…'), '6');
     await user.click(screen.getByRole('button', { name: 'Guardar producto' }));
 
@@ -269,11 +272,8 @@ describe('regresión del formulario de producto dividido en secciones', () => {
     await usuario.selectOptions(campo('id_presentacion'), '1');
     await usuario.selectOptions(campo('id_categoria'), '1');
     await usuario.selectOptions(campo('id_casa'), '1');
-    await usuario.selectOptions(campo('id_proveedor'), '3');
-    await usuario.type(campo('precio_compra'), '12.50');
     await usuario.type(campo('stock_minimo'), '0');
     await usuario.type(campo('meses_alerta_vencimiento'), '6');
-    await usuario.click(screen.getByRole('checkbox', { name: /Aplica para mayoreo/ }));
     expect(screen.getByDisplayValue('MED004-CA')).toBeDisabled();
 
     await usuario.click(screen.getByRole('button', { name: 'Guardar producto' }));
@@ -281,8 +281,8 @@ describe('regresión del formulario de producto dividido en secciones', () => {
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
       codigo: 'MED004-CA', codigo_barras: null, nombre_comercial: 'Aspirina Forte', nombre_generico: 'Ácido acetilsalicílico',
       concentracion: '500 mg', id_presentacion: 1, id_categoria: 1, id_casa: 1,
-      id_proveedor: 3, precio_compra: 12.5, stock_minimo: 0,
-      meses_alerta_vencimiento: 6, aplica_mayoreo: true,
+      stock_minimo: 0,
+      meses_alerta_vencimiento: 6,
     });
   });
 
@@ -293,23 +293,18 @@ describe('regresión del formulario de producto dividido en secciones', () => {
 
     expect(screen.getByRole('dialog', { name: 'Editar producto' })).toBeInTheDocument();
     expect(campo('nombre_comercial')).toHaveValue('Aspirina');
-    expect(campo('id_proveedor')).toHaveValue('3');
     expect(campo('stock_minimo')).toHaveValue(0);
-    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
-    expect(campo('aplica_mayoreo')).toBeChecked();
 
     await usuario.selectOptions(campo('id_presentacion'), '2');
-    await usuario.selectOptions(campo('id_proveedor'), '');
     await usuario.clear(campo('concentracion'));
-    await usuario.click(campo('aplica_mayoreo'));
     await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(screen.getByDisplayValue('MED009-CA')).toBeDisabled();
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
       codigo: 'MED009-CA', codigo_barras: null, nombre_comercial: 'Aspirina', nombre_generico: 'Ácido acetilsalicílico',
       concentracion: null, id_presentacion: 2, id_categoria: 1, id_casa: 1,
-      id_proveedor: undefined, precio_compra: 10, stock_minimo: 0,
-      meses_alerta_vencimiento: 6, aplica_mayoreo: false,
+      stock_minimo: 0,
+      meses_alerta_vencimiento: 6,
     });
   });
 
@@ -328,7 +323,6 @@ describe('regresión del formulario de producto dividido en secciones', () => {
     await usuario.type(campo('nombre_comercial'), 'Corregido');
 
     expect(screen.queryByText('El nombre comercial es requerido.')).not.toBeInTheDocument();
-    expect(campo('precio_compra')).toHaveValue(10);
     expect(campo('id_presentacion')).toHaveValue('1');
     await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ nombre_comercial: 'Corregido' }));
@@ -345,7 +339,6 @@ describe('regresión del formulario de producto dividido en secciones', () => {
 
     expect(screen.getByText('Ya existe ese producto')).toBeInTheDocument();
     expect(campo('nombre_comercial')).toHaveValue('Nombre editado');
-    expect(campo('precio_compra')).toHaveValue(10);
   });
 
   it('reinicia valores y errores al cerrar una edición y abrir un producto nuevo', async () => {
@@ -364,10 +357,6 @@ describe('regresión del formulario de producto dividido en secciones', () => {
     expect(screen.getByRole('dialog', { name: 'Nuevo producto' })).toBeInTheDocument();
     expect(campo('nombre_comercial')).toHaveValue('');
     expect(campo('id_presentacion')).toHaveValue('');
-    expect(campo('id_proveedor')).toHaveValue('');
-    expect(campo('precio_compra')).toHaveValue(null);
-    expect(campo('aplica_mayoreo')).not.toBeChecked();
-    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByDisplayValue('MED010')).toBeInTheDocument();
     expect(screen.queryByText('El nombre comercial es requerido.')).not.toBeInTheDocument();
   });

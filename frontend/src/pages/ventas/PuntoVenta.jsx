@@ -58,6 +58,7 @@ export default function PuntoVenta() {
     cambiarCarrito,
     renombrarCarrito,
     cerrarCarrito,
+    actualizarCotizacion,
   } = useCarrito();
   const {
     productos,
@@ -163,6 +164,7 @@ export default function PuntoVenta() {
   });
   const flujoVenta = useFlujoVenta({
     items,
+    actualizarCotizacion,
     sucursalId: sucursalActivaId,
     sesionCajaId: sesionActual?.id_sesion_caja,
     pagosPOSAbiertos: sesionActual?.pagos_pos_abiertos,

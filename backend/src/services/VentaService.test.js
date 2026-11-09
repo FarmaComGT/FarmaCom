@@ -150,7 +150,6 @@ describe('VentaService', () => {
           id_venta: 21,
           id_lote: 2,
           cantidad: 2,
-          id_promocion: null,
           precio_regular: '7.50',
           precio_unitario: '7.50',
           costo_unitario: '4.10',
@@ -159,7 +158,6 @@ describe('VentaService', () => {
           id_venta: 21,
           id_lote: 1,
           cantidad: 1,
-          id_promocion: null,
           precio_regular: '10.00',
           precio_unitario: '10.00',
           costo_unitario: '6.25',
@@ -169,7 +167,6 @@ describe('VentaService', () => {
         id_venta: 21,
         id_lote: 2,
         cantidad: 2,
-        id_promocion: null,
         precio_regular: '7.50',
         precio_unitario: '7.50',
         costo_unitario: '4.10',
@@ -244,7 +241,6 @@ describe('VentaService', () => {
         id_venta: 21,
         id_lote: 2,
         cantidad: 2,
-        id_promocion: 4,
         precio_regular: '7.50',
         precio_unitario: '6.00',
         costo_unitario: '4.10',
@@ -738,7 +734,14 @@ describe('VentaService', () => {
       expect(VentaDAO.consumirReservaPagoPOS).toHaveBeenCalledTimes(2);
       expect(VentaDAO.descontarStock).not.toHaveBeenCalled();
       expect(VentaDAO.crearDetalle).toHaveBeenCalledWith(
-        { id_venta: 22, ...detallesPagoGuardados[0] },
+        {
+          id_venta: 22,
+          id_lote: detallesPagoGuardados[0].id_lote,
+          cantidad: detallesPagoGuardados[0].cantidad,
+          precio_regular: detallesPagoGuardados[0].precio_regular,
+          precio_unitario: detallesPagoGuardados[0].precio_unitario,
+          costo_unitario: detallesPagoGuardados[0].costo_unitario,
+        },
         {},
       );
       expect(VentaDAO.actualizarPagoPOS).toHaveBeenCalledWith({
@@ -1308,7 +1311,7 @@ describe('VentaService', () => {
         detalles: [{ id_lote: 1, cantidad: 2 }, { id_lote: 3, cantidad: 1 }],
       }, usuarioDependiente);
 
-      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([5], 1, {});
+      expect(PromocionDAO.obtenerVigentesParaVenta).toHaveBeenCalledWith([5], 1, {}, null);
       expect(VentaDAO.crearVenta).toHaveBeenCalledWith(
         expect.objectContaining({ total: '25.00', monto_recibido: '30.00', cambio: '5.00' }),
         {},

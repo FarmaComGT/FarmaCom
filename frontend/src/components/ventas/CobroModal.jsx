@@ -224,9 +224,11 @@ export default function CobroModal({
                 <li key={item.clave}>
                   <div>
                     <strong>{item.nombre_comercial}</strong>
-                    <span>{item.cantidad} × {formatearQuetzales(item.precioAplicado ?? item.precioUnitario)}</span>
+                    <span>{item.cantidadPromocion > 0 && item.cantidadNormal > 0
+                      ? `${item.cantidadPromocion} × ${formatearQuetzales(item.promocion.precio_promocion)} + ${item.cantidadNormal} × ${formatearQuetzales(item.precioUnitario)}`
+                      : <>{item.cantidad} × {formatearQuetzales(item.precioAplicado ?? item.precioUnitario)}</>}</span>
                   </div>
-                  <strong>{formatearQuetzales((item.precioAplicado ?? item.precioUnitario) * item.cantidad)}</strong>
+                  <strong>{formatearQuetzales(item.subtotalItem ?? (item.precioAplicado ?? item.precioUnitario) * item.cantidad)}</strong>
                 </li>
               ))}
             </ul>

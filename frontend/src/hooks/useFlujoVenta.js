@@ -25,19 +25,17 @@ export const construirPayloadVenta = ({
     }
     return { id_lote: idLote, cantidad };
   });
-  return {
-    id_sucursal: Number(sucursalId),
-    id_sesion_caja: Number(sesionCajaId),
-    id_cliente: clienteId ?? null,
-    detalles,
-  };
+  const total = items.every((item) => Number.isFinite(item.subtotalItem))
+    ? { total_esperado: (items.reduce((suma, item) => suma + Math.round(item.subtotalItem * 100), 0) / 100).toFixed(2) } : {};
+  return { id_sucursal: Number(sucursalId), id_sesion_caja: Number(sesionCajaId), id_cliente: clienteId ?? null, detalles, ...total };
 };
 
 export const crearClaveIdempotencia = () => globalThis.crypto.randomUUID();
 
 export default function useFlujoVenta({
   items, sucursalId, sesionCajaId, clienteId, carritoId, pagosPOSAbiertos = [],
-  vaciarCarrito, refrescarCatalogo, onRecuperarCarrito, onAviso, onExito, onError,
+  vaciarCarrito, refrescarCatalogo, actualizarCotizacion, onRecuperarCarrito,
+  onAviso, onExito, onError,
 }) {
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [modalActivo, setModalActivo] = useState(null);
@@ -101,9 +99,20 @@ export default function useFlujoVenta({
       });
       if (!pago?.external_id) throw new Error('No se pudo iniciar el pago. Inténtalo de nuevo.');
       setPagoPOS(pago);
-    } catch (error) { (onError || setErrorCobro)(error.message || 'No se pudo enviar el cobro al POS.'); }
+    } catch (error) {
+      if (error.cotizacion) { actualizarCotizacion?.(error.cotizacion.lotes); setErrorCobro(error.message); }
+      else (onError || setErrorCobro)(error.message || 'No se pudo enviar el cobro al POS.');
+    }
     finally { setProcesandoCobro(false); }
-  }, [carritoId, metodoPago, pagoPOS, payloadBase, procesandoCobro, onError]);
+  }, [
+    actualizarCotizacion,
+    carritoId,
+    metodoPago,
+    onError,
+    pagoPOS,
+    payloadBase,
+    procesandoCobro,
+  ]);
   const confirmarCobro = useCallback(async ({ montoRecibido } = {}) => {
     if (metodoPago !== 'efectivo') { setErrorCobro('Los pagos con tarjeta deben confirmarse desde el POS.'); return; }
     setErrorCobro(null); setProcesandoCobro(true);
@@ -117,9 +126,19 @@ export default function useFlujoVenta({
       const venta = await crearVenta(payload, intentoEfectivo.current.clave);
       intentoEfectivo.current = null;
       completarVenta(venta);
-    } catch (error) { (onError || setErrorCobro)(error.message || 'No se pudo registrar la venta.'); }
+    } catch (error) {
+      if (error.cotizacion) { actualizarCotizacion?.(error.cotizacion.lotes); setErrorCobro(error.message); }
+      else (onError || setErrorCobro)(error.message || 'No se pudo registrar la venta.');
+    }
     finally { setProcesandoCobro(false); }
-  }, [carritoId, completarVenta, metodoPago, payloadBase, onError]);
+  }, [
+    actualizarCotizacion,
+    carritoId,
+    completarVenta,
+    metodoPago,
+    onError,
+    payloadBase,
+  ]);
 
   const conciliarVentaPOS = useCallback(async () => {
     if (procesandoCobro || pagoPOS?.estado !== 'incidencia' || !pagoPOS.external_id) return;

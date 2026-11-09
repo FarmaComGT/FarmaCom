@@ -55,11 +55,15 @@ describe('InventarioProductosTable', () => {
     expect(screen.getByText('2')).toBeInTheDocument();
 
     await usuario.click(screen.getByLabelText('Acciones de Paracetamol'));
+    expect(screen.getByRole('link', { name: 'Ver producto…' })).toHaveAttribute('href', '/?producto=1');
     await usuario.click(screen.getByRole('button', { name: 'Editar Paracetamol' }));
     expect(props.onEditar).toHaveBeenCalledExactlyOnceWith(producto);
 
     await usuario.click(screen.getByLabelText('Acciones de Paracetamol'));
     await usuario.click(screen.getByRole('button', { name: 'Desactivar Paracetamol' }));
+    expect(props.onCambiarEstado).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Desactivar producto' })).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: 'Desactivar', exact: true }));
     expect(props.onCambiarEstado).toHaveBeenCalledExactlyOnceWith(producto);
 
     await usuario.click(screen.getByLabelText('Acciones de Paracetamol'));
@@ -76,6 +80,32 @@ describe('InventarioProductosTable', () => {
     expect(screen.queryByText('Paracetamol')).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.queryByText('No hay productos que coincidan con los filtros.')).not.toBeInTheDocument();
+  });
+
+  it('cancela sin desactivar y devuelve el foco al menú', async () => {
+    const usuario = userEvent.setup();
+    render(<InventarioProductosTable {...props} />);
+    await usuario.click(screen.getByLabelText('Acciones de Paracetamol'));
+    await usuario.click(screen.getByRole('button', { name: 'Desactivar Paracetamol' }));
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toHaveFocus();
+    await usuario.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(props.onCambiarEstado).not.toHaveBeenCalled();
+    expect(window.confirm).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Acciones de Paracetamol')).toHaveFocus();
+  });
+
+  it('conserva la confirmación tras un error y permite reintentar', async () => {
+    props.onCambiarEstado.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    const usuario = userEvent.setup();
+    render(<InventarioProductosTable {...props} />);
+    await usuario.click(screen.getByLabelText('Acciones de Paracetamol'));
+    await usuario.click(screen.getByRole('button', { name: 'Desactivar Paracetamol' }));
+    await usuario.click(screen.getByRole('button', { name: 'Desactivar', exact: true }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo desactivar');
+    await usuario.click(screen.getByRole('button', { name: 'Desactivar', exact: true }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(props.onCambiarEstado).toHaveBeenCalledTimes(2);
   });
 
   it('muestra un mensaje cuando no hay productos', () => {

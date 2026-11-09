@@ -9,6 +9,22 @@ const wrapperPersistente = ({ children }) => (
 
 describe('CarritoContext', () => {
   beforeEach(() => window.localStorage.clear());
+
+  it('reparte un cupo compartido entre lotes sin excederlo y actualiza una cotización vencida', () => {
+    const { result } = renderHook(() => useCarrito(), { wrapper });
+    const promocion = { id_promocion: 7, cantidad_minima: 6, precio_promocion: 8.01, cantidad_disponible: 3 };
+    act(() => {
+      result.current.agregarAlCarrito({ id_lote: 9, id_producto: 5, precio_venta: 10.01, promocion }, { cantidad: 4 });
+      result.current.agregarAlCarrito({ id_lote: 2, id_producto: 5, precio_venta: 11, promocion }, { cantidad: 2 });
+    });
+    expect(result.current.total).toBe(54.06);
+    expect(result.current.items.map((i) => i.cantidadPromocion)).toEqual([1, 2]);
+    act(() => result.current.actualizarCotizacion([
+      { id_lote: 9, precio_venta: 10.01, promocion: null }, { id_lote: 2, precio_venta: 11, promocion: null },
+    ]));
+    expect(result.current.total).toBe(62.04);
+    expect(result.current.items.every((i) => !i.promocionAplicada)).toBe(true);
+  });
   it('lanza un error si se usa fuera del provider', () => {
     const { result } = renderHook(() => {
       try {

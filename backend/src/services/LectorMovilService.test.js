@@ -13,6 +13,17 @@ describe('Lector móvil: capacidades limitadas y efímeras', () => {
     return { pc, movil };
   };
 
+  it('permite vincular y recibir códigos en el selector de promociones', () => {
+    const pc = almacen.crear(usuario, 'promocion');
+    const movil = almacen.conectar(pc.id, pc.token);
+    almacen.confirmar(pc.id, usuario);
+    const contexto = randomUUID();
+    almacen.pulso(pc.id, usuario, true, contexto, 'promocion');
+    const lectura = randomUUID();
+    almacen.enviar(pc.id, movil.token, lectura, '000123', contexto);
+    expect(almacen.pulso(pc.id, usuario, true, contexto, 'promocion')).toMatchObject({ destino: 'promocion', lectura: { id: lectura, codigo: '000123' } });
+  });
+
   it('usa una credencial diferente tras consumir el enlace y exige confirmación del propietario', () => {
     const { pc, movil } = vincular();
     expect(movil.token).not.toBe(pc.token);

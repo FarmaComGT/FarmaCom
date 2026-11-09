@@ -152,6 +152,15 @@ describe('LoteService', () => {
       );
     });
 
+    it('genera números internos distintos al omitir el número de lote', async () => {
+      const { numero_lote, ...datos } = datosLoteBase;
+      await LoteService.crearLote(datos, idUsuario);
+      await LoteService.crearLote(datos, idUsuario);
+      const numeros = LoteDAO.crear.mock.calls.map(([lote]) => lote.numero_lote);
+      expect(numeros[0]).toMatch(/^LT-[0-9A-F-]{36}$/);
+      expect(numeros[1]).not.toBe(numeros[0]);
+    });
+
     it('rechaza la creación sin un usuario válido', async () => {
       await expect(
         LoteService.crearLote(datosLoteBase, null),

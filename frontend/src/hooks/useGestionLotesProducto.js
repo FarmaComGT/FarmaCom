@@ -40,8 +40,8 @@ export default function useGestionLotesProducto({
         await actualizarLote(loteEditando.id_lote, payload);
         onExito?.(`Lote ${payload.numero_lote || loteEditando.numero_lote} actualizado correctamente.`);
       } else {
-        await crearLote(payload);
-        onExito?.(`Lote ${payload.numero_lote} creado correctamente.`);
+        const creado = await crearLote(payload);
+        onExito?.(`Lote ${creado?.numero_lote || payload.numero_lote || 'nuevo'} creado correctamente.`);
       }
       await Promise.resolve().then(() => onCambio?.()).catch(() => onError?.('La operación se completó, pero no se pudo actualizar el inventario. Actualiza la vista.'));
       setMostrarFormulario(false);
