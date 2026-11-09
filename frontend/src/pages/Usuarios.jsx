@@ -246,9 +246,6 @@ export default function Usuarios() {
       </header>
 
       <UsuarioStatsGrid
-        totalUsuarios={estadoSeleccionado === 'todos' ? paginacion?.total : null}
-        totalActivos={estadoSeleccionado === 'activo' ? paginacion?.total : null}
-        totalInactivos={estadoSeleccionado === 'inactivo' ? paginacion?.total : null}
         estadoSeleccionado={estadoSeleccionado}
         onSeleccionarEstado={actualizarEstado}
       />

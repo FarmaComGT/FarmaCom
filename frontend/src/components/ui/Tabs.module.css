@@ -1,0 +1,44 @@
+.lista {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  gap: 4px;
+  overflow-x: auto;
+  margin-bottom: 20px;
+  padding: 4px;
+  border: 1px solid var(--ui-line);
+  border-radius: 9px;
+  background: #f5f7f6;
+  scrollbar-width: thin;
+}
+
+.pestana {
+  position: relative;
+  display: inline-flex;
+  min-height: 44px;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  color: var(--ui-muted);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 140ms ease;
+}
+
+.pestana:hover { color: var(--ui-accent); }
+
+.pestana.activa { color: var(--ui-ink); font-weight: 600; }
+
+.etiqueta { position: relative; z-index: 1; }
+
+.pildora {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: 1px solid #d5e1da;
+  border-radius: 6px;
+  background: #fff;
+}

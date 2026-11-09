@@ -10,6 +10,7 @@ import ProveedorEstadoModal from '../../components/inventario/proveedores/Provee
 import useProveedores from '../../hooks/useProveedores';
 import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
 import Paginacion from '../../components/ui/Paginacion.jsx';
+import { TabsList, TabButton } from '../../components/ui/Tabs.jsx';
 import { ejecutarTransicionDeVista } from '../../utils/viewTransition';
 import styles from '../../styles/ManagementUI.module.css';
 
@@ -156,17 +157,15 @@ export default function Proveedores() {
         </div>
       </header>
 
-      <div className={styles.quickFilters} aria-label="Filtrar proveedores por estado">
+      <TabsList ariaLabel="Filtrar proveedores por estado">
         {[
           ['todos', 'Todos'],
           ['activo', 'Activos'],
           ['inactivo', 'Inactivos'],
         ].map(([valor, etiqueta]) => (
-          <button key={valor} type="button" className={styles.quickFilter} aria-pressed={estadoSeleccionado === valor} onClick={() => actualizarEstado(valor)}>
-            <span>{etiqueta}</span>
-          </button>
+          <TabButton key={valor} active={estadoSeleccionado === valor} onClick={() => actualizarEstado(valor)}>{etiqueta}</TabButton>
         ))}
-      </div>
+      </TabsList>
 
       <ProveedorActionBar busqueda={busqueda} onBusquedaChange={(evento) => actualizarParametro('q', evento.target.value)} onCrear={abrirModalCrear} />
       <p className={styles.resultCount} aria-live="polite"><strong>{paginacion?.total ?? 0}</strong> proveedores encontrados</p>

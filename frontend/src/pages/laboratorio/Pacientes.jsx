@@ -1,6 +1,6 @@
 import useScrollListado from '../../hooks/useScrollListado';
 import { useToast } from '../../context/ToastContext.jsx';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import useLaboratorios from '../../hooks/useLaboratorios';
@@ -43,7 +43,6 @@ export default function Pacientes() {
   const {
     pacientes,
     paginacion,
-    resumenEstados,
     cargando,
     error,
     crear,
@@ -88,11 +87,6 @@ export default function Pacientes() {
     setMostrarModalAlmacenamiento(!carpetaConfigurada || !permisoOk);
   }, [cargandoAlmacenamiento, almacenamientoSoportado, carpetaConfigurada, permisoOk]);
 
-
-  const totalPacientes = useMemo(
-    () => resumenEstados.activos + resumenEstados.anulados,
-    [resumenEstados],
-  );
 
   const actualizarParametros = (cambios) => {
     const normalizados = Object.fromEntries(Object.entries(cambios).map(([clave, valor]) => (
@@ -219,9 +213,6 @@ export default function Pacientes() {
       </header>
 
       <PacienteStatsGrid
-        totalPacientes={totalPacientes}
-        totalActivos={resumenEstados.activos}
-        totalAnulados={resumenEstados.anulados}
         estadoSeleccionado={estadoSeleccionado}
         onSeleccionarEstado={seleccionarEstado}
       />
