@@ -1,7 +1,6 @@
 import React from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { navegarConTransicionDeVista } from '../../../utils/viewTransition';
-import ui from '../../../styles/ManagementUI.module.css';
+import { useLocation } from 'react-router-dom';
+import { TabsList, TabLink } from '../../ui/Tabs.jsx';
 
 const pestanas = [
   { ruta: '/ventas/historial', etiqueta: 'Ventas', fin: true },
@@ -9,30 +8,13 @@ const pestanas = [
 ];
 
 export default function HistorialVentasNav() {
-  const navigate = useNavigate();
-  const { pathname, search } = useLocation();
-
-  const navegarConTransicion = (event, ruta) => {
-    navegarConTransicionDeVista({
-      event,
-      navigate,
-      destino: `${ruta}${search}`,
-      rutaActual: `${pathname}${search}`,
-    });
-  };
+  const { search } = useLocation();
 
   return (
-    <nav aria-label="Vistas del historial de ventas" className={ui.subnav}>
+    <TabsList as="nav" ariaLabel="Vistas del historial de ventas">
       {pestanas.map(({ ruta, etiqueta, fin }) => (
-        <NavLink
-          key={ruta}
-          to={`${ruta}${search}`}
-          end={fin}
-          onClick={(event) => navegarConTransicion(event, ruta)}
-        >
-          {etiqueta}
-        </NavLink>
+        <TabLink key={ruta} to={`${ruta}${search}`} end={fin}>{etiqueta}</TabLink>
       ))}
-    </nav>
+    </TabsList>
   );
 }
