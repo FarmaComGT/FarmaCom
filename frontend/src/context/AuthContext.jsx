@@ -124,3 +124,13 @@ export function useAuth() {
     dispatch: context.dispatch,
   };
 }
+
+export function useAuthOpcional() {
+  const context = useContext(AuthContext);
+  if (!context) return null;
+  return {
+    usuario: context.state.usuario,
+    sucursalActivaId: context.state.sucursalActivaId,
+    status: context.state.status,
+  };
+}
