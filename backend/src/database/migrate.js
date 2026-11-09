@@ -11,9 +11,11 @@ const DIRECTORIO_PREDETERMINADO = path.join(__dirname, 'migrations', 'versioned'
 const PATRON_MIGRACION = /^\d{3}_[a-z0-9_]+\.sql$/;
 const CLAVE_BLOQUEO = 'farmacom_migraciones';
 
+// Git conserva las migraciones con LF, pero una copia creada desde Windows
+// puede contener CRLF. El SQL es idéntico y debe producir el mismo checksum.
 const calcularChecksum = (contenido) => crypto
   .createHash('sha256')
-  .update(contenido, 'utf8')
+  .update(contenido.replace(/\r\n?/g, '\n'), 'utf8')
   .digest('hex');
 
 const obtenerMigraciones = async (directorio = DIRECTORIO_PREDETERMINADO) => {

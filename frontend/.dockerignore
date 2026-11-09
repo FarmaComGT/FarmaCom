@@ -4,3 +4,6 @@ npm-debug.log
 .git
 .gitignore
 Dockerfile
+Dockerfile.production
+dist
+coverage

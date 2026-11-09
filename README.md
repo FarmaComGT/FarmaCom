@@ -207,6 +207,50 @@ docker compose down -v
 
 ## Comandos útiles
 
+### Despliegue de producción en farmacom.website
+
+El servidor usa Nginx como único proxy HTTPS. La aplicación se ejecuta con el
+archivo de Compose de producción, que deja PostgreSQL sin publicar y enlaza el
+backend y el frontend únicamente a la interfaz local del servidor:
+
+```bash
+cp .env.production.example .env
+# Completar contraseñas y secretos antes de continuar.
+docker compose -f docker-compose.production.yml config
+docker compose -f docker-compose.production.yml up -d --build --remove-orphans
+```
+
+Las variables mínimas específicas del entorno son:
+
+```env
+NODE_ENV=production
+FRONTEND_URL=https://farmacom.website
+TRUST_PROXY_HOPS=1
+VITE_API_URL=/api
+VITE_LECTOR_TUNEL_PRIVADO=false
+```
+
+`VITE_API_URL` y `VITE_LECTOR_TUNEL_PRIVADO` se aplican al ejecutar el build del
+frontend. Después de modificarlas es obligatorio reconstruir su imagen. Nginx
+del host debe conservar `/api` al reenviar al puerto local `3000`, enviar el
+resto al puerto local `5173` y establecer `X-Forwarded-Proto $scheme`. El
+frontend usa un fallback a `index.html`, por lo que `/lector-movil` y las demás
+rutas de React se pueden abrir directamente.
+
+Sólo debe ejecutarse una instancia de `backend`: las sesiones del lector móvil
+se guardan en memoria y se pierden al reiniciar ese contenedor.
+
+Comprobaciones posteriores al despliegue:
+
+```bash
+curl --fail https://farmacom.website/api/health
+curl --fail https://farmacom.website/lector-movil
+docker compose -f docker-compose.production.yml ps
+```
+
+Después se debe validar manualmente el flujo completo: iniciar sesión, pulsar
+“Usar celular”, escanear el QR, comparar el código y confirmar el teléfono.
+
 ```bash
 # Ver logs de un servicio específico
 docker compose logs -f backend
