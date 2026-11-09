@@ -6,6 +6,8 @@ import { Plus, PackagePlus } from 'lucide-react';
 import './Inventario.css';
 import Paginacion from '../../components/ui/Paginacion.jsx';
 import ProductoFormModal from '../../components/inventario/productos/ProductoFormModal.jsx';
+import ProductoDetalleModal from '../../components/inventario/productos/ProductoDetalleModal.jsx';
+import { destinoLotes } from '../../utils/navegacionInventario.js';
 import HistorialPrecioProductoModal from '../../components/inventario/productos/HistorialPrecioProductoModal.jsx';
 import LoteFormModal from '../../components/inventario/stock/LoteFormModal.jsx';
 import InventarioFiltros from '../../components/inventario/unificado/InventarioFiltros.jsx';
@@ -229,6 +231,16 @@ export default function Inventario() {
         onEliminarPresentacion={eliminarPresentacion}
         puedeGestionarPresentaciones={['dueno', 'administrador'].includes(usuario?.rol)}
         puedeEliminarPresentaciones={usuario?.rol === 'dueno'}
+      />
+
+      <ProductoDetalleModal
+        idProducto={params.get('producto')}
+        destinoLotes={destinoLotes(params.get('producto'), location.search, sucursalId)}
+        onClose={() => setParams((actuales) => {
+          const siguientes = new URLSearchParams(actuales);
+          siguientes.delete('producto');
+          return siguientes;
+        })}
       />
 
       <LoteFormModal

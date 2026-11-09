@@ -7,6 +7,16 @@ const UMBRAL_TRIGRAMAS_BUSQUEDA = '0.1';
 
 class ProductoDAO {
 
+  async buscarParaSeleccion(busqueda, limite = 10) {
+    const patron = busqueda;
+    const { rows } = await pool.query(`SELECT p.id_producto, p.codigo, p.codigo_barras, p.nombre_comercial,
+      p.nombre_generico, p.concentracion, pre.nombre AS presentacion
+      FROM producto p JOIN presentacion pre USING (id_presentacion)
+      WHERE p.activo AND (p.codigo_barras = $1 OR normalizar_texto_busqueda(p.nombre_comercial) LIKE ('%' || normalizar_texto_busqueda($1) || '%') OR normalizar_texto_busqueda(p.codigo) LIKE ('%' || normalizar_texto_busqueda($1) || '%') OR normalizar_texto_busqueda(p.nombre_generico) LIKE ('%' || normalizar_texto_busqueda($1) || '%'))
+      ORDER BY CASE WHEN p.codigo_barras = $1 OR p.codigo = $1 THEN 0 ELSE 1 END, p.nombre_comercial, p.id_producto LIMIT $2`, [patron, limite]);
+    return rows;
+  }
+
   async ejecutarEnTransaccion(operacion) {
     const client = await pool.connect();
     try {
@@ -66,23 +76,26 @@ class ProductoDAO {
       SELECT p.id_producto, p.codigo, p.codigo_barras, p.nombre_comercial,
         p.nombre_generico, p.concentracion, p.aplica_mayoreo,
         pre.nombre AS presentacion, l.id_lote, l.numero_lote, l.fecha_vencimiento,
-        l.stock_actual AS stock_disponible, l.precio_venta, l.precio_mayoreo,
+        (l.stock_actual - l.stock_reservado) AS stock_disponible,
+        l.precio_venta, l.precio_mayoreo,
         l.cantidad_mayoreo, l.estado_stock, l.estado_vencimiento,
         promocion.id_promocion, promocion.cantidad_minima AS promocion_cantidad_minima,
         promocion.precio_promocion, promocion.fecha_inicio AS promocion_fecha_inicio,
-        promocion.fecha_fin AS promocion_fecha_fin
+        promocion.fecha_fin AS promocion_fecha_fin, promocion.cantidad_maxima AS promocion_cantidad_maxima,
+        promocion.cantidad_disponible AS promocion_cantidad_disponible
       FROM producto p
       JOIN presentacion pre ON pre.id_presentacion = p.id_presentacion
       JOIN v_lote_estado l ON l.id_producto = p.id_producto
       LEFT JOIN LATERAL (
-        SELECT pr.* FROM promocion pr
+        SELECT pr.* FROM v_promocion_cupo pr
         WHERE pr.id_producto = p.id_producto AND pr.id_sucursal = $2
-          AND pr.activo = TRUE AND CURRENT_DATE BETWEEN pr.fecha_inicio AND pr.fecha_fin
+          AND pr.activo = TRUE AND CURRENT_DATE >= pr.fecha_inicio AND (pr.fecha_fin IS NULL OR CURRENT_DATE <= pr.fecha_fin)
           AND pr.precio_promocion < l.precio_venta
+          AND (pr.cantidad_disponible IS NULL OR pr.cantidad_disponible > 0)
         ORDER BY pr.precio_promocion, pr.id_promocion LIMIT 1
       ) promocion ON TRUE
       WHERE p.id_producto = $1 AND p.activo = TRUE AND l.id_sucursal = $2
-        AND l.stock_actual > 0 AND l.precio_venta > 0
+        AND (l.stock_actual - l.stock_reservado) > 0 AND l.precio_venta > 0
         AND (l.fecha_vencimiento IS NULL OR l.fecha_vencimiento >= CURRENT_DATE)
       ORDER BY l.numero_lote, l.id_lote
     `, [idProducto, idSucursal]);
@@ -167,7 +180,7 @@ class ProductoDAO {
             FROM lote l
             WHERE l.id_producto = p.id_producto
               AND l.id_sucursal = $2
-              AND l.stock_actual > 0
+              AND (l.stock_actual - l.stock_reservado) > 0
               AND l.precio_venta > 0
               AND (
                 l.fecha_vencimiento IS NULL
@@ -200,7 +213,7 @@ class ProductoDAO {
         p.presentacion,
         lote_pos.numero_lote,
         lote_pos.fecha_vencimiento,
-        lote_pos.stock_actual AS stock_disponible,
+        (lote_pos.stock_actual - lote_pos.stock_reservado) AS stock_disponible,
         lote_pos.precio_venta,
         lote_pos.estado_stock,
         lote_pos.estado_vencimiento,
@@ -212,13 +225,15 @@ class ProductoDAO {
         promocion.precio_promocion,
         promocion.fecha_inicio AS promocion_fecha_inicio,
         promocion.fecha_fin AS promocion_fecha_fin,
+        promocion.cantidad_maxima AS promocion_cantidad_maxima,
+        promocion.cantidad_disponible AS promocion_cantidad_disponible,
         p.relevancia,
         p.tipo_coincidencia
       FROM productos_limitados p
       JOIN v_lote_estado lote_pos
         ON lote_pos.id_producto = p.id_producto
        AND lote_pos.id_sucursal = $2
-       AND lote_pos.stock_actual > 0
+       AND (lote_pos.stock_actual - lote_pos.stock_reservado) > 0
        AND lote_pos.precio_venta > 0
        AND (
          lote_pos.fecha_vencimiento IS NULL
@@ -230,13 +245,14 @@ class ProductoDAO {
           pr.cantidad_minima,
           pr.precio_promocion,
           pr.fecha_inicio,
-          pr.fecha_fin
-        FROM promocion pr
+          pr.fecha_fin, pr.cantidad_maxima, pr.cantidad_disponible
+        FROM v_promocion_cupo pr
         WHERE pr.id_producto = p.id_producto
           AND pr.id_sucursal = $2
           AND pr.activo = TRUE
-          AND CURRENT_DATE BETWEEN pr.fecha_inicio AND pr.fecha_fin
+          AND CURRENT_DATE >= pr.fecha_inicio AND (pr.fecha_fin IS NULL OR CURRENT_DATE <= pr.fecha_fin)
           AND pr.precio_promocion < lote_pos.precio_venta
+          AND (pr.cantidad_disponible IS NULL OR pr.cantidad_disponible > 0)
         ORDER BY pr.precio_promocion, pr.id_promocion
         LIMIT 1
       ) promocion ON TRUE

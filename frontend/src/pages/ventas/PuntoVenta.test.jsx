@@ -451,7 +451,7 @@ describe('PuntoVenta', () => {
         metodo_pago: 'efectivo',
         monto_recibido: 20,
         detalles: [{ id_lote: 1, cantidad: 2 }],
-      });
+      }, expect.any(String));
     });
 
     expect(vaciarCarrito).toHaveBeenCalled();
@@ -487,7 +487,7 @@ describe('PuntoVenta', () => {
           { id_lote: 1, cantidad: 2 },
           { id_lote: 3, cantidad: 4 },
         ],
-      }));
+      }), expect.any(String));
     });
   });
 
@@ -510,6 +510,7 @@ describe('PuntoVenta', () => {
         id_sucursal: 1,
         id_sesion_caja: 9,
         id_cliente: null,
+        carrito_origen_id: 'carrito-1',
         detalles: [{ id_lote: 1, cantidad: 2 }],
       });
     });

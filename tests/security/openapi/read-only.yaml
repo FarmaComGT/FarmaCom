@@ -47,6 +47,10 @@ paths:
     $ref: './paths/productos.yaml#/coleccion'
   /api/productos/autocompletar:
     $ref: './paths/productos.yaml#/autocompletar'
+  /api/productos/seleccion:
+    $ref: './paths/productos.yaml#/seleccionPromocion'
+  /api/productos/seleccion/lectura:
+    $ref: './paths/productos.yaml#/lecturaSeleccionPromocion'
   /api/productos/lectura:
     $ref: './paths/productos.yaml#/lectura'
   /api/productos/{id}:
@@ -55,6 +59,10 @@ paths:
     $ref: './paths/productos.yaml#/historialPrecios'
   /api/productos/{id_producto}/promociones:
     $ref: './paths/productos.yaml#/promociones'
+  /api/productos/{id_producto}/promociones/referencia:
+    $ref: './paths/productos.yaml#/referenciaPromocion'
+  /api/promociones:
+    $ref: './paths/productos.yaml#/promocionesGenerales'
   /api/promociones/{id}:
     $ref: './paths/productos.yaml#/promocionPorId'
   /api/sucursales/{id_sucursal}/inventario:

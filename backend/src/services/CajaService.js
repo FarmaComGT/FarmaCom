@@ -139,7 +139,10 @@ const obtenerSesionActual = async (id_caja, usuario) => {
   const sesion = await CajaDAO.obtenerSesionAbiertaPorCaja(id_caja);
   if (!sesion) lanzarError('La caja no tiene una sesión abierta', 404);
   validarPertenenciaSesionCaja(usuario, sesion);
-  return sesion;
+  const pagosPOSAbiertos = await CajaDAO.obtenerPagosPOSAbiertosSesion(
+    sesion.id_sesion_caja,
+  );
+  return { ...sesion, pagos_pos_abiertos: pagosPOSAbiertos };
 };
 
 const registrarMovimiento = async (

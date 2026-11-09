@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const {
   body,
+  header,
   param,
   query,
 } = require('express-validator');
@@ -25,6 +26,8 @@ const validarId = [
 ];
 
 const validarDatosVenta = [
+  body('total_esperado').optional().custom(esMontoValido)
+    .withMessage('El total esperado debe ser un monto válido').toFloat(),
   body('id_sucursal')
     .isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo')
     .toInt(),
@@ -47,6 +50,10 @@ const validarDatosVenta = [
 
 const validarCreacion = [
   ...validarDatosVenta,
+  header('Idempotency-Key')
+    .exists({ checkFalsy: true }).withMessage('Idempotency-Key es requerido')
+    .bail()
+    .isUUID(4).withMessage('Idempotency-Key debe ser un UUID v4'),
   body('metodo_pago')
     .equals('efectivo').withMessage('metodo_pago debe ser efectivo'),
   body('monto_recibido')
@@ -63,6 +70,11 @@ const validarCreacion = [
 
 const validarPagoPOS = [
   ...validarDatosVenta,
+  body('carrito_origen_id')
+    .optional({ nullable: true })
+    .trim()
+    .notEmpty().withMessage('carrito_origen_id no puede estar vacío')
+    .isLength({ max: 120 }).withMessage('carrito_origen_id no puede superar 120 caracteres'),
 ];
 
 const validarExternalId = [
@@ -133,6 +145,15 @@ router.get(
   validarExternalId,
   validateRequest,
   VentaController.obtenerEstadoPagoPOS,
+);
+
+router.post(
+  '/tarjeta/pos/:externalId/conciliar',
+  verificarToken,
+  rolesVenta,
+  validarExternalId,
+  validateRequest,
+  VentaController.conciliarPagoPOS,
 );
 
 router.post(

@@ -14,8 +14,7 @@ const campoParaError = (error) => {
     ['fecha de vencimiento', 'fecha_vencimiento_lote'],
     ['cantidad ingresada', 'cantidad_ingresada_lote'],
     ['precio de compra', 'precio_compra_lote'], ['precio de venta', 'precio_venta_lote'],
-    ['margen', 'margen_ganancia_lote'], ['precio de mayoreo', 'precio_mayoreo_lote'],
-    ['cantidad de mayoreo', 'cantidad_mayoreo_lote'],
+    ['margen', 'margen_ganancia_lote'],
   ];
   return campos.find(([texto]) => error?.toLocaleLowerCase('es').includes(texto))?.[1];
 };

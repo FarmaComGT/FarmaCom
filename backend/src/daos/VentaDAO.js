@@ -17,6 +17,18 @@ class VentaDAO {
     }
   }
 
+  async crearPuntoRestauracionVentaPOS(client) {
+    await client.query('SAVEPOINT completar_venta_pos');
+  }
+
+  async restaurarPuntoVentaPOS(client) {
+    await client.query('ROLLBACK TO SAVEPOINT completar_venta_pos');
+  }
+
+  async liberarPuntoRestauracionVentaPOS(client) {
+    await client.query('RELEASE SAVEPOINT completar_venta_pos');
+  }
+
   async obtenerLotesParaVenta(idsLote, client) {
     const { rows } = await client.query(
       `SELECT
@@ -24,6 +36,8 @@ class VentaDAO {
          l.id_producto,
          l.id_sucursal,
          l.stock_actual,
+         l.stock_reservado,
+         (l.stock_actual - l.stock_reservado) AS stock_disponible,
          l.precio_venta,
          l.precio_compra,
          l.fecha_vencimiento,
@@ -48,6 +62,23 @@ class VentaDAO {
     return rows[0] || null;
   }
 
+  async bloquearClaveIdempotencia(clave_idempotencia, client) {
+    await client.query(
+      'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+      [clave_idempotencia],
+    );
+  }
+
+  async obtenerVentaPorClaveIdempotencia(clave_idempotencia, client = pool) {
+    const { rows } = await client.query(
+      `SELECT id_venta, id_usuario, id_sucursal, huella_idempotencia
+       FROM venta
+       WHERE clave_idempotencia = $1`,
+      [clave_idempotencia],
+    );
+    return rows[0] || null;
+  }
+
   async crearVenta({
     id_sucursal,
     id_usuario,
@@ -59,6 +90,8 @@ class VentaDAO {
     estado_pago,
     autorizacion_pago,
     tarjeta_ultimos4,
+    clave_idempotencia,
+    huella_idempotencia,
     total,
     monto_recibido,
     cambio,
@@ -75,11 +108,13 @@ class VentaDAO {
          estado_pago,
          autorizacion_pago,
          tarjeta_ultimos4,
+         clave_idempotencia,
+         huella_idempotencia,
          total,
          monto_recibido,
          cambio
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING *`,
       [
         id_sucursal,
@@ -92,6 +127,8 @@ class VentaDAO {
         estado_pago,
         autorizacion_pago,
         tarjeta_ultimos4,
+        clave_idempotencia ?? null,
+        huella_idempotencia ?? null,
         total,
         monto_recibido,
         cambio,
@@ -106,6 +143,7 @@ class VentaDAO {
     id_usuario,
     id_sesion_caja,
     id_cliente,
+    carrito_origen_id,
     terminal_id,
     total,
     detalles,
@@ -117,11 +155,12 @@ class VentaDAO {
          id_usuario,
          id_sesion_caja,
          id_cliente,
+         carrito_origen_id,
          terminal_id,
          total,
          detalles
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
        RETURNING *`,
       [
         external_id,
@@ -129,12 +168,89 @@ class VentaDAO {
         id_usuario,
         id_sesion_caja,
         id_cliente ?? null,
+        carrito_origen_id ?? null,
         terminal_id,
         total,
         JSON.stringify(detalles),
       ],
     );
     return rows[0];
+  }
+
+  async reservarStockPagoPOS(id_pago_pos, { id_lote, cantidad }, client) {
+    const { rows: lotes } = await client.query(
+      `UPDATE lote
+       SET stock_reservado = stock_reservado + $1,
+           version = version + 1
+       WHERE id_lote = $2
+         AND (stock_actual - stock_reservado) >= $1
+       RETURNING id_lote, stock_actual, stock_reservado`,
+      [cantidad, id_lote],
+    );
+    if (!lotes[0]) return null;
+
+    const { rows } = await client.query(
+      `INSERT INTO reserva_inventario_pago (id_pago_pos, id_lote, cantidad)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [id_pago_pos, id_lote, cantidad],
+    );
+    return rows[0];
+  }
+
+  async obtenerReservasActivasPagoPOS(id_pago_pos, client) {
+    const { rows } = await client.query(
+      `SELECT *
+       FROM reserva_inventario_pago
+       WHERE id_pago_pos = $1 AND estado = 'reservada'
+       ORDER BY id_lote
+       FOR UPDATE`,
+      [id_pago_pos],
+    );
+    return rows;
+  }
+
+  async consumirReservaPagoPOS({ id_reserva, id_lote, cantidad }, client) {
+    const { rows: reservas } = await client.query(
+      `UPDATE reserva_inventario_pago
+       SET estado = 'consumida', actualizado_en = CURRENT_TIMESTAMP
+       WHERE id_reserva = $1 AND estado = 'reservada'
+       RETURNING id_reserva`,
+      [id_reserva],
+    );
+    if (!reservas[0]) return null;
+    const { rows } = await client.query(
+      `UPDATE lote
+       SET stock_actual = stock_actual - $1,
+           stock_reservado = stock_reservado - $1,
+           version = version + 1
+       WHERE id_lote = $2
+         AND stock_actual >= $1
+         AND stock_reservado >= $1
+       RETURNING id_lote, stock_actual, stock_reservado`,
+      [cantidad, id_lote],
+    );
+    return rows[0] || null;
+  }
+
+  async liberarReservaPagoPOS({ id_reserva, id_lote, cantidad }, client) {
+    const { rows: reservas } = await client.query(
+      `UPDATE reserva_inventario_pago
+       SET estado = 'liberada', actualizado_en = CURRENT_TIMESTAMP
+       WHERE id_reserva = $1 AND estado = 'reservada'
+       RETURNING id_reserva`,
+      [id_reserva],
+    );
+    if (!reservas[0]) return null;
+    const { rows } = await client.query(
+      `UPDATE lote
+       SET stock_reservado = stock_reservado - $1,
+           version = version + 1
+       WHERE id_lote = $2 AND stock_reservado >= $1
+       RETURNING id_lote, stock_actual, stock_reservado`,
+      [cantidad, id_lote],
+    );
+    return rows[0] || null;
   }
 
   async obtenerPagoPOSPorExternalId(external_id, client = pool, bloquear = false) {
@@ -158,6 +274,7 @@ class VentaDAO {
     autorizacion_pago,
     tarjeta_ultimos4,
     id_venta,
+    estados_permitidos,
   }, client) {
     const { rows } = await client.query(
       `UPDATE pago_pos
@@ -171,6 +288,7 @@ class VentaDAO {
            id_venta = COALESCE($9, id_venta),
            actualizado_en = CURRENT_TIMESTAMP
        WHERE external_id = $1
+         AND ($10::text[] IS NULL OR estado = ANY($10::text[]))
        RETURNING *`,
       [
         external_id,
@@ -182,7 +300,66 @@ class VentaDAO {
         autorizacion_pago ?? null,
         tarjeta_ultimos4 ?? null,
         id_venta ?? null,
+        estados_permitidos ?? null,
       ],
+    );
+    return rows[0] || null;
+  }
+
+  async registrarIncidenciaPagoPOS({
+    external_id,
+    estado_pago,
+    evento_recurrente_id,
+    referencia_pago,
+    autorizacion_pago,
+    tarjeta_ultimos4,
+    codigo_incidencia,
+    detalle_incidencia,
+  }, client) {
+    const { rows } = await client.query(
+      `UPDATE pago_pos
+       SET estado = 'incidencia',
+           estado_pago = COALESCE($2, estado_pago),
+           evento_recurrente_id = COALESCE($3, evento_recurrente_id),
+           referencia_pago = COALESCE($4, referencia_pago),
+           autorizacion_pago = COALESCE($5, autorizacion_pago),
+           tarjeta_ultimos4 = COALESCE($6, tarjeta_ultimos4),
+           codigo_incidencia = $7,
+           detalle_incidencia = $8,
+           incidencia_en = CURRENT_TIMESTAMP,
+           actualizado_en = CURRENT_TIMESTAMP
+       WHERE external_id = $1
+         AND estado IN ('pendiente', 'procesando')
+       RETURNING *`,
+      [
+        external_id,
+        estado_pago ?? null,
+        evento_recurrente_id ?? null,
+        referencia_pago ?? null,
+        autorizacion_pago ?? null,
+        tarjeta_ultimos4 ?? null,
+        codigo_incidencia,
+        detalle_incidencia,
+      ],
+    );
+    return rows[0] || null;
+  }
+
+  async marcarPagoPOSConciliado({
+    external_id,
+    id_venta,
+    id_usuario_conciliacion,
+  }, client) {
+    const { rows } = await client.query(
+      `UPDATE pago_pos
+       SET estado = 'pagado',
+           id_venta = $2,
+           conciliado_en = CURRENT_TIMESTAMP,
+           id_usuario_conciliacion = $3,
+           actualizado_en = CURRENT_TIMESTAMP
+       WHERE external_id = $1 AND estado = 'incidencia'
+       RETURNING *`,
+      [external_id, id_venta, id_usuario_conciliacion],
     );
     return rows[0] || null;
   }
@@ -221,7 +398,7 @@ class VentaDAO {
        SET stock_actual = stock_actual - $1,
            version = version + 1
        WHERE id_lote = $2
-         AND stock_actual >= $1
+         AND (stock_actual - stock_reservado) >= $1
        RETURNING id_lote, stock_actual`,
       [cantidad, id_lote],
     );

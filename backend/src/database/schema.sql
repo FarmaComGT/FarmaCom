@@ -580,12 +580,14 @@ CREATE INDEX IF NOT EXISTS idx_producto_busqueda_generico_trgm
 -- =========================
 CREATE TABLE IF NOT EXISTS promocion (
     id_promocion     SERIAL PRIMARY KEY,
+    nombre           VARCHAR(120),
     id_producto      INTEGER       NOT NULL,
     id_sucursal      INTEGER       NOT NULL,
     cantidad_minima  INTEGER       NOT NULL,
+    cantidad_maxima  INTEGER CHECK (cantidad_maxima IS NULL OR (cantidad_maxima > 0 AND cantidad_maxima >= cantidad_minima)),
     precio_promocion NUMERIC(10,2) NOT NULL,
     fecha_inicio     DATE          NOT NULL,
-    fecha_fin        DATE          NOT NULL,
+    fecha_fin        DATE,
     activo           BOOLEAN       NOT NULL DEFAULT TRUE,
 
     CONSTRAINT fk_promocion_producto
@@ -962,6 +964,7 @@ CREATE TABLE IF NOT EXISTS pago_pos (
     id_usuario            INTEGER NOT NULL,
     id_sesion_caja        INTEGER NOT NULL,
     id_cliente            INTEGER,
+    carrito_origen_id     VARCHAR(120),
     terminal_id           VARCHAR(120) NOT NULL,
     total                 NUMERIC(12,2) NOT NULL CHECK (total > 0),
     detalles              JSONB NOT NULL CHECK (jsonb_typeof(detalles) = 'array'),
@@ -973,11 +976,16 @@ CREATE TABLE IF NOT EXISTS pago_pos (
     tarjeta_ultimos4      CHAR(4),
     estado                VARCHAR(20) NOT NULL DEFAULT 'pendiente',
     id_venta              INTEGER UNIQUE,
+    codigo_incidencia     VARCHAR(50),
+    detalle_incidencia    VARCHAR(500),
+    incidencia_en         TIMESTAMPTZ,
+    conciliado_en         TIMESTAMPTZ,
+    id_usuario_conciliacion INTEGER,
     creado_en             TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     actualizado_en        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT chk_pago_pos_estado
-        CHECK (estado IN ('pendiente', 'procesando', 'pagado', 'fallido', 'cancelado', 'rechazado')),
+        CHECK (estado IN ('pendiente', 'procesando', 'pagado', 'fallido', 'cancelado', 'rechazado', 'incidencia')),
     CONSTRAINT fk_pago_pos_sucursal
         FOREIGN KEY (id_sucursal)
         REFERENCES sucursal(id_sucursal)
@@ -997,6 +1005,10 @@ CREATE TABLE IF NOT EXISTS pago_pos (
     CONSTRAINT fk_pago_pos_venta
         FOREIGN KEY (id_venta)
         REFERENCES venta(id_venta)
+        ON DELETE RESTRICT,
+    CONSTRAINT fk_pago_pos_usuario_conciliacion
+        FOREIGN KEY (id_usuario_conciliacion)
+        REFERENCES usuario(id_usuario)
         ON DELETE RESTRICT
 );
 
@@ -1005,6 +1017,14 @@ CREATE INDEX IF NOT EXISTS idx_pago_pos_estado
 
 CREATE INDEX IF NOT EXISTS idx_pago_pos_sesion_estado
     ON pago_pos (id_sesion_caja, estado);
+
+CREATE INDEX IF NOT EXISTS idx_pago_pos_incidencias
+    ON pago_pos (id_sucursal, incidencia_en DESC)
+    WHERE estado = 'incidencia';
+
+CREATE INDEX IF NOT EXISTS idx_pago_pos_carrito_origen
+    ON pago_pos (id_usuario, id_sucursal, carrito_origen_id)
+    WHERE carrito_origen_id IS NOT NULL;
 
 -- =========================
 -- TABLA: detalle_venta
@@ -1036,8 +1056,8 @@ CREATE TABLE IF NOT EXISTS detalle_venta (
         REFERENCES producto(id_producto)
         ON DELETE RESTRICT,
 
-    CONSTRAINT uq_detalle_venta_lote
-        UNIQUE (id_venta, id_lote)
+    CONSTRAINT uq_detalle_venta_lote_precio
+        UNIQUE (id_venta, id_lote, precio_unitario)
 );
 
 CREATE INDEX IF NOT EXISTS idx_venta_sucursal_fecha
@@ -1124,3 +1144,33 @@ SELECT
     END AS estado_stock
 FROM lote l
 JOIN producto p ON p.id_producto = l.id_producto;
+
+
+-- Se registra el uso desde esta migración; las ventas antiguas no guardaban
+-- la promoción aplicada y no permiten atribuir unidades de forma fiable.
+CREATE TABLE IF NOT EXISTS promocion_uso (
+    id_uso BIGSERIAL PRIMARY KEY,
+    id_promocion INTEGER NOT NULL REFERENCES promocion(id_promocion) ON DELETE RESTRICT,
+    id_venta INTEGER REFERENCES venta(id_venta) ON DELETE RESTRICT,
+    id_pago_pos INTEGER REFERENCES pago_pos(id_pago_pos) ON DELETE RESTRICT,
+    cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+    estado VARCHAR(12) NOT NULL CHECK (estado IN ('reservada', 'confirmada', 'liberada')),
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK ((id_venta IS NOT NULL) <> (id_pago_pos IS NOT NULL)),
+    UNIQUE (id_promocion, id_venta),
+    UNIQUE (id_promocion, id_pago_pos)
+);
+CREATE INDEX IF NOT EXISTS idx_promocion_uso_cupo ON promocion_uso(id_promocion, estado);
+
+CREATE OR REPLACE VIEW v_promocion_cupo AS
+SELECT pr.*, COALESCE(u.vendida, 0)::BIGINT AS cantidad_vendida,
+    COALESCE(u.reservada, 0)::BIGINT AS cantidad_reservada,
+    CASE WHEN pr.cantidad_maxima IS NULL THEN NULL
+      ELSE GREATEST(0, pr.cantidad_maxima - COALESCE(u.vendida, 0) - COALESCE(u.reservada, 0))::BIGINT
+    END AS cantidad_disponible
+FROM promocion pr
+LEFT JOIN LATERAL (
+    SELECT SUM(cantidad) FILTER (WHERE estado = 'confirmada') AS vendida,
+           SUM(cantidad) FILTER (WHERE estado = 'reservada') AS reservada
+    FROM promocion_uso WHERE id_promocion = pr.id_promocion
+) u ON TRUE;

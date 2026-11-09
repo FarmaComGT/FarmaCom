@@ -24,6 +24,7 @@ describe('CajaService', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     CajaDAO.ejecutarEnTransaccion.mockImplementation((fn) => fn(mockClient));
+    CajaDAO.obtenerPagosPOSAbiertosSesion.mockResolvedValue([]);
   });
 
   describe('crearCaja', () => {
@@ -202,7 +203,7 @@ describe('CajaService', () => {
 
       await expect(
         CajaService.obtenerSesionActual(1, dependienteSucursal1),
-      ).resolves.toBe(sesion);
+      ).resolves.toEqual({ ...sesion, pagos_pos_abiertos: [] });
     });
 
     it('rechaza al dependiente que consulta la sesión de otro usuario', async () => {
@@ -224,7 +225,20 @@ describe('CajaService', () => {
 
       await expect(
         CajaService.obtenerSesionActual(1, administrador),
-      ).resolves.toBe(sesion);
+      ).resolves.toEqual({ ...sesion, pagos_pos_abiertos: [] });
+    });
+
+    it('recupera los pagos que deben seguirse al recargar la caja', async () => {
+      const sesion = { id_sesion_caja: 1, id_usuario_apertura: 2 };
+      const pagos = [{ external_id: 'farmacom-pos-1', estado: 'procesando' }];
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 1 });
+      CajaDAO.obtenerSesionAbiertaPorCaja.mockResolvedValue(sesion);
+      CajaDAO.obtenerPagosPOSAbiertosSesion.mockResolvedValue(pagos);
+
+      await expect(
+        CajaService.obtenerSesionActual(1, dependienteSucursal1),
+      ).resolves.toEqual({ ...sesion, pagos_pos_abiertos: pagos });
+      expect(CajaDAO.obtenerPagosPOSAbiertosSesion).toHaveBeenCalledWith(1);
     });
   });
 

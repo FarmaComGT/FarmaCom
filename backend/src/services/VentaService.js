@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const VentaDAO = require('../daos/VentaDAO');
 const CajaDAO = require('../daos/CajaDAO');
 const { lanzarError } = require('./VentaErrores');
@@ -7,6 +8,7 @@ const {
   validarPertenenciaSesionCaja,
 } = require('../utils/accesoCaja');
 const {
+  aCentavos,
   aMonto,
   calcularCobroEfectivo,
 } = require('./VentaMonetariaService');
@@ -24,11 +26,31 @@ const {
 const {
   crearPagoPOS,
   procesarWebhookRecurrente,
+  conciliarPagoPOS,
   obtenerEstadoPagoPOS,
 } = require('./VentaPagoPOSService');
 const { METODOS_PAGO } = require('./VentaPagoConstantes');
 
 const METODOS_PERMITIDOS = [METODOS_PAGO.EFECTIVO];
+
+const crearHuellaIntentoVenta = (datos, usuario) => {
+  const detalles = datos.detalles.map(({ id_lote, cantidad }) => ({
+    id_lote: Number(id_lote),
+    cantidad: Number(cantidad),
+  })).sort((a, b) => a.id_lote - b.id_lote || a.cantidad - b.cantidad);
+  const solicitudCanonica = {
+    id_usuario: Number(usuario.id_usuario),
+    id_sucursal: Number(datos.id_sucursal),
+    id_sesion_caja: Number(datos.id_sesion_caja),
+    id_cliente: datos.id_cliente == null ? null : Number(datos.id_cliente),
+    metodo_pago: datos.metodo_pago,
+    monto_recibido_centavos: aCentavos(datos.monto_recibido),
+    detalles,
+  };
+  return crypto.createHash('sha256')
+    .update(JSON.stringify(solicitudCanonica))
+    .digest('hex');
+};
 
 const obtenerVentaAutorizada = async (id_venta, usuario) => {
   const venta = await VentaDAO.obtenerPorId(id_venta);
@@ -37,7 +59,7 @@ const obtenerVentaAutorizada = async (id_venta, usuario) => {
   return venta;
 };
 
-const crearVenta = async (datos, usuario) => {
+const crearVenta = async (datos, usuario, claveRecibida) => {
   const {
     metodo_pago,
     monto_recibido,
@@ -49,7 +71,22 @@ const crearVenta = async (datos, usuario) => {
 
   validarDatosBasicosVenta(datos, usuario);
 
-  const idVenta = await VentaDAO.ejecutarEnTransaccion(async (client) => {
+  const claveIdempotencia = claveRecibida || crypto.randomUUID();
+  const huellaIdempotencia = crearHuellaIntentoVenta(datos, usuario);
+
+  const resultadoCreacion = await VentaDAO.ejecutarEnTransaccion(async (client) => {
+    await VentaDAO.bloquearClaveIdempotencia(claveIdempotencia, client);
+    const ventaExistente = await VentaDAO.obtenerVentaPorClaveIdempotencia(
+      claveIdempotencia,
+      client,
+    );
+    if (ventaExistente) {
+      if (ventaExistente.huella_idempotencia !== huellaIdempotencia) {
+        lanzarError('La clave de idempotencia ya fue utilizada con otros datos', 409);
+      }
+      return { idVenta: ventaExistente.id_venta, recuperada: true };
+    }
+
     const idSesionCaja = await validarSesionCaja(datos, usuario, client);
     const ventaPreparada = await prepararVenta(datos, usuario, client);
     const { recibidoCentavos, cambioCentavos } = calcularCobroEfectivo(
@@ -68,6 +105,8 @@ const crearVenta = async (datos, usuario) => {
       estado_pago: null,
       autorizacion_pago: null,
       tarjeta_ultimos4: null,
+      clave_idempotencia: claveIdempotencia,
+      huella_idempotencia: huellaIdempotencia,
       total: aMonto(ventaPreparada.totalCentavos),
       monto_recibido: aMonto(recibidoCentavos),
       cambio: aMonto(cambioCentavos),
@@ -83,10 +122,11 @@ const crearVenta = async (datos, usuario) => {
       client,
     );
 
-    return venta.id_venta;
+    return { idVenta: venta.id_venta, recuperada: false };
   });
 
-  return VentaDAO.obtenerPorId(idVenta);
+  const venta = await VentaDAO.obtenerPorId(resultadoCreacion.idVenta);
+  return resultadoCreacion.recuperada ? { ...venta, recuperada: true } : venta;
 };
 
 const obtenerTodas = async (filtros, usuario) => {
@@ -214,9 +254,11 @@ const anularVenta = async (id_venta, motivo_anulacion, usuario) => {
 };
 
 module.exports = {
+  crearHuellaIntentoVenta,
   crearPagoPOS,
   crearVenta,
   procesarWebhookRecurrente,
+  conciliarPagoPOS,
   obtenerEstadoPagoPOS,
   obtenerTodas,
   obtenerPorId,

@@ -1,3 +1,4 @@
+const { randomUUID } = require('node:crypto');
 const LoteDAO = require('../daos/LoteDAO');
 const ProductoDAO = require('../daos/ProductoDAO');
 const ProveedorDAO = require('../daos/ProveedorDAO');
@@ -41,7 +42,7 @@ const crearLoteEnTransaccion = async (datos, id_usuario, client) => {
     id_producto,
     id_proveedor,
     id_sucursal,
-    numero_lote,
+    numero_lote = `LT-${randomUUID().toUpperCase()}`,
     fecha_vencimiento,
     cantidad_ingresada,
     precio_compra,

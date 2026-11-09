@@ -81,6 +81,34 @@ describe('VentaDAO', () => {
     );
   });
 
+  it('serializa los reintentos que usan la misma clave de idempotencia', async () => {
+    const client = { query: jest.fn().mockResolvedValue({ rows: [] }) };
+
+    await VentaDAO.bloquearClaveIdempotencia(
+      '11111111-1111-4111-8111-111111111111',
+      client,
+    );
+
+    expect(client.query).toHaveBeenCalledWith(
+      expect.stringContaining('pg_advisory_xact_lock'),
+      ['11111111-1111-4111-8111-111111111111'],
+    );
+  });
+
+  it('recupera la venta asociada a una clave de idempotencia', async () => {
+    pool.query.mockResolvedValue({
+      rows: [{ id_venta: 21, huella_idempotencia: 'a'.repeat(64) }],
+    });
+
+    await expect(VentaDAO.obtenerVentaPorClaveIdempotencia(
+      '11111111-1111-4111-8111-111111111111',
+    )).resolves.toMatchObject({ id_venta: 21 });
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining('WHERE clave_idempotencia = $1'),
+      ['11111111-1111-4111-8111-111111111111'],
+    );
+  });
+
   it('guarda el costo unitario histórico en el detalle de venta', async () => {
     const client = {
       query: jest.fn().mockResolvedValue({
@@ -122,6 +150,8 @@ describe('VentaDAO', () => {
       estado_pago: null,
       autorizacion_pago: null,
       tarjeta_ultimos4: null,
+      clave_idempotencia: '11111111-1111-4111-8111-111111111111',
+      huella_idempotencia: 'a'.repeat(64),
       total: '25.00',
       monto_recibido: '30.00',
       cambio: '5.00',
@@ -140,6 +170,8 @@ describe('VentaDAO', () => {
         null,
         null,
         null,
+        '11111111-1111-4111-8111-111111111111',
+        'a'.repeat(64),
         '25.00',
         '30.00',
         '5.00',
@@ -168,19 +200,21 @@ describe('VentaDAO', () => {
       id_usuario: 7,
       id_sesion_caja: 9,
       id_cliente: null,
+      carrito_origen_id: 'carrito-2',
       terminal_id: 'trm_test_123',
       total: '25.00',
       detalles,
     }, client);
 
     expect(client.query).toHaveBeenCalledWith(
-      expect.stringMatching(/INSERT INTO pago_pos[\s\S]*\$8::jsonb/),
+      expect.stringMatching(/INSERT INTO pago_pos[\s\S]*\$9::jsonb/),
       [
         'farmacom-pos-test',
         1,
         7,
         9,
         null,
+        'carrito-2',
         'trm_test_123',
         '25.00',
         JSON.stringify(detalles),
@@ -207,6 +241,74 @@ describe('VentaDAO', () => {
     );
   });
 
+  it('reserva unidades solo cuando siguen disponibles', async () => {
+    const client = {
+      query: jest.fn()
+        .mockResolvedValueOnce({ rows: [{ id_lote: 8, stock_actual: 5, stock_reservado: 2 }] })
+        .mockResolvedValueOnce({ rows: [{ id_reserva: 3, id_pago_pos: 5, id_lote: 8, cantidad: 2 }] }),
+    };
+
+    await expect(VentaDAO.reservarStockPagoPOS(
+      5,
+      { id_lote: 8, cantidad: 2 },
+      client,
+    )).resolves.toMatchObject({ id_reserva: 3 });
+
+    expect(client.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('(stock_actual - stock_reservado) >= $1'),
+      [2, 8],
+    );
+    expect(client.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('INSERT INTO reserva_inventario_pago'),
+      [5, 8, 2],
+    );
+  });
+
+  it('no crea la reserva cuando el lote ya no tiene unidades disponibles', async () => {
+    const client = { query: jest.fn().mockResolvedValue({ rows: [] }) };
+
+    await expect(VentaDAO.reservarStockPagoPOS(
+      5,
+      { id_lote: 8, cantidad: 2 },
+      client,
+    )).resolves.toBeNull();
+
+    expect(client.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('consume una reserva descontando stock fisico y reservado', async () => {
+    const client = {
+      query: jest.fn()
+        .mockResolvedValueOnce({ rows: [{ id_reserva: 3 }] })
+        .mockResolvedValueOnce({ rows: [{ id_lote: 8, stock_actual: 3, stock_reservado: 0 }] }),
+    };
+
+    await expect(VentaDAO.consumirReservaPagoPOS(
+      { id_reserva: 3, id_lote: 8, cantidad: 2 },
+      client,
+    )).resolves.toMatchObject({ stock_actual: 3, stock_reservado: 0 });
+
+    expect(client.query.mock.calls[1][0]).toContain('stock_actual = stock_actual - $1');
+    expect(client.query.mock.calls[1][0]).toContain('stock_reservado = stock_reservado - $1');
+  });
+
+  it('libera una reserva sin descontar existencias fisicas', async () => {
+    const client = {
+      query: jest.fn()
+        .mockResolvedValueOnce({ rows: [{ id_reserva: 3 }] })
+        .mockResolvedValueOnce({ rows: [{ id_lote: 8, stock_actual: 5, stock_reservado: 0 }] }),
+    };
+
+    await expect(VentaDAO.liberarReservaPagoPOS(
+      { id_reserva: 3, id_lote: 8, cantidad: 2 },
+      client,
+    )).resolves.toMatchObject({ stock_actual: 5, stock_reservado: 0 });
+
+    expect(client.query.mock.calls[1][0]).not.toContain('stock_actual = stock_actual - $1');
+  });
+
   it('descuenta stock únicamente cuando hay existencias suficientes', async () => {
     const client = {
       query: jest.fn().mockResolvedValue({
@@ -217,7 +319,7 @@ describe('VentaDAO', () => {
     const resultado = await VentaDAO.descontarStock(8, 2, client);
 
     expect(client.query).toHaveBeenCalledWith(
-      expect.stringContaining('stock_actual >= $1'),
+      expect.stringContaining('(stock_actual - stock_reservado) >= $1'),
       [2, 8],
     );
     expect(resultado).toEqual({
@@ -277,6 +379,7 @@ describe('VentaDAO', () => {
         'auth-1',
         '1234',
         10,
+        null,
       ],
     );
     expect(resultado).toEqual({
@@ -502,7 +605,42 @@ describe('VentaDAO - stock del carrito y cancelación', () => {
     await VentaDAO.actualizarPagoPOS({ external_id: 'farmacom-pos-1', estado: 'fallido' }, cliente);
 
     expect(cliente.query.mock.calls[0][1]).toEqual([
-      'farmacom-pos-1', 'fallido', null, null, null, null, null, null, null,
+        'farmacom-pos-1', 'fallido', null, null, null, null, null, null, null, null,
+    ]);
+  });
+
+  it('restaura solo la creación local cuando falla una venta cobrada', async () => {
+    const cliente = crearCliente([]);
+
+    await VentaDAO.crearPuntoRestauracionVentaPOS(cliente);
+    await VentaDAO.restaurarPuntoVentaPOS(cliente);
+    await VentaDAO.liberarPuntoRestauracionVentaPOS(cliente);
+
+    expect(cliente.query.mock.calls.map(([sql]) => sql)).toEqual([
+      'SAVEPOINT completar_venta_pos',
+      'ROLLBACK TO SAVEPOINT completar_venta_pos',
+      'RELEASE SAVEPOINT completar_venta_pos',
+    ]);
+  });
+
+  it('registra la incidencia y conserva las referencias del proveedor', async () => {
+    const cliente = crearCliente([{ external_id: 'farmacom-pos-1', estado: 'incidencia' }]);
+
+    await VentaDAO.registrarIncidenciaPagoPOS({
+      external_id: 'farmacom-pos-1',
+      estado_pago: 'succeeded',
+      evento_recurrente_id: 'evt-1',
+      referencia_pago: 'pay-1',
+      autorizacion_pago: 'auth-1',
+      tarjeta_ultimos4: '4242',
+      codigo_incidencia: 'venta_incompleta',
+      detalle_incidencia: 'Error local',
+    }, cliente);
+
+    expect(cliente.query.mock.calls[0][0]).toContain("estado = 'incidencia'");
+    expect(cliente.query.mock.calls[0][1]).toEqual([
+      'farmacom-pos-1', 'succeeded', 'evt-1', 'pay-1', 'auth-1', '4242',
+      'venta_incompleta', 'Error local',
     ]);
   });
 });

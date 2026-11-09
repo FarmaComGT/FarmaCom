@@ -231,10 +231,35 @@ class CajaDAO {
       `SELECT COUNT(*)::INTEGER AS cantidad
        FROM pago_pos
        WHERE id_sesion_caja = $1
-         AND estado IN ('pendiente', 'procesando')`,
+         AND estado IN ('pendiente', 'procesando', 'incidencia')`,
       [id_sesion_caja],
     );
     return Number(rows[0]?.cantidad || 0);
+  }
+
+  async obtenerPagosPOSAbiertosSesion(id_sesion_caja, client = pool) {
+    const { rows } = await client.query(
+      `SELECT
+         id_pago_pos,
+         external_id,
+         carrito_origen_id,
+         total,
+         estado,
+         estado_pago,
+         referencia_pago,
+         codigo_incidencia,
+         incidencia_en,
+         creado_en,
+         actualizado_en
+       FROM pago_pos
+       WHERE id_sesion_caja = $1
+         AND estado IN ('pendiente', 'procesando', 'incidencia')
+       ORDER BY
+         CASE WHEN estado = 'incidencia' THEN 0 ELSE 1 END,
+         creado_en ASC`,
+      [id_sesion_caja],
+    );
+    return rows;
   }
 
   async cerrarSesion(id_sesion_caja, datos, client) {

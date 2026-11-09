@@ -14,6 +14,49 @@ const datosBase = {
 };
 
 describe('PromocionService', () => {
+  it.each([0, -1, 1.5, 2147483648, 4])('rechaza un cupo inválido o menor al mínimo: %s', async (cantidad_maxima) => {
+    await expect(PromocionService.crearPromocion(1, { ...datosBase, cantidad_maxima })).rejects.toMatchObject({ status: 400 });
+    expect(PromocionDAO.crear).not.toHaveBeenCalled();
+  });
+  it('impide reducir el total por debajo de lo vendido y reservado', async () => {
+    PromocionDAO.obtenerPorId.mockResolvedValue({ id_promocion: 1, ...datosBase, cantidad_maxima: 100, cantidad_vendida: '70', cantidad_reservada: '10' });
+    await expect(PromocionService.actualizarPromocion(1, { cantidad_maxima: 79 })).rejects.toMatchObject({ status: 409 });
+    expect(PromocionDAO.actualizar).not.toHaveBeenCalled();
+  });
+  it('permite quitar el límite conservando el historial', async () => {
+    PromocionDAO.obtenerPorId.mockResolvedValue({ id_promocion: 1, id_producto: 1, ...datosBase, cantidad_maxima: 100, cantidad_vendida: '70' });
+    PromocionDAO.actualizar.mockResolvedValue({ id_promocion: 1, cantidad_maxima: null });
+    await PromocionService.actualizarPromocion(1, { cantidad_maxima: null });
+    expect(PromocionDAO.actualizar).toHaveBeenCalledWith(1, { cantidad_maxima: null });
+  });
+  it('restringe el listado general del dependiente a su sucursal', async () => {
+    await PromocionService.obtenerTodas({ estado: 'vigente' }, { rol: 'dependiente', id_sucursal: 3 });
+    expect(PromocionDAO.obtenerTodas).toHaveBeenCalledWith({ estado: 'vigente', id_sucursal: 3 });
+    expect(() => PromocionService.obtenerTodas({ id_sucursal: 4 }, { rol: 'dependiente', id_sucursal: 3 })).toThrow();
+  });
+
+  it('crea una promoción sin fecha de fin y normaliza el nombre', async () => {
+    ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1, activo: true });
+    PromocionDAO.existeActivaSolapada.mockResolvedValue(null);
+    await PromocionService.crearPromocion(1, { ...datosBase, nombre: ' Mayoreo ', fecha_fin: null });
+    expect(PromocionDAO.crear).toHaveBeenCalledWith(expect.objectContaining({ nombre: 'Mayoreo', fecha_fin: null }));
+  });
+
+  it('permite quitar la fecha final y vuelve a comprobar los conflictos', async () => {
+    PromocionDAO.obtenerPorId.mockResolvedValue({ id_promocion: 1, id_producto: 1, ...datosBase, activo: true });
+    PromocionDAO.existeActivaSolapada.mockResolvedValue(null);
+    PromocionDAO.actualizar.mockResolvedValue({ id_promocion: 1, fecha_fin: null });
+    await PromocionService.actualizarPromocion(1, { fecha_fin: null });
+    expect(PromocionDAO.existeActivaSolapada).toHaveBeenCalledWith(expect.objectContaining({ fecha_fin: null, excluir_id: 1 }));
+    expect(PromocionDAO.actualizar).toHaveBeenCalledWith(1, { fecha_fin: null });
+  });
+
+  it('identifica la promoción que impide crear otra en las mismas fechas', async () => {
+    ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 1 });
+    PromocionDAO.existeActivaSolapada.mockResolvedValue({ id_promocion: 9, nombre: 'Mayoreo' });
+    await expect(PromocionService.crearPromocion(1, { ...datosBase, fecha_fin: null }))
+      .rejects.toMatchObject({ status: 409, details: [{ campo: 'fecha_inicio', id_promocion: 9, nombre: 'Mayoreo' }] });
+  });
   beforeEach(() => {
     PromocionDAO.obtenerPrecioVentaMinimoDisponible.mockResolvedValue('15.00');
   });

@@ -1,9 +1,16 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { crearPagoPOS, crearVenta, obtenerEstadoPagoPOS, obtenerVentaPorId } from '../api/ventas.js';
+import {
+  conciliarPagoPOS,
+  crearPagoPOS,
+  crearVenta,
+  obtenerEstadoPagoPOS,
+  obtenerVentaPorId,
+} from '../api/ventas.js';
 import useFlujoVenta, { construirPayloadVenta } from './useFlujoVenta';
 
 vi.mock('../api/ventas.js', () => ({
+  conciliarPagoPOS: vi.fn(),
   crearPagoPOS: vi.fn(),
   crearVenta: vi.fn(),
   obtenerEstadoPagoPOS: vi.fn(),
@@ -142,7 +149,7 @@ describe('useFlujoVenta', () => {
       detalles: [{ id_lote: 3, cantidad: 2 }],
       metodo_pago: 'efectivo',
       monto_recibido: 50,
-    });
+    }, expect.any(String));
     expect(opciones.vaciarCarrito).toHaveBeenCalledTimes(1);
     expect(opciones.refrescarCatalogo).toHaveBeenCalledTimes(1);
     expect(result.current.modalActivo).toBe('comprobante');
@@ -163,6 +170,22 @@ describe('useFlujoVenta', () => {
     expect(result.current.errorCobro).toBe('Stock insuficiente para el lote 3');
     expect(result.current.procesandoCobro).toBe(false);
     expect(opciones.vaciarCarrito).not.toHaveBeenCalled();
+  });
+
+  it('reutiliza la clave del intento al reintentar el mismo cobro en efectivo', async () => {
+    const opciones = crearOpciones();
+    crearVenta
+      .mockRejectedValueOnce(new Error('No se pudo registrar la venta.'))
+      .mockResolvedValueOnce(venta);
+    const { result } = usarFlujo(opciones);
+
+    await act(async () => result.current.confirmarCobro({ montoRecibido: 50 }));
+    await act(async () => result.current.confirmarCobro({ montoRecibido: 50 }));
+
+    expect(crearVenta).toHaveBeenCalledTimes(2);
+    expect(crearVenta.mock.calls[0][1]).toBe(crearVenta.mock.calls[1][1]);
+    expect(crearVenta.mock.calls[0][1]).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(opciones.vaciarCarrito).toHaveBeenCalledTimes(1);
   });
 
   it('usa un mensaje genérico si el cobro falla sin detalle', async () => {
@@ -228,6 +251,40 @@ describe('useFlujoVenta', () => {
     expect(opciones.vaciarCarrito).toHaveBeenCalledTimes(1);
   });
 
+  it('recupera el seguimiento de un pago abierto al recargar', async () => {
+    obtenerEstadoPagoPOS.mockResolvedValue({ estado: 'procesando' });
+    const onRecuperarCarrito = vi.fn();
+    const { result } = usarFlujo(crearOpciones({
+      carritoId: 'carrito-1',
+      onRecuperarCarrito,
+      pagosPOSAbiertos: [{
+        external_id: 'farmacom-pos-recuperado',
+        estado: 'procesando',
+        total: '20.00',
+        carrito_origen_id: 'carrito-2',
+      }],
+    }));
+
+    await waitFor(() => expect(result.current.pagoPOS?.external_id)
+      .toBe('farmacom-pos-recuperado'));
+
+    expect(result.current.metodoPago).toBe('tarjeta');
+    expect(result.current.modalActivo).toBe('cobro');
+    expect(crearPagoPOS).not.toHaveBeenCalled();
+    expect(obtenerEstadoPagoPOS).toHaveBeenCalledWith('farmacom-pos-recuperado');
+    expect(onRecuperarCarrito).toHaveBeenCalledWith('carrito-2');
+  });
+
+  it('reinicia exactamente el carrito que originó la venta', async () => {
+    const opciones = crearOpciones({ carritoId: 'carrito-2' });
+    crearVenta.mockResolvedValue(venta);
+    const { result } = usarFlujo(opciones);
+
+    await act(async () => result.current.confirmarCobro({ montoRecibido: 20 }));
+
+    expect(opciones.vaciarCarrito).toHaveBeenCalledWith('carrito-2');
+  });
+
   it('no deja cerrar ni reenviar el cobro mientras espera la confirmación del POS', async () => {
     crearPagoPOS.mockResolvedValue({ external_id: 'farmacom-pos-1', estado: 'pendiente' });
     obtenerEstadoPagoPOS.mockResolvedValue({ estado: 'pendiente' });
@@ -250,6 +307,31 @@ describe('useFlujoVenta', () => {
 
     await waitFor(() => expect(result.current.errorCobro).toBe('El pago no se completó. Puedes intentarlo nuevamente.'));
     expect(result.current.pagoPOS).toBeNull();
+  });
+
+  it('conserva las referencias y concilia la venta sin iniciar otro cobro', async () => {
+    const opciones = crearOpciones();
+    crearPagoPOS.mockResolvedValue({ external_id: 'farmacom-pos-1', estado: 'pendiente' });
+    obtenerEstadoPagoPOS.mockResolvedValue({
+      external_id: 'farmacom-pos-1',
+      estado: 'incidencia',
+      referencia_pago: 'pay-123',
+    });
+    conciliarPagoPOS.mockResolvedValue({ estado: 'pagado', id_venta: 40 });
+    obtenerVentaPorId.mockResolvedValue(venta);
+    const { result } = usarFlujo(opciones);
+
+    await iniciarCobroConTarjeta(result);
+    await waitFor(() => expect(result.current.pagoPOS?.estado).toBe('incidencia'));
+    expect(result.current.pagoPOS.referencia_pago).toBe('pay-123');
+    expect(result.current.errorCobro).toContain('No vuelvas a cobrar');
+
+    await act(async () => result.current.conciliarVentaPOS());
+
+    expect(conciliarPagoPOS).toHaveBeenCalledWith('farmacom-pos-1');
+    expect(crearPagoPOS).toHaveBeenCalledTimes(1);
+    expect(result.current.modalActivo).toBe('comprobante');
+    expect(opciones.vaciarCarrito).toHaveBeenCalledOnce();
   });
 
   it('muestra el error si no puede verificar el estado del pago', async () => {

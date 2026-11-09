@@ -4,6 +4,7 @@ const PromocionController = require('../controllers/PromocionController');
 const verificarToken      = require('../middlewares/verificarToken');
 const verificarRol        = require('../middlewares/verificarRol');
 const validateRequest     = require('../middlewares/validateRequest');
+const { nombrePromocion, cantidadMaximaPromocion, filtrosPromocion } = require('../validators/promocionValidators');
 
 const router = Router();
 const rolesConsulta = verificarRol('dueno', 'administrador', 'dependiente');
@@ -18,6 +19,8 @@ const validarParamId = [
 ];
 
 const validarActualizacion = [
+  nombrePromocion(),
+  cantidadMaximaPromocion(),
   body('cantidad_minima')
     .optional()
     .isInt({ min: 1 }).withMessage('La cantidad mínima debe ser mayor a 0')
@@ -34,7 +37,7 @@ const validarActualizacion = [
     .toDate(),
 
   body('fecha_fin')
-    .optional()
+    .optional({ nullable: true })
     .isISO8601().withMessage('fecha_fin debe ser una fecha válida (YYYY-MM-DD)')
     .toDate(),
 ];
@@ -48,6 +51,8 @@ const validarCambioEstado = [
 // ── rutas ─────────────────────────────────────────────────────────────────────
 
 // GET    /api/promociones/:id
+router.get('/', verificarToken, rolesConsulta, filtrosPromocion, validateRequest, PromocionController.obtenerTodas);
+
 router.get('/:id',
   verificarToken,
   rolesConsulta,

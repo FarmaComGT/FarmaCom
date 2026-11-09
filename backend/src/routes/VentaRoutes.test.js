@@ -111,7 +111,10 @@ describe('VentaRoutes - carrito y consultas', () => {
   it('crea una venta en efectivo con los lotes del carrito convertidos a números', async () => {
     VentaService.crearVenta.mockResolvedValue({ id_venta: 30 });
 
-    const respuesta = await request(crearApp()).post('/api/ventas').send(carrito);
+    const respuesta = await request(crearApp())
+      .post('/api/ventas')
+      .set('Idempotency-Key', '11111111-1111-4111-8111-111111111111')
+      .send(carrito);
 
     expect(respuesta.status).toBe(201);
     expect(VentaService.crearVenta).toHaveBeenCalledWith({
@@ -121,7 +124,17 @@ describe('VentaRoutes - carrito y consultas', () => {
       metodo_pago: 'efectivo',
       monto_recibido: 50,
       detalles: [{ id_lote: 1, cantidad: 2 }, { id_lote: 3, cantidad: 1 }],
-    }, expect.objectContaining({ id_usuario: 7 }));
+    }, expect.objectContaining({ id_usuario: 7 }), '11111111-1111-4111-8111-111111111111');
+  });
+
+  it('exige una clave de idempotencia para ventas en efectivo', async () => {
+    const respuesta = await request(crearApp()).post('/api/ventas').send(carrito);
+
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body.errores).toEqual(expect.arrayContaining([
+      expect.objectContaining({ msg: 'Idempotency-Key es requerido' }),
+    ]));
+    expect(VentaService.crearVenta).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -136,6 +149,21 @@ describe('VentaRoutes - carrito y consultas', () => {
     expect(respuesta.status).toBe(400);
     expect(respuesta.body.errores.map(({ msg }) => msg).join(' ')).toContain(mensaje);
     expect(VentaService.crearVenta).not.toHaveBeenCalled();
+  });
+
+  it('conserva el identificador del carrito que originó el pago POS', async () => {
+    VentaService.crearPagoPOS.mockResolvedValue({ external_id: 'farmacom-pos-1' });
+    const { metodo_pago: _metodo, monto_recibido: _monto, ...pagoPOS } = carrito;
+
+    const respuesta = await request(crearApp())
+      .post('/api/ventas/tarjeta/pos')
+      .send({ ...pagoPOS, carrito_origen_id: '  carrito-2  ' });
+
+    expect(respuesta.status).toBe(201);
+    expect(VentaService.crearPagoPOS).toHaveBeenCalledWith(
+      expect.objectContaining({ carrito_origen_id: 'carrito-2' }),
+      expect.objectContaining({ id_usuario: 7 }),
+    );
   });
 
   it('lista ventas con filtros del historial', async () => {
@@ -165,6 +193,19 @@ describe('VentaRoutes - carrito y consultas', () => {
 
     expect(respuesta.status).toBe(200);
     expect(VentaService.obtenerPorId).toHaveBeenCalledWith(21, expect.objectContaining({ id_usuario: 7 }));
+  });
+
+  it('concilia una incidencia POS con el usuario autenticado', async () => {
+    VentaService.conciliarPagoPOS.mockResolvedValue({ estado: 'pagado', id_venta: 22 });
+
+    const respuesta = await request(crearApp())
+      .post('/api/ventas/tarjeta/pos/farmacom-pos-1/conciliar');
+
+    expect(respuesta.status).toBe(200);
+    expect(VentaService.conciliarPagoPOS).toHaveBeenCalledWith(
+      'farmacom-pos-1',
+      expect.objectContaining({ id_usuario: 7 }),
+    );
   });
 
   it.each([

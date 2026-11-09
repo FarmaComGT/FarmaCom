@@ -36,7 +36,7 @@ export default function CarritoVentaItem({
     && Number.isFinite(cantidadNumerica)
     && cantidadNumerica > item.stock_disponible;
   const faltantesPromocion = item.promocionDisponible
-    ? Math.max(0, Number(item.promocion.cantidad_minima) - item.cantidad)
+    ? Math.max(0, Number(item.promocion.cantidad_minima) - (item.cantidadProducto ?? item.cantidad))
     : 0;
   const precioAplicado = item.precioAplicado ?? item.precioUnitario;
 
@@ -53,7 +53,9 @@ export default function CarritoVentaItem({
         {item.promocionDisponible && (
           <p className={`pos-item-promo ${item.promocionAplicada ? 'pos-item-promo--aplicada' : 'pos-item-promo--pendiente'}`}>
             {item.promocionAplicada
-              ? `Promoción aplicada: ${formatearQuetzales(item.promocion.precio_promocion)} por unidad`
+              ? item.cantidadNormal > 0
+                ? `${item.cantidadPromocion} a ${formatearQuetzales(item.promocion.precio_promocion)} · ${item.cantidadNormal} a precio normal (último cupo)`
+                : `Promoción aplicada: ${formatearQuetzales(item.promocion.precio_promocion)} por unidad`
               : `Agrega ${faltantesPromocion} ${faltantesPromocion === 1 ? 'unidad' : 'unidades'} más para aplicar la promoción`}
           </p>
         )}
@@ -111,10 +113,10 @@ export default function CarritoVentaItem({
           </p>
         )}
         <p className={item.promocionAplicada ? 'unit unit--promo' : 'unit'}>
-          {formatearQuetzales(precioAplicado)}
+          {item.cantidadNormal > 0 && item.cantidadPromocion > 0 ? 'Precio mixto' : formatearQuetzales(precioAplicado)}
         </p>
         <p className="subtotal">
-          {formatearQuetzales(precioAplicado * item.cantidad)}
+          {formatearQuetzales(item.subtotalItem ?? precioAplicado * item.cantidad)}
         </p>
       </div>
 

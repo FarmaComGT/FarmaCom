@@ -1,6 +1,7 @@
 const VentaDAO = require('../daos/VentaDAO');
 const CajaDAO = require('../daos/CajaDAO');
 const PromocionDAO = require('../daos/PromocionDAO');
+const AppError = require('../errors/AppError');
 const { lanzarError } = require('./VentaErrores');
 const { calcularDetalles } = require('./VentaMonetariaService');
 const { validarPertenenciaSesionCaja } = require('../utils/accesoCaja');
@@ -55,7 +56,7 @@ const validarSesionCaja = async (datos, usuario, client) => {
   return Number(sesion.id_sesion_caja);
 };
 
-const obtenerPromocionesAplicables = async (detallesValidados, idSucursal, client) => {
+const obtenerPromocionesAplicables = async (detallesValidados, idSucursal, client, idPagoPOS = null) => {
   const cantidadesPorProducto = new Map();
 
   detallesValidados.forEach(({ cantidad, lote }) => {
@@ -70,6 +71,7 @@ const obtenerPromocionesAplicables = async (detallesValidados, idSucursal, clien
     [...cantidadesPorProducto.keys()].sort((a, b) => a - b),
     Number(idSucursal),
     client,
+    idPagoPOS,
   );
   const promocionesPorProducto = new Map();
 
@@ -78,6 +80,7 @@ const obtenerPromocionesAplicables = async (detallesValidados, idSucursal, clien
     const cantidadTotal = cantidadesPorProducto.get(idProducto) || 0;
     if (
       cantidadTotal >= Number(promocion.cantidad_minima)
+      && (promocion.cantidad_disponible == null || Number(promocion.cantidad_disponible) > 0)
       && !promocionesPorProducto.has(idProducto)
     ) {
       promocionesPorProducto.set(idProducto, promocion);
@@ -87,7 +90,7 @@ const obtenerPromocionesAplicables = async (detallesValidados, idSucursal, clien
   return promocionesPorProducto;
 };
 
-const prepararVenta = async (datos, usuario, client) => {
+const prepararVenta = async (datos, usuario, client, idPagoPOS = null) => {
   const { id_sucursal, id_cliente = null, detalles } = datos;
   const idsLote = validarDatosBasicosVenta(datos, usuario);
 
@@ -117,7 +120,7 @@ const prepararVenta = async (datos, usuario, client) => {
     if (lote.vencido) {
       lanzarError(`No se puede vender el lote ${id_lote} porque esta vencido`, 409);
     }
-    if (Number(lote.stock_actual) < cantidadSolicitada) {
+    if (Number(lote.stock_disponible ?? lote.stock_actual) < cantidadSolicitada) {
       lanzarError(`Stock insuficiente para el lote ${id_lote}`, 409);
     }
 
@@ -128,11 +131,19 @@ const prepararVenta = async (datos, usuario, client) => {
     detallesValidados,
     id_sucursal,
     client,
+    idPagoPOS,
   );
   const { totalCentavos, detallesCalculados } = calcularDetalles(
     detallesValidados,
     promocionesPorProducto,
   );
+  if (datos.total_esperado != null && Math.round(Number(datos.total_esperado) * 100) !== totalCentavos) {
+    throw new AppError('Cambió el precio o el cupo de una promoción. Revisa el total actualizado antes de confirmar de nuevo.', 409,
+      [{ codigo: 'COTIZACION_CAMBIO', lotes: detallesValidados.map(({ id_lote, lote }) => ({
+        id_lote, precio_venta: Number(lote.precio_venta),
+        promocion: promocionesPorProducto.get(Number(lote.id_producto)) || null,
+      })) }]);
+  }
 
   return {
     id_sucursal: Number(id_sucursal),

@@ -51,7 +51,7 @@ function crearAlmacenLector({ ahora = Date.now } = {}) {
     crear(usuario, destino) {
       limpiar();
       if (!Number.isInteger(usuario.id_sucursal) || usuario.id_sucursal <= 0) throw new AppError('Se requiere una sucursal asignada.', 403);
-      if (!['ventas', 'producto'].includes(destino)) throw new AppError('Destino de lectura inválido.', 400);
+      if (!['ventas', 'producto', 'promocion'].includes(destino)) throw new AppError('Destino de lectura inválido.', 400);
       if (sesiones.size >= 200 || [...sesiones.values()].filter((s) => s.usuario === usuario.id_usuario).length >= 3) {
         throw new AppError('Hay demasiadas vinculaciones abiertas. Desconecta un lector e intenta de nuevo.', 429);
       }
@@ -79,7 +79,7 @@ function crearAlmacenLector({ ahora = Date.now } = {}) {
     pulso(id, usuario, disponible, contexto, destino) {
       const s = propietario(id, usuario);
       if (contexto !== undefined) {
-        if (typeof contexto !== 'string' || !/^[a-f0-9-]{36}$/i.test(contexto) || !['ventas', 'producto', 'pausa'].includes(destino)) throw new AppError('Destino de lectura inválido.', 400);
+        if (typeof contexto !== 'string' || !/^[a-f0-9-]{36}$/i.test(contexto) || !['ventas', 'producto', 'promocion', 'pausa'].includes(destino)) throw new AppError('Destino de lectura inválido.', 400);
         if (s.contexto !== contexto) {
           s.contexto = contexto; s.destino = destino;
           s.pendiente = null; s.ultimoAcuse = null;

@@ -5,11 +5,13 @@ import {
   cambiarEstadoPromocion,
   crearPromocion,
   obtenerPromocionesProducto,
+  obtenerPromociones,
 } from '../api/promociones';
 import usePromociones from './usePromociones';
 
 vi.mock('../api/promociones', () => ({
   obtenerPromocionesProducto: vi.fn(),
+  obtenerPromociones: vi.fn(),
   crearPromocion: vi.fn(),
   actualizarPromocion: vi.fn(),
   cambiarEstadoPromocion: vi.fn(),
@@ -24,6 +26,13 @@ const promocion = {
 };
 
 describe('usePromociones', () => {
+  it('consulta el listado general con filtros sin exigir un producto', async () => {
+    obtenerPromociones.mockResolvedValue({ datos: [promocion], paginacion: { total: 1 } });
+    const { result } = renderHook(() => usePromociones(null, { global: true, pagina: 1, limite: 25, estado: 'vigente', busqueda: 'Mayoreo', id_sucursal: 2 }));
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    expect(obtenerPromociones).toHaveBeenCalledWith({ signal: expect.any(AbortSignal), params: { pagina: 1, limite: 25, estado: 'vigente', busqueda: 'Mayoreo', id_sucursal: 2, id_producto: undefined } });
+    expect(result.current.promociones).toEqual([promocion]);
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     obtenerPromocionesProducto.mockResolvedValue([promocion]);

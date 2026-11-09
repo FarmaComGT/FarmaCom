@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { actualizarPreciosLote, calcularMargenGanancia } from '../utils/lotePrecios.js';
+import { actualizarPreciosLote } from '../utils/lotePrecios.js';
 
 export const LOTE_FORM_INICIAL = {
   id_producto: '', id_proveedor: '', id_sucursal: '', numero_lote: '',
   fecha_vencimiento: '', cantidad_ingresada: '', stock_actual: '',
   precio_compra: '', margen_ganancia: '', precio_venta: '',
-  precio_mayoreo: '', cantidad_mayoreo: '',
 };
 
 export const fechaManana = () => {
@@ -15,7 +14,7 @@ export const fechaManana = () => {
   return new Date(fecha.getTime() - offset).toISOString().slice(0, 10);
 };
 
-export const inicializarLoteForm = ({ lote, productoInicialId, sucursalInicialId, productos }) => {
+export const inicializarLoteForm = ({ lote, productoInicialId, sucursalInicialId }) => {
   if (lote) {
     return {
       id_producto: String(lote.id_producto ?? ''), id_proveedor: String(lote.id_proveedor ?? ''),
@@ -24,16 +23,12 @@ export const inicializarLoteForm = ({ lote, productoInicialId, sucursalInicialId
       cantidad_ingresada: String(lote.cantidad_ingresada ?? ''), stock_actual: String(lote.stock_actual ?? ''),
       precio_compra: String(lote.precio_compra ?? ''), margen_ganancia: String(lote.margen_ganancia ?? ''),
       precio_venta: String(lote.precio_venta ?? ''),
-      precio_mayoreo: lote.precio_mayoreo == null ? '' : String(lote.precio_mayoreo),
-      cantidad_mayoreo: lote.cantidad_mayoreo == null ? '' : String(lote.cantidad_mayoreo),
     };
   }
-  const producto = productos.find((item) => String(item.id_producto) === String(productoInicialId));
   return {
     ...LOTE_FORM_INICIAL,
     id_producto: productoInicialId ? String(productoInicialId) : '',
     id_sucursal: sucursalInicialId ? String(sucursalInicialId) : '',
-    precio_compra: producto?.precio_compra == null ? '' : String(producto.precio_compra),
   };
 };
 
@@ -44,19 +39,13 @@ export const validarLoteForm = (formulario, modoEdicion, hoy = new Date()) => {
   if (!formulario.id_producto) return 'Selecciona un producto.';
   if (!formulario.id_proveedor) return 'Selecciona un proveedor.';
   if (!formulario.id_sucursal) return 'Selecciona una sucursal.';
-  if (!formulario.numero_lote.trim()) return 'Ingresa el número de lote.';
-  if (!formulario.fecha_vencimiento) return 'Selecciona la fecha de vencimiento.';
+  if (modoEdicion && !formulario.numero_lote.trim()) return 'Ingresa el número de lote.';
   if (!esEntero(formulario.cantidad_ingresada, 1)) return 'La cantidad ingresada debe ser un entero mayor a 0.';
   if (!esNumeroNoNegativo(formulario.precio_compra)) return 'Ingresa un precio de compra válido.';
   if (!esNumeroNoNegativo(formulario.precio_venta)) return 'Ingresa un precio de venta válido.';
   if (!esNumeroNoNegativo(formulario.margen_ganancia)) return 'Ingresa un margen válido.';
-  const tienePrecio = formulario.precio_mayoreo !== '';
-  const tieneCantidad = formulario.cantidad_mayoreo !== '';
-  if (tienePrecio !== tieneCantidad) return 'Completa precio y cantidad de mayoreo, o deja ambos vacíos.';
-  if (tienePrecio && !esNumeroNoNegativo(formulario.precio_mayoreo)) return 'Ingresa un precio de mayoreo válido.';
-  if (tieneCantidad && !esEntero(formulario.cantidad_mayoreo, 1)) return 'La cantidad de mayoreo debe ser mayor a 0.';
   const inicioHoy = new Date(hoy); inicioHoy.setHours(0, 0, 0, 0);
-  if (new Date(`${formulario.fecha_vencimiento}T00:00:00`) <= inicioHoy) return 'La fecha de vencimiento debe ser posterior a hoy.';
+  if (formulario.fecha_vencimiento && new Date(`${formulario.fecha_vencimiento}T00:00:00`) <= inicioHoy) return 'La fecha de vencimiento debe ser posterior a hoy.';
   return null;
 };
 
@@ -64,35 +53,26 @@ export const construirPayloadLote = (formulario, lote) => {
   const valores = {
     id_producto: Number(formulario.id_producto), id_proveedor: Number(formulario.id_proveedor),
     id_sucursal: Number(formulario.id_sucursal), numero_lote: formulario.numero_lote.trim(),
-    fecha_vencimiento: formulario.fecha_vencimiento,
+    fecha_vencimiento: formulario.fecha_vencimiento || null,
     precio_compra: Number(formulario.precio_compra), precio_venta: Number(formulario.precio_venta),
     margen_ganancia: Number(formulario.margen_ganancia),
-    precio_mayoreo: formulario.precio_mayoreo === '' ? null : Number(formulario.precio_mayoreo),
-    cantidad_mayoreo: formulario.cantidad_mayoreo === '' ? null : Number(formulario.cantidad_mayoreo),
   };
-  if (!lote) return { ...valores, cantidad_ingresada: Number(formulario.cantidad_ingresada) };
+  if (!lote) {
+    if (!valores.numero_lote) delete valores.numero_lote;
+    return { ...valores, cantidad_ingresada: Number(formulario.cantidad_ingresada) };
+  }
 
   const payload = { version: Number(lote.version || 1) };
   const numericos = new Set([
     'id_producto', 'id_proveedor', 'id_sucursal', 'precio_compra',
-    'precio_venta', 'margen_ganancia', 'precio_mayoreo', 'cantidad_mayoreo',
+    'precio_venta', 'margen_ganancia',
   ]);
   Object.entries(valores).forEach(([campo, valor]) => {
     let anterior = lote[campo];
-    if (campo === 'fecha_vencimiento') anterior = String(anterior ?? '').slice(0, 10);
-    if (['precio_mayoreo', 'cantidad_mayoreo'].includes(campo) && anterior == null && valor == null) return;
+    if (campo === 'fecha_vencimiento') anterior = anterior ? String(anterior).slice(0, 10) : null;
     if (numericos.has(campo) && anterior != null) anterior = Number(anterior);
     if (valor !== anterior) payload[campo] = valor;
   });
-  if (
-    lote.precio_mayoreo != null
-    && valores.precio_mayoreo === null
-    && valores.cantidad_mayoreo === null
-  ) {
-    delete payload.precio_mayoreo;
-    delete payload.cantidad_mayoreo;
-    payload.limpiar_mayoreo = true;
-  }
   return payload;
 };
 
@@ -113,11 +93,7 @@ export default function useLoteForm({ isOpen, productos = [], productoInicialId,
   const productoSeleccionado = productosActivos.find((producto) => String(producto.id_producto) === formulario.id_producto);
   const manejarCambio = ({ target: { name, value } }) => {
     setErrorLocal(null);
-    if (name === 'id_producto') {
-      const producto = productosActivos.find((item) => String(item.id_producto) === value);
-      const compra = producto?.precio_compra == null ? '' : String(producto.precio_compra);
-      setFormulario((actual) => ({ ...actual, id_producto: value, precio_compra: compra, margen_ganancia: calcularMargenGanancia(compra, actual.precio_venta) }));
-    } else setFormulario((actual) => ({ ...actual, [name]: value }));
+    setFormulario((actual) => ({ ...actual, [name]: value }));
   };
   const manejarPrecioChange = (campo, valor) => {
     setErrorLocal(null);
