@@ -127,6 +127,33 @@ describe('CajaOperativa', () => {
     expect(screen.queryByRole('button', { name: 'Abrir turno' })).not.toBeInTheDocument();
   });
 
+  it('identifica las operaciones POS que impiden cerrar el turno', () => {
+    useCaja.mockReturnValue(crearEstado({
+      cajaSeleccionada: { id_caja: 3, nombre: 'Caja principal' },
+      idCajaSeleccionada: 3,
+      sesionActual: {
+        id_sesion_caja: 9,
+        turno: 'tarde',
+        pagos_pos_abiertos: [{
+          external_id: 'farmacom-pos-1',
+          referencia_pago: 'pay-123',
+          estado: 'incidencia',
+          total: '125.50',
+        }],
+      },
+    }));
+
+    render(<CajaOperativa />);
+
+    expect(screen.getByRole('heading', { name: 'Operaciones POS por resolver' }))
+      .toBeInTheDocument();
+    expect(screen.getByText('Cobrado, venta pendiente')).toBeInTheDocument();
+    expect(screen.getByText('pay-123')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Continuar seguimiento en punto de venta' }))
+      .toHaveAttribute('href', '/pos');
+    expect(screen.getByRole('button', { name: 'Cerrar turno' })).toBeDisabled();
+  });
+
   it('registra una entrada de efectivo en el turno abierto', async () => {
     const user = userEvent.setup();
     registrar.mockResolvedValue({ id_movimiento_caja: 12 });

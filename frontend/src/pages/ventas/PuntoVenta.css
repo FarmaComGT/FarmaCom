@@ -378,6 +378,12 @@
 .pos-checkout-card > span { display: flex; width: 36px; height: 36px; flex: none; align-items: center; justify-content: center; border-radius: 8px; background: var(--checkout-selected); color: var(--checkout-accent); }
 .pos-checkout-card > span svg { width: 18px; height: 18px; }
 .pos-checkout-card > span.is-pending svg { animation: checkout-spin 1s linear infinite; }
+.pos-checkout-card.is-incident { border-color: #efd99d; background: var(--checkout-warning-bg); }
+.pos-checkout-card.is-incident > span { background: #fff7df; color: var(--checkout-warning); }
+.pos-checkout-incident-refs { display: grid; gap: 5px; margin-top: 10px; }
+.pos-checkout-incident-refs > div { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 8px; }
+.pos-checkout-incident-refs dt { color: var(--checkout-muted); font-size: 12px; }
+.pos-checkout-incident-refs dd { min-width: 0; overflow-wrap: anywhere; color: var(--checkout-ink); font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 700; }
 .pos-checkout-card strong { display: block; font-size: 13px; }
 .pos-checkout-card p { margin-top: 4px; color: var(--checkout-muted); font-size: 12px; line-height: 1.5; }
 .pos-checkout-notice { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; border: 1px solid; border-radius: 9px; padding: 11px 12px; font-size: 12px; font-weight: 700; line-height: 1.45; }

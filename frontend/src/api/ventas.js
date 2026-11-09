@@ -23,9 +23,11 @@ export const obtenerVentas = async (filtros = {}, opciones = {}) => {
   }
 };
 
-export const crearVenta = async (payload) => {
+export const crearVenta = async (payload, claveIdempotencia) => {
   try {
-    const { data } = await api.post('/ventas', payload);
+    const { data } = await api.post('/ventas', payload, {
+      headers: { 'Idempotency-Key': claveIdempotencia },
+    });
     return data;
   } catch (err) {
     const mensaje = err.response?.data?.mensaje || 'No se pudo registrar la venta.';
@@ -54,6 +56,19 @@ export const obtenerEstadoPagoPOS = async (externalId) => {
     return data;
   } catch (err) {
     const mensaje = err.response?.data?.mensaje || 'No se pudo verificar el estado del pago.';
+    throw new Error(mensaje);
+  }
+};
+
+export const conciliarPagoPOS = async (externalId) => {
+  try {
+    const { data } = await api.post(
+      `/ventas/tarjeta/pos/${encodeURIComponent(externalId)}/conciliar`,
+    );
+    return data;
+  } catch (err) {
+    const mensaje = err.response?.data?.mensaje
+      || 'No se pudo conciliar la venta. El cobro no se repetirá; conserva la referencia.';
     throw new Error(mensaje);
   }
 };
