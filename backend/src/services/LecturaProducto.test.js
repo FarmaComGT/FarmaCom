@@ -1,7 +1,28 @@
 jest.mock('../daos/ProductoDAO');
 const ProductoDAO = require('../daos/ProductoDAO');
-const { buscarPorLectura, actualizarProducto } = require('./ProductoService');
+const { buscarPorLectura, actualizarProducto, seleccionarPorLectura } = require('./ProductoService');
 const { normalizarCodigoBarras } = require('../utils/codigoBarras');
+
+describe('lectura para seleccionar el producto de una promoción', () => {
+  beforeEach(() => jest.resetAllMocks());
+  it('identifica el catálogo sin exigir existencias y conserva ceros', async () => {
+    ProductoDAO.obtenerPorCodigoLectura.mockResolvedValue([{ id_producto: 7, activo: true }]);
+    ProductoDAO.obtenerPorId.mockResolvedValue({ id_producto: 7, activo: true, codigo_barras: '000123', nombre_comercial: 'Oxímetro', precio_compra: 20 });
+    const producto = await seleccionarPorLectura(' 000123 ');
+    expect(ProductoDAO.obtenerPorCodigoLectura).toHaveBeenCalledWith('000123');
+    expect(producto.codigo_barras).toBe('000123');
+    expect(producto).not.toHaveProperty('precio_compra');
+    expect(ProductoDAO.obtenerLotesParaLectura).not.toHaveBeenCalled();
+  });
+  it.each([
+    [[], 404],
+    [[{ id_producto: 7, activo: false }], 409],
+    [[{ id_producto: 7, activo: true }, { id_producto: 8, activo: true }], 409],
+  ])('rechaza códigos inexistentes, inactivos o ambiguos', async (coincidencias, status) => {
+    ProductoDAO.obtenerPorCodigoLectura.mockResolvedValue(coincidencias);
+    await expect(seleccionarPorLectura('000123')).rejects.toMatchObject({ status });
+  });
+});
 
 describe('Lectura exacta de productos', () => {
   beforeEach(() => {

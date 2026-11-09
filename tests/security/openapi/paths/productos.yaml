@@ -76,7 +76,7 @@ promociones:
   get:
     tags: [Productos]
     operationId: obtenerPromocionesProducto
-    x-farmacom-roles: [dependiente]
+    x-farmacom-roles: [dueno, administrador, dependiente]
     parameters:
       - { $ref: '../components/parameters.yaml#/IdProducto' }
     responses:
@@ -87,7 +87,7 @@ promocionPorId:
   get:
     tags: [Productos]
     operationId: obtenerPromocionPorId
-    x-farmacom-roles: [dependiente]
+    x-farmacom-roles: [dueno, administrador, dependiente]
     parameters:
       - { $ref: '../components/parameters.yaml#/Id' }
     responses:
@@ -95,3 +95,60 @@ promocionPorId:
       '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
       '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
       '404': { $ref: '../components/responses.yaml#/NoEncontrado' }
+promocionesGenerales:
+  get:
+    tags: [Productos]
+    operationId: obtenerPromocionesGenerales
+    x-farmacom-roles: [dueno, administrador, dependiente]
+    parameters:
+      - { name: busqueda, in: query, schema: { type: string, maxLength: 150 } }
+      - { name: estado, in: query, schema: { type: string, enum: [todas, vigente, programada, finalizada, desactivada, agotada] } }
+      - { name: id_producto, in: query, schema: { type: integer, minimum: 1 } }
+      - { name: id_sucursal, in: query, schema: { type: integer, minimum: 1 } }
+      - { name: pagina, in: query, schema: { type: integer, minimum: 1 } }
+      - { name: limite, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+seleccionPromocion:
+  get:
+    tags: [Productos]
+    operationId: buscarProductosParaPromocion
+    x-farmacom-roles: [dueno, administrador]
+    parameters:
+      - { name: busqueda, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 100 }, example: paracetamol }
+      - { name: limite, in: query, schema: { type: integer, minimum: 1, maximum: 20 } }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+lecturaSeleccionPromocion:
+  get:
+    tags: [Productos]
+    operationId: seleccionarProductoPromocionPorCodigo
+    x-farmacom-roles: [dueno, administrador]
+    parameters:
+      - { name: codigo, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 64 }, example: '000123456789' }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }
+      '404': { $ref: '../components/responses.yaml#/NoEncontrado' }
+      '409': { description: Código ambiguo o producto inactivo }
+referenciaPromocion:
+  get:
+    tags: [Productos]
+    operationId: obtenerPrecioReferenciaPromocion
+    x-farmacom-roles: [dueno, administrador]
+    parameters:
+      - { $ref: '../components/parameters.yaml#/IdProducto' }
+      - { name: id_sucursal, in: query, required: true, schema: { type: integer, minimum: 1 }, example: 1 }
+    responses:
+      '200': { $ref: '../components/responses.yaml#/RespuestaExitosa' }
+      '400': { $ref: '../components/responses.yaml#/SolicitudInvalida' }
+      '401': { $ref: '../components/responses.yaml#/NoAutenticado' }
+      '403': { $ref: '../components/responses.yaml#/AccesoDenegado' }

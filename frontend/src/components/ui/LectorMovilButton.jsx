@@ -21,6 +21,6 @@ export function LectorMovilEstado() {
   if (!lector?.sesion?.confirmado) return null;
   const etiqueta = `Celular: ${nombresDestino[lector.destino]}`;
   return <button type="button" className={`${styles.trigger} ${styles.global}`} onClick={lector.abrir} aria-label={`Administrar lector conectado. ${etiqueta}`} title={etiqueta}>
-    <Smartphone size={18} aria-hidden="true" /><span>Celular · {({ ventas: 'Ventas', producto: 'Producto', pausa: 'En pausa' })[lector.destino]}</span>
+    <Smartphone size={18} aria-hidden="true" /><span>Celular · {({ ventas: 'Ventas', producto: 'Producto', promocion: 'Promoción', pausa: 'En pausa' })[lector.destino]}</span>
   </button>;
 }

@@ -1,349 +1,144 @@
-import { ToastProvider } from '../../context/ToastContext.jsx';
 import React from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ToastProvider } from '../../context/ToastContext.jsx';
+import api from '../../api/axios';
 import Promociones from './Promociones';
 
-const estado = vi.hoisted(() => ({
-  crear: vi.fn(),
-  actualizar: vi.fn(),
-  cambiarEstado: vi.fn(),
-  productos: [],
-  lotes: [],
-  promociones: [],
-  errorPromociones: null,
-  cargandoPromociones: false,
-  refrescarPromociones: vi.fn(),
-  cargandoProductos: false,
-  errorProductos: null,
-  refrescarProductos: vi.fn(),
-  sucursales: [],
-  cargandoSucursales: false,
-  errorSucursales: null,
-  refrescarSucursales: vi.fn(),
-  cargandoLotes: false,
-  errorLotes: null,
-  refrescarLotes: vi.fn(),
-}));
+const mocks = vi.hoisted(() => ({ crear: vi.fn(), actualizar: vi.fn(), cambiarEstado: vi.fn(), refrescar: vi.fn(), consulta: vi.fn(), usuario: { rol: 'administrador' }, promociones: [] }));
+vi.mock('../../api/axios', () => ({ default: { get: vi.fn() } }));
+vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ sucursalActivaId: 1, usuario: mocks.usuario }) }));
+vi.mock('../../hooks/useSucursales', () => ({ default: () => ({ sucursales: [{ id_sucursal: 1, nombre_sucursal: 'Centro' }, { id_sucursal: 2, nombre_sucursal: 'Norte' }] }) }));
+vi.mock('../../hooks/usePromociones', () => ({ default: (id, filtros) => {
+  mocks.consulta(id, filtros);
+  return { promociones: mocks.promociones, paginacion: { pagina: 1, limite: 25, total: mocks.promociones.length, total_paginas: 1 }, cargando: false, crear: mocks.crear, actualizar: mocks.actualizar, cambiarEstado: mocks.cambiarEstado, refrescar: mocks.refrescar };
+} }));
+const producto = { id_producto: 4, codigo: 'MED-004', nombre_comercial: 'Paracetamol', concentracion: '500 mg', presentacion: 'Caja' };
+const promocion = { ...producto, id_promocion: 8, nombre: 'Mayoreo central', id_sucursal: 1, nombre_sucursal: 'Centro', cantidad_minima: 6, precio_promocion: 8, fecha_inicio: '2000-01-01', fecha_fin: null, activo: true };
+const Ubicacion = () => <output aria-label="URL">{useLocation().search}</output>;
+const mostrar = (ruta = '/inventario/promociones') => render(<ToastProvider><MemoryRouter initialEntries={[ruta]}><Promociones/><Ubicacion/></MemoryRouter></ToastProvider>);
+async function nueva(usuario) {
+  await usuario.click(screen.getByRole('button', { name: 'Nueva promoción' }));
+  await usuario.type(await screen.findByRole('searchbox', { name: 'Buscar producto' }), 'Paracetamol');
+  await usuario.click(await screen.findByRole('button', { name: /Paracetamol.*MED-004/ }));
+  await waitFor(() => expect(screen.getByText(/Precio normal mínimo actual/)).toBeInTheDocument());
+}
+async function precio(usuario) {
+  await usuario.clear(screen.getByLabelText('Cantidad mínima por venta'));
+  await usuario.type(screen.getByLabelText('Cantidad mínima por venta'), '6');
+  await usuario.type(screen.getByLabelText('Precio por unidad (Q)'), '8');
+}
 
-vi.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({ sucursalActivaId: 1, usuario: { rol: 'administrador' } }),
-}));
-
-vi.mock('../../hooks/useProductos', () => ({
-  default: () => ({ productos: estado.productos, cargando: estado.cargandoProductos, error: estado.errorProductos, refrescar: estado.refrescarProductos }),
-}));
-
-vi.mock('../../hooks/useSucursales', () => ({
-  default: () => ({
-    sucursales: estado.sucursales,
-    cargando: estado.cargandoSucursales,
-    error: estado.errorSucursales,
-    refrescar: estado.refrescarSucursales,
-  }),
-}));
-
-vi.mock('../../hooks/useLotesProducto', () => ({
-  default: () => ({ lotes: estado.lotes, cargando: estado.cargandoLotes, error: estado.errorLotes, refrescar: estado.refrescarLotes }),
-}));
-
-vi.mock('../../hooks/usePromociones', () => ({
-  default: () => ({
-    promociones: estado.promociones,
-    cargando: estado.cargandoPromociones,
-    error: estado.errorPromociones,
-    refrescar: estado.refrescarPromociones,
-    crear: estado.crear,
-    actualizar: estado.actualizar,
-    cambiarEstado: estado.cambiarEstado,
-  }),
-}));
-
-const promocionVigente = {
-  id_promocion: 8,
-  id_sucursal: 1,
-  nombre_sucursal: 'Sucursal Centro',
-  cantidad_minima: 3,
-  precio_promocion: 7.5,
-  fecha_inicio: '2000-01-01',
-  fecha_fin: '2099-12-31',
-  activo: true,
-};
-
-const renderizar = (ruta = '/') => render(
-  <ToastProvider><MemoryRouter initialEntries={[ruta]}>
-    <Promociones />
-  </MemoryRouter></ToastProvider>,
-);
-
-const abrirNueva = async (user) => {
-  const botonNueva = screen.getByRole('button', { name: 'Nueva promoción' });
-  await waitFor(() => expect(botonNueva).toBeEnabled());
-  await user.click(botonNueva);
-};
-
-const llenarFormulario = async (user, { precio = '6.25', inicio = '2026-11-01', fin = '2026-11-30' } = {}) => {
-  await user.clear(screen.getByLabelText('Cantidad mínima'));
-  await user.type(screen.getByLabelText('Cantidad mínima'), '5');
-  await user.type(screen.getByLabelText('Precio promocional (Q)'), precio);
-  await user.type(screen.getByLabelText('Fecha de inicio'), inicio);
-  await user.type(screen.getByLabelText('Fecha de finalización'), fin);
-};
-
-describe('pantalla de promociones', () => {
+describe('promociones generales', () => {
+  it('guarda un cupo acumulado y valida el mínimo antes de enviar', async () => {
+    const usuario = userEvent.setup(); mostrar(); await nueva(usuario); await precio(usuario);
+    const maxima = screen.getByLabelText(/Cantidad máxima acumulada/);
+    await usuario.type(maxima, '5');
+    await usuario.click(screen.getByRole('checkbox', { name: 'Sin fecha de finalización' }));
+    await usuario.click(screen.getByRole('button', { name: 'Crear promoción', exact: true }));
+    expect(maxima).toHaveFocus(); expect(mocks.crear).not.toHaveBeenCalled();
+    await usuario.clear(maxima); await usuario.type(maxima, '100');
+    await usuario.click(screen.getByRole('button', { name: 'Crear promoción', exact: true }));
+    await waitFor(() => expect(mocks.crear).toHaveBeenCalledWith(expect.objectContaining({ cantidad_maxima: 100 })));
+  });
   beforeEach(() => {
     vi.clearAllMocks();
-    estado.productos = [
-      { id_producto: 4, codigo: 'MED-004', nombre_comercial: 'Paracetamol', nombre_generico: 'Acetaminofén' },
-      { id_producto: 5, codigo: 'MED-005', nombre_comercial: 'Amoxil', nombre_generico: 'Amoxicilina' },
-    ];
-    estado.lotes = [{ id_lote: 1, id_sucursal: 1, stock_actual: 10, precio_venta: 10, estado_vencimiento: 'normal' }];
-    estado.promociones = [promocionVigente];
-    estado.errorPromociones = null;
-    estado.cargandoPromociones = false;
-    estado.cargandoProductos = false;
-    estado.errorProductos = null;
-    estado.sucursales = [
-      { id_sucursal: 1, nombre_sucursal: 'Sucursal Centro' },
-      { id_sucursal: 2, nombre_sucursal: 'Sucursal Norte' },
-    ];
-    estado.cargandoSucursales = false;
-    estado.errorSucursales = null;
-    estado.cargandoLotes = false;
-    estado.errorLotes = null;
-    estado.crear.mockResolvedValue({ id_promocion: 9 });
-    estado.actualizar.mockResolvedValue({});
-    estado.cambiarEstado.mockResolvedValue({});
+    mocks.usuario = { rol: 'administrador' }; mocks.promociones = [promocion];
+    mocks.crear.mockResolvedValue({}); mocks.actualizar.mockResolvedValue({}); mocks.cambiarEstado.mockResolvedValue({});
+    api.get.mockImplementation(async (url) => ({ data: url.endsWith('/referencia') ? { precio_minimo: 10 } : url === '/productos/seleccion' ? [producto] : url.startsWith('/promociones/') ? promocion : producto }));
   });
-
-  it('crea una promoción para el producto y sucursal seleccionados', async () => {
-    const user = userEvent.setup();
-    renderizar();
-
-    await abrirNueva(user);
-    await llenarFormulario(user);
-    await user.click(screen.getByRole('button', { name: 'Crear promoción' }));
-
-    expect(estado.crear).toHaveBeenCalledWith({
-      id_sucursal: 1,
-      cantidad_minima: 5,
-      precio_promocion: 6.25,
-      fecha_inicio: '2026-11-01',
-      fecha_fin: '2026-11-30',
-    });
-    expect(await screen.findByRole('status')).toHaveTextContent('Promoción creada correctamente.');
+  it('muestra promociones generales sin seleccionar el primer producto', () => {
+    mostrar();
+    expect(mocks.consulta).toHaveBeenLastCalledWith(null, expect.objectContaining({ global: true, estado: 'vigente', id_sucursal: '1' }));
+    expect(screen.getByText('Mayoreo central')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Producto' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Sin fecha de fin/)).toBeInTheDocument();
   });
-
-  it('permite desactivar una promoción vigente', async () => {
-    const user = userEvent.setup();
-    renderizar();
-
-    await user.click(screen.getByRole('button', { name: 'Desactivar promoción 8' }));
-    await user.click(screen.getByRole('button', { name: 'Desactivar' }));
-
-    expect(estado.cambiarEstado).toHaveBeenCalledWith(8, false);
-    expect(await screen.findByRole('status')).toHaveTextContent('Promoción desactivada correctamente.');
+  it('refleja búsqueda, estado y sucursal en la URL y consulta el servidor', async () => {
+    const usuario = userEvent.setup(); mostrar();
+    await usuario.type(screen.getByRole('searchbox', { name: 'Buscar promociones' }), 'Mayoreo');
+    await usuario.selectOptions(screen.getByRole('combobox', { name: 'Estado' }), 'programada');
+    await usuario.selectOptions(screen.getByRole('combobox', { name: 'Sucursal' }), '2');
+    await waitFor(() => expect(mocks.consulta).toHaveBeenLastCalledWith(null, expect.objectContaining({ busqueda: 'Mayoreo', estado: 'programada', id_sucursal: '2' })));
+    expect(screen.getByLabelText('URL')).toHaveTextContent('q=Mayoreo');
   });
-
-  it('limita el precio promocional por debajo del menor precio normal disponible', async () => {
-    const user = userEvent.setup();
-    renderizar();
-
-    await abrirNueva(user);
-    const precio = screen.getByLabelText('Precio promocional (Q)');
-    await llenarFormulario(user, { precio: '10' });
-    await user.click(screen.getByRole('button', { name: 'Crear promoción' }));
-
-    expect(precio).toHaveAttribute('max', '9.99');
-    expect(precio).toBeInvalid();
-    expect(estado.crear).not.toHaveBeenCalled();
+  it('crea con producto elegido en el formulario, nombre y vigencia abierta', async () => {
+    const usuario = userEvent.setup(); mostrar(); await nueva(usuario); await precio(usuario);
+    await usuario.type(screen.getByLabelText(/Nombre/), ' Mayoreo ');
+    await usuario.click(screen.getByRole('checkbox', { name: 'Sin fecha de finalización' }));
+    expect(screen.getByLabelText('Fecha de finalización')).toBeDisabled();
+    expect(screen.getByText(/Desde 6 unidades por venta, cada unidad cuesta/)).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: 'Crear promoción', exact: true }));
+    await waitFor(() => expect(mocks.crear).toHaveBeenCalledWith(expect.objectContaining({ nombre: 'Mayoreo', id_producto: 4, id_sucursal: 1, cantidad_minima: 6, precio_promocion: 8, fecha_fin: null })));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
-
-  it('rechaza una fecha de finalización anterior al inicio', async () => {
-    const user = userEvent.setup();
-    renderizar();
-
-    await abrirNueva(user);
-    await llenarFormulario(user, { inicio: '2026-11-30', fin: '2026-11-01' });
-    await user.click(screen.getByRole('button', { name: 'Crear promoción' }));
-
-    expect(screen.getByText('La fecha de finalización debe ser posterior a la fecha de inicio.')).toBeInTheDocument();
-    expect(estado.crear).not.toHaveBeenCalled();
+  it('permite el nombre automático y exige una fecha final salvo elección explícita', async () => {
+    const usuario = userEvent.setup(); mostrar(); await nueva(usuario); await precio(usuario);
+    await usuario.click(screen.getByRole('button', { name: 'Crear promoción', exact: true }));
+    expect(await screen.findByText(/Selecciona la fecha de finalización o marca/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Fecha de finalización')).toHaveFocus();
+    await usuario.type(screen.getByLabelText('Fecha de finalización'), '2099-12-31');
+    await usuario.click(screen.getByRole('button', { name: 'Crear promoción', exact: true }));
+    await waitFor(() => expect(mocks.crear).toHaveBeenCalledWith(expect.objectContaining({ nombre: null, fecha_fin: '2099-12-31' })));
   });
-
-  it('no permite crear si la sucursal no tiene lotes vendibles con precio', async () => {
-    const user = userEvent.setup();
-    estado.lotes = [{ id_lote: 1, id_sucursal: 1, stock_actual: 0, precio_venta: 10, estado_vencimiento: 'normal' }];
-    renderizar();
-
-    await abrirNueva(user);
-
-    expect(screen.getByText('No hay lotes vendibles con precio en esta sucursal.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Crear promoción' })).toBeDisabled();
+  it('permite enviar incompleto y enfoca el primer error', async () => {
+    const usuario = userEvent.setup(); mostrar();
+    await usuario.click(screen.getByRole('button', { name: 'Nueva promoción' }));
+    await usuario.click(screen.getByRole('button', { name: 'Crear promoción', exact: true }));
+    expect(await screen.findByText('Busca y selecciona un producto.')).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Buscar producto' })).toHaveFocus();
+    expect(mocks.crear).not.toHaveBeenCalled();
   });
-
-  it('muestra el error del backend al guardar y mantiene el formulario abierto', async () => {
-    const user = userEvent.setup();
-    estado.crear.mockRejectedValue({ response: { data: { mensaje: 'Ya existe una promoción activa' } } });
-    renderizar();
-
-    await abrirNueva(user);
-    await llenarFormulario(user);
-    await user.click(screen.getByRole('button', { name: 'Crear promoción' }));
-
-    expect(await screen.findByText('Ya existe una promoción activa')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Crear promoción' })).toBeInTheDocument();
+  it('abre el formulario desde inventario con el producto precargado', async () => {
+    mostrar('/inventario/promociones?producto=4&crear=1&sucursal=2');
+    const dialogo = await screen.findByRole('dialog');
+    await waitFor(() => expect(within(dialogo).getByText('Paracetamol')).toBeInTheDocument());
+    expect(within(dialogo).getByLabelText('Sucursal')).toHaveValue('2');
+    expect(within(dialogo).queryByRole('searchbox')).not.toBeInTheDocument();
   });
-
-  it('edita una promoción con sus datos precargados', async () => {
-    const user = userEvent.setup();
-    renderizar();
-
-    await user.click(screen.getByRole('button', { name: 'Editar promoción 8' }));
-
-    expect(screen.getByLabelText('Precio promocional (Q)')).toHaveValue(7.5);
-    expect(screen.getByLabelText('Fecha de inicio')).toHaveValue('2000-01-01');
-    await user.clear(screen.getByLabelText('Precio promocional (Q)'));
-    await user.type(screen.getByLabelText('Precio promocional (Q)'), '7');
-    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
-
-    expect(estado.actualizar).toHaveBeenCalledWith(8, {
-      cantidad_minima: 3,
-      precio_promocion: 7,
-      fecha_inicio: '2000-01-01',
-      fecha_fin: '2099-12-31',
-    });
-    expect(await screen.findByRole('status')).toHaveTextContent('Promoción actualizada correctamente.');
+  it('edita sin cambiar producto o sucursal y admite quitar la fecha final', async () => {
+    api.get.mockImplementation(async (url) => ({ data: url.endsWith('/referencia') ? { precio_minimo: 10 } : { ...promocion, fecha_fin: '2099-01-01' } }));
+    const usuario = userEvent.setup(); mostrar('/inventario/promociones?editar=8');
+    await screen.findByDisplayValue('Mayoreo central');
+    await waitFor(() => expect(screen.getByText(/Precio normal mínimo actual/)).toBeInTheDocument());
+    expect(within(screen.getByRole('dialog')).getByLabelText('Sucursal')).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Cambiar producto' })).not.toBeInTheDocument();
+    await usuario.click(screen.getByRole('checkbox', { name: 'Sin fecha de finalización' }));
+    await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    await waitFor(() => expect(mocks.actualizar).toHaveBeenCalledWith(8, expect.objectContaining({ fecha_fin: null })));
   });
-
-  it('cierra el formulario sin guardar', async () => {
-    const user = userEvent.setup();
-    renderizar();
-
-    await abrirNueva(user);
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
-
-    expect(screen.queryByLabelText('Precio promocional (Q)')).not.toBeInTheDocument();
+  it('conserva lo escrito tras un conflicto y permite abrir la promoción existente', async () => {
+    mocks.crear.mockRejectedValue({ response: { data: { mensaje: 'Ya existe una promoción activa', errores: [{ campo: 'fecha_inicio', id_promocion: 9, nombre: 'Otra promoción' }] } } });
+    const usuario = userEvent.setup(); mostrar(); await nueva(usuario); await precio(usuario);
+    await usuario.click(screen.getByRole('checkbox', { name: 'Sin fecha de finalización' }));
+    await usuario.click(screen.getByRole('button', { name: 'Crear promoción', exact: true }));
+    const enlace = await screen.findByRole('link', { name: /Abrir promoción existente/ });
+    expect(enlace).toHaveAttribute('href', '/inventario/promociones?editar=9');
+    expect(screen.getByLabelText('Precio por unidad (Q)')).toHaveValue(8);
   });
-
-  it('reactiva una promoción inactiva y muestra el error si falla', async () => {
-    const user = userEvent.setup();
-    estado.promociones = [{ ...promocionVigente, activo: false }];
-    estado.cambiarEstado.mockRejectedValue({ response: { data: { mensaje: 'Se solapa con otra promoción' } } });
-    renderizar();
-
-    expect(screen.getByText('Inactiva')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Activar promoción 8' }));
-    await user.click(screen.getByRole('button', { name: 'Activar' }));
-
-    expect(estado.cambiarEstado).toHaveBeenCalledWith(8, true);
-    expect(await screen.findByRole('status')).toHaveTextContent('Se solapa con otra promoción');
+  it('impide guardar un precio igual al normal', async () => {
+    const usuario = userEvent.setup(); mostrar(); await nueva(usuario);
+    await usuario.type(screen.getByLabelText('Precio por unidad (Q)'), '10');
+    await usuario.click(screen.getByRole('checkbox', { name: 'Sin fecha de finalización' }));
+    await usuario.click(screen.getByRole('button', { name: 'Crear promoción', exact: true }));
+    expect(screen.getByText('El precio debe ser menor que el precio normal mínimo.')).toBeInTheDocument();
+    expect(mocks.crear).not.toHaveBeenCalled();
   });
-
-  it('muestra si la promoción está programada, vigente o finalizada', () => {
-    estado.promociones = [
-      { ...promocionVigente, id_promocion: 1 },
-      { ...promocionVigente, id_promocion: 2, fecha_inicio: '2099-01-01', fecha_fin: '2099-02-01' },
-      { ...promocionVigente, id_promocion: 3, fecha_inicio: '2000-01-01', fecha_fin: '2000-02-01' },
-    ];
-    renderizar();
-
-    expect(screen.getByText('Vigente')).toBeInTheDocument();
-    expect(screen.getByText('Programada')).toBeInTheDocument();
-    expect(screen.getByText('Finalizada')).toBeInTheDocument();
+  it('el dependiente consulta su sucursal y no ve acciones de administración', () => {
+    mocks.usuario = { rol: 'dependiente', id_sucursal: 2 };
+    mostrar('/inventario/promociones?sucursal=1');
+    expect(mocks.consulta).toHaveBeenLastCalledWith(null, expect.objectContaining({ id_sucursal: '2' }));
+    expect(screen.queryByRole('button', { name: 'Nueva promoción' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Editar/ })).not.toBeInTheDocument();
   });
-
-  it('filtra las promociones por sucursal', async () => {
-    const user = userEvent.setup();
-    estado.promociones = [
-      promocionVigente,
-      { ...promocionVigente, id_promocion: 9, id_sucursal: 2, nombre_sucursal: 'Sucursal Norte' },
-    ];
-    renderizar();
-
-    await user.selectOptions(screen.getByLabelText('Filtrar por sucursal'), '2');
-
-    expect(screen.queryByRole('button', { name: 'Editar promoción 8' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Editar promoción 9' })).toBeInTheDocument();
-  });
-
-  it('busca productos por código o nombre', async () => {
-    const user = userEvent.setup();
-    renderizar();
-
-    const selector = screen.getByLabelText('Producto');
-    await user.type(screen.getByLabelText('Buscar producto'), 'amoxi');
-
-    const opciones = within(selector).getAllByRole('option').map((opcion) => opcion.textContent);
-    expect(opciones).toEqual(['Selecciona un producto', 'MED-005 · Amoxil']);
-  });
-
-  it('muestra los errores de carga', () => {
-    estado.errorPromociones = 'No se pudieron cargar las promociones.';
-    renderizar();
-
-    expect(screen.getByRole('alert')).toHaveTextContent('No se pudieron cargar las promociones.');
-  });
-
-  it('restaura producto y sucursal desde la URL', async () => {
-    renderizar('/?producto=5&sucursal=2&q=amoxi');
-
-    expect(await screen.findByLabelText('Producto')).toHaveValue('5');
-    expect(screen.getByLabelText('Filtrar por sucursal')).toHaveValue('2');
-    expect(screen.getByLabelText('Buscar producto')).toHaveValue('amoxi');
-  });
-
-  it('muestra errores recuperables de catálogos y precios', async () => {
-    const user = userEvent.setup();
-    estado.errorProductos = 'No se pudieron cargar los productos';
-    estado.errorLotes = 'No se pudieron cargar los lotes';
-    renderizar();
-
-    expect(screen.getByText('No se pudieron cargar los catálogos')).toBeInTheDocument();
-    expect(screen.getByText('No se pudieron consultar los precios de referencia')).toBeInTheDocument();
-    const reintentos = screen.getAllByRole('button', { name: 'Reintentar' });
-    await user.click(reintentos[0]);
-    await user.click(reintentos[1]);
-    expect(estado.refrescarProductos).toHaveBeenCalledOnce();
-    expect(estado.refrescarSucursales).toHaveBeenCalledOnce();
-    expect(estado.refrescarLotes).toHaveBeenCalledOnce();
-  });
-
-  it('protege los cambios sin guardar del formulario', async () => {
-    const user = userEvent.setup();
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
-    renderizar();
-    await abrirNueva(user);
-    await user.type(screen.getByLabelText('Precio promocional (Q)'), '6');
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
-    expect(screen.getByRole('heading', { name: 'Nueva promoción' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
-    expect(screen.queryByRole('heading', { name: 'Nueva promoción' })).not.toBeInTheDocument();
-    expect(confirmar).toHaveBeenCalledTimes(2);
-    confirmar.mockRestore();
-  });
-
-  it('valida cantidad, precio y fechas obligatorias', async () => {
-    const user = userEvent.setup();
-    renderizar();
-    await abrirNueva(user);
-
-    await user.clear(screen.getByLabelText('Cantidad mínima'));
-    await user.click(screen.getByRole('button', { name: 'Crear promoción' }));
-    expect(screen.getByText('La cantidad mínima debe ser un número entero mayor que cero.')).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText('Cantidad mínima'), '2');
-    await user.click(screen.getByRole('button', { name: 'Crear promoción' }));
-    expect(screen.getByText('Ingresa un precio promocional válido.')).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText('Precio promocional (Q)'), '6');
-    await user.click(screen.getByRole('button', { name: 'Crear promoción' }));
-    expect(screen.getByText('Selecciona la fecha de inicio.')).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText('Fecha de inicio'), '2026-11-01');
-    await user.click(screen.getByRole('button', { name: 'Crear promoción' }));
-    expect(screen.getByText('Selecciona la fecha de finalización.')).toBeInTheDocument();
+  it('muestra confirmación propia y conserva errores al cambiar estado', async () => {
+    mocks.cambiarEstado.mockRejectedValue(new Error('No se pudo cambiar'));
+    const usuario = userEvent.setup(); mostrar();
+    await usuario.click(screen.getByRole('button', { name: 'Desactivar Mayoreo central' }));
+    const dialogo = screen.getByRole('dialog', { name: 'Desactivar promoción' });
+    await usuario.click(within(dialogo).getByRole('button', { name: 'Desactivar', exact: true }));
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('No se pudo cambiar');
   });
 });

@@ -122,7 +122,7 @@ describe('ProductoDAO - autocompletado para POS', () => {
     expect(consulta).not.toContain('lote_pos.fecha_vencimiento ASC');
     expect(consulta).toContain('LIMIT $3');
     expect(consulta).toContain('LEFT JOIN LATERAL');
-    expect(consulta).toContain('CURRENT_DATE BETWEEN pr.fecha_inicio AND pr.fecha_fin');
+    expect(consulta).toContain('pr.fecha_fin IS NULL OR CURRENT_DATE <= pr.fecha_fin');
     expect(consulta).toContain('pr.id_sucursal = $2');
     expect(consulta).toContain('pr.activo = TRUE');
     expect(consulta).toContain('pr.precio_promocion < lote_pos.precio_venta');

@@ -1,6 +1,14 @@
 const ProductoService = require('../services/ProductoService');
 const asyncHandler = require('../middlewares/asyncHandler');
 
+const buscarParaSeleccion = asyncHandler(async (req, res) => {
+  res.json(await ProductoService.buscarParaSeleccion(req.query.busqueda, req.query.limite));
+});
+
+const seleccionarPorLectura = asyncHandler(async (req, res) => {
+  res.json(await ProductoService.seleccionarPorLectura(req.query.codigo));
+});
+
 const buscarPorLectura = asyncHandler(async (req, res) => {
   const lotes = await ProductoService.buscarPorLectura({
     codigo: req.query.codigo,
@@ -65,6 +73,8 @@ const cambiarEstado = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  seleccionarPorLectura,
+  buscarParaSeleccion,
   buscarPorLectura,
   crear,
   obtenerTodos,

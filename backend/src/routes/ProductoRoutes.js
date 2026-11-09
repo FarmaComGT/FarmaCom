@@ -39,6 +39,12 @@ router.get('/',
 );
 
 // Debe declararse antes de /:id para evitar que Express interprete la ruta como un id.
+router.get('/seleccion', verificarToken, rolesAdministracionPromociones, validarAutocompletado,
+  validateRequest, ProductoController.buscarParaSeleccion);
+
+router.get('/seleccion/lectura', verificarToken, rolesAdministracionPromociones,
+  validarLectura, validateRequest, ProductoController.seleccionarPorLectura);
+
 router.get('/autocompletar',
   verificarToken,
   verificarRol('dueno', 'administrador', 'dependiente'),
@@ -106,6 +112,11 @@ router.post('/:id_producto/promociones',
   validateRequest,
   PromocionController.crear,
 );
+
+router.get('/:id_producto/promociones/referencia', verificarToken, rolesAdministracionPromociones,
+  validarParamIdProducto,
+  query('id_sucursal').isInt({ min: 1, max: 2147483647 }).toInt(), validateRequest,
+  PromocionController.obtenerReferencia);
 
 router.get('/:id_producto/promociones',
   verificarToken,

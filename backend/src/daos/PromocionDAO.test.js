@@ -4,6 +4,20 @@ const pool = require('../database/db');
 const PromocionDAO = require('./PromocionDAO');
 
 describe('PromocionDAO', () => {
+  it('busca y pagina por nombre, producto y sucursal con parámetros', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ total: '1' }] }).mockResolvedValueOnce({ rows: [{ id_promocion: 7 }] });
+    const resultado = await PromocionDAO.obtenerTodas({ busqueda: 'Mayoreo', id_sucursal: 2, estado: 'vigente', pagina: 1, limite: 10 });
+    expect(resultado.paginacion.total).toBe(1);
+    expect(pool.query.mock.calls[0][0]).toContain('normalizar_texto_busqueda(pr.nombre) LIKE');
+    expect(pool.query.mock.calls[0][0]).toContain('pr.fecha_fin IS NULL');
+    expect(pool.query.mock.calls[1][1]).toEqual([2, 'Mayoreo', 10, 0]);
+  });
+
+  it('escribe null en fecha_fin sin confundirlo con un campo omitido', async () => {
+    pool.query.mockResolvedValue({ rows: [{ id_promocion: 1, fecha_fin: null }] });
+    await PromocionDAO.actualizar(1, { fecha_fin: null });
+    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('fecha_fin = $1'), [null, 1]);
+  });
   it('crea una promoción', async () => {
     const fila = { id_promocion: 1 };
     pool.query.mockResolvedValue({ rows: [fila] });
@@ -64,7 +78,7 @@ describe('PromocionDAO', () => {
 
     expect(client.query).toHaveBeenCalledWith(
       expect.stringMatching(
-        /id_producto = ANY[\s\S]*id_sucursal = \$2[\s\S]*activo = TRUE[\s\S]*CURRENT_DATE BETWEEN fecha_inicio AND fecha_fin[\s\S]*FOR SHARE/,
+        /id_producto = ANY[\s\S]*id_sucursal = \$2[\s\S]*activo = TRUE[\s\S]*CURRENT_DATE >= fecha_inicio[\s\S]*fecha_fin IS NULL OR CURRENT_DATE <= fecha_fin[\s\S]*FOR UPDATE/,
       ),
       [[1, 2], 4],
     );
@@ -78,14 +92,14 @@ describe('PromocionDAO', () => {
   });
 
   it('detecta solapamiento sin excluir ningún id', async () => {
-    pool.query.mockResolvedValue({ rows: [{ '?column?': 1 }] });
+    pool.query.mockResolvedValue({ rows: [{ id_promocion: 7, nombre: 'Mayoreo' }] });
 
     await expect(PromocionDAO.existeActivaSolapada({
       id_producto: 1,
       id_sucursal: 1,
       fecha_inicio: '2026-01-01',
       fecha_fin: '2026-01-31',
-    })).resolves.toBe(true);
+    })).resolves.toEqual({ id_promocion: 7, nombre: 'Mayoreo' });
     expect(pool.query).toHaveBeenCalledWith(
       expect.not.stringContaining('id_promocion <>'),
       [1, 1, '2026-01-01', '2026-01-31'],
@@ -101,7 +115,7 @@ describe('PromocionDAO', () => {
       fecha_inicio: '2026-01-01',
       fecha_fin: '2026-01-31',
       excluir_id: 5,
-    })).resolves.toBe(false);
+    })).resolves.toBeNull();
     expect(pool.query).toHaveBeenCalledWith(
       expect.stringContaining('id_promocion <>'),
       [1, 1, '2026-01-01', '2026-01-31', 5],
