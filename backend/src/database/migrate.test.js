@@ -34,6 +34,11 @@ describe('ejecutor de migraciones', () => {
     await fs.rm(directorio, { recursive: true, force: true });
   });
 
+  test('calcula el mismo checksum con finales de línea LF y CRLF', () => {
+    expect(calcularChecksum('SELECT 1;\r\nSELECT 2;\r\n'))
+      .toBe(calcularChecksum('SELECT 1;\nSELECT 2;\n'));
+  });
+
   test('ordena los archivos versionados y rechaza nombres inválidos', async () => {
     await fs.writeFile(path.join(directorio, '010_decima.sql'), 'SELECT 10;', 'utf8');
     await fs.writeFile(path.join(directorio, '002_segunda.sql'), 'SELECT 2;', 'utf8');
