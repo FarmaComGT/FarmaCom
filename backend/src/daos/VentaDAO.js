@@ -177,6 +177,19 @@ class VentaDAO {
     return rows[0];
   }
 
+  async obtenerPagosPOSVencidos(antiguedadMs, limite = 25, client = pool) {
+    const { rows } = await client.query(
+      `SELECT *
+       FROM pago_pos
+       WHERE estado IN ('pendiente', 'procesando')
+         AND creado_en <= CURRENT_TIMESTAMP - ($1::double precision * INTERVAL '1 millisecond')
+       ORDER BY creado_en ASC
+       LIMIT $2`,
+      [antiguedadMs, limite],
+    );
+    return rows;
+  }
+
   async reservarStockPagoPOS(id_pago_pos, { id_lote, cantidad }, client) {
     const { rows: lotes } = await client.query(
       `UPDATE lote

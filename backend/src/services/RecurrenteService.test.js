@@ -74,6 +74,44 @@ describe('RecurrenteService', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
+  it('consulta un comando de terminal por su identificador', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: jest.fn().mockResolvedValue(JSON.stringify({
+        id: 'tsc_test_123',
+        status: 'dispatched',
+        final: false,
+      })),
+    });
+
+    await expect(RecurrenteService.obtenerComandoTerminal('tsc_test_123'))
+      .resolves.toMatchObject({ id: 'tsc_test_123', status: 'dispatched' });
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://app.recurrente.com/api/terminal_session_commands/tsc_test_123',
+      expect.objectContaining({ headers: expect.objectContaining({ 'X-SECRET-KEY': 'rk_test_123' }) }),
+    );
+  });
+
+  it('solicita cancelar un comando de terminal', async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 202,
+      text: jest.fn().mockResolvedValue(JSON.stringify({
+        id: 'tsc_test_123',
+        status: 'cancel_requested',
+        final: false,
+      })),
+    });
+
+    await expect(RecurrenteService.cancelarComandoTerminal('tsc_test_123'))
+      .resolves.toMatchObject({ status: 'cancel_requested' });
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://app.recurrente.com/api/terminal_session_commands/tsc_test_123',
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+
   it('clasifica un rechazo 4xx como resultado definitivo', async () => {
     global.fetch.mockResolvedValue({
       ok: false,

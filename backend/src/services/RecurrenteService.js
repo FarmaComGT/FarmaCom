@@ -138,6 +138,22 @@ const crearComandoTerminal = async ({ terminalId, totalCentavos, externalId }) =
   });
 };
 
+const validarIdComandoTerminal = (commandId) => {
+  if (typeof commandId !== 'string' || !commandId.trim()) {
+    lanzarErrorPublico('commandId es requerido', 400);
+  }
+  return encodeURIComponent(commandId.trim());
+};
+
+const obtenerComandoTerminal = (commandId) => solicitar(
+  `/terminal_session_commands/${validarIdComandoTerminal(commandId)}`,
+);
+
+const cancelarComandoTerminal = (commandId) => solicitar(
+  `/terminal_session_commands/${validarIdComandoTerminal(commandId)}`,
+  { method: 'DELETE' },
+);
+
 const obtenerSecretoWebhook = () => {
   const secreto = process.env.RECURRENTE_WEBHOOK_SECRET;
   if (!secreto) {
@@ -252,7 +268,9 @@ const normalizarEventoWebhook = (body) => {
 };
 
 module.exports = {
+  cancelarComandoTerminal,
   crearComandoTerminal,
+  obtenerComandoTerminal,
   obtenerTimeoutSolicitud,
   verificarFirmaWebhook,
   normalizarEventoWebhook,

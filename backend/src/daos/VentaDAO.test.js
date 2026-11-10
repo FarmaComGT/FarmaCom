@@ -599,6 +599,19 @@ describe('VentaDAO - stock del carrito y cancelación', () => {
     expect(cliente.query.mock.calls[0][0]).not.toContain('FOR UPDATE');
   });
 
+  it('consulta pagos POS abiertos que superaron la antigÃ¼edad configurada', async () => {
+    pool.query.mockResolvedValueOnce({ rows: [{ id_pago_pos: 5 }] });
+
+    await expect(VentaDAO.obtenerPagosPOSVencidos(180000, 25))
+      .resolves.toEqual([{ id_pago_pos: 5 }]);
+
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining("estado IN ('pendiente', 'procesando')"),
+      [180000, 25],
+    );
+    expect(pool.query.mock.calls[0][0]).toContain("INTERVAL '1 millisecond'");
+  });
+
   it('actualiza solo el estado de un pago POS conservando el resto de campos', async () => {
     const cliente = crearCliente([{ external_id: 'farmacom-pos-1', estado: 'fallido' }]);
 

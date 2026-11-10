@@ -40,6 +40,7 @@ const CODIGOS_ESTADO_PAGO_POS = Object.freeze({
   TOTAL_VENTA_INVALIDO: 'total_venta_invalido',
   VENTA_INCOMPLETA: 'venta_incompleta',
   RESPUESTA_INCIERTA: 'respuesta_incierta',
+  CONFIRMACION_REQUERIDA: 'confirmacion_requerida',
 });
 
 const MONEDA_PAGO_POS = 'GTQ';
