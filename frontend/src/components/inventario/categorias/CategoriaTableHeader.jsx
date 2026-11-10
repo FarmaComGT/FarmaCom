@@ -5,7 +5,7 @@ export default function CategoriaTableHeader() {
     <tr>
       <th scope="col" style={{ width: '14%' }}>Código</th>
       <th scope="col">Nombre</th>
-      <th scope="col" style={{ width: '32%', textAlign: 'right' }}>Acciones</th>
+      <th scope="col" style={{ width: '12%', textAlign: 'right' }}>Acciones</th>
     </tr>
   );
 }

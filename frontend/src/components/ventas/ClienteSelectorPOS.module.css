@@ -14,7 +14,7 @@
 .form label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
 .search { display: flex; gap: 8px; }
 .search input { flex: 1; min-width: 0; width: 100%; min-height: 44px; border: 1px solid var(--pos-control); border-radius: 6px; background: var(--pos-surface); padding: 8px 10px; color: var(--pos-ink); font-size: 16px; }
-.search input::placeholder { color: var(--pos-muted); }
+.search input::placeholder { color: var(--ui-placeholder); opacity: 1; }
 .search button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: 6px; background: var(--pos-ink); color: #fff; font-size: 13px; font-weight: 600; }
 .search button:hover { background: var(--pos-accent); }
 .results { max-height: 264px; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--pos-line); padding: 4px; }

@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { LoaderCircle, Pencil, PlusCircle, Search, Trash2, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import AccessibleDialog from '../components/ui/AccessibleDialog.jsx';
+import MenuAcciones from '../components/ui/MenuAcciones.jsx';
 import SucursalAlert from '../components/sucursales/SucursalAlert.jsx';
 import useCiudades from '../hooks/useCiudades';
 import usePaginacionURL, { leerPaginacionURL } from '../hooks/usePaginacionURL';
@@ -41,8 +42,8 @@ function CiudadFormModal({
 
         <form onSubmit={onSubmit} noValidate className={styles.form}>
           <div className={styles.field}>
-            <label htmlFor="nombre_ciudad">Nombre</label>
-            <input
+            <label htmlFor="nombre_ciudad" className="campo-requerido">Nombre</label>
+            <input aria-required="true"
               id="nombre_ciudad"
               type="text"
               name="nombre_ciudad"
@@ -227,7 +228,7 @@ export default function Ciudades() {
 
       <section className={styles.tablePanel} aria-label="Ciudades registradas">
         <table className={styles.table} aria-busy={cargandoCiudades}>
-          <thead><tr><th scope="col" style={{ width: '16%' }}>ID</th><th scope="col">Ciudad</th><th scope="col" style={{ width: '32%', textAlign: 'right' }}>Acciones</th></tr></thead>
+          <thead><tr><th scope="col" style={{ width: '16%' }}>ID</th><th scope="col">Ciudad</th><th scope="col" style={{ width: '12%', textAlign: 'right' }}>Acciones</th></tr></thead>
           <tbody>
             {cargandoCiudades ? (
               <tr><td colSpan="3" className={styles.loading}>Cargando ciudades…</td></tr>
@@ -239,8 +240,13 @@ export default function Ciudades() {
                 <td data-label="Ciudad"><span className={styles.identity}>{ciudad.nombre_ciudad}</span></td>
                 <td data-label="Acciones" className={styles.actionsCell}>
                   <div className={styles.rowActions}>
-                    <button type="button" onClick={() => abrirModalEditar(ciudad)} className={styles.button}><Pencil size={14} aria-hidden="true" /> Editar</button>
-                    <button type="button" onClick={() => setCiudadAEliminar(ciudad)} disabled={eliminandoId === ciudad.id_ciudad} className={`${styles.button} ${styles.danger}`}><Trash2 size={14} aria-hidden="true" /> Eliminar</button>
+                    <MenuAcciones
+                      etiqueta={`Más acciones para ${ciudad.nombre_ciudad}`}
+                      acciones={[
+                        { clave: 'editar', etiqueta: 'Editar', icono: Pencil, onClick: () => abrirModalEditar(ciudad) },
+                        { clave: 'eliminar', etiqueta: 'Eliminar', icono: Trash2, peligro: true, separadorAntes: true, deshabilitada: eliminandoId === ciudad.id_ciudad, onClick: () => setCiudadAEliminar(ciudad) },
+                      ]}
+                    />
                   </div>
                 </td>
               </tr>

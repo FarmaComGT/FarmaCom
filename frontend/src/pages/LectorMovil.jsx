@@ -131,8 +131,8 @@ export default function LectorMovil() {
         <details className={styles.alternative}>
           <summary>Escribir código</summary>
           <form noValidate onSubmit={(evento) => { evento.preventDefault(); void enviar(codigo); }}>
-          <label htmlFor="codigo-movil">Código del producto</label>
-          <input id="codigo-movil" name="codigo" type="text" maxLength={64} autoComplete="off" spellCheck={false} value={codigo} disabled={!disponible} placeholder="Escribe o escanea el código…" onChange={(evento) => setCodigo(evento.target.value)} />
+          <label htmlFor="codigo-movil" className="campo-requerido">Código del producto</label>
+          <input aria-required="true" id="codigo-movil" name="codigo" type="text" maxLength={64} autoComplete="off" spellCheck={false} value={codigo} disabled={!disponible} placeholder="Escribe o escanea el código…" onChange={(evento) => setCodigo(evento.target.value)} />
           <button type="submit" disabled={!disponible}>{ocupado && <LoaderCircle size={18} aria-hidden="true" className={styles.spinner} />}Enviar código</button>
           </form>
         </details>

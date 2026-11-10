@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pencil, Power } from 'lucide-react';
 import ContentState from '../../ui/ContentState.jsx';
+import MenuAcciones from '../../ui/MenuAcciones.jsx';
 import { formatearQuetzales } from '../../../utils/pos';
 import { nombrePromocion, estadoPromocion, cantidadPromocion } from '../../../utils/promociones';
 import styles from '../../../styles/ManagementUI.module.css';
@@ -23,7 +24,7 @@ export default function PromocionesTable({ promociones = [], cargando, error, ca
         <td data-label="Condición"><div className={local.identity}><span>Desde {cantidadPromocion(p.cantidad_minima)} por venta</span>{p.cantidad_maxima == null ? <span>Sin límite acumulado</span> : <><strong>{cantidadPromocion(p.cantidad_disponible ?? 0)} disponibles de {new Intl.NumberFormat('es-GT').format(p.cantidad_maxima)}</strong><span>{cantidadPromocion(p.cantidad_vendida ?? 0)} vendidas{Number(p.cantidad_reservada) > 0 ? ' · ' + cantidadPromocion(p.cantidad_reservada) + ' reservadas' : ''}</span></>}</div></td>
         <td data-label="Precio por unidad" className={local.number}>{formatearQuetzales(p.precio_promocion)}</td>
         <td data-label="Vigencia"><div><span>{fecha(p.fecha_inicio)} – {p.fecha_fin ? fecha(p.fecha_fin) : 'Sin fecha de fin'}</span><div className={local.state}><span className={styles.badge + ' ' + clase}>{estado}</span></div></div></td>
-        {puedeGestionar && <td data-label="Acciones" className={styles.actionsCell}><div className={styles.rowActions + ' ' + local.actions}><button type="button" onClick={() => onEditar(p)} className={styles.button} title="Editar promoción" aria-label={'Editar ' + nombrePromocion(p)}><Pencil size={15} aria-hidden="true"/><span>Editar</span></button><button type="button" onClick={() => onCambiarEstado(p)} disabled={Number(cambiandoId) === Number(p.id_promocion)} className={styles.button + ' ' + (p.activo ? styles.danger : '')} title={p.activo ? 'Desactivar promoción' : 'Activar promoción'} aria-label={(p.activo ? 'Desactivar' : 'Activar') + ' ' + nombrePromocion(p)}><Power size={15} aria-hidden="true"/><span>{p.activo ? 'Desactivar' : 'Activar'}</span></button></div></td>}
+        {puedeGestionar && <td data-label="Acciones" className={styles.actionsCell}><div className={styles.rowActions + ' ' + local.actions}><MenuAcciones etiqueta={'Más acciones para ' + nombrePromocion(p)} ocupado={Number(cambiandoId) === Number(p.id_promocion)} acciones={[{ clave: 'editar', etiqueta: 'Editar', icono: Pencil, onClick: () => onEditar(p) }, { clave: 'estado', etiqueta: p.activo ? 'Desactivar' : 'Activar', icono: Power, peligro: p.activo, onClick: () => onCambiarEstado(p) }]} /></div></td>}
       </tr>; })}</tbody>
     </table>
   </section>;

@@ -92,7 +92,7 @@ export default function VentaAnularModal({
           </div>
 
           <div className={ui.field}>
-            <label htmlFor="motivo-anulacion-venta">Motivo de anulación</label>
+            <label htmlFor="motivo-anulacion-venta" className="campo-requerido">Motivo de anulación</label>
             <textarea
               ref={motivoRef}
               id="motivo-anulacion-venta"

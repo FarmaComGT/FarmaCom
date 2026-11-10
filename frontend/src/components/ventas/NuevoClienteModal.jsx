@@ -75,7 +75,7 @@ export default function NuevoClienteModal({
       </header>
       <form onSubmit={manejarEnvio} className={styles.form}>
         <div className={styles.field}>
-          <label htmlFor="nombre-cliente-pos">Nombre completo</label>
+          <label htmlFor="nombre-cliente-pos" className="campo-requerido">Nombre completo</label>
           <input id="nombre-cliente-pos" name="nombre_cliente" value={formulario.nombre_cliente} onChange={manejarCambio} required maxLength={150} autoComplete="name" autoFocus placeholder="Ej. María López…" className={styles.input} disabled={guardando} />
         </div>
         <div className={styles.field}>

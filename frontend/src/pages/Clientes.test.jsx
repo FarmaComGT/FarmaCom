@@ -5,6 +5,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Clientes from './Clientes';
+import { elegirAccion } from '../test/menuAcciones';
 
 const {
   mockObtenerHistorialCompras,
@@ -89,6 +90,17 @@ describe('Clientes', () => {
     mockActualizarCliente.mockReset();
   });
 
+  it('marca solo el nombre como obligatorio y deja los campos opcionales sin asterisco', async () => {
+    const user = userEvent.setup();
+    renderizar();
+
+    await user.click(screen.getByRole('button', { name: 'Nuevo cliente' }));
+
+    expect(screen.getByText('Nombre completo', { selector: 'label' })).toHaveClass('campo-requerido');
+    expect(screen.getByLabelText(/NIT/).closest('div').querySelector('label')).not.toHaveClass('campo-requerido');
+    expect(screen.getByLabelText(/Observaciones/).closest('div').querySelector('label')).not.toHaveClass('campo-requerido');
+  });
+
   it('muestra el NIT y lo incluye al crear un cliente', async () => {
     const user = userEvent.setup();
     renderizar();
@@ -123,7 +135,7 @@ describe('Clientes', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Ver historial de María López' }));
+    await elegirAccion(user, 'María López', 'Historial');
 
     expect(mockObtenerHistorialCompras).toHaveBeenCalledWith(7, { pagina: 1, limite: 25 });
     const modal = await screen.findByRole('dialog', { name: 'Historial de ventas' });
@@ -152,7 +164,7 @@ describe('Clientes', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Ver historial de María López' }));
+    await elegirAccion(user, 'María López', 'Historial');
 
     await waitFor(() => {
       expect(screen.getByText('Sin ventas registradas')).toBeInTheDocument();
@@ -175,7 +187,7 @@ describe('Clientes', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Ver historial de María López' }));
+    await elegirAccion(user, 'María López', 'Historial');
     const modal = await screen.findByRole('dialog', { name: 'Historial de ventas' });
 
     expect(within(modal).getByText('Anulada')).toBeInTheDocument();
@@ -195,7 +207,7 @@ describe('Clientes', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Ver historial de María López' }));
+    await elegirAccion(user, 'María López', 'Historial');
     expect(await screen.findByRole('alert')).toHaveTextContent('Servicio no disponible');
     await user.click(screen.getByRole('button', { name: 'Reintentar' }));
 
@@ -222,7 +234,7 @@ describe('Clientes', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Ver contactos de María López' }));
+    await elegirAccion(user, 'María López', 'Contactos');
 
     const modal = await screen.findByRole('dialog', { name: 'Contactos' });
     expect(mockApi.get).toHaveBeenCalledWith('/clientes/7/telefonos');

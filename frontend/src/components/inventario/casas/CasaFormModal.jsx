@@ -44,8 +44,8 @@ export default function CasaFormModal({
 
         <form onSubmit={onSubmit} noValidate className={styles.form}>
           <div className={styles.field}>
-            <label htmlFor="nombre_casa">Nombre</label>
-            <input
+            <label htmlFor="nombre_casa" className="campo-requerido">Nombre</label>
+            <input aria-required="true"
               ref={nombreRef}
               id="nombre_casa"
               type="text"

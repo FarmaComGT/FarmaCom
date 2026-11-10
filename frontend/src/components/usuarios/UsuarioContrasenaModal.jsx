@@ -75,7 +75,7 @@ export default function UsuarioContrasenaModal({ usuario, esPropia, onClose, onS
         <form ref={formRef} onSubmit={guardar} noValidate className={styles.form} aria-busy={guardando}>
           {CAMPOS.map(({ name, label, autocomplete }) => (
             <div key={name} className={styles.field}>
-              <label htmlFor={`restablecer-${name}`}>{label}</label>
+              <label htmlFor={`restablecer-${name}`} className="campo-requerido">{label}</label>
               {name === 'contrasena_nueva' ? <ContrasenaInput
                 id={`restablecer-${name}`} name={name} autoComplete={autocomplete} value={valores[name]} disabled={guardando}
                 onChange={(evento) => setValores((prev) => ({ ...prev, [name]: evento.target.value }))}
@@ -83,13 +83,13 @@ export default function UsuarioContrasenaModal({ usuario, esPropia, onClose, onS
                   setValores((prev) => ({ ...prev, contrasena_nueva: clave, confirmacion: clave }));
                   setErrores({});
                 }}
-                aria-invalid={Boolean(errores[name])}
+                aria-required="true" aria-invalid={Boolean(errores[name])}
                 aria-describedby={`restablecer-reglas${errores[name] ? ` error-${name}` : ''}`}
               /> : <div className={local.password}>
                 <input id={`restablecer-${name}`} name={name} autoComplete={autocomplete} type={visibles[name] ? 'text' : 'password'}
                   value={valores[name]} onChange={(evento) => setValores((prev) => ({ ...prev, [name]: evento.target.value }))}
                   readOnly={guardando} spellCheck={false} autoCapitalize="none" className={styles.input}
-                  aria-invalid={Boolean(errores[name])} aria-describedby={`${name === 'contrasena_nueva' ? 'restablecer-reglas ' : ''}${errores[name] ? `error-${name}` : ''}`.trim() || undefined} />
+                  aria-required="true" aria-invalid={Boolean(errores[name])} aria-describedby={`${name === 'contrasena_nueva' ? 'restablecer-reglas ' : ''}${errores[name] ? `error-${name}` : ''}`.trim() || undefined} />
                 <button type="button" onClick={() => setVisibles((prev) => ({ ...prev, [name]: !prev[name] }))}
                   aria-label={`${visibles[name] ? 'Ocultar' : 'Mostrar'}: ${label}`} aria-pressed={Boolean(visibles[name])} disabled={guardando}>
                   {visibles[name] ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}

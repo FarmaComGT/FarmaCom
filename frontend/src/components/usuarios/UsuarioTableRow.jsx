@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pencil, UserCheck, UserX } from 'lucide-react';
 import styles from '../../styles/ManagementUI.module.css';
+import MenuAcciones from '../ui/MenuAcciones.jsx';
 
 const ETIQUETAS_ROL = {
   dueno: 'Dueño',
@@ -37,28 +38,15 @@ export default function UsuarioTableRow({
         </span>
       </td>
       <td data-label="Acciones" className={styles.actionsCell}>
-        <div className={styles.rowActions} style={{ flexWrap: 'wrap' }}>
-          {puedeEditar && <button
-            type="button"
-            onClick={() => onEditar(usuario)}
-            className={styles.button}
-          >
-            <Pencil size={14} aria-hidden="true" />
-            Editar
-          </button>}
-          {puedeCambiarEstado && <button
-            type="button"
-            onClick={() => onCambiarEstado(usuario)}
-            disabled={cambiandoEstado}
-            className={`${styles.button} ${esActivo ? styles.danger : ''}`}
-          >
-            {esActivo ? (
-              <UserX size={14} aria-hidden="true" />
-            ) : (
-              <UserCheck size={14} aria-hidden="true" />
-            )}
-            {cambiandoEstado ? 'Guardando…' : esActivo ? 'Desactivar' : 'Activar'}
-          </button>}
+        <div className={styles.rowActions}>
+          <MenuAcciones
+            etiqueta={`Más acciones para ${usuario.nombre_usuario}`}
+            ocupado={cambiandoEstado}
+            acciones={[
+              { clave: 'editar', etiqueta: 'Editar', icono: Pencil, oculta: !puedeEditar, onClick: () => onEditar(usuario) },
+              { clave: 'estado', etiqueta: esActivo ? 'Desactivar' : 'Activar', icono: esActivo ? UserX : UserCheck, peligro: esActivo, oculta: !puedeCambiarEstado, onClick: () => onCambiarEstado(usuario) },
+            ]}
+          />
         </div>
       </td>
     </tr>

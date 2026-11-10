@@ -4,7 +4,7 @@ import styles from '../../../styles/ManagementUI.module.css';
 function Campo({ id, name, label, value, onChange, min, step, required, placeholder, inputMode = 'decimal' }) {
   return (
     <div className={styles.field}>
-      <label htmlFor={id}>{label}{!required && <span className={styles.optional}> (opcional)</span>}</label>
+      <label htmlFor={id} className={required ? 'campo-requerido' : undefined}>{label}{!required && <span className={styles.optional}> (opcional)</span>}</label>
       <input id={id} name={name} type="number" inputMode={inputMode} value={value} onChange={(evento) => onChange(evento.target.value)} min={min} step={step} required={required} className={styles.input} placeholder={placeholder} />
     </div>
   );

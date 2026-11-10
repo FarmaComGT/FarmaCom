@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import styles from '../../../styles/ManagementUI.module.css';
+import MenuAcciones from '../../ui/MenuAcciones.jsx';
 
 export default function CategoriaTableRow({ categoria, onEditar, onEliminar, eliminando }) {
   return (
@@ -9,25 +10,13 @@ export default function CategoriaTableRow({ categoria, onEditar, onEliminar, eli
       <th scope="row" data-label="Nombre"><span className={styles.identity}>{categoria.nombre}</span></th>
       <td data-label="Acciones" className={styles.actionsCell}>
         <div className={styles.rowActions}>
-        <button
-          type="button"
-          onClick={() => onEditar(categoria)}
-          className={styles.button}
-          aria-label={`Editar categoría ${categoria.nombre}`}
-        >
-          <Pencil size={15} aria-hidden="true" />
-          Editar
-        </button>
-        <button
-          type="button"
-          onClick={() => onEliminar(categoria)}
-          disabled={eliminando}
-          className={`${styles.button} ${styles.danger}`}
-          aria-label={`Eliminar categoría ${categoria.nombre}`}
-        >
-          <Trash2 size={15} aria-hidden="true" />
-          Eliminar
-        </button>
+          <MenuAcciones
+            etiqueta={`Más acciones para ${categoria.nombre}`}
+            acciones={[
+              { clave: 'editar', etiqueta: 'Editar', icono: Pencil, onClick: () => onEditar(categoria) },
+              { clave: 'eliminar', etiqueta: 'Eliminar', icono: Trash2, peligro: true, separadorAntes: true, deshabilitada: eliminando, onClick: () => onEliminar(categoria) },
+            ]}
+          />
         </div>
       </td>
     </tr>

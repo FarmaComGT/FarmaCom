@@ -37,8 +37,8 @@ export default function SucursalFormModal({
         <form onSubmit={onSubmit} noValidate className={styles.form}>
           <div className={styles.formGrid}>
             <div className={styles.field}>
-              <label htmlFor="nombre_sucursal">Nombre de sucursal</label>
-              <input
+              <label htmlFor="nombre_sucursal" className="campo-requerido">Nombre de sucursal</label>
+              <input aria-required="true"
                 id="nombre_sucursal"
                 type="text"
                 name="nombre_sucursal"
@@ -51,8 +51,8 @@ export default function SucursalFormModal({
             </div>
 
             <div className={styles.field}>
-              <label htmlFor="id_ciudad">Ciudad</label>
-              <select
+              <label htmlFor="id_ciudad" className="campo-requerido">Ciudad</label>
+              <select aria-required="true"
                 id="id_ciudad"
                 name="id_ciudad"
                 value={formulario.id_ciudad}
@@ -68,8 +68,8 @@ export default function SucursalFormModal({
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="direccion_sucursal">Dirección</label>
-            <textarea
+            <label htmlFor="direccion_sucursal" className="campo-requerido">Dirección</label>
+            <textarea aria-required="true"
               id="direccion_sucursal"
               name="direccion"
               autoComplete="street-address"

@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import useLotesProducto from '../../../hooks/useLotesProducto.js';
 import LotesDeProductoTable from './LotesDeProductoTable.jsx';
+import { elegirAccion } from '../../../test/menuAcciones';
 
 vi.mock('../../../hooks/useLotesProducto.js');
 
@@ -62,7 +63,7 @@ describe('LotesDeProductoTable', () => {
     const onEliminar = vi.fn();
     renderizarTabla({ onEditar, onEliminar });
 
-    await user.click(screen.getByRole('button', { name: 'Editar lote LT-AGOTADO' }));
+    await elegirAccion(user, 'el lote LT-AGOTADO', 'Editar lote…');
 
     expect(onEditar).toHaveBeenCalledWith(expect.objectContaining({ id_lote: 11 }));
   });

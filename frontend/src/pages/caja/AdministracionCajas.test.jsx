@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import useAdministracionCajas from '../../hooks/useAdministracionCajas';
 import useSucursales from '../../hooks/useSucursales';
 import AdministracionCajas from './AdministracionCajas';
+import { elegirAccion } from '../../test/menuAcciones';
 
 const crear = vi.fn();
 const actualizar = vi.fn();
@@ -73,7 +74,7 @@ describe('AdministracionCajas', () => {
     const user = userEvent.setup();
     render(<AdministracionCajas />);
 
-    await user.click(screen.getByRole('button', { name: 'Desactivar Caja principal' }));
+    await elegirAccion(user, 'Caja principal', 'Desactivar');
 
     expect(actualizar).toHaveBeenCalledWith(3, { activa: false });
   });
@@ -82,7 +83,7 @@ describe('AdministracionCajas', () => {
     const user = userEvent.setup();
     render(<AdministracionCajas />);
 
-    await user.click(screen.getByRole('button', { name: 'Editar Caja principal' }));
+    await elegirAccion(user, 'Caja principal', 'Editar');
     expect(screen.getByLabelText('Sucursal')).toBeDisabled();
     const nombre = screen.getByLabelText('Nombre de la caja');
     expect(nombre).toHaveValue('Caja principal');
@@ -132,7 +133,7 @@ describe('AdministracionCajas', () => {
     render(<AdministracionCajas />);
 
     expect(screen.getByText('Inactiva')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Activar Caja principal' }));
+    await elegirAccion(user, 'Caja principal', 'Activar');
 
     expect(actualizar).toHaveBeenCalledWith(3, { activa: true });
     expect(await screen.findByRole('status')).toHaveTextContent('No se puede activar la caja');

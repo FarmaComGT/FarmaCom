@@ -1,0 +1,38 @@
+.item {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--management-ink);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.item:hover { background: var(--management-soft); }
+.item:focus-visible { outline: 2px solid var(--management-accent); outline-offset: -2px; }
+.item:disabled { cursor: not-allowed; opacity: .45; }
+
+.danger { color: var(--management-danger); }
+.danger:hover { background: var(--management-danger-bg); }
+
+.separator { height: 1px; margin: 4px; background: var(--management-line); }
+
+.spinner { animation: girar 800ms linear infinite; }
+
+@keyframes girar { to { transform: rotate(360deg); } }
+
+@media (pointer: coarse) {
+  .item { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2.4s; }
+}

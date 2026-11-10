@@ -15,7 +15,7 @@ export default function LoginField({ id, label, type, value, onChange, placehold
           onChange={onChange}
           placeholder={placeholder}
           required
-          className="w-full border-none bg-transparent text-base text-on-surface placeholder:text-slate-300 focus:outline-none"
+          className="w-full border-none bg-transparent text-base text-on-surface placeholder:text-[color:var(--ui-placeholder)] focus:outline-none"
         />
         <Icon className="h-4 w-4 shrink-0 text-on-surface-variant" />
       </div>

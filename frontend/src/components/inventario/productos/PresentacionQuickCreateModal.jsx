@@ -58,8 +58,8 @@ export default function PresentacionQuickCreateModal({ isOpen, guardando, presen
         </header>
         <form onSubmit={manejarEnvio} noValidate className={styles.form}>
           <div className={styles.field}>
-            <label htmlFor="nombre_presentacion">Nombre</label>
-            <input id="nombre_presentacion" type="text" name="nombre_presentacion" autoComplete="off" value={nombre} onChange={(evento) => { setNombre(evento.target.value); setError(null); }} placeholder="Ej.: Frasco, sobre o ampolla…" maxLength={100} className={styles.input} />
+            <label htmlFor="nombre_presentacion" className="campo-requerido">Nombre</label>
+            <input aria-required="true" id="nombre_presentacion" type="text" name="nombre_presentacion" autoComplete="off" value={nombre} onChange={(evento) => { setNombre(evento.target.value); setError(null); }} placeholder="Ej.: Frasco, sobre o ampolla…" maxLength={100} className={styles.input} />
           </div>
           {error && <p ref={errorRef} tabIndex={-1} role="alert" className={styles.fieldError}>{error}</p>}
           <div className={styles.dialogActions}>

@@ -58,8 +58,8 @@ export default function UsuarioFormModal({
         <form onSubmit={onSubmit} noValidate className={styles.form}>
           <div className={styles.formGrid}>
             <div className={styles.field}>
-              <label htmlFor="nombre_usuario">Nombre</label>
-              <input
+              <label htmlFor="nombre_usuario" className="campo-requerido">Nombre</label>
+              <input aria-required="true"
                 id="nombre_usuario"
                 type="text"
                 name="nombre_usuario"
@@ -72,8 +72,8 @@ export default function UsuarioFormModal({
             </div>
 
             <div className={styles.field}>
-              <label htmlFor="correo_usuario">Correo electrónico</label>
-              <input
+              <label htmlFor="correo_usuario" className="campo-requerido">Correo electrónico</label>
+              <input aria-required="true"
                 id="correo_usuario"
                 type="email"
                 inputMode="email"
@@ -90,8 +90,8 @@ export default function UsuarioFormModal({
 
           {!modoEdicion && (
             <div className={styles.field}>
-              <label htmlFor="contrasena_usuario">Contraseña</label>
-              <ContrasenaInput
+              <label htmlFor="contrasena_usuario" className="campo-requerido">Contraseña</label>
+              <ContrasenaInput aria-required="true"
                 id="contrasena_usuario"
                 name="contrasena"
                 autoComplete="new-password"
@@ -110,16 +110,16 @@ export default function UsuarioFormModal({
 
           <div className={styles.formGrid}>
             <div className={styles.field}>
-              <label htmlFor="rol">Rol</label>
-              <select id="rol" name="rol" value={formulario.rol} onChange={onChange} className={styles.input}>
+              <label htmlFor="rol" className="campo-requerido">Rol</label>
+              <select aria-required="true" id="rol" name="rol" value={formulario.rol} onChange={onChange} className={styles.input}>
                 <option value="">Selecciona un rol</option>
                 {rolesPermitidos.map((rol) => <option key={rol.value} value={rol.value}>{rol.label}</option>)}
               </select>
             </div>
 
             <div className={styles.field}>
-              <label htmlFor="id_sucursal">Sucursal</label>
-              <select
+              <label htmlFor="id_sucursal" className="campo-requerido">Sucursal</label>
+              <select aria-required="true"
                 id="id_sucursal"
                 name="id_sucursal"
                 value={formulario.id_sucursal}
@@ -138,7 +138,7 @@ export default function UsuarioFormModal({
 
           {formulario.rol === 'laboratorista' && (
             <div className={styles.field}>
-              <label htmlFor="id_laboratorio">Laboratorio</label>
+              <label htmlFor="id_laboratorio" className="campo-requerido">Laboratorio</label>
               <select
                 id="id_laboratorio"
                 name="id_laboratorio"

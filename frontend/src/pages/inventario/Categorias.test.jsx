@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Categorias from './Categorias.jsx';
+import { elegirAccion } from '../../test/menuAcciones';
 
 const acciones = vi.hoisted(() => ({
   crear: vi.fn(),
@@ -116,7 +117,7 @@ describe('pantalla de categorías', () => {
     acciones.actualizar.mockResolvedValue({ id_categoria: 1 });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar categoría Analgésicos' }));
+    await elegirAccion(user, 'Analgésicos', 'Editar');
     const nombre = screen.getByPlaceholderText('Ej.: Analgésicos…');
     await user.clear(nombre);
     await user.type(nombre, 'Antiinflamatorios');
@@ -130,7 +131,7 @@ describe('pantalla de categorías', () => {
     acciones.actualizar.mockRejectedValue({ response: { data: { mensaje: 'Nombre duplicado' } } });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar categoría Analgésicos' }));
+    await elegirAccion(user, 'Analgésicos', 'Editar');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(await screen.findByText('Nombre duplicado')).toBeInTheDocument();
@@ -157,7 +158,7 @@ describe('pantalla de categorías', () => {
     acciones.eliminar.mockResolvedValue({});
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar categoría Analgésicos' }));
+    await elegirAccion(user, 'Analgésicos', 'Eliminar');
     expect(screen.getByRole('heading', { name: 'Eliminar categoría' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Eliminar categoría' }));
@@ -169,7 +170,7 @@ describe('pantalla de categorías', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar categoría Analgésicos' }));
+    await elegirAccion(user, 'Analgésicos', 'Eliminar');
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
 
     expect(screen.queryByRole('heading', { name: 'Eliminar categoría' })).not.toBeInTheDocument();
@@ -181,7 +182,7 @@ describe('pantalla de categorías', () => {
     acciones.eliminar.mockRejectedValue(new Error('Network Error'));
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar categoría Analgésicos' }));
+    await elegirAccion(user, 'Analgésicos', 'Eliminar');
     await user.click(screen.getByRole('button', { name: 'Eliminar categoría' }));
 
     expect(await screen.findByText('No se pudo eliminar la categoría.')).toBeInTheDocument();

@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Casas from './Casas.jsx';
+import { elegirAccion } from '../../test/menuAcciones';
 
 const acciones = vi.hoisted(() => ({
   crear: vi.fn(),
@@ -125,7 +126,7 @@ describe('pantalla de casas farmacéuticas', () => {
     acciones.actualizar.mockResolvedValue({ id_casa: 1 });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar casa farmacéutica Bayer' }));
+    await elegirAccion(user, 'Bayer', 'Editar');
     const nombre = screen.getByPlaceholderText('Ej.: Laboratorios Bayer S. A.…');
     await user.clear(nombre);
     await user.type(nombre, 'Bayer S.A.');
@@ -139,7 +140,7 @@ describe('pantalla de casas farmacéuticas', () => {
     acciones.cambiarEstado.mockResolvedValue({});
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Desactivar casa farmacéutica Bayer' }));
+    await elegirAccion(user, 'Bayer', 'Desactivar');
     await user.click(screen.getByRole('button', { name: 'Desactivar' }));
 
     await waitFor(() => expect(acciones.cambiarEstado).toHaveBeenCalledWith(1, false));
@@ -151,7 +152,7 @@ describe('pantalla de casas farmacéuticas', () => {
     acciones.cambiarEstado.mockResolvedValue({});
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Activar casa farmacéutica Roche' }));
+    await elegirAccion(user, 'Roche', 'Activar');
     expect(screen.getByText('Volverá a estar disponible en el catálogo.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Activar' }));
 
@@ -163,7 +164,7 @@ describe('pantalla de casas farmacéuticas', () => {
     acciones.cambiarEstado.mockRejectedValue({ response: { data: { mensaje: 'No se pudo' } } });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Desactivar casa farmacéutica Bayer' }));
+    await elegirAccion(user, 'Bayer', 'Desactivar');
     await user.click(screen.getByRole('button', { name: 'Desactivar' }));
 
     expect(await screen.findByText('No se pudo')).toBeInTheDocument();
@@ -190,7 +191,7 @@ describe('pantalla de casas farmacéuticas', () => {
     acciones.eliminar.mockResolvedValue({});
     renderizar();
 
-    await user.click(screen.getByTitle('Eliminar'));
+    await elegirAccion(user, 'Bayer', 'Eliminar');
     expect(screen.getByText('Eliminar o desactivar')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
@@ -203,7 +204,7 @@ describe('pantalla de casas farmacéuticas', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByTitle('Eliminar'));
+    await elegirAccion(user, 'Bayer', 'Eliminar');
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
 
     expect(screen.queryByText('Eliminar o desactivar')).not.toBeInTheDocument();
@@ -215,7 +216,7 @@ describe('pantalla de casas farmacéuticas', () => {
     acciones.eliminar.mockRejectedValue(new Error('Network Error'));
     renderizar();
 
-    await user.click(screen.getByTitle('Eliminar'));
+    await elegirAccion(user, 'Bayer', 'Eliminar');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
 
     expect(await screen.findByText('No se pudo eliminar la casa farmacéutica.')).toBeInTheDocument();

@@ -50,7 +50,7 @@
 .inventory-search:focus-within { outline: 2px solid var(--inv-accent); outline-offset: 2px; }
 .inventory-search input { width: 100%; min-width: 0; height: 100%; background: transparent; color: var(--inv-ink); outline-offset: 0; }
 .inventory-search input:focus-visible { outline: none; }
-.inventory-search input::placeholder { color: var(--inv-muted); }
+.inventory-search input::placeholder { color: var(--ui-placeholder); opacity: 1; }
 .inventory-branch { min-width: 0; max-width: 250px; }
 .inventory-page select { height: 40px; border: 1px solid var(--inv-control); border-radius: 6px; padding: 0 30px 0 10px; color: var(--inv-ink); background-color: var(--inv-surface); max-width: 100%; }
 .inventory-filter-disclosure { margin-top: 10px; }

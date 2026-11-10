@@ -33,6 +33,10 @@
   --ui-soft: #edf4f0;
   --ui-danger: #b42332;
   --ui-danger-bg: #ffefed;
+  /* Texto de ayuda dentro de los campos: visible pero claramente distinto del texto escrito. */
+  --ui-placeholder: color-mix(in srgb, var(--ui-ink) 46%, transparent);
+  /* Rojo de “Cerrar sesión”: se reutiliza para el asterisco de campos obligatorios. */
+  --ui-required: #9C0000;
 
   /* Alias temporales para los módulos existentes. */
   --management-ink: var(--ui-ink);
@@ -50,6 +54,21 @@
   --report-accent: var(--ui-accent);
   --report-soft: var(--ui-soft);
   --report-danger: var(--ui-danger);
+}
+
+/* Marca visual de campo obligatorio (rojo de “Cerrar sesión”). Se añade a la <label> del campo;
+   el control debe llevar también required o aria-required="true" para lectores de pantalla. */
+.campo-requerido::after {
+  content: " *";
+  content: " *" / "";
+  color: var(--ui-required);
+  font-weight: 600;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ui-placeholder);
+  opacity: 1;
 }
 
 @layer base {

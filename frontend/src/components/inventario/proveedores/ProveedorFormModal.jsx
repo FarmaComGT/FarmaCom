@@ -31,8 +31,8 @@ export default function ProveedorFormModal({ isOpen, modoEdicion, formulario, ha
         </header>
         <form onSubmit={onSubmit} noValidate className={styles.form}>
           <div className={styles.field}>
-            <label htmlFor="nombre_proveedor">Nombre</label>
-            <input ref={nombreRef} id="nombre_proveedor" type="text" name="nombre" autoComplete="organization" value={formulario.nombre} onChange={onChange} maxLength={150} aria-invalid={Boolean(errorFormulario)} aria-describedby={errorFormulario ? 'proveedor-form-error' : 'proveedor-form-help'} className={styles.input} placeholder="Ej.: Distribuidora Farmacéutica S. A.…" />
+            <label htmlFor="nombre_proveedor" className="campo-requerido">Nombre</label>
+            <input aria-required="true" ref={nombreRef} id="nombre_proveedor" type="text" name="nombre" autoComplete="organization" value={formulario.nombre} onChange={onChange} maxLength={150} aria-invalid={Boolean(errorFormulario)} aria-describedby={errorFormulario ? 'proveedor-form-error' : 'proveedor-form-help'} className={styles.input} placeholder="Ej.: Distribuidora Farmacéutica S. A.…" />
             <p id="proveedor-form-help" className={styles.helpText}>Máximo 150 caracteres.</p>
           </div>
           {errorFormulario && <p id="proveedor-form-error" role="alert" className={styles.fieldError}>{errorFormulario}</p>}

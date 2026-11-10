@@ -88,10 +88,10 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} noValidate className={styles.form}>
             <div className={styles.field}>
-              <label htmlFor="correo">Correo electrónico</label>
+              <label htmlFor="correo" className="campo-requerido">Correo electrónico</label>
               <div className={styles.inputWrap}>
                 <Mail aria-hidden="true" />
-                <input
+                <input aria-required="true"
                   id="correo"
                   name="email"
                   type="email"
@@ -109,10 +109,10 @@ export default function Login() {
             </div>
 
             <div className={styles.field}>
-              <label htmlFor="contrasena">Contraseña</label>
+              <label htmlFor="contrasena" className="campo-requerido">Contraseña</label>
               <div className={styles.inputWrap}>
                 <LockKeyhole aria-hidden="true" />
-                <input
+                <input aria-required="true"
                   id="contrasena"
                   name="current-password"
                   type={mostrarContrasena ? 'text' : 'password'}
