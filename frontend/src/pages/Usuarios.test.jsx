@@ -82,12 +82,12 @@ describe('pantalla de usuarios', () => {
     renderizar();
     await user.click(screen.getByRole('button', { name: 'Editar' }));
     await user.click(screen.getByRole('button', { name: 'Restablecer contraseña…' }));
-    await user.type(screen.getByLabelText('Nueva contraseña'), 'nueva123');
-    await user.type(screen.getByLabelText('Confirmar nueva contraseña'), 'nueva123');
+    await user.type(screen.getByLabelText('Nueva contraseña'), 'luna bosque rio cobre');
+    await user.type(screen.getByLabelText('Confirmar nueva contraseña'), 'luna bosque rio cobre');
     await user.type(screen.getByLabelText('Tu contraseña de dueño'), 'actual123');
     await user.click(screen.getByRole('button', { name: 'Restablecer contraseña' }));
     await waitFor(() => expect(acciones.dispatch).toHaveBeenCalledWith({ type: 'LOGOUT' }));
-    expect(acciones.restablecerContrasena).toHaveBeenCalledWith(1, { contrasena_nueva: 'nueva123', contrasena_dueno: 'actual123' });
+    expect(acciones.restablecerContrasena).toHaveBeenCalledWith(1, { contrasena_nueva: 'luna bosque rio cobre', contrasena_dueno: 'actual123' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
@@ -126,7 +126,7 @@ describe('pantalla de usuarios', () => {
     await user.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
     await user.type(screen.getByPlaceholderText('Ej.: Juan García…'), 'Ana López');
     await user.type(screen.getByPlaceholderText('Ej.: juan@farmacom.com…'), 'ana@farmacom.com');
-    await user.type(screen.getByPlaceholderText('Mínimo 6 caracteres…'), 'secreta123');
+    await user.type(screen.getByPlaceholderText('Mínimo 15 caracteres…'), 'nube cobre tren roble');
     await user.selectOptions(screen.getByLabelText('Rol'), 'administrador');
     await user.selectOptions(screen.getByLabelText('Sucursal'), '1');
     await user.click(screen.getByRole('button', { name: 'Crear usuario' }));
@@ -134,7 +134,7 @@ describe('pantalla de usuarios', () => {
     await waitFor(() => expect(acciones.crear).toHaveBeenCalledWith({
       nombre_usuario: 'Ana López',
       correo_usuario: 'ana@farmacom.com',
-      contrasena: 'secreta123',
+      contrasena: 'nube cobre tren roble',
       rol: 'administrador',
       id_sucursal: 1,
       id_laboratorio: null,
@@ -163,7 +163,7 @@ describe('pantalla de usuarios', () => {
     await user.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
     await user.type(screen.getByPlaceholderText('Ej.: Juan García…'), 'Labo User');
     await user.type(screen.getByPlaceholderText('Ej.: juan@farmacom.com…'), 'labo@farmacom.com');
-    await user.type(screen.getByPlaceholderText('Mínimo 6 caracteres…'), 'secreta123');
+    await user.type(screen.getByPlaceholderText('Mínimo 15 caracteres…'), 'nube cobre tren roble');
     await user.selectOptions(screen.getByLabelText('Rol'), 'laboratorista');
     await user.selectOptions(screen.getByLabelText('Sucursal'), '1');
     await user.selectOptions(screen.getByLabelText('Laboratorio'), '1');
@@ -182,7 +182,7 @@ describe('pantalla de usuarios', () => {
     await user.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
     await user.type(screen.getByPlaceholderText('Ej.: Juan García…'), 'Ana López');
     await user.type(screen.getByPlaceholderText('Ej.: juan@farmacom.com…'), 'ana@farmacom');
-    await user.type(screen.getByPlaceholderText('Mínimo 6 caracteres…'), 'secreta123');
+    await user.type(screen.getByPlaceholderText('Mínimo 15 caracteres…'), 'nube cobre tren roble');
     await user.selectOptions(screen.getByLabelText('Rol'), 'administrador');
     await user.selectOptions(screen.getByLabelText('Sucursal'), '1');
     await user.click(screen.getByRole('button', { name: 'Crear usuario' }));
@@ -191,19 +191,19 @@ describe('pantalla de usuarios', () => {
     expect(acciones.crear).not.toHaveBeenCalled();
   });
 
-  it('exige una contraseña de al menos 6 caracteres al crear', async () => {
+  it('exige una contraseña de al menos 15 caracteres al crear', async () => {
     const user = userEvent.setup();
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
     await user.type(screen.getByPlaceholderText('Ej.: Juan García…'), 'Ana López');
     await user.type(screen.getByPlaceholderText('Ej.: juan@farmacom.com…'), 'ana@farmacom.com');
-    await user.type(screen.getByPlaceholderText('Mínimo 6 caracteres…'), '123');
+    await user.type(screen.getByPlaceholderText('Mínimo 15 caracteres…'), '123');
     await user.selectOptions(screen.getByLabelText('Rol'), 'administrador');
     await user.selectOptions(screen.getByLabelText('Sucursal'), '1');
     await user.click(screen.getByRole('button', { name: 'Crear usuario' }));
 
-    expect(screen.getByText('La contraseña debe tener al menos 6 caracteres.')).toBeInTheDocument();
+    expect(screen.getByText('La contraseña debe tener al menos 15 caracteres.')).toBeInTheDocument();
     expect(acciones.crear).not.toHaveBeenCalled();
   });
 
@@ -213,7 +213,7 @@ describe('pantalla de usuarios', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Editar' }));
-    expect(screen.queryByPlaceholderText('Mínimo 6 caracteres…')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Mínimo 15 caracteres…')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { KeyRound, LoaderCircle, X } from 'lucide-react';
 import AccessibleDialog from '../ui/AccessibleDialog.jsx';
+import { REQUISITOS_CONTRASENA } from '../../utils/contrasena';
 import styles from '../../styles/ManagementUI.module.css';
 
 const ROLES = [
@@ -97,9 +98,11 @@ export default function UsuarioFormModal({
                 value={formulario.contrasena}
                 onChange={onChange}
                 className={styles.input}
-                placeholder="Mínimo 6 caracteres…"
-                minLength={6}
+                placeholder="Mínimo 15 caracteres…"
+                minLength={15}
+                aria-describedby="crear-contrasena-reglas"
               />
+              <p id="crear-contrasena-reglas" className={styles.muted}>{REQUISITOS_CONTRASENA}</p>
             </div>
           )}
 

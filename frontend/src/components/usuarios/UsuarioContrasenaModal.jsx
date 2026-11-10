@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff, LoaderCircle, X } from 'lucide-react';
 import AccessibleDialog from '../ui/AccessibleDialog.jsx';
+import { errorContrasena, REQUISITOS_CONTRASENA } from '../../utils/contrasena';
 import styles from '../../styles/ManagementUI.module.css';
 import local from './UsuarioContrasenaModal.module.css';
 
@@ -42,8 +43,7 @@ export default function UsuarioContrasenaModal({ usuario, esPropia, onClose, onS
     const nueva = valores.contrasena_nueva.trim();
     const dueno = valores.contrasena_dueno.trim();
     const validacion = {};
-    if (nueva.length < 6) validacion.contrasena_nueva = 'Usa al menos 6 caracteres.';
-    else if (new TextEncoder().encode(nueva).length > 72) validacion.contrasena_nueva = 'Usa una contraseña más corta (máximo 72 bytes).';
+    if (errorContrasena(nueva)) validacion.contrasena_nueva = errorContrasena(nueva);
     if (!valores.confirmacion.trim() || valores.confirmacion.trim() !== nueva) validacion.confirmacion = 'Las contraseñas deben coincidir.';
     if (!dueno) validacion.contrasena_dueno = 'Ingresa tu contraseña para autorizar el cambio.';
     setErrores(validacion);
@@ -56,7 +56,7 @@ export default function UsuarioContrasenaModal({ usuario, esPropia, onClose, onS
       setVisibles({});
       onSuccess();
     } catch (error) {
-      setErrores({ contrasena_dueno: error.message || 'No se pudo restablecer la contraseña. Intenta de nuevo.' });
+      setErrores({ [error.message?.includes('dueño') ? 'contrasena_dueno' : 'contrasena_nueva']: error.message || 'No se pudo restablecer la contraseña. Intenta de nuevo.' });
     } finally {
       pendiente.current = false;
       setGuardando(false);
@@ -85,7 +85,7 @@ export default function UsuarioContrasenaModal({ usuario, esPropia, onClose, onS
                   {visibles[name] ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
-              {name === 'contrasena_nueva' && <p id="restablecer-reglas" className={local.help}>Mínimo 6 caracteres. Puedes pegar una contraseña de tu gestor.</p>}
+              {name === 'contrasena_nueva' && <p id="restablecer-reglas" className={local.help}>{REQUISITOS_CONTRASENA}</p>}
               {errores[name] && <p id={`error-${name}`} className={styles.fieldError} aria-live="polite">{errores[name]}</p>}
             </div>
           ))}

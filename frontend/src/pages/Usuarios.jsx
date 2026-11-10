@@ -9,6 +9,7 @@ import UsuarioStatsGrid from '../components/usuarios/UsuarioStatsGrid.jsx';
 import UsuarioActionBar from '../components/usuarios/UsuarioActionBar.jsx';
 import UsuarioAlert from '../components/usuarios/UsuarioAlert.jsx';
 import useUsuarios from '../hooks/useUsuarios';
+import { errorContrasena } from '../utils/contrasena';
 import useSucursales from '../hooks/useSucursales';
 import useLaboratorios from '../hooks/useLaboratorios';
 import usePaginacionURL, { leerPaginacionURL } from '../hooks/usePaginacionURL';
@@ -174,8 +175,8 @@ export default function Usuarios() {
       return;
     }
 
-    if (!modoEdicion && formulario.contrasena.trim().length < 6) {
-      setErrorFormulario('La contraseña debe tener al menos 6 caracteres.');
+    if (!modoEdicion && errorContrasena(formulario.contrasena)) {
+      setErrorFormulario(errorContrasena(formulario.contrasena));
       return;
     }
 
@@ -203,7 +204,7 @@ export default function Usuarios() {
       setMostrarModal(false);
       setFormulario(estadoInicialFormulario);
     } catch (err) {
-      toast.error(err.message || 'No se pudo guardar el usuario.');
+      setErrorFormulario(err.message || 'No se pudo guardar el usuario.');
     } finally {
       setGuardando(false);
     }

@@ -11,8 +11,8 @@ const montar = (props = {}) => {
   return callbacks;
 };
 const completar = async (user) => {
-  await user.type(screen.getByLabelText('Nueva contraseña'), 'nueva123');
-  await user.type(screen.getByLabelText('Confirmar nueva contraseña'), 'nueva123');
+  await user.type(screen.getByLabelText('Nueva contraseña'), 'luna bosque rio cobre');
+  await user.type(screen.getByLabelText('Confirmar nueva contraseña'), 'luna bosque rio cobre');
   await user.type(screen.getByLabelText('Tu contraseña de dueño'), 'dueno123');
 };
 
@@ -22,7 +22,7 @@ describe('restablecimiento de contraseña', () => {
     const { onSubmit } = montar();
     await user.click(screen.getByRole('button', { name: 'Restablecer contraseña' }));
     expect(screen.getByLabelText('Nueva contraseña')).toHaveFocus();
-    expect(screen.getByText('Usa al menos 6 caracteres.')).toBeInTheDocument();
+    expect(screen.getByText('La contraseña debe tener al menos 15 caracteres.')).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
   it('permite revelar la nueva clave y envía solo los datos necesarios', async () => {
@@ -32,7 +32,7 @@ describe('restablecimiento de contraseña', () => {
     await user.click(screen.getByRole('button', { name: 'Mostrar: Nueva contraseña' }));
     expect(screen.getByLabelText('Nueva contraseña')).toHaveAttribute('type', 'text');
     await user.click(screen.getByRole('button', { name: 'Restablecer contraseña' }));
-    expect(onSubmit).toHaveBeenCalledWith({ contrasena_nueva: 'nueva123', contrasena_dueno: 'dueno123' });
+    expect(onSubmit).toHaveBeenCalledWith({ contrasena_nueva: 'luna bosque rio cobre', contrasena_dueno: 'dueno123' });
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(screen.getByLabelText('Nueva contraseña')).toHaveValue('');
     expect(screen.getByLabelText('Nueva contraseña')).toHaveAttribute('type', 'password');
