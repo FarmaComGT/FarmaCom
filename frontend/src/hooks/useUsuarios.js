@@ -32,7 +32,12 @@ const useUsuarios = (filtros) => {
     return data;
   }, 'Error al cambiar estado del usuario');
 
-  return { usuarios, paginacion: listado.paginacion, cargando: listado.cargando,
+  const restablecerContrasena = async (id, datos) => ejecutar(async () => {
+    const { data } = await api.patch(`/usuarios/${id}/contrasena`, datos);
+    return data;
+  }, 'No se pudo restablecer la contraseña.');
+
+  return { usuarios, paginacion: listado.paginacion, cargando: listado.cargando, restablecerContrasena,
     error: listado.error, crear, actualizar, cambiarEstado, refrescar: cargar };
 };
 

@@ -17,6 +17,12 @@ describe('UsuarioService', () => {
     UsuarioDAO.obtenerParaActualizar.mockImplementation((id) => UsuarioDAO.obtenerPorId(id));
   });
   describe('crearUsuario', () => {
+    it.each(['123456', 'passwordpassword', 'FarmaCom123456789'])('impide guardar una clave débil al crear: %s', async (contrasena) => {
+      UsuarioDAO.obtenerPorCorreo.mockResolvedValue(null);
+      await expect(UsuarioService.crearUsuario({ contrasena, rol: 'dependiente' }, actorDueno)).rejects.toMatchObject({ status: 400 });
+      expect(bcrypt.hash).not.toHaveBeenCalled();
+      expect(UsuarioDAO.crear).not.toHaveBeenCalled();
+    });
     it('crea el usuario hasheando la contraseña y sin devolver el hash', async () => {
       UsuarioDAO.obtenerPorCorreo.mockResolvedValue(null);
       bcrypt.hash.mockResolvedValue('hash-seguro');
@@ -30,11 +36,11 @@ describe('UsuarioService', () => {
         id_sucursal: 1,
         nombre_usuario: 'Ana',
         correo_usuario: 'ana@x.com',
-        contrasena: 'clave123',
+        contrasena: 'roble nube faro tren',
         rol: 'dependiente',
       }, actorDueno);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('clave123', 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith('roble nube faro tren', 10);
       expect(UsuarioDAO.crear).toHaveBeenCalledWith(expect.objectContaining({
         contrasena_hash: 'hash-seguro',
       }));
@@ -63,7 +69,7 @@ describe('UsuarioService', () => {
         id_laboratorio: 3,
         nombre_usuario: 'Laura',
         correo_usuario: 'laura@x.com',
-        contrasena: 'clave123',
+        contrasena: 'roble nube faro tren',
         rol: 'laboratorista',
       }, actorDueno);
 
@@ -80,7 +86,7 @@ describe('UsuarioService', () => {
         id_sucursal: 1,
         nombre_usuario: 'Laura',
         correo_usuario: 'laura@x.com',
-        contrasena: 'clave123',
+        contrasena: 'roble nube faro tren',
         rol: 'laboratorista',
       }, actorDueno)).rejects.toMatchObject({ status: 400 });
     });
@@ -192,34 +198,42 @@ describe('UsuarioService', () => {
   });
 
   describe('cambiarContrasena', () => {
-    it('rechaza con 404 si el usuario no existe', async () => {
-      UsuarioDAO.obtenerPorId.mockResolvedValue(null);
-
-      await expect(
-        UsuarioService.cambiarContrasena(99, 'actual', 'nueva'),
-      ).rejects.toMatchObject({ status: 404 });
-    });
-
-    it('rechaza con 401 si la contraseña actual no coincide', async () => {
-      UsuarioDAO.obtenerPorId.mockResolvedValue({ id_usuario: 1, contrasena_hash: 'hash' });
-      bcrypt.compare.mockResolvedValue(false);
-
-      await expect(
-        UsuarioService.cambiarContrasena(1, 'incorrecta', 'nueva'),
-      ).rejects.toMatchObject({ status: 401 });
+    it.each(['123456', 'passwordpassword', 'FarmaCom123456789'])('impide guardar una clave débil al restablecer: %s', async (clave) => {
+      await expect(UsuarioService.cambiarContrasena(1, 'clave-dueno', clave, actorDueno)).rejects.toMatchObject({ status: 400 });
       expect(UsuarioDAO.actualizarContrasena).not.toHaveBeenCalled();
+      expect(UsuarioDAO.incrementarTokenVersion).not.toHaveBeenCalled();
     });
-
-    it('actualiza la contraseña e incrementa el token_version cuando la actual es correcta', async () => {
-      UsuarioDAO.obtenerPorId.mockResolvedValue({ id_usuario: 1, contrasena_hash: 'hash' });
+    const dueno = { ...actorDueno, estado_usuario: 'activo', contrasena_hash: 'hash-dueno' };
+    beforeEach(() => {
+      UsuarioDAO.obtenerPorId.mockImplementation(async (id) => id === 90 ? dueno : { id_usuario: id, contrasena_hash: 'hash-usuario' });
       bcrypt.compare.mockResolvedValue(true);
       bcrypt.hash.mockResolvedValue('hash-nuevo');
-
-      const resultado = await UsuarioService.cambiarContrasena(1, 'actual', 'nueva');
-
-      expect(UsuarioDAO.actualizarContrasena).toHaveBeenCalledWith(1, 'hash-nuevo');
-      expect(UsuarioDAO.incrementarTokenVersion).toHaveBeenCalledWith(1);
-      expect(resultado).toEqual({ mensaje: 'Contraseña actualizada correctamente' });
+    });
+    it.each(['administrador', 'dependiente', 'laboratorista'])('rechaza al rol %s incluso en su propia cuenta', async (rol) => {
+      await expect(UsuarioService.cambiarContrasena(90, 'actual', 'nueva', { ...actorDueno, rol })).rejects.toMatchObject({ status: 403 });
+      expect(bcrypt.compare).not.toHaveBeenCalled();
+    });
+    it('verifica la clave del dueño y actualiza la cuenta objetivo en una transacción', async () => {
+      const resultado = await UsuarioService.cambiarContrasena(1, 'clave-dueno', 'luna bosque rio cobre', actorDueno);
+      expect(bcrypt.compare).toHaveBeenCalledWith('clave-dueno', 'hash-dueno');
+      expect(UsuarioDAO.actualizarContrasena).toHaveBeenCalledWith(1, 'hash-nuevo', mockClient);
+      expect(UsuarioDAO.incrementarTokenVersion).toHaveBeenCalledWith(1, mockClient);
+      expect(resultado).toEqual({ mensaje: 'Contraseña restablecida correctamente.' });
+    });
+    it('rechaza la confirmación incorrecta sin modificar la cuenta', async () => {
+      bcrypt.compare.mockResolvedValue(false);
+      await expect(UsuarioService.cambiarContrasena(1, 'mala', 'luna bosque rio cobre', actorDueno)).rejects.toMatchObject({ status: 403 });
+      expect(UsuarioDAO.actualizarContrasena).not.toHaveBeenCalled();
+      expect(UsuarioDAO.incrementarTokenVersion).not.toHaveBeenCalled();
+    });
+    it('rechaza una cuenta objetivo inexistente', async () => {
+      UsuarioDAO.obtenerParaActualizar.mockResolvedValue(null);
+      await expect(UsuarioService.cambiarContrasena(99, 'actual', 'luna bosque rio cobre', actorDueno)).rejects.toMatchObject({ status: 404 });
+      expect(UsuarioDAO.actualizarContrasena).not.toHaveBeenCalled();
+    });
+    it('permite que el due?o cambie su propia contrase?a', async () => {
+      await UsuarioService.cambiarContrasena(90, 'actual', 'luna bosque rio cobre', actorDueno);
+      expect(UsuarioDAO.incrementarTokenVersion).toHaveBeenCalledWith(90, mockClient);
     });
   });
 

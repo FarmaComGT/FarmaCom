@@ -76,18 +76,18 @@ describe('UsuarioController', () => {
     expect(usuarioService.actualizarUsuario).toHaveBeenCalledWith(1, { nombre_usuario: 'Ana María' }, undefined);
   });
 
-  it('cambia la contraseña propia', async () => {
+  it('el dueño restablece la contraseña de otra cuenta', async () => {
     usuarioService.cambiarContrasena.mockResolvedValue({ mensaje: 'Contraseña actualizada' });
     const req = {
       params: { id: '1' },
-      usuario: { id_usuario: 1 },
-      body: { contrasena_actual: 'vieja', contrasena_nueva: 'nueva' },
+      usuario: { id_usuario: 90, rol: 'dueno' },
+      body: { contrasena_dueno: 'vieja', contrasena_nueva: 'nueva' },
     };
     const res = mockResponse();
 
     await UsuarioController.cambiarContrasena(req, res, jest.fn());
 
-    expect(usuarioService.cambiarContrasena).toHaveBeenCalledWith(1, 'vieja', 'nueva');
+    expect(usuarioService.cambiarContrasena).toHaveBeenCalledWith(1, 'vieja', 'nueva', { id_usuario: 90, rol: 'dueno' });
   });
 
   it('delega la prohibición de cambiar la contraseña ajena', async () => {

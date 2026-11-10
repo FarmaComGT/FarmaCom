@@ -1,0 +1,9 @@
+.container { min-width: 0; }
+.inputWrap { position: relative; }
+.inputWrap input { padding-right: 48px; min-height: 44px; font-size: 16px; }
+.inputWrap > button { position: absolute; inset: 1px 1px 1px auto; width: 44px; display: grid; place-items: center; border: 0; border-radius: 5px; background: transparent; color: var(--management-muted); cursor: pointer; }
+.inputWrap > button:hover { background: var(--management-soft); color: var(--management-ink); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.container button { touch-action: manipulation; min-height: 44px; }
+.feedback { color: var(--management-muted); font-size: 13px; line-height: 1.5; }
+.feedback:not(:empty) { margin-top: 8px; }

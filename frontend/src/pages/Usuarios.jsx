@@ -4,17 +4,19 @@ import { useSearchParams } from 'react-router-dom';
 import UsuarioTable from '../components/usuarios/UsuarioTable.jsx';
 import UsuarioFormModal from '../components/usuarios/UsuarioFormModal.jsx';
 import UsuarioEstadoModal from '../components/usuarios/UsuarioEstadoModal.jsx';
+import UsuarioContrasenaModal from '../components/usuarios/UsuarioContrasenaModal.jsx';
 import UsuarioStatsGrid from '../components/usuarios/UsuarioStatsGrid.jsx';
 import UsuarioActionBar from '../components/usuarios/UsuarioActionBar.jsx';
 import UsuarioAlert from '../components/usuarios/UsuarioAlert.jsx';
 import useUsuarios from '../hooks/useUsuarios';
+import { errorContrasena } from '../utils/contrasena';
 import useSucursales from '../hooks/useSucursales';
 import useLaboratorios from '../hooks/useLaboratorios';
 import usePaginacionURL, { leerPaginacionURL } from '../hooks/usePaginacionURL';
 import Paginacion from '../components/ui/Paginacion.jsx';
 import { ejecutarTransicionDeVista } from '../utils/viewTransition';
 import styles from '../styles/ManagementUI.module.css';
-import { useAuth } from '../context/AuthContext.jsx';
+import { AUTH_ACTIONS, useAuth } from '../context/AuthContext.jsx';
 
 const ROLES = [
   { value: 'dueno', label: 'Dueño' },
@@ -34,7 +36,7 @@ const estadoInicialFormulario = {
 
 export default function Usuarios() {
   const toast = useToast();
-  const { usuario: usuarioSesion } = useAuth();
+  const { usuario: usuarioSesion, dispatch } = useAuth();
   const { sucursales, cargando: cargandoSucursales } = useSucursales();
   const { laboratorios, cargando: cargandoLaboratorios } = useLaboratorios();
 
@@ -46,7 +48,7 @@ export default function Usuarios() {
     : 'todos';
   const { pagina, limite } = leerPaginacionURL(searchParams);
   const estado_usuario = estadoSeleccionado === 'todos' ? undefined : estadoSeleccionado;
-  const { usuarios, paginacion, cargando, error, crear, actualizar, cambiarEstado } = useUsuarios({ pagina, limite, busqueda, estado_usuario });
+  const { usuarios, paginacion, cargando, error, crear, actualizar, cambiarEstado, restablecerContrasena } = useUsuarios({ pagina, limite, busqueda, estado_usuario });
   const { actualizar: actualizarVista, crearDestino, onLimiteChange } = usePaginacionURL({ paginacion, cargando });
   const [mostrarModal, setMostrarModal] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -57,6 +59,7 @@ export default function Usuarios() {
   const [formulario, setFormulario] = useState(estadoInicialFormulario);
 
   const [usuarioACambiarEstado, setUsuarioACambiarEstado] = useState(null);
+  const [usuarioARestablecer, setUsuarioARestablecer] = useState(null);
   const esDueno = usuarioSesion?.rol === 'dueno';
   const puedeEditar = (objetivo) => esDueno || (
     usuarioSesion?.rol === 'administrador'
@@ -172,8 +175,8 @@ export default function Usuarios() {
       return;
     }
 
-    if (!modoEdicion && formulario.contrasena.trim().length < 6) {
-      setErrorFormulario('La contraseña debe tener al menos 6 caracteres.');
+    if (!modoEdicion && errorContrasena(formulario.contrasena)) {
+      setErrorFormulario(errorContrasena(formulario.contrasena));
       return;
     }
 
@@ -201,7 +204,7 @@ export default function Usuarios() {
       setMostrarModal(false);
       setFormulario(estadoInicialFormulario);
     } catch (err) {
-      toast.error(err.message || 'No se pudo guardar el usuario.');
+      setErrorFormulario(err.message || 'No se pudo guardar el usuario.');
     } finally {
       setGuardando(false);
     }
@@ -277,7 +280,7 @@ export default function Usuarios() {
         onLimiteChange={onLimiteChange} cargando={cargando} sustantivo="usuarios" />}
 
       <UsuarioFormModal
-        isOpen={mostrarModal}
+        isOpen={mostrarModal && !usuarioARestablecer}
         modoEdicion={modoEdicion}
         formulario={formulario}
         sucursales={sucursalesPermitidas}
@@ -290,7 +293,24 @@ export default function Usuarios() {
         onSubmit={manejarGuardar}
         onChange={manejarCambio}
         rolesPermitidos={rolesPermitidos}
+        onRestablecerContrasena={esDueno && modoEdicion ? () => setUsuarioARestablecer(usuarios.find((item) => item.id_usuario === idEditando)) : undefined}
       />
+
+      {esDueno && usuarioARestablecer && <UsuarioContrasenaModal
+        usuario={usuarioARestablecer}
+        esPropia={Number(usuarioARestablecer.id_usuario) === Number(usuarioSesion.id_usuario)}
+        onClose={() => setUsuarioARestablecer(null)}
+        onSubmit={(datos) => restablecerContrasena(usuarioARestablecer.id_usuario, datos)}
+        onSuccess={() => {
+          const esPropia = Number(usuarioARestablecer.id_usuario) === Number(usuarioSesion.id_usuario);
+          setUsuarioARestablecer(null);
+          toast.success(esPropia ? 'Contraseña restablecida. Inicia sesión con tu nueva contraseña.' : 'Contraseña restablecida. Se cerraron las sesiones de esta cuenta.');
+          if (esPropia) {
+            setMostrarModal(false);
+            dispatch({ type: AUTH_ACTIONS.LOGOUT });
+          }
+        }}
+      />}
 
       <UsuarioEstadoModal
         isOpen={Boolean(usuarioACambiarEstado)}

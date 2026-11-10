@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { LoaderCircle, X } from 'lucide-react';
+import { KeyRound, LoaderCircle, X } from 'lucide-react';
 import AccessibleDialog from '../ui/AccessibleDialog.jsx';
+import ContrasenaInput from './ContrasenaInput.jsx';
+import { REQUISITOS_CONTRASENA } from '../../utils/contrasena';
 import styles from '../../styles/ManagementUI.module.css';
 
 const ROLES = [
@@ -24,6 +26,7 @@ export default function UsuarioFormModal({
   onSubmit,
   onChange,
   rolesPermitidos = ROLES,
+  onRestablecerContrasena,
 }) {
   const tituloId = 'usuario-form-title';
   const errorRef = useRef(null);
@@ -88,17 +91,20 @@ export default function UsuarioFormModal({
           {!modoEdicion && (
             <div className={styles.field}>
               <label htmlFor="contrasena_usuario">Contraseña</label>
-              <input
+              <ContrasenaInput
                 id="contrasena_usuario"
-                type="password"
                 name="contrasena"
                 autoComplete="new-password"
                 value={formulario.contrasena}
                 onChange={onChange}
+                onGenerar={(value) => onChange({ target: { name: 'contrasena', value } })}
+                disabled={guardando}
                 className={styles.input}
-                placeholder="Mínimo 6 caracteres…"
-                minLength={6}
+                placeholder="Mínimo 15 caracteres…"
+                minLength={15}
+                aria-describedby="crear-contrasena-reglas"
               />
+              <p id="crear-contrasena-reglas" className={styles.muted}>{REQUISITOS_CONTRASENA}</p>
             </div>
           )}
 
@@ -150,6 +156,13 @@ export default function UsuarioFormModal({
               {!cargandoLaboratorios && laboratorios.length === 0 && <p className={styles.fieldError}>No hay laboratorios activos registrados.</p>}
             </div>
           )}
+
+          {modoEdicion && onRestablecerContrasena && <div className={styles.field}>
+            <span className={styles.fieldLabel}>Acceso a la cuenta</span>
+            <div><button type="button" className={styles.button} disabled={guardando} onClick={onRestablecerContrasena}>
+              <KeyRound size={15} aria-hidden="true" />Restablecer contraseña…
+            </button></div>
+          </div>}
 
           {errorFormulario && <p ref={errorRef} tabIndex={-1} className={styles.fieldError} role="alert">{errorFormulario}</p>}
 

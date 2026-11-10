@@ -10,6 +10,9 @@ const acciones = vi.hoisted(() => ({
   crear: vi.fn(),
   actualizar: vi.fn(),
   cambiarEstado: vi.fn(),
+  restablecerContrasena: vi.fn(),
+  dispatch: vi.fn(),
+  sesion: { id_usuario: 99, id_sucursal: 1, rol: 'dueno' },
 }));
 
 vi.mock('../hooks/useUsuarios', () => ({
@@ -27,6 +30,7 @@ vi.mock('../hooks/useUsuarios', () => ({
     crear: acciones.crear,
     actualizar: acciones.actualizar,
     cambiarEstado: acciones.cambiarEstado,
+    restablecerContrasena: acciones.restablecerContrasena,
   }),
 }));
 
@@ -45,8 +49,10 @@ vi.mock('../hooks/useLaboratorios', () => ({
 }));
 
 vi.mock('../context/AuthContext.jsx', () => ({
+  AUTH_ACTIONS: { LOGOUT: 'LOGOUT' },
   useAuth: () => ({
-    usuario: { id_usuario: 99, id_sucursal: 1, rol: 'dueno' },
+    usuario: acciones.sesion,
+    dispatch: acciones.dispatch,
   }),
 }));
 
@@ -57,7 +63,48 @@ const renderizar = () => render(
 );
 
 describe('pantalla de usuarios', () => {
-  beforeEach(() => vi.clearAllMocks());
+  it('genera una contraseña visible y permite copiarla al crear', async () => {
+    const user = userEvent.setup();
+    renderizar();
+    await user.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
+    expect(screen.getByRole('button', { name: 'Copiar' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Generar contraseña' }));
+    const campo = screen.getByLabelText('Contraseña');
+    expect(campo.value).toHaveLength(20);
+    expect(campo).toHaveAttribute('type', 'text');
+    await user.click(screen.getByRole('button', { name: 'Copiar' }));
+    expect(await navigator.clipboard.readText()).toBe(campo.value);
+    expect(screen.getByRole('status')).toHaveTextContent('Contraseña copiada.');
+    await user.click(screen.getByRole('button', { name: 'Ocultar: Contraseña' }));
+    expect(campo).toHaveAttribute('type', 'password');
+  });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    acciones.sesion = { id_usuario: 99, id_sucursal: 1, rol: 'dueno' };
+  });
+
+  it('oculta el restablecimiento para administradores también dentro de Editar', async () => {
+    acciones.sesion = { id_usuario: 99, id_sucursal: 1, rol: 'administrador' };
+    renderizar();
+    await userEvent.click(screen.getByRole('button', { name: 'Editar' }));
+    expect(screen.queryByRole('button', { name: /Restablecer contraseña/ })).not.toBeInTheDocument();
+  });
+
+  it('cierra la sesión del dueño después de cambiar su propia clave', async () => {
+    acciones.sesion = { id_usuario: 1, id_sucursal: 1, rol: 'dueno' };
+    acciones.restablecerContrasena.mockResolvedValue({});
+    const user = userEvent.setup();
+    renderizar();
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Restablecer contraseña…' }));
+    await user.type(screen.getByLabelText('Nueva contraseña'), 'luna bosque rio cobre');
+    await user.type(screen.getByLabelText('Confirmar nueva contraseña'), 'luna bosque rio cobre');
+    await user.type(screen.getByLabelText('Tu contraseña de dueño'), 'actual123');
+    await user.click(screen.getByRole('button', { name: 'Restablecer contraseña' }));
+    await waitFor(() => expect(acciones.dispatch).toHaveBeenCalledWith({ type: 'LOGOUT' }));
+    expect(acciones.restablecerContrasena).toHaveBeenCalledWith(1, { contrasena_nueva: 'luna bosque rio cobre', contrasena_dueno: 'actual123' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 
   it('muestra los usuarios registrados y permite buscarlos', async () => {
     const user = userEvent.setup();
@@ -94,7 +141,7 @@ describe('pantalla de usuarios', () => {
     await user.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
     await user.type(screen.getByPlaceholderText('Ej.: Juan García…'), 'Ana López');
     await user.type(screen.getByPlaceholderText('Ej.: juan@farmacom.com…'), 'ana@farmacom.com');
-    await user.type(screen.getByPlaceholderText('Mínimo 6 caracteres…'), 'secreta123');
+    await user.type(screen.getByPlaceholderText('Mínimo 15 caracteres…'), 'nube cobre tren roble');
     await user.selectOptions(screen.getByLabelText('Rol'), 'administrador');
     await user.selectOptions(screen.getByLabelText('Sucursal'), '1');
     await user.click(screen.getByRole('button', { name: 'Crear usuario' }));
@@ -102,7 +149,7 @@ describe('pantalla de usuarios', () => {
     await waitFor(() => expect(acciones.crear).toHaveBeenCalledWith({
       nombre_usuario: 'Ana López',
       correo_usuario: 'ana@farmacom.com',
-      contrasena: 'secreta123',
+      contrasena: 'nube cobre tren roble',
       rol: 'administrador',
       id_sucursal: 1,
       id_laboratorio: null,
@@ -131,7 +178,7 @@ describe('pantalla de usuarios', () => {
     await user.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
     await user.type(screen.getByPlaceholderText('Ej.: Juan García…'), 'Labo User');
     await user.type(screen.getByPlaceholderText('Ej.: juan@farmacom.com…'), 'labo@farmacom.com');
-    await user.type(screen.getByPlaceholderText('Mínimo 6 caracteres…'), 'secreta123');
+    await user.type(screen.getByPlaceholderText('Mínimo 15 caracteres…'), 'nube cobre tren roble');
     await user.selectOptions(screen.getByLabelText('Rol'), 'laboratorista');
     await user.selectOptions(screen.getByLabelText('Sucursal'), '1');
     await user.selectOptions(screen.getByLabelText('Laboratorio'), '1');
@@ -150,7 +197,7 @@ describe('pantalla de usuarios', () => {
     await user.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
     await user.type(screen.getByPlaceholderText('Ej.: Juan García…'), 'Ana López');
     await user.type(screen.getByPlaceholderText('Ej.: juan@farmacom.com…'), 'ana@farmacom');
-    await user.type(screen.getByPlaceholderText('Mínimo 6 caracteres…'), 'secreta123');
+    await user.type(screen.getByPlaceholderText('Mínimo 15 caracteres…'), 'nube cobre tren roble');
     await user.selectOptions(screen.getByLabelText('Rol'), 'administrador');
     await user.selectOptions(screen.getByLabelText('Sucursal'), '1');
     await user.click(screen.getByRole('button', { name: 'Crear usuario' }));
@@ -159,19 +206,19 @@ describe('pantalla de usuarios', () => {
     expect(acciones.crear).not.toHaveBeenCalled();
   });
 
-  it('exige una contraseña de al menos 6 caracteres al crear', async () => {
+  it('exige una contraseña de al menos 15 caracteres al crear', async () => {
     const user = userEvent.setup();
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
     await user.type(screen.getByPlaceholderText('Ej.: Juan García…'), 'Ana López');
     await user.type(screen.getByPlaceholderText('Ej.: juan@farmacom.com…'), 'ana@farmacom.com');
-    await user.type(screen.getByPlaceholderText('Mínimo 6 caracteres…'), '123');
+    await user.type(screen.getByPlaceholderText('Mínimo 15 caracteres…'), '123');
     await user.selectOptions(screen.getByLabelText('Rol'), 'administrador');
     await user.selectOptions(screen.getByLabelText('Sucursal'), '1');
     await user.click(screen.getByRole('button', { name: 'Crear usuario' }));
 
-    expect(screen.getByText('La contraseña debe tener al menos 6 caracteres.')).toBeInTheDocument();
+    expect(screen.getByText('La contraseña debe tener al menos 15 caracteres.')).toBeInTheDocument();
     expect(acciones.crear).not.toHaveBeenCalled();
   });
 
@@ -181,7 +228,7 @@ describe('pantalla de usuarios', () => {
     renderizar();
 
     await user.click(screen.getByRole('button', { name: 'Editar' }));
-    expect(screen.queryByPlaceholderText('Mínimo 6 caracteres…')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Mínimo 15 caracteres…')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 

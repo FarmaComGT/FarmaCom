@@ -5,8 +5,18 @@ const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
 const { validarPaginacion, validarBusqueda } = require('../validators/paginacionValidators');
+const rateLimit = require('express-rate-limit');
 
 const router = Router();
+const limitarRestablecimiento = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    keyGenerator: (req) => String(req.usuario.id_usuario),
+    skipSuccessfulRequests: true,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { mensaje: 'Demasiados intentos. Intenta de nuevo en 15 minutos.' },
+});
 
 // Validaciones de parámetros
 
@@ -28,7 +38,7 @@ const validarCreacion = [
     body('id_sucursal').isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo'),
     body('nombre_usuario').trim().notEmpty().withMessage('nombre_usuario es requerido').isLength({ max: 100 }).withMessage('nombre_usuario no puede superar los 100 caracteres'),
     body('correo_usuario').isEmail().withMessage('correo_usuario no es válido').normalizeEmail(),
-    body('contrasena').trim().isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
+    body('contrasena').isString().withMessage('La contraseña es requerida').bail().trim(),
     body('rol').isIn(['dueno', 'administrador', 'dependiente', 'laboratorista']).withMessage('Rol no válido'),
     body('id_laboratorio')
         .if(body('rol').equals('laboratorista'))
@@ -59,12 +69,13 @@ const validarActualizacion = [
 ];
 
 const validarCambioContrasena = [
-    body('contrasena_actual')
+    body('contrasena_dueno')
+        .isString().bail()
         .trim()
-        .notEmpty().withMessage('contrasena_actual es requerida'),
+        .notEmpty().withMessage('Tu contraseña de dueño es requerida'),
     body('contrasena_nueva')
-        .trim()
-        .isLength({ min: 6 }).withMessage('La contraseña nueva debe tener al menos 6 caracteres'),
+        .isString().bail()
+        .trim(),
 ];
 
 const validarCambioEstado = [
@@ -128,6 +139,8 @@ router.put('/:id',
 // PATCH  /api/usuarios/:id/contrasena
 router.patch('/:id/contrasena',
     verificarToken,
+    verificarRol('dueno'),
+    limitarRestablecimiento,
     validarParamId,
     validarCambioContrasena,
     validateRequest,
