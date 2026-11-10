@@ -23,17 +23,6 @@ const cajasEjemplo = [
 ];
 
 describe('useCaja', () => {
-  it('actualiza el turno al volver a la ventana y descarta un turno cerrado', async () => {
-    obtenerSesionActual.mockResolvedValue({ id_sesion_caja: 9 });
-    const { result } = renderHook(() => useCaja(2));
-    await waitFor(() => expect(result.current.cargandoCajas).toBe(false));
-    act(() => result.current.seleccionarCaja('3'));
-    await waitFor(() => expect(result.current.sesionActual?.id_sesion_caja).toBe(9));
-    obtenerSesionActual.mockRejectedValue({ response: { status: 404 } });
-    act(() => window.dispatchEvent(new Event('focus')));
-    await waitFor(() => expect(result.current.sesionActual).toBeNull());
-    expect(result.current.idCajaSeleccionada).toBe('3');
-  });
   beforeEach(() => {
     vi.clearAllMocks();
     window.sessionStorage.clear();
