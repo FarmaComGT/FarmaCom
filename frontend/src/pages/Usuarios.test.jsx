@@ -63,6 +63,21 @@ const renderizar = () => render(
 );
 
 describe('pantalla de usuarios', () => {
+  it('genera una contraseña visible y permite copiarla al crear', async () => {
+    const user = userEvent.setup();
+    renderizar();
+    await user.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
+    expect(screen.getByRole('button', { name: 'Copiar' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Generar contraseña' }));
+    const campo = screen.getByLabelText('Contraseña');
+    expect(campo.value).toHaveLength(20);
+    expect(campo).toHaveAttribute('type', 'text');
+    await user.click(screen.getByRole('button', { name: 'Copiar' }));
+    expect(await navigator.clipboard.readText()).toBe(campo.value);
+    expect(screen.getByRole('status')).toHaveTextContent('Contraseña copiada.');
+    await user.click(screen.getByRole('button', { name: 'Ocultar: Contraseña' }));
+    expect(campo).toHaveAttribute('type', 'password');
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     acciones.sesion = { id_usuario: 99, id_sucursal: 1, rol: 'dueno' };

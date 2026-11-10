@@ -17,6 +17,31 @@ const completar = async (user) => {
 };
 
 describe('restablecimiento de contraseña', () => {
+  it('completa la confirmación al generar y conserva la autorización del dueño', async () => {
+    const user = userEvent.setup();
+    const { onSubmit } = montar();
+    await user.click(screen.getByRole('button', { name: 'Generar contraseña' }));
+    const nueva = screen.getByLabelText('Nueva contraseña');
+    expect(nueva).toHaveAttribute('type', 'text');
+    expect(nueva.value).toHaveLength(20);
+    expect(screen.getByLabelText('Confirmar nueva contraseña')).toHaveValue(nueva.value);
+    expect(screen.getByLabelText('Tu contraseña de dueño')).toHaveValue('');
+    await user.type(screen.getByLabelText('Tu contraseña de dueño'), 'dueno123');
+    const clave = nueva.value;
+    await user.click(screen.getByRole('button', { name: 'Restablecer contraseña' }));
+    expect(onSubmit).toHaveBeenCalledWith({ contrasena_nueva: clave, contrasena_dueno: 'dueno123' });
+  });
+
+  it('permite copiar manualmente si el navegador bloquea el portapapeles', async () => {
+    const user = userEvent.setup();
+    montar();
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValueOnce(new Error('Bloqueado'));
+    await user.type(screen.getByLabelText('Nueva contraseña'), 'nube bosque tren cobre');
+    await user.click(screen.getByRole('button', { name: 'Copiar' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Copia el texto seleccionado.');
+    expect(screen.getByLabelText('Nueva contraseña')).toHaveAttribute('type', 'text');
+    expect(screen.getByLabelText('Nueva contraseña')).toHaveFocus();
+  });
   it('valida campos vacíos y enfoca el primer error', async () => {
     const user = userEvent.setup();
     const { onSubmit } = montar();

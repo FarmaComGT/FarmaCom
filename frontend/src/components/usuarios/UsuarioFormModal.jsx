@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { KeyRound, LoaderCircle, X } from 'lucide-react';
 import AccessibleDialog from '../ui/AccessibleDialog.jsx';
+import ContrasenaInput from './ContrasenaInput.jsx';
 import { REQUISITOS_CONTRASENA } from '../../utils/contrasena';
 import styles from '../../styles/ManagementUI.module.css';
 
@@ -90,13 +91,14 @@ export default function UsuarioFormModal({
           {!modoEdicion && (
             <div className={styles.field}>
               <label htmlFor="contrasena_usuario">Contraseña</label>
-              <input
+              <ContrasenaInput
                 id="contrasena_usuario"
-                type="password"
                 name="contrasena"
                 autoComplete="new-password"
                 value={formulario.contrasena}
                 onChange={onChange}
+                onGenerar={(value) => onChange({ target: { name: 'contrasena', value } })}
+                disabled={guardando}
                 className={styles.input}
                 placeholder="Mínimo 15 caracteres…"
                 minLength={15}

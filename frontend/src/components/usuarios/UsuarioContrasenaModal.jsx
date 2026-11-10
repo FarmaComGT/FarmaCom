@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff, LoaderCircle, X } from 'lucide-react';
 import AccessibleDialog from '../ui/AccessibleDialog.jsx';
+import ContrasenaInput from './ContrasenaInput.jsx';
 import { errorContrasena, REQUISITOS_CONTRASENA } from '../../utils/contrasena';
 import styles from '../../styles/ManagementUI.module.css';
 import local from './UsuarioContrasenaModal.module.css';
@@ -75,7 +76,16 @@ export default function UsuarioContrasenaModal({ usuario, esPropia, onClose, onS
           {CAMPOS.map(({ name, label, autocomplete }) => (
             <div key={name} className={styles.field}>
               <label htmlFor={`restablecer-${name}`}>{label}</label>
-              <div className={local.password}>
+              {name === 'contrasena_nueva' ? <ContrasenaInput
+                id={`restablecer-${name}`} name={name} autoComplete={autocomplete} value={valores[name]} disabled={guardando}
+                onChange={(evento) => setValores((prev) => ({ ...prev, [name]: evento.target.value }))}
+                onGenerar={(clave) => {
+                  setValores((prev) => ({ ...prev, contrasena_nueva: clave, confirmacion: clave }));
+                  setErrores({});
+                }}
+                aria-invalid={Boolean(errores[name])}
+                aria-describedby={`restablecer-reglas${errores[name] ? ` error-${name}` : ''}`}
+              /> : <div className={local.password}>
                 <input id={`restablecer-${name}`} name={name} autoComplete={autocomplete} type={visibles[name] ? 'text' : 'password'}
                   value={valores[name]} onChange={(evento) => setValores((prev) => ({ ...prev, [name]: evento.target.value }))}
                   readOnly={guardando} spellCheck={false} autoCapitalize="none" className={styles.input}
@@ -84,7 +94,7 @@ export default function UsuarioContrasenaModal({ usuario, esPropia, onClose, onS
                   aria-label={`${visibles[name] ? 'Ocultar' : 'Mostrar'}: ${label}`} aria-pressed={Boolean(visibles[name])} disabled={guardando}>
                   {visibles[name] ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 </button>
-              </div>
+              </div>}
               {name === 'contrasena_nueva' && <p id="restablecer-reglas" className={local.help}>{REQUISITOS_CONTRASENA}</p>}
               {errores[name] && <p id={`error-${name}`} className={styles.fieldError} aria-live="polite">{errores[name]}</p>}
             </div>
