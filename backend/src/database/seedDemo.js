@@ -46,12 +46,14 @@ const obtenerCredencialesDemo = (env = process.env) => {
     'DEMO_LABORATORISTA_PASSWORD',
     env.DEMO_LABORATORISTA_PASSWORD,
   );
+  const contrasenaAdministrador = validarContrasenaInicial('DEMO_ADMINISTRADOR_PASSWORD', env.DEMO_ADMINISTRADOR_PASSWORD);
+  const contrasenaDependiente = validarContrasenaInicial('DEMO_DEPENDIENTE_PASSWORD', env.DEMO_DEPENDIENTE_PASSWORD);
 
-  if (contrasenaDueno === contrasenaLaboratorista) {
+  if (new Set([contrasenaDueno, contrasenaLaboratorista, contrasenaAdministrador, contrasenaDependiente]).size !== 4) {
     throw new Error('Las contraseñas iniciales de demostración deben ser diferentes.');
   }
 
-  return { contrasenaDueno, contrasenaLaboratorista };
+  return { contrasenaDueno, contrasenaLaboratorista, contrasenaAdministrador, contrasenaDependiente };
 };
 
 const obtenerRondasBcrypt = (valor) => {
@@ -81,11 +83,13 @@ const ejecutarSeedDemo = async ({
   generarHash = bcrypt.hash,
 } = {}) => {
   validarEntorno(entorno);
-  const { contrasenaDueno, contrasenaLaboratorista } = obtenerCredencialesDemo(env);
+  const { contrasenaDueno, contrasenaLaboratorista, contrasenaAdministrador, contrasenaDependiente } = obtenerCredencialesDemo(env);
   const rondas = obtenerRondasBcrypt(env.BCRYPT_ROUNDS);
-  const [hashDueno, hashLaboratorista] = await Promise.all([
+  const [hashDueno, hashLaboratorista, hashAdministrador, hashDependiente] = await Promise.all([
     generarHash(contrasenaDueno, rondas),
     generarHash(contrasenaLaboratorista, rondas),
+    generarHash(contrasenaAdministrador, rondas),
+    generarHash(contrasenaDependiente, rondas),
   ]);
   const contenido = await fs.readFile(ruta, 'utf8');
   const cliente = await conexion.connect();
@@ -95,10 +99,13 @@ const ejecutarSeedDemo = async ({
     await cliente.query(
       `SELECT
          set_config('farmacom.seed.dueno_hash', $1, true),
-         set_config('farmacom.seed.laboratorista_hash', $2, true)`,
-      [hashDueno, hashLaboratorista],
+         set_config('farmacom.seed.laboratorista_hash', $2, true),
+         set_config('farmacom.seed.administrador_hash', $3, true),
+         set_config('farmacom.seed.dependiente_hash', $4, true)`,
+      [hashDueno, hashLaboratorista, hashAdministrador, hashDependiente],
     );
     await cliente.query(contenido);
+    await cliente.query(await fs.readFile(path.join(__dirname, 'seeds', 'presentacion.sql'), 'utf8'));
     await cliente.query('COMMIT');
     logger.log('Datos de demostración cargados correctamente.');
   } catch (error) {

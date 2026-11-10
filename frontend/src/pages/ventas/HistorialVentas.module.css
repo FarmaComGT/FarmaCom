@@ -60,13 +60,18 @@
 }
 
 .salesTable th:first-child { width: 15%; }
-.salesTable th:nth-child(2) { width: 18%; }
+.salesTable th:nth-child(2) { width: 17%; }
 .salesTable th:nth-child(3) { width: 15%; }
 .salesTable th:nth-child(4) { width: 8%; }
 .salesTable th:nth-child(5) { width: 9%; }
 .salesTable th:nth-child(6) { width: 10%; }
-.salesTable th:nth-child(7) { width: 9%; }
-.salesTable th:last-child { width: 16%; text-align: right; }
+.salesTable th:nth-child(7) { width: 11%; }
+.salesTable th:last-child { width: 15%; text-align: right; }
+
+.salesTable td[data-label='Estado'] > span {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
 
 .productSummary dt {
   color: var(--management-muted);

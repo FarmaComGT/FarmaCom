@@ -14,6 +14,8 @@ const entornoSeguro = {
   BCRYPT_ROUNDS: '10',
   DEMO_DUENO_PASSWORD: 'Dueno-local-2026!',
   DEMO_LABORATORISTA_PASSWORD: 'Laboratorio-local-2026!',
+  DEMO_ADMINISTRADOR_PASSWORD: 'Administrador-local-2026!',
+  DEMO_DEPENDIENTE_PASSWORD: 'Dependiente-local-2026!',
 };
 
 describe('seed de demostración', () => {
@@ -43,13 +45,14 @@ describe('seed de demostración', () => {
     expect(() => validarEntorno(entorno)).not.toThrow();
   });
 
-  test('exige dos contraseñas iniciales seguras y diferentes', () => {
+  test('exige cuatro contraseñas iniciales seguras y diferentes', () => {
     expect(() => obtenerCredencialesDemo({})).toThrow('DEMO_DUENO_PASSWORD');
     expect(() => obtenerCredencialesDemo({
       DEMO_DUENO_PASSWORD: 'corta',
       DEMO_LABORATORISTA_PASSWORD: 'Laboratorio-local-2026!',
     })).toThrow('al menos 12 caracteres');
     expect(() => obtenerCredencialesDemo({
+      ...entornoSeguro,
       DEMO_DUENO_PASSWORD: 'Clave-compartida-2026!',
       DEMO_LABORATORISTA_PASSWORD: 'Clave-compartida-2026!',
     })).toThrow('deben ser diferentes');
@@ -60,6 +63,13 @@ describe('seed de demostración', () => {
       'no puede superar 72 bytes',
     );
   });
+
+  test.each(['DEMO_ADMINISTRADOR_PASSWORD', 'DEMO_DEPENDIENTE_PASSWORD'])(
+    'exige %s y evita reutilizar la clave de la dueña', (nombre) => {
+      expect(() => obtenerCredencialesDemo({ ...entornoSeguro, [nombre]: undefined })).toThrow(nombre);
+      expect(() => obtenerCredencialesDemo({ ...entornoSeguro, [nombre]: entornoSeguro.DEMO_DUENO_PASSWORD })).toThrow('deben ser diferentes');
+    },
+  );
 
   test('restringe el costo de bcrypt a un rango seguro', () => {
     expect(obtenerRondasBcrypt(undefined)).toBe(10);
@@ -77,7 +87,9 @@ describe('seed de demostración', () => {
     const logger = { log: jest.fn() };
     const generarHash = jest.fn()
       .mockResolvedValueOnce('hash-dueno')
-      .mockResolvedValueOnce('hash-laboratorista');
+      .mockResolvedValueOnce('hash-laboratorista')
+      .mockResolvedValueOnce('hash-administrador')
+      .mockResolvedValueOnce('hash-dependiente');
 
     await ejecutarSeedDemo({
       conexion,
@@ -90,12 +102,14 @@ describe('seed de demostración', () => {
 
     expect(generarHash).toHaveBeenNthCalledWith(1, entornoSeguro.DEMO_DUENO_PASSWORD, 10);
     expect(generarHash).toHaveBeenNthCalledWith(2, entornoSeguro.DEMO_LABORATORISTA_PASSWORD, 10);
+    expect(generarHash).toHaveBeenNthCalledWith(3, entornoSeguro.DEMO_ADMINISTRADOR_PASSWORD, 10);
+    expect(generarHash).toHaveBeenNthCalledWith(4, entornoSeguro.DEMO_DEPENDIENTE_PASSWORD, 10);
     expect(cliente.query.mock.calls.map(([sql]) => sql)).toEqual(expect.arrayContaining([
       'BEGIN',
       'INSERT INTO ejemplo VALUES (1);',
       'COMMIT',
     ]));
-    expect(cliente.query.mock.calls[1][1]).toEqual(['hash-dueno', 'hash-laboratorista']);
+    expect(cliente.query.mock.calls[1][1]).toEqual(['hash-dueno', 'hash-laboratorista', 'hash-administrador', 'hash-dependiente']);
     expect(cliente.release).toHaveBeenCalledTimes(1);
     expect(logger.log).toHaveBeenCalledWith(
       'Datos de demostración cargados correctamente.',
@@ -119,7 +133,9 @@ describe('seed de demostración', () => {
       ruta,
       generarHash: jest.fn()
         .mockResolvedValueOnce('hash-dueno')
-        .mockResolvedValueOnce('hash-laboratorista'),
+        .mockResolvedValueOnce('hash-laboratorista')
+        .mockResolvedValueOnce('hash-administrador')
+        .mockResolvedValueOnce('hash-dependiente'),
     })).rejects.toThrow('Fallo SQL simulado');
 
     expect(cliente.query).toHaveBeenCalledWith('ROLLBACK');

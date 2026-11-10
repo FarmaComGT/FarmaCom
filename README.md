@@ -148,7 +148,13 @@ menos 12 caracteres; no existen claves predeterminadas en el repositorio:
 ```env
 DEMO_DUENO_PASSWORD=<clave-local-segura>
 DEMO_LABORATORISTA_PASSWORD=<otra-clave-local-segura>
+DEMO_ADMINISTRADOR_PASSWORD=<clave-administradores-demo>
+DEMO_DEPENDIENTE_PASSWORD=<clave-dependientes-demo>
 ```
+
+Las cuatro claves deben ser diferentes. El seed de demo final incluye tres
+sucursales en Baja Verapaz y requiere una base vacía; no mezcla datos anteriores.
+Ver [datos, cuentas y ejecución de la demo](docs/seed-demo.md).
 
 El backend limita por defecto el inicio de sesión a cinco fallos por IP cada
 15 minutos. `LOGIN_RATE_LIMIT_MAX_ATTEMPTS` y `LOGIN_RATE_LIMIT_WINDOW_MS`
