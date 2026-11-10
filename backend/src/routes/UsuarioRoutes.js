@@ -38,7 +38,7 @@ const validarCreacion = [
     body('id_sucursal').isInt({ min: 1 }).withMessage('id_sucursal debe ser un entero positivo'),
     body('nombre_usuario').trim().notEmpty().withMessage('nombre_usuario es requerido').isLength({ max: 100 }).withMessage('nombre_usuario no puede superar los 100 caracteres'),
     body('correo_usuario').isEmail().withMessage('correo_usuario no es válido').normalizeEmail(),
-    body('contrasena').trim().isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
+    body('contrasena').isString().withMessage('La contraseña es requerida').bail().trim(),
     body('rol').isIn(['dueno', 'administrador', 'dependiente', 'laboratorista']).withMessage('Rol no válido'),
     body('id_laboratorio')
         .if(body('rol').equals('laboratorista'))
@@ -75,10 +75,7 @@ const validarCambioContrasena = [
         .notEmpty().withMessage('Tu contraseña de dueño es requerida'),
     body('contrasena_nueva')
         .isString().bail()
-        .trim()
-        .isLength({ min: 6 }).withMessage('La contraseña nueva debe tener al menos 6 caracteres')
-        .custom((valor) => Buffer.byteLength(valor, 'utf8') <= 72)
-        .withMessage('La contraseña nueva no puede superar los 72 bytes'),
+        .trim(),
 ];
 
 const validarCambioEstado = [

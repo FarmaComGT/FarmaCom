@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+const validarContrasena = require('../validators/contrasenaValidator');
 const UsuarioDAO = require('../daos/UsuarioDAO');
 const LaboratorioDAO = require('../daos/LaboratorioDAO');
 const AppError = require('../errors/AppError');
@@ -106,7 +107,7 @@ const crearUsuario = async({ id_sucursal, id_laboratorio, nombre_usuario, correo
     }
 
     const laboratorioAsignado = await resolverLaboratorio(rol, id_laboratorio);
-    const contrasena_hash = await bcrypt.hash(contrasena, SALT_ROUNDS);
+    const contrasena_hash = await bcrypt.hash(validarContrasena(contrasena), SALT_ROUNDS);
     const usuario = await UsuarioDAO.crear({
         id_sucursal,
         id_laboratorio: laboratorioAsignado,
@@ -202,7 +203,7 @@ const cambiarContrasena = async(id_usuario, contrasena_dueno, contrasena_nueva, 
         // 403 evita confundir una reautenticación fallida con una sesión expirada.
         throw new AppError('Tu contraseña de dueño es incorrecta.', 403);
     }
-    const nueva_hash = await bcrypt.hash(contrasena_nueva, SALT_ROUNDS);
+    const nueva_hash = await bcrypt.hash(validarContrasena(contrasena_nueva), SALT_ROUNDS);
     return UsuarioDAO.ejecutarEnTransaccion(async (client) => {
         const usuario = await UsuarioDAO.obtenerParaActualizar(id_usuario, client);
         if (!usuario) throw new AppError('Usuario no encontrado', 404);

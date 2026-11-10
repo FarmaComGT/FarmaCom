@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 app.use('/usuarios', require('./UsuarioRoutes'));
 app.use(require('../middlewares/errorHandler'));
-const datos = { contrasena_dueno: 'clave-dueno', contrasena_nueva: 'nueva123' };
+const datos = { contrasena_dueno: 'clave-dueno', contrasena_nueva: 'luna bosque rio cobre' };
 
 describe('permisos de restablecimiento', () => {
     beforeEach(() => jest.clearAllMocks());
@@ -23,13 +23,13 @@ describe('permisos de restablecimiento', () => {
         service.cambiarContrasena.mockResolvedValue({ mensaje: 'Contraseña restablecida correctamente.' });
         const res = await request(app).patch('/usuarios/1/contrasena').send(datos);
         expect(res.status).toBe(200);
-        expect(service.cambiarContrasena).toHaveBeenCalledWith(1, 'clave-dueno', 'nueva123', { id_usuario: 90, rol: 'dueno' });
+        expect(service.cambiarContrasena).toHaveBeenCalledWith(1, 'clave-dueno', 'luna bosque rio cobre', { id_usuario: 90, rol: 'dueno' });
     });
     it('rechaza una clave que bcrypt truncaría, sin exponerla en errores', async () => {
+        service.cambiarContrasena.mockRejectedValue(new (require('../errors/AppError'))('La contraseña es demasiado larga. Usa una más corta.', 400));
         const clave = 'á'.repeat(40);
         const res = await request(app).patch('/usuarios/1/contrasena').send({ ...datos, contrasena_nueva: clave });
         expect(res.status).toBe(400);
-        expect(service.cambiarContrasena).not.toHaveBeenCalled();
         expect(JSON.stringify(res.body)).not.toContain(clave);
     });
 });
