@@ -20,13 +20,20 @@ describe('Navegación por tareas de FarmaCom', () => {
     mocks.rol = rol;
     renderizar();
     const esGestion = ['dueno', 'administrador'].includes(rol);
-    const primerTab = esGestion ? 'Dashboard' : 'Inicio';
+    const esDependiente = rol === 'dependiente';
     const nav = screen.getByRole('navigation', { name: 'Módulos de FarmaCom' });
     const elementos = [...nav.querySelectorAll('a, button')].map(e => e.textContent);
-    if (rol !== 'laboratorista') {
-      expect(elementos.slice(0, 4)).toEqual([primerTab, 'Punto de venta', 'Caja', 'Inventario']);
+    if (esDependiente) {
+      expect(elementos.slice(0, 3)).toEqual(['Punto de venta', 'Caja', 'Inventario']);
+      expect(screen.queryByRole('link', { name: 'Inicio' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+    } else {
+      const primerTab = esGestion ? 'Dashboard' : 'Inicio';
+      if (rol !== 'laboratorista') {
+        expect(elementos.slice(0, 4)).toEqual([primerTab, 'Punto de venta', 'Caja', 'Inventario']);
+      }
+      expect(screen.getByRole('link', { name: primerTab })).toHaveAttribute('href', esGestion ? '/reports' : '/dashboard');
     }
-    expect(screen.getByRole('link', { name: primerTab })).toHaveAttribute('href', esGestion ? '/reports' : '/dashboard');
     expect(Boolean(screen.queryByRole('link', { name: 'Envío de resumen' }))).toBe(rol === 'dueno');
     expect(Boolean(screen.queryByText('Seguimiento'))).toBe(esGestion);
   });
@@ -135,6 +142,18 @@ describe('Navegación por tareas de FarmaCom', () => {
     expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Inventario' })).not.toBeInTheDocument();
     expect(screen.queryByText('Administración')).not.toBeInTheDocument();
+  });
+  it('impide cerrar sesión con un turno de caja abierto y lleva a Operación de caja', async () => {
+    const user = userEvent.setup();
+    mocks.rol = 'dependiente';
+    const mensaje = 'No puedes cerrar sesión con un turno de caja abierto (Caja principal/Sucursal Central). Dirígete a Caja › Operación para cerrar el turno actual.';
+    mocks.logout.mockRejectedValueOnce({ response: { status: 409, data: { mensaje } } });
+    renderizar('/pos');
+    await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+    expect(screen.getByRole('status')).toHaveTextContent(mensaje);
+    expect(mocks.dispatch).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Ruta actual')).toHaveTextContent('/caja');
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeEnabled();
   });
   it('permite reintentar un cierre fallido y navega al login al cerrar sesión', async () => {
     const user = userEvent.setup();

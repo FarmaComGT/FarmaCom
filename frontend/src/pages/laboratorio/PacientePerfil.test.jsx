@@ -7,12 +7,11 @@ import userEvent from '@testing-library/user-event';
 import PacientePerfil from './PacientePerfil';
 
 const {
-  mockObtenerPaciente, mockSubir, mockAnular, mockUseAuth, mockUseAlmacenamientoLocal,
+  mockObtenerPaciente, mockSubir, mockAnular, mockUseAlmacenamientoLocal,
 } = vi.hoisted(() => ({
   mockObtenerPaciente: vi.fn(),
   mockSubir: vi.fn(),
   mockAnular: vi.fn(),
-  mockUseAuth: vi.fn(),
   mockUseAlmacenamientoLocal: vi.fn(),
 }));
 
@@ -26,14 +25,6 @@ vi.mock('../../api/resultadosLaboratorio', () => ({
 
 vi.mock('../../hooks/useAlmacenamientoLocal', () => ({
   default: mockUseAlmacenamientoLocal,
-}));
-
-vi.mock('../../context/AuthContext.jsx', () => ({
-  useAuth: mockUseAuth,
-}));
-
-vi.mock('../../components/laboratorio/pacientes/HistorialExpediente.jsx', () => ({
-  default: ({ idExpediente }) => <div>Bitácora del expediente {idExpediente}</div>,
 }));
 
 vi.mock('../../hooks/useCategoriasSugeridas', () => ({
@@ -79,7 +70,6 @@ describe('PacientePerfil', () => {
     mockObtenerPaciente.mockResolvedValue(paciente);
     mockSubir.mockReset();
     mockAnular.mockReset();
-    mockUseAuth.mockReturnValue({ usuario: { rol: 'administrador' } });
     resultadosSimulados = [];
 
     mockUseAlmacenamientoLocal.mockReset();
@@ -130,17 +120,6 @@ describe('PacientePerfil', () => {
 
     expect(await screen.findByText('Hematología')).toBeInTheDocument();
     expect(screen.getByText('Vigente')).toBeInTheDocument();
-  });
-
-  it('muestra la bitácora solamente a dueño y administrador', async () => {
-    const { unmount } = renderizar();
-    expect(await screen.findByText('Bitácora del expediente 8')).toBeInTheDocument();
-    unmount();
-
-    mockUseAuth.mockReturnValue({ usuario: { rol: 'laboratorista' } });
-    renderizar();
-    await screen.findByText('Ana López');
-    expect(screen.queryByText('Bitácora del expediente 8')).not.toBeInTheDocument();
   });
 
   it('sube un nuevo resultado y muestra la alerta de éxito', async () => {

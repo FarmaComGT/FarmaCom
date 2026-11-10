@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import api from './axios';
-import { obtenerHistorialExpediente, obtenerHistorialPreciosProducto } from './historiales';
+import { obtenerHistorialPreciosProducto } from './historiales';
 
 vi.mock('./axios', () => ({
   default: { get: vi.fn() },
@@ -9,14 +9,6 @@ vi.mock('./axios', () => ({
 describe('API de historiales', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('consulta la bitácora por id de expediente', async () => {
-    const historial = [{ id_bitacora: 1 }];
-    api.get.mockResolvedValue({ data: historial });
-
-    await expect(obtenerHistorialExpediente(7)).resolves.toEqual(historial);
-    expect(api.get).toHaveBeenCalledWith('/expedientes/7/bitacora');
   });
 
   it('consulta el historial completo del producto en una sola solicitud', async () => {

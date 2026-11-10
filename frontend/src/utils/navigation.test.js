@@ -11,8 +11,11 @@ describe('getDefaultRouteForRole', () => {
     expect(getDefaultRouteForRole('laboratorista')).toBe('/dashboard');
   });
 
+  it('envía al dependiente directo a caja', () => {
+    expect(getDefaultRouteForRole('dependiente')).toBe('/caja');
+  });
+
   it('envía cualquier otro rol al dashboard', () => {
-    expect(getDefaultRouteForRole('dependiente')).toBe('/dashboard');
     expect(getDefaultRouteForRole(undefined)).toBe('/dashboard');
   });
 });

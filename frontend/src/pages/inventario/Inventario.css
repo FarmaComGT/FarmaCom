@@ -19,7 +19,7 @@
   font-variant-numeric: tabular-nums;
 }
 .inventory-shell { background: var(--inv-frame); }
-.inventory-shell > main > div { background: var(--inv-surface); border: 1px solid var(--inv-line); border-radius: 16px; width: calc(100% - 8px); margin: 0 8px 8px 0; max-width: none; padding: 28px; flex: 1; }
+.inventory-shell > main > div { background: var(--inv-surface); border: 1px solid var(--inv-line); border-radius: 16px; width: calc(100% - 32px); margin: 16px; max-width: none; padding: 28px; flex: 1; }
 .inventory-skip-link { position: fixed; left: 16px; top: -100px; z-index: 60; padding: 12px 20px; background: white; color: #005147; }
 .inventory-skip-link:focus { top: 8px; }
 .inventory-page :is(button, input, select, summary) { touch-action: manipulation; }

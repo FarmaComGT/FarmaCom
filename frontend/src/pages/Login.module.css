@@ -14,15 +14,6 @@
   font-family: var(--font-sans);
 }
 
-.page::before {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: url('../assets/login-pharmacy-background.webp') center / cover no-repeat;
-  content: '';
-  opacity: .72;
-}
-
 .shell {
   display: grid;
   grid-template-columns: minmax(300px, .9fr) minmax(420px, 1.1fr);
@@ -36,6 +27,8 @@
 }
 
 .brandPanel {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -229,7 +222,6 @@
 
 @media (max-width: 720px) {
   .page { padding: 0; place-items: stretch; background: #fff; }
-  .page::before { display: none; }
   .shell { display: block; min-height: 100dvh; border: 0; border-radius: 0; box-shadow: none; }
   .brandPanel { display: none; }
   .formPanel { min-height: 100dvh; padding: max(36px, env(safe-area-inset-top)) 24px max(28px, env(safe-area-inset-bottom)); }

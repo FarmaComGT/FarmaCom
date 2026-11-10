@@ -32,11 +32,21 @@ export default function ComprobanteModal({ isOpen, venta, onClose }) {
     >
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          .comprobante-imprimible, .comprobante-imprimible * { visibility: visible; }
+          /* El diálogo vive en un portal fuera de #root, como hermano directo de
+             <body>. Ocultamos #root por completo (no solo invisibilidad) para que
+             el documento impreso mida solo lo que ocupa el comprobante: si el resto
+             de la app queda más alto que una hoja, el fondo fijo del modal se repite
+             en cada página adicional y el comprobante sale duplicado. */
+          body > #root { display: none !important; }
+          body > div:has(> .comprobante-imprimible) {
+            position: static !important;
+            inset: auto !important;
+            display: block !important;
+            padding: 0 !important;
+            background: none !important;
+          }
           .comprobante-imprimible {
-            position: absolute;
-            inset: 0;
+            position: static !important;
             width: 100%;
             max-width: none !important;
             max-height: none !important;

@@ -56,7 +56,8 @@ export default function Sidebar({ abierta, superpuesta = false, onCerrar, onNave
   const visible = (item) => !item.roles || item.roles.includes(usuario?.rol);
   const secciones = NAVEGACION.map(seccion => ({ ...seccion, items: seccion.items.filter(visible) }))
     .filter(seccion => seccion.items.length > 0);
-  const primeraPestana = ROLES_DASHBOARD_REPORTES.includes(usuario?.rol) ? DASHBOARD : INICIO;
+  const primeraPestana = ROLES_DASHBOARD_REPORTES.includes(usuario?.rol) ? DASHBOARD
+    : usuario?.rol === 'dependiente' ? null : INICIO;
   const handleLogout = async () => {
     toast.cerrar(avisoSesion.current);
     setCerrando(true);
@@ -68,6 +69,11 @@ export default function Sidebar({ abierta, superpuesta = false, onCerrar, onNave
       if ([401, 403].includes(error.response?.status)) {
         dispatch({ type: AUTH_ACTIONS.LOGOUT });
         navigate('/login', { replace: true });
+      } else if (error.response?.status === 409) {
+        // Hay un turno de caja abierto por este usuario: no se puede salir sin cerrarlo.
+        avisoSesion.current = toast.warning(error.response.data?.mensaje
+          || 'No puedes cerrar sesión con un turno de caja abierto. Dirígete a Caja › Operación para cerrar el turno actual.');
+        if (pathname !== '/caja') navigate('/caja');
       } else {
         avisoSesion.current = toast.error(error.response?.data?.mensaje || 'No se pudo cerrar sesión. Intenta de nuevo.');
       }
@@ -84,7 +90,7 @@ export default function Sidebar({ abierta, superpuesta = false, onCerrar, onNave
       <button type="button" className="shell-icon-button shell-close-sidebar" onClick={onCerrar} aria-label="Cerrar menú lateral" aria-controls="sidebar-principal" aria-expanded="true"><NavigationIcon name="collapse" /></button>
     </div>
     <nav className="shell-navigation" aria-label="Módulos de FarmaCom">
-      <NavigationLink {...primeraPestana} />
+      {primeraPestana && <NavigationLink {...primeraPestana} />}
       {secciones.map(seccion => <div className="shell-nav-section" key={seccion.label}>
         <p className="shell-nav-section-label">{seccion.label}</p>
         {seccion.items.map(item => item.children

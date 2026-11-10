@@ -84,7 +84,7 @@ describe('ruta de reportes', () => {
     estadoAuth.usuario = { rol: 'dependiente' };
     renderizarRutaReportes('/reports/rentabilidad');
     expect(screen.queryByRole('heading', { name: 'Rentabilidad por sucursal' })).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Operación de caja' })).toBeInTheDocument();
   });
   beforeEach(() => {
     estadoAuth.usuario = {
@@ -117,7 +117,7 @@ describe('ruta de reportes', () => {
 
     renderizarRutaReportes();
 
-    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Operación de caja' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Reportes' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Reportes' })).not.toBeInTheDocument();
   });
@@ -144,7 +144,7 @@ describe('ruta de promociones', () => {
     expect(screen.queryByRole('heading', { name: 'Administración de promociones' }))
       .not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Promociones' })).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Operación de caja' })).toBeInTheDocument();
   });
 });
 
@@ -201,7 +201,7 @@ describe('ruta de caja', () => {
 
     expect(screen.queryByRole('heading', { name: 'Historial de cierres' }))
       .not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Operación de caja' })).toBeInTheDocument();
   });
 
   it('permite administrar cajas solamente a roles administrativos', () => {

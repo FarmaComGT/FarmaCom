@@ -75,7 +75,7 @@ describe('Inventario: página, hook y API paginada', () => {
     expect(await screen.findByRole('link', { name: 'Ver lotes de Producto 11' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ver lotes de Producto 20' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Ver lotes de Producto 1' })).not.toBeInTheDocument();
-    expect(screen.getByText('11–20 de 27 productos')).toBeInTheDocument();
+    expect(screen.getByText('pág 2 de 3')).toBeInTheDocument();
     expect(peticionesListado()[0][1].params).toEqual({ pagina: 2, limite: 10, activo: 'true' });
   });
 
@@ -109,7 +109,7 @@ describe('Inventario: página, hook y API paginada', () => {
     await usuario.click(screen.getByRole('link', { name: 'Siguiente' }));
     await screen.findByRole('link', { name: 'Ver lotes de Producto 26' });
     await usuario.type(screen.getByRole('searchbox', { name: 'Buscar productos' }), 'Producto 2');
-    expect(await screen.findByText('1–9 de 9 productos')).toBeInTheDocument();
+    expect(await screen.findByText('pág 1 de 1')).toBeInTheDocument();
     expect(peticionesListado().at(-1)[1].params).toEqual({ pagina: 1, limite: 25, busqueda: 'Producto 2' });
   });
 
@@ -151,7 +151,7 @@ describe('Inventario: página, hook y API paginada', () => {
     await usuario.click(screen.getByRole('button', { name: 'Guardar lote de prueba' }));
     await screen.findByRole('link', { name: 'Ver lotes de Producto 1' });
     await waitFor(() => expect(screen.getByLabelText('URL actual')).toHaveTextContent('pagina=1'));
-    expect(screen.getByText('1–25 de 25 productos')).toBeInTheDocument();
+    expect(screen.getByText('pág 1 de 1')).toBeInTheDocument();
     expect(api.get.mock.calls.filter(([url]) => url.endsWith('/resumen'))).toHaveLength(2);
   });
 });

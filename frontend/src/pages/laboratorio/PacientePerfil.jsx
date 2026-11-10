@@ -13,11 +13,9 @@ import ResultadoEmptyState from '../../components/laboratorio/resultados/Resulta
 import ResultadoUploadModal from '../../components/laboratorio/resultados/ResultadoUploadModal.jsx';
 import ResultadoAnularModal from '../../components/laboratorio/resultados/ResultadoAnularModal.jsx';
 import ContentState from '../../components/ui/ContentState.jsx';
-import HistorialExpediente from '../../components/laboratorio/pacientes/HistorialExpediente.jsx';
 import ConfiguracionAlmacenamientoModal from '../../components/laboratorio/ConfiguracionAlmacenamientoModal.jsx';
 import usePaginacionURL, { leerPaginacionURL } from '../../hooks/usePaginacionURL';
 import Paginacion from '../../components/ui/Paginacion.jsx';
-import { useAuth } from '../../context/AuthContext.jsx';
 import { destinoPacientes } from '../../utils/navegacionPacientes';
 import management from '../../styles/ManagementUI.module.css';
 import laboratory from '../../styles/LaboratoryUI.module.css';
@@ -32,7 +30,6 @@ export default function PacientePerfil() {
   const { state } = useLocation();
   const [searchParams] = useSearchParams();
   const { pagina, limite } = leerPaginacionURL(searchParams);
-  const { usuario } = useAuth();
   const [paciente, setPaciente] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -72,7 +69,6 @@ export default function PacientePerfil() {
     cargando: cargandoResultados,
   });
   const categoriasSugeridas = useCategoriasSugeridas(paciente?.id_laboratorio);
-  const puedeVerHistorial = ['dueno', 'administrador'].includes(usuario?.rol);
 
   const {
     soportado: almacenamientoSoportado,
@@ -254,13 +250,9 @@ export default function PacientePerfil() {
 
       <PacienteAlert mensaje={errorResultados} />
 
-      {puedeVerHistorial && paciente.id_expediente && (
-        <HistorialExpediente idExpediente={paciente.id_expediente} />
-      )}
-
       <section className={laboratory.section} aria-labelledby="resultados-title">
         <header className={laboratory.sectionHeader}>
-          <div><h2 id="resultados-title">Resultados</h2><p>Documentos cargados y respaldos disponibles para este paciente.</p></div>
+          <div><h2 id="resultados-title">Resultados</h2></div>
         </header>
         {cargandoResultados ? (
           <ContentState variant="loading" message="Cargando resultados…" compact />

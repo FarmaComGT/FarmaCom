@@ -33,13 +33,4 @@ const registrarCambio = async ({
   }, client);
 };
 
-const obtenerPorExpediente = async (id_expediente) => {
-  const expediente = await BitacoraLaboratorioDAO.obtenerExpedientePorId(id_expediente);
-  if (!expediente) {
-    throw new AppError('Expediente no encontrado', 404);
-  }
-
-  return BitacoraLaboratorioDAO.obtenerPorExpediente(id_expediente);
-};
-
-module.exports = { registrarCambio, obtenerPorExpediente };
+module.exports = { registrarCambio };
