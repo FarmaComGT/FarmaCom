@@ -1,0 +1,10 @@
+.menu {
+  position: fixed;
+  z-index: 1000;
+  width: 176px;
+  padding: 5px;
+  border: 1px solid var(--ui-line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 14px 34px #17372b1a, 0 2px 8px #17372b12;
+}

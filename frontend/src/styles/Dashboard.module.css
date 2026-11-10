@@ -3,7 +3,7 @@
 .heading h1 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -.025em; }
 .heading p { margin: 6px 0 0; color: var(--ui-muted); font-size: 14px; overflow-wrap: anywhere; }
 .name { color: var(--ui-ink); }
-.tasks, .secondary { min-width: 0; }
+.tasks { min-width: 0; }
 .page h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 76px; padding: 16px 20px; color: inherit; text-decoration: none; border-bottom: 1px solid var(--ui-line); touch-action: manipulation; }
 .tasks .row { background: var(--ui-soft); }
@@ -13,17 +13,7 @@
 .row svg { flex: none; }
 .row:hover, .row:active { background: #e5ede8; color: #163b2b; }
 .page a:focus-visible { outline: 3px solid var(--ui-accent); outline-offset: 3px; }
-.secondary { margin-top: 28px; }
-.secondary .row { padding-inline: 0; min-height: 68px; }
 .footer { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-top: 24px; font-size: 14px; }
 .footer a { color: var(--ui-accent); display: inline-flex; align-items: center; min-height: 44px; text-decoration: underline; text-underline-offset: 3px; }
 .footer span { color: var(--ui-muted); }
-/* Two task lists share the sheet: 2 equal columns + one 28px gutter. */
-@media (min-width: 1000px) {
-  .page { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: start; }
-  .heading, .footer { grid-column: 1 / -1; margin: 0; }
-  .secondary { margin: 0; }
-  .secondary .row { padding-inline: 16px; min-height: 76px; }
-  .tasks:only-of-type { grid-column: 1 / -1; }
-}
 @media (max-width: 640px) { .heading { margin-bottom: 24px; } .row { padding: 14px 16px; } }

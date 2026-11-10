@@ -1,14 +1,13 @@
 /* Controles planos: conservan la tipografía y el acento de la hoja de inventario. */
-.pagination { --page-ink: var(--inv-ink, #202b28); --page-muted: var(--inv-muted, #5c6863); --page-line: var(--inv-control, #b8c4be); --page-surface: var(--inv-surface, #fff); --page-accent: var(--inv-accent, #005147); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-block: 20px 4px; color: var(--page-ink); font-size: 13px; font-variant-numeric: tabular-nums; }
-.range { color: var(--page-muted); }
+.pagination { --page-ink: var(--inv-ink, #202b28); --page-muted: var(--inv-muted, #5c6863); --page-line: var(--inv-control, #b8c4be); --page-surface: var(--inv-surface, #fff); --page-accent: var(--inv-accent, #005147); display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 16px; padding-block: 20px 4px; color: var(--page-ink); font-size: 13px; font-variant-numeric: tabular-nums; }
 .controls, .pages, .size { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .controls { flex-wrap: wrap; }
 .size { gap: 8px; color: var(--page-muted); }
 .size select { cursor: pointer; touch-action: manipulation; min-height: 36px; border: 1px solid var(--page-line); border-radius: 6px; padding: 6px 28px 6px 10px; background-color: var(--page-surface); color: var(--page-ink); }
 .size select:disabled { cursor: default; }
-.link { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 36px; padding: 7px 10px; border: 1px solid var(--page-line); border-radius: 6px; text-decoration: none; color: var(--page-ink); touch-action: manipulation; }
+.link { cursor: pointer; display: inline-flex; flex: none; align-items: center; justify-content: center; min-width: 36px; min-height: 36px; border: 1px solid var(--page-line); border-radius: 6px; text-decoration: none; color: var(--page-ink); touch-action: manipulation; }
 .link:hover { color: var(--page-accent); background: var(--inv-selected, #edf4f0); border-color: var(--page-accent); }
-.link[aria-disabled] { color: var(--page-muted); border-color: var(--inv-line, #e7ece9); cursor: default; background: transparent; }
+.link[aria-disabled] { color: var(--page-muted); cursor: default; background: transparent; }
 .link:focus-visible, .size select:focus-visible { outline: 2px solid var(--page-accent); outline-offset: 3px; }
 .current { white-space: nowrap; }
 @media (max-width: 767px) {
@@ -16,5 +15,5 @@
   .controls { width: 100%; justify-content: space-between; }
   .pages { width: 100%; justify-content: space-between; gap: 8px; }
   .size select { min-height: 44px; font-size: 16px; }
-  .link { min-height: 44px; padding-inline: 8px; }
+  .link { min-width: 44px; min-height: 44px; }
 }

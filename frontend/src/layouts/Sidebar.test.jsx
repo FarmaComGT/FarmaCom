@@ -20,13 +20,20 @@ describe('Navegación por tareas de FarmaCom', () => {
     mocks.rol = rol;
     renderizar();
     const esGestion = ['dueno', 'administrador'].includes(rol);
-    const primerTab = esGestion ? 'Dashboard' : 'Inicio';
+    const esDependiente = rol === 'dependiente';
     const nav = screen.getByRole('navigation', { name: 'Módulos de FarmaCom' });
     const elementos = [...nav.querySelectorAll('a, button')].map(e => e.textContent);
-    if (rol !== 'laboratorista') {
-      expect(elementos.slice(0, 4)).toEqual([primerTab, 'Punto de venta', 'Caja', 'Inventario']);
+    if (esDependiente) {
+      expect(elementos.slice(0, 3)).toEqual(['Punto de venta', 'Caja', 'Inventario']);
+      expect(screen.queryByRole('link', { name: 'Inicio' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+    } else {
+      const primerTab = esGestion ? 'Dashboard' : 'Inicio';
+      if (rol !== 'laboratorista') {
+        expect(elementos.slice(0, 4)).toEqual([primerTab, 'Punto de venta', 'Caja', 'Inventario']);
+      }
+      expect(screen.getByRole('link', { name: primerTab })).toHaveAttribute('href', esGestion ? '/reports' : '/dashboard');
     }
-    expect(screen.getByRole('link', { name: primerTab })).toHaveAttribute('href', esGestion ? '/reports' : '/dashboard');
     expect(Boolean(screen.queryByRole('link', { name: 'Envío de resumen' }))).toBe(rol === 'dueno');
     expect(Boolean(screen.queryByText('Seguimiento'))).toBe(esGestion);
   });
