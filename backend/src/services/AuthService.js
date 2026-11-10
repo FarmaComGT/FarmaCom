@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UsuarioDAO = require('../daos/UsuarioDAO');
+const CajaDAO = require('../daos/CajaDAO');
 const { TOKEN_EXPIRY } = require('../config/auth');
 const AppError = require('../errors/AppError');
 
@@ -56,23 +57,46 @@ const obtenerSesionActual = async (id_usuario) => {
     return mapUsuarioSesion(usuario);
 };
 
-const logout = async (token) => {
-    if (!token) {
-        return { mensaje: 'Sesión cerrada correctamente' };
-    }
+const describirTurnoAbierto = (turno) => (
+    `${turno.nombre_caja}/${turno.nombre_sucursal}`
+);
 
+const construirMensajeTurnoAbierto = (turnos) => {
+    const detalle = turnos.map(describirTurnoAbierto).join(', ');
+    return turnos.length === 1
+        ? `No puedes cerrar sesión con un turno de caja abierto (${detalle}). Dirígete a Caja › Operación para cerrar el turno actual.`
+        : `No puedes cerrar sesión con turnos de caja abiertos (${detalle}). Dirígete a Caja › Operación para cerrar los turnos actuales.`;
+};
+
+const obtenerSesionVigente = async (token) => {
     try {
         const payload = jwt.verify(token, process.env.JWT_SECRET);
         const usuario = await UsuarioDAO.obtenerPorId(payload.id_usuario);
-
         if (usuario && (usuario.token_version ?? 0) === (payload.token_version ?? 0)) {
-            await UsuarioDAO.incrementarTokenVersion(payload.id_usuario);
+            return usuario;
         }
     } catch (error) {
-        // Si el token ya expiró o es inválido, igual se responde como logout exitoso.
+        // Un token expirado o inválido no tiene sesión vigente que invalidar.
+    }
+    return null;
+};
+
+const logout = async (token) => {
+    const respuesta = { mensaje: 'Sesión cerrada correctamente' };
+    if (!token) return respuesta;
+
+    const usuario = await obtenerSesionVigente(token);
+    if (!usuario) return respuesta;
+
+    // Un turno de caja abierto por este usuario no puede quedar huérfano:
+    // otros dependientes no lo ven y nadie más podría operarlo.
+    const turnosAbiertos = await CajaDAO.obtenerSesionesAbiertasPorUsuario(usuario.id_usuario);
+    if (turnosAbiertos.length > 0) {
+        throw new AppError(construirMensajeTurnoAbierto(turnosAbiertos), 409);
     }
 
-    return { mensaje: 'Sesión cerrada correctamente' };
+    await UsuarioDAO.incrementarTokenVersion(usuario.id_usuario);
+    return respuesta;
 };
 
 module.exports = { login, obtenerSesionActual, logout };

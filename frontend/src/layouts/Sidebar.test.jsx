@@ -143,6 +143,18 @@ describe('Navegación por tareas de FarmaCom', () => {
     expect(screen.queryByRole('button', { name: 'Inventario' })).not.toBeInTheDocument();
     expect(screen.queryByText('Administración')).not.toBeInTheDocument();
   });
+  it('impide cerrar sesión con un turno de caja abierto y lleva a Operación de caja', async () => {
+    const user = userEvent.setup();
+    mocks.rol = 'dependiente';
+    const mensaje = 'No puedes cerrar sesión con un turno de caja abierto (Caja principal/Sucursal Central). Dirígete a Caja › Operación para cerrar el turno actual.';
+    mocks.logout.mockRejectedValueOnce({ response: { status: 409, data: { mensaje } } });
+    renderizar('/pos');
+    await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+    expect(screen.getByRole('status')).toHaveTextContent(mensaje);
+    expect(mocks.dispatch).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Ruta actual')).toHaveTextContent('/caja');
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeEnabled();
+  });
   it('permite reintentar un cierre fallido y navega al login al cerrar sesión', async () => {
     const user = userEvent.setup();
     mocks.logout.mockRejectedValueOnce(new Error('Sin conexión')).mockResolvedValueOnce({});

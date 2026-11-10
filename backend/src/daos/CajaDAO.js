@@ -143,6 +143,21 @@ class CajaDAO {
     return rows[0] || null;
   }
 
+  async obtenerSesionesAbiertasPorUsuario(id_usuario, client = pool) {
+    const { rows } = await client.query(
+      `SELECT sc.id_sesion_caja, sc.id_caja, sc.turno, sc.fecha_hora_apertura,
+              c.nombre AS nombre_caja, c.id_sucursal, s.nombre_sucursal
+       FROM sesion_caja sc
+       JOIN caja c ON c.id_caja = sc.id_caja
+       JOIN sucursal s ON s.id_sucursal = c.id_sucursal
+       WHERE sc.id_usuario_apertura = $1
+         AND sc.estado = 'abierta'
+       ORDER BY sc.fecha_hora_apertura ASC, sc.id_sesion_caja ASC`,
+      [id_usuario],
+    );
+    return rows;
+  }
+
   async obtenerSesionPorId(id_sesion_caja, client = pool, bloqueo = null) {
     const clausulaBloqueo = bloqueo === 'update'
       ? 'FOR UPDATE OF sc'

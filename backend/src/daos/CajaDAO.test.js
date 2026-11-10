@@ -110,6 +110,17 @@ describe('CajaDAO', () => {
     }, client)).resolves.toEqual(fila);
   });
 
+  it('lista los turnos abiertos por un usuario con su caja y sucursal', async () => {
+    const fila = { id_sesion_caja: 3, nombre_caja: 'Caja principal', nombre_sucursal: 'Central' };
+    pool.query.mockResolvedValue({ rows: [fila] });
+
+    await expect(CajaDAO.obtenerSesionesAbiertasPorUsuario(5)).resolves.toEqual([fila]);
+    const [sql, valores] = pool.query.mock.calls.at(-1);
+    expect(sql).toContain('sc.id_usuario_apertura = $1');
+    expect(sql).toContain("sc.estado = 'abierta'");
+    expect(valores).toEqual([5]);
+  });
+
   it('obtiene la sesión abierta de una caja', async () => {
     const fila = { id_sesion_caja: 1, estado: 'abierta' };
     pool.query.mockResolvedValue({ rows: [fila] });

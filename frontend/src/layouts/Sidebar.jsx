@@ -69,6 +69,11 @@ export default function Sidebar({ abierta, superpuesta = false, onCerrar, onNave
       if ([401, 403].includes(error.response?.status)) {
         dispatch({ type: AUTH_ACTIONS.LOGOUT });
         navigate('/login', { replace: true });
+      } else if (error.response?.status === 409) {
+        // Hay un turno de caja abierto por este usuario: no se puede salir sin cerrarlo.
+        avisoSesion.current = toast.warning(error.response.data?.mensaje
+          || 'No puedes cerrar sesión con un turno de caja abierto. Dirígete a Caja › Operación para cerrar el turno actual.');
+        if (pathname !== '/caja') navigate('/caja');
       } else {
         avisoSesion.current = toast.error(error.response?.data?.mensaje || 'No se pudo cerrar sesión. Intenta de nuevo.');
       }
