@@ -6,6 +6,7 @@ const ETIQUETAS_ROL = {
   dueno: 'Dueño',
   administrador: 'Administrador',
   dependiente: 'Dependiente',
+  laboratorista: 'Laboratorista',
 };
 
 const ETIQUETAS_ESTADO = {
@@ -31,12 +32,12 @@ export default function UsuarioTableRow({
       <td data-label="Rol">{ETIQUETAS_ROL[usuario.rol] || usuario.rol}</td>
       <td data-label="Sucursal" className={styles.secondary}>{nombreSucursal}</td>
       <td data-label="Estado">
-        <span className={`${styles.badge} ${esActivo ? styles.badgeActive : styles.badgeInactive}`}>
-          {ETIQUETAS_ESTADO[usuario.estado_usuario] || usuario.estado_usuario}
+        <span style={{ whiteSpace: 'nowrap', justifySelf: 'start' }} className={`${styles.badge} ${esActivo ? styles.badgeActive : styles.badgeInactive}`}>
+          {ETIQUETAS_ESTADO[usuario.estado_usuario] || usuario.estado_usuario || 'Sin estado'}
         </span>
       </td>
       <td data-label="Acciones" className={styles.actionsCell}>
-        <div className={styles.rowActions}>
+        <div className={styles.rowActions} style={{ flexWrap: 'wrap' }}>
           {puedeEditar && <button
             type="button"
             onClick={() => onEditar(usuario)}

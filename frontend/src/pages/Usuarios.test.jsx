@@ -10,6 +10,9 @@ const acciones = vi.hoisted(() => ({
   crear: vi.fn(),
   actualizar: vi.fn(),
   cambiarEstado: vi.fn(),
+  restablecerContrasena: vi.fn(),
+  dispatch: vi.fn(),
+  sesion: { id_usuario: 99, id_sucursal: 1, rol: 'dueno' },
 }));
 
 vi.mock('../hooks/useUsuarios', () => ({
@@ -27,6 +30,7 @@ vi.mock('../hooks/useUsuarios', () => ({
     crear: acciones.crear,
     actualizar: acciones.actualizar,
     cambiarEstado: acciones.cambiarEstado,
+    restablecerContrasena: acciones.restablecerContrasena,
   }),
 }));
 
@@ -45,8 +49,10 @@ vi.mock('../hooks/useLaboratorios', () => ({
 }));
 
 vi.mock('../context/AuthContext.jsx', () => ({
+  AUTH_ACTIONS: { LOGOUT: 'LOGOUT' },
   useAuth: () => ({
-    usuario: { id_usuario: 99, id_sucursal: 1, rol: 'dueno' },
+    usuario: acciones.sesion,
+    dispatch: acciones.dispatch,
   }),
 }));
 
@@ -57,7 +63,33 @@ const renderizar = () => render(
 );
 
 describe('pantalla de usuarios', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    acciones.sesion = { id_usuario: 99, id_sucursal: 1, rol: 'dueno' };
+  });
+
+  it('oculta el restablecimiento para administradores también dentro de Editar', async () => {
+    acciones.sesion = { id_usuario: 99, id_sucursal: 1, rol: 'administrador' };
+    renderizar();
+    await userEvent.click(screen.getByRole('button', { name: 'Editar' }));
+    expect(screen.queryByRole('button', { name: /Restablecer contraseña/ })).not.toBeInTheDocument();
+  });
+
+  it('cierra la sesión del dueño después de cambiar su propia clave', async () => {
+    acciones.sesion = { id_usuario: 1, id_sucursal: 1, rol: 'dueno' };
+    acciones.restablecerContrasena.mockResolvedValue({});
+    const user = userEvent.setup();
+    renderizar();
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getByRole('button', { name: 'Restablecer contraseña…' }));
+    await user.type(screen.getByLabelText('Nueva contraseña'), 'nueva123');
+    await user.type(screen.getByLabelText('Confirmar nueva contraseña'), 'nueva123');
+    await user.type(screen.getByLabelText('Tu contraseña de dueño'), 'actual123');
+    await user.click(screen.getByRole('button', { name: 'Restablecer contraseña' }));
+    await waitFor(() => expect(acciones.dispatch).toHaveBeenCalledWith({ type: 'LOGOUT' }));
+    expect(acciones.restablecerContrasena).toHaveBeenCalledWith(1, { contrasena_nueva: 'nueva123', contrasena_dueno: 'actual123' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 
   it('muestra los usuarios registrados y permite buscarlos', async () => {
     const user = userEvent.setup();

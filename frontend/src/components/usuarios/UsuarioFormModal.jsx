@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { LoaderCircle, X } from 'lucide-react';
+import { KeyRound, LoaderCircle, X } from 'lucide-react';
 import AccessibleDialog from '../ui/AccessibleDialog.jsx';
 import styles from '../../styles/ManagementUI.module.css';
 
@@ -24,6 +24,7 @@ export default function UsuarioFormModal({
   onSubmit,
   onChange,
   rolesPermitidos = ROLES,
+  onRestablecerContrasena,
 }) {
   const tituloId = 'usuario-form-title';
   const errorRef = useRef(null);
@@ -150,6 +151,13 @@ export default function UsuarioFormModal({
               {!cargandoLaboratorios && laboratorios.length === 0 && <p className={styles.fieldError}>No hay laboratorios activos registrados.</p>}
             </div>
           )}
+
+          {modoEdicion && onRestablecerContrasena && <div className={styles.field}>
+            <span className={styles.fieldLabel}>Acceso a la cuenta</span>
+            <div><button type="button" className={styles.button} disabled={guardando} onClick={onRestablecerContrasena}>
+              <KeyRound size={15} aria-hidden="true" />Restablecer contraseña…
+            </button></div>
+          </div>}
 
           {errorFormulario && <p ref={errorRef} tabIndex={-1} className={styles.fieldError} role="alert">{errorFormulario}</p>}
 

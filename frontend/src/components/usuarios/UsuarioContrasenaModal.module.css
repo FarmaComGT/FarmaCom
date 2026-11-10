@@ -1,0 +1,9 @@
+.content { min-width: 0; }
+.account { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; margin-bottom: 20px; border-radius: 6px; background: var(--management-soft); overflow-wrap: anywhere; }
+.account span, .help { color: var(--management-muted); font-size: 13px; line-height: 1.5; }
+.password { position: relative; }
+.password input { padding-right: 48px; font-size: 16px; min-height: 44px; }
+.password button { position: absolute; right: 1px; top: 1px; width: 44px; height: calc(100% - 2px); display: grid; place-items: center; border: 0; border-radius: 5px; background: transparent; color: var(--management-muted); cursor: pointer; }
+.password button:hover { color: var(--management-ink); background: var(--management-soft); }
+.content button { min-height: 44px; touch-action: manipulation; }
+.notice { color: var(--management-ink); font-size: 13px; line-height: 1.6; }
