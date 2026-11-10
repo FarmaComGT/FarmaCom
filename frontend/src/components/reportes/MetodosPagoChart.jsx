@@ -88,21 +88,18 @@ export default function MetodosPagoChart({ datos, cargando, error, onReintentar 
               </PieChart>
             </ResponsiveContainer>
 
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                Total
-              </span>
-              <strong className="mt-0.5 font-headline text-base font-extrabold text-primary">
-                {formatearMoneda(totalIngresos)}
-              </strong>
-            </div>
           </div>
+
+          <figcaption className={styles.paymentTotal}>
+            <span>Total</span>
+            <strong>{formatearMoneda(totalIngresos)}</strong>
+          </figcaption>
 
           <ul className="mt-2 space-y-2.5">
             {datosPreparados.map((metodo) => (
               <li
                 key={metodo.metodo_pago}
-                className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5"
+                className={styles.paymentRow}
               >
                 <div className="flex min-w-0 items-center gap-2.5">
                   <span
@@ -119,7 +116,7 @@ export default function MetodosPagoChart({ datos, cargando, error, onReintentar 
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className={styles.paymentAmount}>
                   <p className="text-sm font-extrabold text-primary">
                     {metodo.porcentaje_ingresos}%
                   </p>
