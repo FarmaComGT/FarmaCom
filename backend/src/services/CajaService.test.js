@@ -1,4 +1,6 @@
 jest.mock('../daos/CajaDAO');
+jest.mock('../daos/UsuarioDAO');
+const UsuarioDAO = require('../daos/UsuarioDAO');
 jest.mock('../daos/SucursalDAO');
 
 const CajaDAO = require('../daos/CajaDAO');
@@ -23,6 +25,7 @@ describe('CajaService', () => {
   });
   beforeEach(() => {
     jest.resetAllMocks();
+    UsuarioDAO.obtenerParaActualizar.mockImplementation(async (id) => ({ ...[dueno, administrador, dependienteSucursal1, dependienteSucursal2, otroDependienteSucursal1].find(u => u.id_usuario === id), estado_usuario: 'activo' }));
     CajaDAO.ejecutarEnTransaccion.mockImplementation((fn) => fn(mockClient));
     CajaDAO.obtenerPagosPOSAbiertosSesion.mockResolvedValue([]);
   });
@@ -146,6 +149,12 @@ describe('CajaService', () => {
   });
 
   describe('abrirSesion', () => {
+    it('rechaza la apertura si el usuario fue trasladado después de autenticarse', async () => {
+      UsuarioDAO.obtenerParaActualizar.mockResolvedValue({ ...dependienteSucursal1, id_sucursal: 2, estado_usuario: 'activo' });
+      CajaDAO.obtenerCajaPorId.mockResolvedValue({ id_caja: 1, id_sucursal: 1, activa: true });
+      await expect(CajaService.abrirSesion(1, { turno: 'mañana', fondo_inicial: 100 }, dependienteSucursal1)).rejects.toMatchObject({ status: 403 });
+      expect(CajaDAO.crearSesion).not.toHaveBeenCalled();
+    });
     it('rechaza con 404 si la caja no existe', async () => {
       CajaDAO.obtenerCajaPorId.mockResolvedValue(null);
 

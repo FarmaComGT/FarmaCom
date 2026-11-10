@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const validarContrasena = require('../validators/contrasenaValidator');
 const UsuarioDAO = require('../daos/UsuarioDAO');
+const CajaDAO = require('../daos/CajaDAO');
 const LaboratorioDAO = require('../daos/LaboratorioDAO');
 const AppError = require('../errors/AppError');
 const { completarPaginacion } = require('../validators/paginacionValidators');
@@ -164,6 +165,12 @@ const actualizarUsuario = async(id_usuario, campos, actor) => (
     const existente = await UsuarioDAO.obtenerParaActualizar(id_usuario, client);
     if (!existente) throw new AppError('Usuario no encontrado', 404);
     autorizarActualizacion(actor, existente, campos);
+    const cambiaOperacion = (campos.rol !== undefined && campos.rol !== existente.rol)
+        || (campos.id_sucursal !== undefined && Number(campos.id_sucursal) !== Number(existente.id_sucursal));
+    if (cambiaOperacion) {
+        const turnos = await CajaDAO.obtenerSesionesAbiertasPorUsuario(id_usuario, client);
+        if (turnos.length) throw new AppError('Cierra los turnos de caja del usuario antes de cambiar su sucursal o rol.', 409);
+    }
 
     if (campos.correo_usuario && campos.correo_usuario !== existente.correo_usuario) {
         const conMismoCorreo = await UsuarioDAO.obtenerPorCorreo(campos.correo_usuario, client);

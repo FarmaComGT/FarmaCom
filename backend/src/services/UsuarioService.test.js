@@ -1,4 +1,6 @@
 jest.mock('../daos/UsuarioDAO');
+jest.mock('../daos/CajaDAO');
+const CajaDAO = require('../daos/CajaDAO');
 jest.mock('../daos/LaboratorioDAO');
 jest.mock('bcrypt');
 
@@ -10,9 +12,29 @@ const UsuarioService = require('./UsuarioService');
 const actorDueno = { id_usuario: 90, id_sucursal: 1, rol: 'dueno' };
 const mockClient = {};
 
+describe('Protección del turno al editar usuarios', () => {
+  it('permite editar el nombre con turno abierto y trasladar después de cerrarlo', async () => {
+    UsuarioDAO.ejecutarEnTransaccion.mockImplementation(fn => fn(mockClient));
+    UsuarioDAO.obtenerParaActualizar.mockResolvedValue({ id_usuario: 7, rol: 'dependiente', id_sucursal: 1 });
+    UsuarioDAO.actualizar.mockResolvedValue({ id_usuario: 7 });
+    CajaDAO.obtenerSesionesAbiertasPorUsuario.mockResolvedValue([{ id_sesion_caja: 5 }]);
+    await expect(UsuarioService.actualizarUsuario(7, { nombre_usuario: 'María' }, actorDueno)).resolves.toEqual({ id_usuario: 7 });
+    CajaDAO.obtenerSesionesAbiertasPorUsuario.mockResolvedValue([]);
+    await expect(UsuarioService.actualizarUsuario(7, { id_sucursal: 2 }, actorDueno)).resolves.toEqual({ id_usuario: 7 });
+  });
+  it.each([{ id_sucursal: 2 }, { rol: 'laboratorista' }])('rechaza el cambio operativo %j con turno abierto', async (campos) => {
+    UsuarioDAO.ejecutarEnTransaccion.mockImplementation(fn => fn(mockClient));
+    UsuarioDAO.obtenerParaActualizar.mockResolvedValue({ id_usuario: 7, rol: 'dependiente', id_sucursal: 1 });
+    CajaDAO.obtenerSesionesAbiertasPorUsuario.mockResolvedValue([{ id_sesion_caja: 5 }]);
+    await expect(UsuarioService.actualizarUsuario(7, campos, actorDueno)).rejects.toMatchObject({ status: 409 });
+    expect(UsuarioDAO.actualizar).not.toHaveBeenCalled();
+  });
+});
+
 describe('UsuarioService', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    CajaDAO.obtenerSesionesAbiertasPorUsuario.mockResolvedValue([]);
     UsuarioDAO.ejecutarEnTransaccion.mockImplementation((operacion) => operacion(mockClient));
     UsuarioDAO.obtenerParaActualizar.mockImplementation((id) => UsuarioDAO.obtenerPorId(id));
   });
