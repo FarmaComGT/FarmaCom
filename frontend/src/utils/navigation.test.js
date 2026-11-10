@@ -7,15 +7,16 @@ describe('getDefaultRouteForRole', () => {
     expect(getDefaultRouteForRole('administrador')).toBe('/reports');
   });
 
-  it('envía al laboratorista al inicio', () => {
-    expect(getDefaultRouteForRole('laboratorista')).toBe('/dashboard');
+  it('envía al laboratorista directo a Laboratorio', () => {
+    expect(getDefaultRouteForRole('laboratorista')).toBe('/laboratorio/pacientes');
   });
 
   it('envía al dependiente directo a caja', () => {
     expect(getDefaultRouteForRole('dependiente')).toBe('/caja');
   });
 
-  it('envía cualquier otro rol al dashboard', () => {
-    expect(getDefaultRouteForRole(undefined)).toBe('/dashboard');
+  it('envía un rol desconocido o sin sesión a la ayuda', () => {
+    expect(getDefaultRouteForRole(undefined)).toBe('/support');
+    expect(getDefaultRouteForRole('vendedor')).toBe('/support');
   });
 });

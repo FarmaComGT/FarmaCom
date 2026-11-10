@@ -6,7 +6,7 @@ import { logout } from '../api/auth';
 import { useAuth, AUTH_ACTIONS } from '../context/AuthContext';
 import { navegarConTransicionDeVista } from '../utils/viewTransition';
 
-import { NAVEGACION, INICIO, DASHBOARD, AYUDA, contextoNavegacion } from '../components/navigation/navigation.js';
+import { NAVEGACION, DASHBOARD, AYUDA, contextoNavegacion } from '../components/navigation/navigation.js';
 
 const ROLES_DASHBOARD_REPORTES = ['dueno', 'administrador'];
 
@@ -56,8 +56,9 @@ export default function Sidebar({ abierta, superpuesta = false, onCerrar, onNave
   const visible = (item) => !item.roles || item.roles.includes(usuario?.rol);
   const secciones = NAVEGACION.map(seccion => ({ ...seccion, items: seccion.items.filter(visible) }))
     .filter(seccion => seccion.items.length > 0);
-  const primeraPestana = ROLES_DASHBOARD_REPORTES.includes(usuario?.rol) ? DASHBOARD
-    : usuario?.rol === 'dependiente' ? null : INICIO;
+  // Solo dueño y administrador tienen una primera pestaña; los demás roles aterrizan
+  // directo en su módulo de trabajo (Caja o Laboratorio).
+  const primeraPestana = ROLES_DASHBOARD_REPORTES.includes(usuario?.rol) ? DASHBOARD : null;
   const handleLogout = async () => {
     toast.cerrar(avisoSesion.current);
     setCerrando(true);

@@ -22,9 +22,9 @@ export default function Paginacion({ paginacion, crearDestino, onLimiteChange,
           </select>
         </label>
         <div className={styles.pages}>
-          {enlace(pagina - 1, 'Anterior', <ChevronLeft size={16} aria-hidden="true" />, pagina <= 1)}
+          {enlace(pagina - 1, 'Anterior', <ChevronLeft size={13} aria-hidden="true" />, pagina <= 1)}
           <span className={styles.current}>pág {numero.format(pagina)} de {numero.format(total_paginas)}</span>
-          {enlace(pagina + 1, 'Siguiente', <ChevronRight size={16} aria-hidden="true" />, pagina >= total_paginas)}
+          {enlace(pagina + 1, 'Siguiente', <ChevronRight size={13} aria-hidden="true" />, pagina >= total_paginas)}
         </div>
       </div>
     </nav>

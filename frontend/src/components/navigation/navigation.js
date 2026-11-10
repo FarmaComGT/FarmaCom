@@ -1,7 +1,6 @@
 const farmacia = ['dueno', 'administrador', 'dependiente'];
 const gestion = ['dueno', 'administrador'];
 
-export const INICIO = { icon: 'overview', label: 'Inicio', path: '/dashboard' };
 export const DASHBOARD = { icon: 'reports', label: 'Dashboard', path: '/reports', area: 'Reportes', pagina: 'Ventas', excluir: ['/reports/resumen-diario'] };
 export const AYUDA = { icon: 'help', label: 'Ayuda', path: '/support' };
 
@@ -38,7 +37,7 @@ export const NAVEGACION = [
   ] },
 ];
 
-const contextos = [INICIO, DASHBOARD, AYUDA, ...NAVEGACION.flatMap(seccion => seccion.items.flatMap(item => item.children
+const contextos = [DASHBOARD, AYUDA, ...NAVEGACION.flatMap(seccion => seccion.items.flatMap(item => item.children
   ? item.children.map(hijo => ({ ...hijo, area: item.label, grupo: item.id, destino: item.children[0].path === hijo.path ? null : item.children[0].path }))
   : item))].map(item => ({
     path: item.path, area: item.area || item.label,
