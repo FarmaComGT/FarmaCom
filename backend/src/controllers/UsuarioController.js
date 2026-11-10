@@ -45,12 +45,12 @@ const actualizar = asyncHandler(async(req, res) => {
 
 const cambiarContrasena = asyncHandler(async(req, res) => {
     const idObjetivo = Number(req.params.id);
-    if (req.usuario.id_usuario !== idObjetivo) {
-        throw new AppError('Solo puedes cambiar tu propia contraseña.', 403);
+    if (req.usuario.rol !== 'dueno') {
+        throw new AppError('Solo un dueño puede restablecer contraseñas.', 403);
     }
 
-    const { contrasena_actual, contrasena_nueva } = req.body;
-    const resultado = await usuarioService.cambiarContrasena(idObjetivo, contrasena_actual, contrasena_nueva);
+    const { contrasena_dueno, contrasena_nueva } = req.body;
+    const resultado = await usuarioService.cambiarContrasena(idObjetivo, contrasena_dueno, contrasena_nueva, req.usuario);
     return res.status(200).json(resultado);
 });
 

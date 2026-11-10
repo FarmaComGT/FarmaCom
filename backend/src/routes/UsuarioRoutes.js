@@ -5,8 +5,18 @@ const verificarToken = require('../middlewares/verificarToken');
 const verificarRol = require('../middlewares/verificarRol');
 const validateRequest = require('../middlewares/validateRequest');
 const { validarPaginacion, validarBusqueda } = require('../validators/paginacionValidators');
+const rateLimit = require('express-rate-limit');
 
 const router = Router();
+const limitarRestablecimiento = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    keyGenerator: (req) => String(req.usuario.id_usuario),
+    skipSuccessfulRequests: true,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { mensaje: 'Demasiados intentos. Intenta de nuevo en 15 minutos.' },
+});
 
 // Validaciones de parámetros
 
@@ -59,12 +69,16 @@ const validarActualizacion = [
 ];
 
 const validarCambioContrasena = [
-    body('contrasena_actual')
+    body('contrasena_dueno')
+        .isString().bail()
         .trim()
-        .notEmpty().withMessage('contrasena_actual es requerida'),
+        .notEmpty().withMessage('Tu contraseña de dueño es requerida'),
     body('contrasena_nueva')
+        .isString().bail()
         .trim()
-        .isLength({ min: 6 }).withMessage('La contraseña nueva debe tener al menos 6 caracteres'),
+        .isLength({ min: 6 }).withMessage('La contraseña nueva debe tener al menos 6 caracteres')
+        .custom((valor) => Buffer.byteLength(valor, 'utf8') <= 72)
+        .withMessage('La contraseña nueva no puede superar los 72 bytes'),
 ];
 
 const validarCambioEstado = [
@@ -128,6 +142,8 @@ router.put('/:id',
 // PATCH  /api/usuarios/:id/contrasena
 router.patch('/:id/contrasena',
     verificarToken,
+    verificarRol('dueno'),
+    limitarRestablecimiento,
     validarParamId,
     validarCambioContrasena,
     validateRequest,

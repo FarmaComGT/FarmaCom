@@ -191,21 +191,25 @@ const actualizarUsuario = async(id_usuario, campos, actor) => (
   })
 );
 
-const cambiarContrasena = async(id_usuario, contrasena_actual, contrasena_nueva) => {
-    const usuario = await UsuarioDAO.obtenerPorId(id_usuario);
-    if (!usuario) {
-        throw new AppError('Usuario no encontrado', 404);
+const cambiarContrasena = async(id_usuario, contrasena_dueno, contrasena_nueva, actor) => {
+    exigirDueno(actor);
+    const dueno = await UsuarioDAO.obtenerPorId(actor.id_usuario);
+    if (!dueno || dueno.rol !== 'dueno' || dueno.estado_usuario !== 'activo') {
+        throw new AppError('No tienes permiso para restablecer contraseñas.', 403);
     }
-
-    const esValida = await bcrypt.compare(contrasena_actual, usuario.contrasena_hash);
+    const esValida = await bcrypt.compare(contrasena_dueno, dueno.contrasena_hash);
     if (!esValida) {
-        throw new AppError('La contraseña actual es incorrecta', 401);
+        // 403 evita confundir una reautenticación fallida con una sesión expirada.
+        throw new AppError('Tu contraseña de dueño es incorrecta.', 403);
     }
-
     const nueva_hash = await bcrypt.hash(contrasena_nueva, SALT_ROUNDS);
-    await UsuarioDAO.actualizarContrasena(id_usuario, nueva_hash);
-    await UsuarioDAO.incrementarTokenVersion(id_usuario);
-    return { mensaje: 'Contraseña actualizada correctamente' };
+    return UsuarioDAO.ejecutarEnTransaccion(async (client) => {
+        const usuario = await UsuarioDAO.obtenerParaActualizar(id_usuario, client);
+        if (!usuario) throw new AppError('Usuario no encontrado', 404);
+        await UsuarioDAO.actualizarContrasena(id_usuario, nueva_hash, client);
+        await UsuarioDAO.incrementarTokenVersion(id_usuario, client);
+        return { mensaje: 'Contraseña restablecida correctamente.' };
+    });
 };
 
 const cambiarEstado = async(id_usuario, nuevo_estado, actor) => {
