@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from '../components/auth/ProtectedRoute.jsx';
 import PublicRoute from '../components/auth/PublicRoute.jsx';
 import RoleRoute from '../components/auth/RoleRoute.jsx';
+import RedirigirAInicio from '../components/auth/RedirigirAInicio.jsx';
 import MainLayout from '../layouts/MainLayout.jsx';
 import ReportesLayout from '../layouts/ReportesLayout.jsx';
 import Login from '../pages/Login.jsx';
@@ -27,7 +28,6 @@ import ResumenProductosVentas from '../pages/ventas/ResumenProductosVentas.jsx';
 import AdministracionCajas from '../pages/caja/AdministracionCajas.jsx';
 import Pacientes from '../pages/laboratorio/Pacientes.jsx';
 import PacientePerfil from '../pages/laboratorio/PacientePerfil.jsx';
-import Dashboard from '../pages/Dashboard.jsx';
 import Support from '../pages/Support.jsx';
 import LectorMovil from '../pages/LectorMovil.jsx';
 
@@ -47,10 +47,8 @@ export default function AppRoutes() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
-          <Route
-            path="/dashboard"
-            element={<Dashboard />}
-          />
+          {/* "Inicio" ya no existe: se conserva la ruta para enlaces antiguos. */}
+          <Route path="/dashboard" element={<RedirigirAInicio />} />
 
           <Route element={<RoleRoute allowedRoles={ROLES_FARMACIA} />}>
             <Route path="/inventario">

@@ -183,7 +183,7 @@ describe('ruta de caja', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Pacientes de laboratorio' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Caja' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Operación de caja' }))
       .not.toBeInTheDocument();
@@ -231,7 +231,7 @@ describe('proteccion de farmacia para laboratorista', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Pacientes de laboratorio' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Inventario' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Punto de venta' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Clientes' })).not.toBeInTheDocument();

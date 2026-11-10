@@ -68,7 +68,7 @@ describe('pantalla de login', () => {
     await user.type(screen.getByLabelText('Contraseña'), 'secreta123');
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
 
-    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/dashboard', { replace: true }));
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/laboratorio/pacientes', { replace: true }));
   });
 
   it('muestra el mensaje de error del backend si falla el login', async () => {
