@@ -74,6 +74,18 @@ export default function useCaja(idSucursal) {
   }, []);
 
   useEffect(() => {
+    const actualizar = () => {
+      if (!procesando && document.visibilityState !== 'hidden') refrescarCajas();
+    };
+    window.addEventListener('focus', actualizar);
+    document.addEventListener('visibilitychange', actualizar);
+    return () => {
+      window.removeEventListener('focus', actualizar);
+      document.removeEventListener('visibilitychange', actualizar);
+    };
+  }, [procesando, refrescarCajas]);
+
+  useEffect(() => {
     setIdCajaSeleccionada(leerCajaSeleccionada(idSucursal));
     setSesionActual(null);
   }, [idSucursal]);
@@ -175,7 +187,7 @@ export default function useCaja(idSucursal) {
     cargarSesion();
 
     return () => controller.abort();
-  }, [idCajaSeleccionada]);
+  }, [idCajaSeleccionada, versionCajas]);
 
   const seleccionarCaja = useCallback((idCaja) => {
     const siguienteId = idCaja || null;
@@ -201,13 +213,14 @@ export default function useCaja(idSucursal) {
     try {
       return await operacion();
     } catch (errorSolicitud) {
+      if (errorSolicitud?.response?.status === 409) refrescarCajas();
       const mensaje = obtenerMensajeError(errorSolicitud, mensajePredeterminado);
       setError(mensaje);
       throw new Error(mensaje);
     } finally {
       setProcesando(false);
     }
-  }, []);
+  }, [refrescarCajas]);
 
   const abrir = useCallback((datos) => ejecutarOperacion(async () => {
     if (!idCajaSeleccionada) {

@@ -1,4 +1,5 @@
 const CajaDAO = require('../daos/CajaDAO');
+const UsuarioDAO = require('../daos/UsuarioDAO');
 const SucursalDAO = require('../daos/SucursalDAO');
 const {
   ROLES_ACCESO_GLOBAL,
@@ -108,9 +109,12 @@ const actualizarCaja = async (id_caja, campos, usuario) => {
 const abrirSesion = async (id_caja, { turno, fondo_inicial }, usuario) => {
   try {
     return await CajaDAO.ejecutarEnTransaccion(async (client) => {
+      // Serializa la apertura con cambios de sucursal, rol y estado del usuario.
+      const vigente = await UsuarioDAO.obtenerParaActualizar(usuario.id_usuario, client);
+      if (!vigente || vigente.estado_usuario !== 'activo') lanzarError('La cuenta no está activa.', 403);
       const caja = await CajaDAO.obtenerCajaPorId(id_caja, client, true);
       if (!caja) lanzarError('Caja no encontrada', 404);
-      validarAccesoSucursal(usuario, caja.id_sucursal);
+      validarAccesoSucursal(vigente, caja.id_sucursal);
       if (!caja.activa) lanzarError('La caja está inactiva', 409);
 
       const abierta = await CajaDAO.obtenerSesionAbiertaPorCaja(id_caja, client);

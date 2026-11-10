@@ -242,6 +242,9 @@ const actualizarLoteEnTransaccion = async (id_lote, campos, id_usuario, client) 
     datos[campo] !== undefined
     && Number(datos[campo]) !== Number(lote[campo])
   ));
+  if (cambiaAsignacion && Number(lote.stock_reservado) > 0) {
+    lanzarError('No se puede reasignar un lote con unidades reservadas para un pago POS pendiente.', 409);
+  }
   if (cambiaAsignacion && await LoteDAO.fueUtilizado(id_lote, client)) {
     lanzarError(
       'No se puede reasignar un lote que ya fue utilizado en una venta',

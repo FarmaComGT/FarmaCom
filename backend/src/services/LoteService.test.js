@@ -14,6 +14,15 @@ const LoteService = require('./LoteService');
 
 const mockClient = {};
 
+describe('Protección de reservas POS', () => {
+  it.each([{ id_producto: 2 }, { id_sucursal: 2 }, { id_proveedor: 2 }])('impide reasignar unidades reservadas: %j', async (campos) => {
+    LoteDAO.ejecutarEnTransaccion.mockImplementation(fn => fn(mockClient));
+    LoteDAO.obtenerFilaPorId.mockResolvedValue({ id_producto: 1, id_sucursal: 1, id_proveedor: 1, stock_reservado: 2 });
+    await expect(LoteService.actualizarLote(1, campos, 1)).rejects.toMatchObject({ status: 409 });
+    expect(LoteDAO.actualizar).not.toHaveBeenCalled();
+  });
+});
+
 const fechaFutura = () => {
   const fecha = new Date();
   fecha.setDate(fecha.getDate() + 30);
