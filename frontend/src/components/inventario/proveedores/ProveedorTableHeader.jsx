@@ -6,7 +6,7 @@ export default function ProveedorTableHeader() {
       <th scope="col" style={{ width: '10%' }}>Código</th>
       <th scope="col">Nombre</th>
       <th scope="col" style={{ width: '14%' }}>Estado</th>
-      <th scope="col" style={{ width: '43%', textAlign: 'right' }}>Acciones</th>
+      <th scope="col" style={{ width: '12%', textAlign: 'right' }}>Acciones</th>
     </tr>
   );
 }

@@ -15,15 +15,15 @@ export default function CajaFormModal({ abierta, editando, formulario, sucursale
     <p className={ui.description}>{editando ? 'Actualiza el nombre de la caja en esta sucursal.' : 'Asigna un nombre y una sucursal a la nueva caja.'}</p>
     <form onSubmit={onSubmit} className={ui.form} noValidate>
       <div className={ui.field}>
-        <label htmlFor="caja-sucursal">Sucursal</label>
-        <select id="caja-sucursal" name="id_sucursal" value={formulario.id_sucursal} onChange={onChange} disabled={editando || cargandoSucursales || guardando} className={ui.input} aria-invalid={Boolean(error && campoInvalido === 'caja-sucursal')} aria-describedby={error && campoInvalido === 'caja-sucursal' ? 'error-formulario-caja' : undefined}>
+        <label htmlFor="caja-sucursal" className="campo-requerido">Sucursal</label>
+        <select aria-required="true" id="caja-sucursal" name="id_sucursal" value={formulario.id_sucursal} onChange={onChange} disabled={editando || cargandoSucursales || guardando} className={ui.input} aria-invalid={Boolean(error && campoInvalido === 'caja-sucursal')} aria-describedby={error && campoInvalido === 'caja-sucursal' ? 'error-formulario-caja' : undefined}>
           <option value="">{cargandoSucursales ? 'Cargando sucursales…' : 'Selecciona una sucursal'}</option>
           {sucursales.map((sucursal) => <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>{sucursal.nombre_sucursal}</option>)}
         </select>
       </div>
       <div className={ui.field}>
-        <label htmlFor="caja-nombre">Nombre de la caja</label>
-        <input id="caja-nombre" name="nombre" autoComplete="off" value={formulario.nombre} onChange={onChange} disabled={guardando} maxLength={100} placeholder="Ej.: Caja principal…" className={ui.input} aria-invalid={Boolean(error && campoInvalido === 'caja-nombre')} aria-describedby={error ? 'error-formulario-caja' : undefined} />
+        <label htmlFor="caja-nombre" className="campo-requerido">Nombre de la caja</label>
+        <input aria-required="true" id="caja-nombre" name="nombre" autoComplete="off" value={formulario.nombre} onChange={onChange} disabled={guardando} maxLength={100} placeholder="Ej.: Caja principal…" className={ui.input} aria-invalid={Boolean(error && campoInvalido === 'caja-nombre')} aria-describedby={error ? 'error-formulario-caja' : undefined} />
         {error && <p id="error-formulario-caja" role="alert" className={ui.fieldError}>{error}</p>}
       </div>
       <div className={ui.actions}>

@@ -199,7 +199,8 @@
 
 .search input::placeholder,
 .input::placeholder {
-  color: var(--management-muted);
+  color: var(--ui-placeholder);
+  opacity: 1;
 }
 
 .resultCount {

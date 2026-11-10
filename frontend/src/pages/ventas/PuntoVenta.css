@@ -95,7 +95,7 @@
 .pos-unified-input { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .pos-unified-input > svg { flex: none; color: var(--pos-accent); }
 .pos-unified-input input { flex: 1; min-width: 0; width: 100%; height: 48px; padding: 0 12px; border: 1px solid var(--pos-control); border-radius: 8px; background: var(--pos-surface); color: var(--pos-ink); font-size: 16px; }
-.pos-unified-input input::placeholder { color: var(--pos-muted); }
+.pos-unified-input input::placeholder { color: var(--ui-placeholder); opacity: 1; }
 .pos-unified-input input[aria-invalid="true"] { border-color: var(--pos-danger); }
 .pos-unified-input button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; flex: none; background: var(--pos-ink); color: #fff; border-radius: 6px; font-weight: 600; }
 .pos-unified-input button:hover:not(:disabled) { background: #111b17; }

@@ -24,8 +24,8 @@ export default function PacienteAnularModal({ isOpen, paciente, anulando, onClos
         <div className={styles.form}>
           <p id={descripcionId}>¿Deseas anular a <strong>{paciente.nombre_paciente}</strong>? Esta acción no se puede deshacer.</p>
           <div className={styles.field}>
-            <label htmlFor="motivo_anulacion">Motivo</label>
-            <textarea id="motivo_anulacion" name="motivo_anulacion" value={motivo} onChange={(event) => setMotivo(event.target.value)} maxLength={500} rows={3} placeholder="Explica el motivo de la anulación…" className={styles.input} />
+            <label htmlFor="motivo_anulacion" className="campo-requerido">Motivo</label>
+            <textarea aria-required="true" id="motivo_anulacion" name="motivo_anulacion" value={motivo} onChange={(event) => setMotivo(event.target.value)} maxLength={500} rows={3} placeholder="Explica el motivo de la anulación…" className={styles.input} />
           </div>
           <div className={styles.dialogActions}>
             <button type="button" onClick={onClose} disabled={anulando} className={styles.button}>Cancelar</button>

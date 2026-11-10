@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Proveedores from './Proveedores.jsx';
+import { elegirAccion } from '../../test/menuAcciones';
 
 const acciones = vi.hoisted(() => ({ crear: vi.fn(), actualizar: vi.fn(), cambiarEstado: vi.fn(), eliminar: vi.fn(), refrescar: vi.fn() }));
 const estadoProveedores = vi.hoisted(() => ({ proveedores: [{ id_proveedor: 1, nombre: 'Distribuidora ABC', activo: true }], cargando: false, error: null }));
@@ -88,7 +89,7 @@ describe('pantalla de proveedores', () => {
     const user = userEvent.setup();
     acciones.actualizar.mockResolvedValue({ id_proveedor: 1 });
     renderizar();
-    await user.click(screen.getByRole('button', { name: 'Editar proveedor Distribuidora ABC' }));
+    await elegirAccion(user, 'Distribuidora ABC', 'Editar');
     const nombre = screen.getByPlaceholderText('Ej.: Distribuidora Farmacéutica S. A.…');
     await user.clear(nombre);
     await user.type(nombre, 'Distribuidora Nueva');
@@ -114,7 +115,7 @@ describe('pantalla de proveedores', () => {
     const user = userEvent.setup();
     acciones.cambiarEstado.mockResolvedValue({});
     renderizar();
-    await user.click(screen.getByRole('button', { name: 'Desactivar proveedor Distribuidora ABC' }));
+    await elegirAccion(user, 'Distribuidora ABC', 'Desactivar');
     await user.click(screen.getByRole('button', { name: 'Desactivar' }));
     await waitFor(() => expect(acciones.cambiarEstado).toHaveBeenCalledWith(1, false));
   });
@@ -124,7 +125,7 @@ describe('pantalla de proveedores', () => {
     estadoProveedores.proveedores = [{ id_proveedor: 2, nombre: 'Distribuidora Norte', activo: false }];
     acciones.cambiarEstado.mockResolvedValue({});
     renderizar();
-    await user.click(screen.getByRole('button', { name: 'Activar proveedor Distribuidora Norte' }));
+    await elegirAccion(user, 'Distribuidora Norte', 'Activar');
     await user.click(screen.getByRole('button', { name: 'Activar' }));
     await waitFor(() => expect(acciones.cambiarEstado).toHaveBeenCalledWith(2, true));
   });
@@ -133,7 +134,7 @@ describe('pantalla de proveedores', () => {
     const user = userEvent.setup();
     acciones.cambiarEstado.mockRejectedValue({ response: { data: { mensaje: 'No se pudo' } } });
     renderizar();
-    await user.click(screen.getByRole('button', { name: 'Desactivar proveedor Distribuidora ABC' }));
+    await elegirAccion(user, 'Distribuidora ABC', 'Desactivar');
     await user.click(screen.getByRole('button', { name: 'Desactivar' }));
     expect(await screen.findByText('No se pudo')).toBeInTheDocument();
   });
@@ -142,7 +143,7 @@ describe('pantalla de proveedores', () => {
     const user = userEvent.setup();
     acciones.eliminar.mockResolvedValue({ mensaje: 'Proveedor eliminado correctamente' });
     renderizar();
-    await user.click(screen.getByRole('button', { name: 'Eliminar proveedor Distribuidora ABC' }));
+    await elegirAccion(user, 'Distribuidora ABC', 'Eliminar');
     expect(screen.getByText('Eliminar o desactivar')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     await waitFor(() => expect(acciones.eliminar).toHaveBeenCalledWith(1));
@@ -153,7 +154,7 @@ describe('pantalla de proveedores', () => {
     const user = userEvent.setup();
     acciones.eliminar.mockRejectedValue(new Error('Network Error'));
     renderizar();
-    await user.click(screen.getByRole('button', { name: 'Eliminar proveedor Distribuidora ABC' }));
+    await elegirAccion(user, 'Distribuidora ABC', 'Eliminar');
     await user.click(screen.getByRole('button', { name: 'Continuar' }));
     expect(await screen.findByText('No se pudo procesar el proveedor.')).toBeInTheDocument();
     expect(screen.getByText('Eliminar o desactivar')).toBeInTheDocument();

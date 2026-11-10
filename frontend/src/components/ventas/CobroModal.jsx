@@ -138,10 +138,10 @@ export default function CobroModal({
 
             {esEfectivo && (
               <div className="pos-checkout-cash">
-                <label htmlFor="monto-recibido">Monto recibido</label>
+                <label htmlFor="monto-recibido" className="campo-requerido">Monto recibido</label>
                 <div className="pos-checkout-money-input">
                   <span aria-hidden="true">Q</span>
-                  <input
+                  <input aria-required="true"
                     id="monto-recibido"
                     name="monto_recibido"
                     type="text"

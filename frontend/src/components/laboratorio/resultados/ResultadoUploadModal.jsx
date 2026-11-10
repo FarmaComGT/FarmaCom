@@ -69,8 +69,8 @@ export default function ResultadoUploadModal({
         <form onSubmit={manejarEnvio} noValidate className={management.form}>
           <div className={management.formGrid}>
             <div className={management.field}>
-              <label htmlFor="categoria_resultado">Categoría del examen</label>
-              <input id="categoria_resultado" name="categoria_resultado" list="categorias-sugeridas" type="text" value={categoria} onChange={(event) => setCategoria(event.target.value)} placeholder="Ej.: Hematología…" maxLength={100} className={management.input} />
+              <label htmlFor="categoria_resultado" className="campo-requerido">Categoría del examen</label>
+              <input aria-required="true" id="categoria_resultado" name="categoria_resultado" list="categorias-sugeridas" type="text" value={categoria} onChange={(event) => setCategoria(event.target.value)} placeholder="Ej.: Hematología…" maxLength={100} className={management.input} />
               <datalist id="categorias-sugeridas">{categoriasSugeridas.map((cat) => <option key={cat} value={cat} />)}</datalist>
             </div>
             <div className={management.field}>

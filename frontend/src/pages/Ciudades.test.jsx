@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Ciudades from './Ciudades.jsx';
+import { elegirAccion } from '../test/menuAcciones';
 
 const acciones = vi.hoisted(() => ({
   crear: vi.fn(),
@@ -42,6 +43,16 @@ describe('pantalla de ciudades', () => {
     expect(screen.getByText('No hay ciudades para mostrar.')).toBeInTheDocument();
   });
 
+  it('marca como obligatorio el nombre de la ciudad', async () => {
+    const user = userEvent.setup();
+    renderizar();
+
+    await user.click(screen.getByRole('button', { name: 'Nueva ciudad' }));
+
+    expect(screen.getByText('Nombre', { selector: 'label' })).toHaveClass('campo-requerido');
+    expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveAttribute('aria-required', 'true');
+  });
+
   it('crea una ciudad nueva', async () => {
     const user = userEvent.setup();
     acciones.crear.mockResolvedValue({ id_ciudad: 2 });
@@ -71,7 +82,7 @@ describe('pantalla de ciudades', () => {
     acciones.actualizar.mockResolvedValue({ id_ciudad: 1 });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await elegirAccion(user, 'Guatemala', 'Editar');
     const nombre = screen.getByPlaceholderText('Ej.: Guatemala…');
     await user.clear(nombre);
     await user.type(nombre, 'Quetzaltenango');
@@ -85,7 +96,7 @@ describe('pantalla de ciudades', () => {
     acciones.actualizar.mockRejectedValue({ response: { data: { mensaje: 'Nombre duplicado' } } });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await elegirAccion(user, 'Guatemala', 'Editar');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(await screen.findByText('Nombre duplicado')).toBeInTheDocument();
@@ -96,7 +107,7 @@ describe('pantalla de ciudades', () => {
     acciones.eliminar.mockResolvedValue({});
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await elegirAccion(user, 'Guatemala', 'Eliminar');
     expect(screen.getByText('Confirmar eliminación')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
@@ -111,7 +122,7 @@ describe('pantalla de ciudades', () => {
     });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await elegirAccion(user, 'Guatemala', 'Eliminar');
     await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
 
     expect(await screen.findByText('No se puede eliminar una ciudad asociada a sucursales')).toBeInTheDocument();
@@ -121,7 +132,7 @@ describe('pantalla de ciudades', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await elegirAccion(user, 'Guatemala', 'Eliminar');
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
 
     expect(screen.queryByText('Confirmar eliminación')).not.toBeInTheDocument();

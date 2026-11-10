@@ -62,12 +62,12 @@ export default function ProductoDatosGenerales({ formulario, codigoMostrado, onC
         <p className={styles.helpText} aria-live="polite">{aviso}</p>
       </div>
       <div className={styles.field}>
-        <label htmlFor="nombre_comercial">Nombre comercial</label>
+        <label htmlFor="nombre_comercial" className="campo-requerido">Nombre comercial</label>
         <input id="nombre_comercial" type="text" name="nombre_comercial" autoComplete="off" value={formulario.nombre_comercial} onChange={onChange} placeholder="Ej.: Aspirina Forte…" maxLength={150} required className={styles.input} />
       </div>
       <div className={styles.formGrid}>
         <div className={styles.field}>
-          <label htmlFor="nombre_generico">Nombre genérico</label>
+          <label htmlFor="nombre_generico" className="campo-requerido">Nombre genérico</label>
           <input id="nombre_generico" type="text" name="nombre_generico" autoComplete="off" value={formulario.nombre_generico} onChange={onChange} placeholder="Ej.: Ácido acetilsalicílico…" maxLength={150} required className={styles.input} />
         </div>
         <div className={styles.field}>

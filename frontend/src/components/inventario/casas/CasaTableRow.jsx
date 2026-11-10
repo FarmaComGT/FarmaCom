@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pencil, Power, Trash2, Phone } from 'lucide-react';
 import styles from '../../../styles/ManagementUI.module.css';
+import MenuAcciones from '../../ui/MenuAcciones.jsx';
 
 export default function CasaTableRow({ casa, onEditar, onCambiarEstado, onContactos, onEliminar, procesando }) {
   return (
@@ -14,18 +15,15 @@ export default function CasaTableRow({ casa, onEditar, onCambiarEstado, onContac
       </td>
       <td data-label="Acciones" className={styles.actionsCell}>
         <div className={styles.rowActions}>
-          <button type="button" onClick={() => onContactos(casa)} className={styles.button} aria-label={`Gestionar contactos de ${casa.nombre}`}>
-            <Phone size={15} aria-hidden="true" /> Contactos
-          </button>
-          <button type="button" onClick={() => onEditar(casa)} className={styles.button} aria-label={`Editar casa farmacéutica ${casa.nombre}`}>
-            <Pencil size={15} aria-hidden="true" /> Editar
-          </button>
-          <button type="button" onClick={() => onCambiarEstado(casa)} disabled={procesando} className={`${styles.button} ${casa.activo ? styles.danger : ''}`} aria-label={`${casa.activo ? 'Desactivar' : 'Activar'} casa farmacéutica ${casa.nombre}`}>
-            <Power size={15} aria-hidden="true" /> {casa.activo ? 'Desactivar' : 'Activar'}
-          </button>
-          <button type="button" onClick={() => onEliminar(casa)} disabled={procesando} aria-label={`Eliminar casa farmacéutica ${casa.nombre}`} className={`${styles.button} ${styles.iconButton} ${styles.danger}`} title="Eliminar">
-            <Trash2 size={15} aria-hidden="true" />
-          </button>
+          <MenuAcciones
+            etiqueta={`Más acciones para ${casa.nombre}`}
+            acciones={[
+              { clave: 'contactos', etiqueta: 'Contactos', icono: Phone, onClick: () => onContactos(casa) },
+              { clave: 'editar', etiqueta: 'Editar', icono: Pencil, onClick: () => onEditar(casa) },
+              { clave: 'estado', etiqueta: casa.activo ? 'Desactivar' : 'Activar', icono: Power, peligro: casa.activo, deshabilitada: procesando, onClick: () => onCambiarEstado(casa) },
+              { clave: 'eliminar', etiqueta: 'Eliminar', icono: Trash2, peligro: true, separadorAntes: true, deshabilitada: procesando, onClick: () => onEliminar(casa) },
+            ]}
+          />
         </div>
       </td>
     </tr>

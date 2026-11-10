@@ -44,8 +44,8 @@ export default function CategoriaFormModal({
 
         <form onSubmit={onSubmit} noValidate className={styles.form}>
           <div className={styles.field}>
-            <label htmlFor="nombre_categoria">Nombre</label>
-            <input
+            <label htmlFor="nombre_categoria" className="campo-requerido">Nombre</label>
+            <input aria-required="true"
               ref={nombreRef}
               id="nombre_categoria"
               type="text"

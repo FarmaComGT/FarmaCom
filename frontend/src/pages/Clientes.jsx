@@ -15,6 +15,7 @@ import { useSearchParams } from 'react-router-dom';
 import ClienteContactosModal from '../components/clientes/ClienteContactosModal';
 import HistorialClienteModal from '../components/clientes/HistorialClienteModal';
 import AccessibleDialog from '../components/ui/AccessibleDialog.jsx';
+import MenuAcciones from '../components/ui/MenuAcciones.jsx';
 import useClientes from '../hooks/useClientes';
 import api from '../api/axios';
 import usePaginacionURL from '../hooks/usePaginacionURL';
@@ -190,10 +191,10 @@ export default function Clientes() {
           <thead>
             <tr>
               <th scope="col" style={{ width: '8%' }}>ID</th>
-              <th scope="col" style={{ width: '22%' }}>Nombre</th>
-              <th scope="col" style={{ width: '14%' }}>NIT</th>
-              <th scope="col" style={{ width: '24%' }}>Observaciones</th>
-              <th scope="col" style={{ width: '32%', textAlign: 'right' }}>Acciones</th>
+              <th scope="col" style={{ width: '28%' }}>Nombre</th>
+              <th scope="col" style={{ width: '16%' }}>NIT</th>
+              <th scope="col" style={{ width: '36%' }}>Observaciones</th>
+              <th scope="col" style={{ width: '12%', textAlign: 'right' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -209,10 +210,15 @@ export default function Clientes() {
                 <td data-label="Observaciones" className={styles.secondary}>{cliente.observaciones || '—'}</td>
                 <td data-label="Acciones" className={styles.actionsCell}>
                   <div className={styles.rowActions}>
-                    <button type="button" onClick={() => setClienteContactos(cliente)} aria-label={`Ver contactos de ${cliente.nombre_cliente}`} className={styles.button}><Contact size={14} aria-hidden="true" /> Contactos</button>
-                    <button type="button" onClick={() => setClienteHistorial(cliente)} aria-label={`Ver historial de ${cliente.nombre_cliente}`} className={styles.button}><History size={14} aria-hidden="true" /> Historial</button>
-                    <button type="button" onClick={() => abrirEditar(cliente)} aria-label={`Editar a ${cliente.nombre_cliente}`} className={styles.button}><Pencil size={14} aria-hidden="true" /> Editar</button>
-                    <button type="button" onClick={() => setEliminarCliente(cliente)} aria-label={`Eliminar a ${cliente.nombre_cliente}`} className={`${styles.button} ${styles.danger}`}><Trash2 size={14} aria-hidden="true" /> Eliminar</button>
+                    <MenuAcciones
+                      etiqueta={`Más acciones para ${cliente.nombre_cliente}`}
+                      acciones={[
+                        { clave: 'contactos', etiqueta: 'Contactos', icono: Contact, onClick: () => setClienteContactos(cliente) },
+                        { clave: 'historial', etiqueta: 'Historial', icono: History, onClick: () => setClienteHistorial(cliente) },
+                        { clave: 'editar', etiqueta: 'Editar', icono: Pencil, onClick: () => abrirEditar(cliente) },
+                        { clave: 'eliminar', etiqueta: 'Eliminar', icono: Trash2, peligro: true, separadorAntes: true, onClick: () => setEliminarCliente(cliente) },
+                      ]}
+                    />
                   </div>
                 </td>
               </tr>
@@ -237,8 +243,8 @@ export default function Clientes() {
           <form onSubmit={guardar} noValidate className={styles.form}>
             <div className={styles.formGrid}>
               <div className={styles.field}>
-                <label htmlFor="nombre-cliente">Nombre completo</label>
-                <input
+                <label htmlFor="nombre-cliente" className="campo-requerido">Nombre completo</label>
+                <input aria-required="true"
                   id="nombre-cliente"
                   name="nombre_cliente"
                   autoComplete="name"

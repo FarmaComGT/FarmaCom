@@ -67,7 +67,7 @@ export default function ProductoPresentacionControl({
           )}
         </div>
         <div className={styles.field}>
-          <label htmlFor="id_presentacion">Presentación del producto</label>
+          <label htmlFor="id_presentacion" className="campo-requerido">Presentación del producto</label>
           <select id="id_presentacion" name="id_presentacion" value={presentacionSeleccionada?.id_presentacion || ''} onChange={onChange} required disabled={cargandoDatos} className={styles.input}>
             <option value="">{cargandoDatos ? 'Cargando presentaciones…' : 'Selecciona una presentación'}</option>
             {(presentaciones || []).map((presentacion) => <option key={presentacion.id_presentacion} value={presentacion.id_presentacion}>{presentacion.nombre}</option>)}

@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import LotesProducto from './LotesProducto';
+import { elegirAccion } from '../../test/menuAcciones';
 
 const mocks = vi.hoisted(() => ({ total: 26, eliminar: vi.fn() }));
 vi.mock('../../api/axios', () => ({ default: { get: vi.fn() } }));
@@ -88,7 +89,8 @@ it('filtra agotados en el servidor y reinicia la página al limpiar filtros', as
 it('corrige la página después de eliminar el último lote de la última página', async () => {
   const user = userEvent.setup();
   mostrar();
-  await user.click(await screen.findByRole('button', { name: 'Eliminar lote LOTE-PÁGINA-2' }));
+  await screen.findByRole('button', { name: 'Más acciones para el lote LOTE-PÁGINA-2' });
+  await elegirAccion(user, 'el lote LOTE-PÁGINA-2', 'Eliminar lote…');
   await user.click(screen.getByRole('button', { name: 'Confirmar eliminación' }));
   await waitFor(() => {
     expect(screen.getByLabelText('URL')).toHaveTextContent('pagina=1');

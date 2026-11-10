@@ -20,8 +20,8 @@ export default function ResultadoAnularModal({ isOpen, resultado, anulando, onCl
         <div className={styles.form}>
           <p id={descripcionId}>¿Deseas anular el resultado de <strong>{resultado.categoria}</strong>? Esta acción no se puede deshacer.</p>
           <div className={styles.field}>
-            <label htmlFor="motivo_anulacion_resultado">Motivo</label>
-            <textarea id="motivo_anulacion_resultado" value={motivo} onChange={(event) => setMotivo(event.target.value)} maxLength={500} rows={3} placeholder="Ej.: Se adjuntó el archivo incorrecto…" className={styles.input} />
+            <label htmlFor="motivo_anulacion_resultado" className="campo-requerido">Motivo</label>
+            <textarea aria-required="true" id="motivo_anulacion_resultado" value={motivo} onChange={(event) => setMotivo(event.target.value)} maxLength={500} rows={3} placeholder="Ej.: Se adjuntó el archivo incorrecto…" className={styles.input} />
           </div>
           <div className={styles.dialogActions}>
             <button type="button" onClick={onClose} disabled={anulando} className={styles.button}>Cancelar</button>

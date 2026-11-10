@@ -76,13 +76,13 @@ export default function LoteStockAjusteModal({
           <div><p className="text-slate-500">Stock resultante</p><p className="mt-1 text-xl font-black tabular-nums text-primary">{stockResultante}</p></div>
         </div>
         <div className="space-y-1">
-          <label htmlFor="cantidad_ajuste" className="text-sm font-semibold text-slate-700">Cantidad del ajuste</label>
-          <input id="cantidad_ajuste" name="cantidad_ajuste" type="number" inputMode="numeric" step="1" value={cantidad} onChange={(evento) => setCantidad(evento.target.value)} placeholder="Ej.: -2 o 5…" className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-base focus-visible:ring-2 focus-visible:ring-primary/30" />
+          <label htmlFor="cantidad_ajuste" className="text-sm font-semibold text-slate-700 campo-requerido">Cantidad del ajuste</label>
+          <input aria-required="true" id="cantidad_ajuste" name="cantidad_ajuste" type="number" inputMode="numeric" step="1" value={cantidad} onChange={(evento) => setCantidad(evento.target.value)} placeholder="Ej.: -2 o 5…" className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-base focus-visible:ring-2 focus-visible:ring-primary/30" />
           <p className="text-xs text-slate-500">Valores positivos agregan existencias; valores negativos las descuentan.</p>
         </div>
         <div className="space-y-1">
-          <label htmlFor="motivo_ajuste" className="text-sm font-semibold text-slate-700">Motivo</label>
-          <textarea id="motivo_ajuste" name="motivo" value={motivo} onChange={(evento) => setMotivo(evento.target.value)} onKeyDown={enviarConAtajo} maxLength={500} rows={3} placeholder="Ej.: Corrección por conteo físico…" className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-base focus-visible:ring-2 focus-visible:ring-primary/30" />
+          <label htmlFor="motivo_ajuste" className="text-sm font-semibold text-slate-700 campo-requerido">Motivo</label>
+          <textarea aria-required="true" id="motivo_ajuste" name="motivo" value={motivo} onChange={(evento) => setMotivo(evento.target.value)} onKeyDown={enviarConAtajo} maxLength={500} rows={3} placeholder="Ej.: Corrección por conteo físico…" className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-base focus-visible:ring-2 focus-visible:ring-primary/30" />
         </div>
         {(errorLocal || error) && <p ref={errorRef} tabIndex={-1} role="alert" className="text-sm font-semibold text-error">{errorLocal || error}</p>}
         <ModalActions divided>

@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Sucursales from './Sucursales.jsx';
+import { elegirAccion } from '../test/menuAcciones';
 
 const acciones = vi.hoisted(() => ({
   crear: vi.fn(),
@@ -108,7 +109,7 @@ describe('pantalla de sucursales', () => {
     acciones.actualizar.mockResolvedValue({ id_sucursal: 1 });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await elegirAccion(user, 'Central', 'Editar');
     const direccion = screen.getByPlaceholderText('Ej.: Calle 10 #45-20…');
     await user.clear(direccion);
     await user.type(direccion, 'Zona 10');
@@ -126,7 +127,7 @@ describe('pantalla de sucursales', () => {
     acciones.actualizar.mockRejectedValue(new Error('No se pudo'));
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await elegirAccion(user, 'Central', 'Editar');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(await screen.findByText('No se pudo')).toBeInTheDocument();
@@ -137,7 +138,7 @@ describe('pantalla de sucursales', () => {
     acciones.eliminar.mockResolvedValue({});
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await elegirAccion(user, 'Central', 'Eliminar');
     expect(screen.getByText('Confirmar eliminación')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
@@ -150,7 +151,7 @@ describe('pantalla de sucursales', () => {
     acciones.eliminar.mockRejectedValue(new Error('No se puede eliminar'));
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await elegirAccion(user, 'Central', 'Eliminar');
     await user.click(screen.getByRole('button', { name: 'Sí, eliminar' }));
 
     expect(await screen.findByText('No se puede eliminar')).toBeInTheDocument();

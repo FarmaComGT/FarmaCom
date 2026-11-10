@@ -165,7 +165,7 @@ export default function PacienteFormModal({
 
         <form onSubmit={manejarEnvio} noValidate className={management.form}>
           <div className={management.field}>
-            <label htmlFor="nombre_paciente">Nombre completo</label>
+            <label htmlFor="nombre_paciente" className="campo-requerido">Nombre completo</label>
             <input ref={nombreRef} id="nombre_paciente" name="nombre_paciente" type="text" autoComplete="name" required maxLength={150} value={formulario.nombre_paciente} onChange={manejarCambio} placeholder="Ej.: Ana López…" className={management.input} aria-invalid={Boolean(errorDe('nombre_paciente'))} aria-describedby={errorDe('nombre_paciente') ? 'error-nombre-paciente' : undefined} />
             {errorDe('nombre_paciente') && <p id="error-nombre-paciente" role="alert" className={management.fieldError}>{errorDe('nombre_paciente')}</p>}
           </div>
@@ -184,7 +184,7 @@ export default function PacienteFormModal({
           </div>
 
           <fieldset className={management.field}>
-            <legend className={management.fieldLabel}>Sexo</legend>
+            <legend className={`${management.fieldLabel} campo-requerido`}>Sexo</legend>
             <div className={laboratory.choiceGroup}>
               {OPCIONES_SEXO.map((opcion) => (
                 <button
@@ -203,7 +203,7 @@ export default function PacienteFormModal({
           </fieldset>
 
           <fieldset className={management.field}>
-            <legend className={management.fieldLabel}>Edad</legend>
+            <legend className={`${management.fieldLabel} campo-requerido`}>Edad</legend>
             <div className={laboratory.segmented}>
               <button type="button" aria-pressed={formulario.modoEdad === 'fecha'} onClick={() => setFormulario((actual) => ({ ...actual, modoEdad: 'fecha' }))} className={laboratory.segmentButton}>Fecha de nacimiento</button>
               <button type="button" aria-pressed={formulario.modoEdad === 'manual'} onClick={() => setFormulario((actual) => ({ ...actual, modoEdad: 'manual' }))} className={laboratory.segmentButton}>Edad manual</button>

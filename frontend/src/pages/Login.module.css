@@ -162,7 +162,7 @@
   height: 18px;
 }
 
-.inputWrap input::placeholder { color: #7a8782; }
+.inputWrap input::placeholder { color: var(--ui-placeholder); opacity: 1; }
 
 .error {
   padding: 11px 13px;

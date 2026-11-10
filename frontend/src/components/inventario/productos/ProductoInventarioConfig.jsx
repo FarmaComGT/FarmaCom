@@ -12,7 +12,7 @@ export default function ProductoInventarioConfig({ formulario, onChange }) {
         </div>
       </div>
       <div className={styles.field}>
-        <label htmlFor="meses_alerta_vencimiento">Meses de alerta de vencimiento</label>
+        <label htmlFor="meses_alerta_vencimiento" className="campo-requerido">Meses de alerta de vencimiento</label>
         <input id="meses_alerta_vencimiento" type="number" inputMode="numeric" name="meses_alerta_vencimiento" value={formulario.meses_alerta_vencimiento} onChange={onChange} placeholder="Ej.: 6…" min="1" step="1" required className={styles.input} />
       </div>
     </section>

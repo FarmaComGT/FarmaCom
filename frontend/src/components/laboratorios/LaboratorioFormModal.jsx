@@ -38,8 +38,8 @@ export default function LaboratorioFormModal({
         <form onSubmit={onSubmit} noValidate className={styles.form}>
           <div className={styles.formGrid}>
             <div className={styles.field}>
-              <label htmlFor="nombre_laboratorio">Nombre del laboratorio</label>
-              <input
+              <label htmlFor="nombre_laboratorio" className="campo-requerido">Nombre del laboratorio</label>
+              <input aria-required="true"
                 id="nombre_laboratorio"
                 type="text"
                 name="nombre_laboratorio"
@@ -52,8 +52,8 @@ export default function LaboratorioFormModal({
             </div>
 
             <div className={styles.field}>
-              <label htmlFor="id_ciudad">Ciudad</label>
-              <select
+              <label htmlFor="id_ciudad" className="campo-requerido">Ciudad</label>
+              <select aria-required="true"
                 id="id_ciudad"
                 name="id_ciudad"
                 value={formulario.id_ciudad}
@@ -69,8 +69,8 @@ export default function LaboratorioFormModal({
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="direccion_laboratorio">Dirección</label>
-            <textarea
+            <label htmlFor="direccion_laboratorio" className="campo-requerido">Dirección</label>
+            <textarea aria-required="true"
               id="direccion_laboratorio"
               name="direccion"
               autoComplete="street-address"

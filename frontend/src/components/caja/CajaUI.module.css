@@ -40,7 +40,7 @@
 .input { min-width: 0; width: 100%; min-height: 40px; border: 1px solid var(--cash-control); border-radius: 6px; padding: 9px 10px; color: var(--cash-ink); background-color: var(--cash-surface); font-family: var(--font-sans); font-size: 14px; line-height: 20px; }
 select.input { padding-right: 28px; cursor: pointer; }
 textarea.input { resize: vertical; min-height: 94px; }
-.input::placeholder { color: var(--cash-muted); }
+.input::placeholder { color: var(--ui-placeholder); opacity: 1; }
 .input:hover { border-color: var(--cash-muted); }
 .input:disabled { background: #f2f5f3; cursor: not-allowed; color: var(--cash-muted); }
 .input[aria-invalid="true"] { border-color: var(--cash-danger); }

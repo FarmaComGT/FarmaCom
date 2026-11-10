@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import usePaginacionURL, { leerPaginacionURL } from '../../../hooks/usePaginacionURL.js';
 import Paginacion from '../../ui/Paginacion.jsx';
 import ContentState from '../../ui/ContentState.jsx';
+import MenuAcciones from '../../ui/MenuAcciones.jsx';
 import EstadoBadge from './EstadoBadge.jsx';
 import useLotesProducto from '../../../hooks/useLotesProducto.js';
 import { pluralizarPresentacion } from '../../../constants/presentaciones.js';
@@ -65,15 +66,14 @@ export default function LotesDeProductoTable({
       {mostrarAcciones && (
         <td data-label="Acciones" className={styles.actionsCell}>
           <div className={styles.rowActions}>
-            {onAjustar && <button type="button" onClick={() => onAjustar(lote)} className={`${styles.button} ${styles.iconButton}`} aria-label={`Ajustar stock del lote ${lote.numero_lote}`} title="Ajustar stock…">
-              <SlidersHorizontal size={15} aria-hidden="true" />
-            </button>}
-            {onEditar && <button type="button" onClick={() => onEditar(lote)} className={`${styles.button} ${styles.iconButton}`} aria-label={`Editar lote ${lote.numero_lote}`} title="Editar lote…">
-              <Pencil size={15} aria-hidden="true" />
-            </button>}
-            {onEliminar && <button type="button" onClick={() => onEliminar(lote)} className={`${styles.button} ${styles.iconButton} ${styles.danger}`} aria-label={`Eliminar lote ${lote.numero_lote}`} title="Eliminar lote…">
-              <Trash2 size={15} aria-hidden="true" />
-            </button>}
+            <MenuAcciones
+              etiqueta={`Más acciones para el lote ${lote.numero_lote}`}
+              acciones={[
+                { clave: 'ajustar', etiqueta: 'Ajustar stock…', icono: SlidersHorizontal, oculta: !onAjustar, onClick: () => onAjustar(lote) },
+                { clave: 'editar', etiqueta: 'Editar lote…', icono: Pencil, oculta: !onEditar, onClick: () => onEditar(lote) },
+                { clave: 'eliminar', etiqueta: 'Eliminar lote…', icono: Trash2, peligro: true, separadorAntes: true, oculta: !onEliminar, onClick: () => onEliminar(lote) },
+              ]}
+            />
           </div>
         </td>
       )}

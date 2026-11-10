@@ -45,7 +45,8 @@ describe('PromocionesTable', () => {
       onCambiarEstado={onCambiarEstado}
     />);
 
-    await user.click(screen.getByRole('button', { name: /Desactivar Producto/ }));
+    await user.click(screen.getByRole('button', { name: /Más acciones para Producto/ }));
+    await user.click(screen.getByRole('button', { name: 'Desactivar' }));
     expect(onCambiarEstado).toHaveBeenCalledWith(promocion);
   });
 

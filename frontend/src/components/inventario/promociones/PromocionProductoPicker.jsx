@@ -89,9 +89,9 @@ export default function PromocionProductoPicker({ producto, onSeleccionar, bloqu
   </div>;
 
   return <div className={styles.field}>
-    <label htmlFor="promocion-producto">Buscar producto</label>
+    <label htmlFor="promocion-producto" className="campo-requerido">Buscar producto</label>
     <div className={local.scanRow}>
-      <input ref={ref} id="promocion-producto" name="id_producto" type="search" autoComplete="off" spellCheck={false}
+      <input aria-required="true" ref={ref} id="promocion-producto" name="id_producto" type="search" autoComplete="off" spellCheck={false}
         value={busqueda} onChange={cambiarBusqueda} disabled={bloqueado} className={styles.input}
         placeholder="Nombre, código o código de barras…" aria-invalid={Boolean(error || errorLectura)} aria-describedby="promocion-producto-ayuda"
         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); void leerCodigo(busqueda); } }} />

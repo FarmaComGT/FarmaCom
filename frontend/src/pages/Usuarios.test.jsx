@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Usuarios from './Usuarios.jsx';
+import { elegirAccion } from '../test/menuAcciones';
 
 const acciones = vi.hoisted(() => ({
   crear: vi.fn(),
@@ -86,7 +87,7 @@ describe('pantalla de usuarios', () => {
   it('oculta el restablecimiento para administradores también dentro de Editar', async () => {
     acciones.sesion = { id_usuario: 99, id_sucursal: 1, rol: 'administrador' };
     renderizar();
-    await userEvent.click(screen.getByRole('button', { name: 'Editar' }));
+    await elegirAccion(userEvent, 'Juan Pérez', 'Editar');
     expect(screen.queryByRole('button', { name: /Restablecer contraseña/ })).not.toBeInTheDocument();
   });
 
@@ -95,7 +96,7 @@ describe('pantalla de usuarios', () => {
     acciones.restablecerContrasena.mockResolvedValue({});
     const user = userEvent.setup();
     renderizar();
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await elegirAccion(user, 'Juan Pérez', 'Editar');
     await user.click(screen.getByRole('button', { name: 'Restablecer contraseña…' }));
     await user.type(screen.getByLabelText('Nueva contraseña'), 'luna bosque rio cobre');
     await user.type(screen.getByLabelText('Confirmar nueva contraseña'), 'luna bosque rio cobre');
@@ -227,7 +228,7 @@ describe('pantalla de usuarios', () => {
     acciones.actualizar.mockResolvedValue({ id_usuario: 1 });
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await elegirAccion(user, 'Juan Pérez', 'Editar');
     expect(screen.queryByPlaceholderText('Mínimo 15 caracteres…')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
@@ -246,7 +247,7 @@ describe('pantalla de usuarios', () => {
     acciones.actualizar.mockRejectedValue(new Error('No se pudo guardar'));
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await elegirAccion(user, 'Juan Pérez', 'Editar');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(await screen.findByText('No se pudo guardar')).toBeInTheDocument();
@@ -257,7 +258,7 @@ describe('pantalla de usuarios', () => {
     acciones.cambiarEstado.mockResolvedValue({});
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Desactivar' }));
+    await elegirAccion(user, 'Juan Pérez', 'Desactivar');
     expect(screen.getByText('desactivar usuario')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Sí, desactivar' }));
@@ -270,7 +271,7 @@ describe('pantalla de usuarios', () => {
     acciones.cambiarEstado.mockRejectedValue(new Error('No se pudo cambiar'));
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Desactivar' }));
+    await elegirAccion(user, 'Juan Pérez', 'Desactivar');
     await user.click(screen.getByRole('button', { name: 'Sí, desactivar' }));
 
     expect(await screen.findByText('No se pudo cambiar')).toBeInTheDocument();
@@ -280,7 +281,7 @@ describe('pantalla de usuarios', () => {
     const user = userEvent.setup();
     renderizar();
 
-    await user.click(screen.getByRole('button', { name: 'Desactivar' }));
+    await elegirAccion(user, 'Juan Pérez', 'Desactivar');
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
 
     expect(screen.queryByText('desactivar usuario')).not.toBeInTheDocument();

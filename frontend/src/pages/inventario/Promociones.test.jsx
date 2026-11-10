@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../context/ToastContext.jsx';
 import api from '../../api/axios';
 import Promociones from './Promociones';
+import { elegirAccion } from '../../test/menuAcciones';
 
 const mocks = vi.hoisted(() => ({ crear: vi.fn(), actualizar: vi.fn(), cambiarEstado: vi.fn(), refrescar: vi.fn(), consulta: vi.fn(), usuario: { rol: 'administrador' }, promociones: [] }));
 vi.mock('../../api/axios', () => ({ default: { get: vi.fn() } }));
@@ -136,7 +137,7 @@ describe('promociones generales', () => {
   it('muestra confirmación propia y conserva errores al cambiar estado', async () => {
     mocks.cambiarEstado.mockRejectedValue(new Error('No se pudo cambiar'));
     const usuario = userEvent.setup(); mostrar();
-    await usuario.click(screen.getByRole('button', { name: 'Desactivar Mayoreo central' }));
+    await elegirAccion(usuario, 'Mayoreo central', 'Desactivar');
     const dialogo = screen.getByRole('dialog', { name: 'Desactivar promoción' });
     await usuario.click(within(dialogo).getByRole('button', { name: 'Desactivar', exact: true }));
     expect(await within(dialogo).findByRole('alert')).toHaveTextContent('No se pudo cambiar');

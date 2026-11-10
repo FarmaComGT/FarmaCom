@@ -1,5 +1,6 @@
 import React from 'react';
-import { LoaderCircle, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
+import MenuAcciones from '../ui/MenuAcciones.jsx';
 import ui from './CajaUI.module.css';
 import styles from './CajaTable.module.css';
 
@@ -15,10 +16,15 @@ export default function CajaTable({ cargando, cajas, onEditar, onCambiarEstado, 
           <td>{caja.nombre_sucursal}</td>
           <td><span className={`${ui.badge} ${caja.activa ? ui.active : ''}`}>{caja.activa ? 'Activa' : 'Inactiva'}</span></td>
           <td><div className={styles.rowActions}>
-            <button type="button" onClick={() => onEditar(caja)} aria-label={`Editar ${caja.nombre}`} className={ui.button}><Pencil size={14} aria-hidden="true" />Editar</button>
-            <button type="button" onClick={() => onCambiarEstado(caja)} disabled={cambiandoEstadoId === caja.id_caja} aria-label={`${caja.activa ? 'Desactivar' : 'Activar'} ${caja.nombre}`} title={caja.activa ? 'Desactivar' : 'Activar'} className={`${ui.button} ${ui.iconButton}`}>
-              {cambiandoEstadoId === caja.id_caja ? <LoaderCircle size={18} className={ui.spinner} aria-hidden="true" /> : caja.activa ? <ToggleRight size={18} aria-hidden="true" /> : <ToggleLeft size={18} aria-hidden="true" />}
-            </button>
+            <MenuAcciones
+              etiqueta={`Más acciones para ${caja.nombre}`}
+              claseBoton={`${ui.button} ${ui.iconButton}`}
+              ocupado={cambiandoEstadoId === caja.id_caja}
+              acciones={[
+                { clave: 'editar', etiqueta: 'Editar', icono: Pencil, onClick: () => onEditar(caja) },
+                { clave: 'estado', etiqueta: caja.activa ? 'Desactivar' : 'Activar', icono: caja.activa ? ToggleRight : ToggleLeft, peligro: caja.activa, onClick: () => onCambiarEstado(caja) },
+              ]}
+            />
           </div></td>
         </tr>)}
       </tbody>

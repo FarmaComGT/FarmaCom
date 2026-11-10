@@ -131,7 +131,7 @@
   color: var(--management-ink);
   font-size: 16px;
 }
-.input::placeholder { color: #7a8580; }
+.input::placeholder { color: var(--ui-placeholder); opacity: 1; }
 .addBox { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--management-line); }
 .addLabel { display: block; margin-bottom: 6px; color: var(--management-muted); font-size: 12px; font-weight: 650; }
 .emptyContact { margin: 0 0 12px; color: var(--management-muted); font-size: 13px; }

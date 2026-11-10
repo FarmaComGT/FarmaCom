@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pencil, Phone, Trash2 } from 'lucide-react';
 import styles from '../../styles/ManagementUI.module.css';
+import MenuAcciones from '../ui/MenuAcciones.jsx';
 
 export default function SucursalTableRow({
   sucursal,
@@ -17,15 +18,15 @@ export default function SucursalTableRow({
       <td data-label="Dirección" className={styles.secondary}>{sucursal.direccion}</td>
       <td data-label="Acciones" className={styles.actionsCell}>
         <div className={styles.rowActions}>
-          <button type="button" onClick={() => onContactos(sucursal)} className={styles.button}>
-            <Phone size={14} aria-hidden="true" /> Contactos
-          </button>
-          <button type="button" onClick={() => onEditar(sucursal)} className={styles.button}>
-            <Pencil size={14} aria-hidden="true" /> Editar
-          </button>
-          <button type="button" onClick={() => onEliminar(sucursal)} disabled={eliminando} className={`${styles.button} ${styles.danger}`}>
-            <Trash2 size={14} aria-hidden="true" /> {eliminando ? 'Eliminando…' : 'Eliminar'}
-          </button>
+          <MenuAcciones
+            etiqueta={`Más acciones para ${sucursal.nombre_sucursal}`}
+            ocupado={eliminando}
+            acciones={[
+              { clave: 'contactos', etiqueta: 'Contactos', icono: Phone, onClick: () => onContactos(sucursal) },
+              { clave: 'editar', etiqueta: 'Editar', icono: Pencil, onClick: () => onEditar(sucursal) },
+              { clave: 'eliminar', etiqueta: 'Eliminar', icono: Trash2, peligro: true, separadorAntes: true, onClick: () => onEliminar(sucursal) },
+            ]}
+          />
         </div>
       </td>
     </tr>
